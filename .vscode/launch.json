@@ -1,0 +1,14 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python Debugger: Current File (Conda)",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            // 這裡指定你的 conda 環境路徑 (Windows)
+            "python": "C:\\apps\\miniforge\\envs\\cube_engine\\python.exe"
+        }
+    ]
+}
