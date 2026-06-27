@@ -12,7 +12,10 @@ from tictactoe3d_logic import (
     is_valid_move,
     set_cell,
 )
-
+from tictactoe3d_nnet import NNetWrapper # 引入你的 AI 包裝層
+from game_for_training import TicTacToe3DGame # 引入遊戲規則層
+from utils import dotdict
+import numpy as np
 
 # -----------------------------
 # 畫面常數設定
@@ -40,9 +43,10 @@ O_COLOR = (220, 80, 80)
 HIGHLIGHT_COLOR = (44, 170, 100)
 BTN_COLOR = (70, 110, 190)
 BTN_TEXT_COLOR = (255, 255, 255)
+args = dotdict({'num_channels': 128, 'dropout': 0.3})
 
 
-def ai_move(board):
+def ai_move(board, player):
     """
     AI 落子介面 (玩家2)。
 
@@ -50,10 +54,33 @@ def ai_move(board):
     未來可在這裡替換為「訓練好的 AI 模型推理」，
     而不用修改其他 pygame 畫面或流程程式碼。
     """
-    legal_moves = get_legal_moves(board)
-    if not legal_moves:
-        return None
-    return random.choice(legal_moves)
+    # 1. 初始化 AI
+    game = TicTacToe3DGame()
+    nnet = NNetWrapper(game, args)
+    
+    # 2. 載入訓練好的最佳權重
+    nnet.load_checkpoint('./checkpoints/', 'best.pth.tar')
+    
+    # 3. 將棋盤轉為 AI 視角 (Canonical Form)
+    canonical_board = game.getCanonicalForm(board, player)
+    
+    # 4. 取得 AI 的策略機率分佈 (pi)
+    pi, _ = nnet.predict(canonical_board)
+    
+    # 5. 根據策略，選擇機率最高的合法動作
+    valids = game.getValidMoves(canonical_board, 1)
+    
+    # 遮罩非法落子：將非法動作機率設為 0
+    pi = pi * valids
+    
+    # 選擇機率最高的一步
+    action = int(np.argmax(pi))
+    
+    # 將 action 解碼為 (x, y, z) 並回傳
+    x = action // 9
+    y = (action % 9) // 3
+    z = action % 3
+    return (x, y ,z)
 
 
 def load_font(size, bold=False):
@@ -144,7 +171,7 @@ def draw_board(screen, board, cell_rects, fonts, hover_cell=None):
                     mark = font_big.render("X", True, X_COLOR)
                     mark_rect = mark.get_rect(center=rect.center)
                     screen.blit(mark, mark_rect)
-                elif cell_value == 2:
+                elif cell_value == -1:
                     mark = font_big.render("O", True, O_COLOR)
                     mark_rect = mark.get_rect(center=rect.center)
                     screen.blit(mark, mark_rect)
@@ -198,14 +225,15 @@ def try_player_move(board, cell_rects, mouse_pos):
     return False
 
 
-def do_ai_turn(board):
+def do_ai_turn(board, player):
     """執行 AI (玩家2) 落子。"""
-    move = ai_move(board)
+    # 如果遊戲是 1, 2，但 AI 訓練時是 1, -1
+    move = ai_move(board, player)
     if move is None:
         return
     x, y, z = move
     if is_valid_move(board, x, y, z):
-        set_cell(board, x, y, z, 2)
+        set_cell(board, x, y, z, player)
 
 
 def main():
@@ -247,11 +275,11 @@ def main():
                     if moved:
                         status = game_status(board)
                         if status == "ongoing":
-                            current_player = 2
+                            current_player = -1
 
         # AI 回合: 玩家下完後自動執行
-        if status == "ongoing" and current_player == 2:
-            do_ai_turn(board)
+        if status == "ongoing" and current_player == -1:
+            do_ai_turn(board, current_player)
             status = game_status(board)
             if status == "ongoing":
                 current_player = 1

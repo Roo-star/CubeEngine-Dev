@@ -1,0 +1,6 @@
+numpy>=1.24.0,<2.0.0
+pygame==2.6
+ursina
+dearpygui
+coloredlogs
+tqdm
