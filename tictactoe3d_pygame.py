@@ -43,7 +43,7 @@ O_COLOR = (220, 80, 80)
 HIGHLIGHT_COLOR = (44, 170, 100)
 BTN_COLOR = (70, 110, 190)
 BTN_TEXT_COLOR = (255, 255, 255)
-args = dotdict({'num_channels': 128, 'dropout': 0.3})
+args = dotdict({'num_channels': 64, 'dropout': 0.3})
 
 
 def ai_move(board, player):

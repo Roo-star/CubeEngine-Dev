@@ -39,7 +39,7 @@ args = dotdict({
     'lr': 0.001,                    # 學習率
     'dropout': 0.3,                 # 防止過擬合的丟棄率
     'epochs': 6,                    # 驗證用：每輪棋譜只練 2 個 Epoch。正式訓練建議：10~15
-    'num_channels': 128,             # 3D-CNN 卷積核的通道深度
+    'num_channels': 64,             # 3D-CNN 卷積核的通道深度
 })
 
 def main():
