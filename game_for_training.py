@@ -2,10 +2,7 @@ import numpy as np
 from Game import Game  # 繼承 alpha-zero-general 的基類
 
 class TicTacToe3DGame(Game):
-<<<<<<< HEAD
     WINNING_LINES = None  # 类变量
-=======
->>>>>>> origin/dev
     def __init__(self):
         super(TicTacToe3DGame, self).__init__()
         self.grid_size = 3
@@ -35,11 +32,8 @@ class TicTacToe3DGame(Game):
         z = action % 3
         
         # 在對應的矩陣位置落子 (注意索引維持 z, y, x)
-<<<<<<< HEAD
         if b[z, y, x] != 0:
             raise ValueError(f"Invalid move: position ({x},{y},{z}) already occupied")
-=======
->>>>>>> origin/dev
         b[z, y, x] = player
         
         # 回傳新棋盤與換手（1 變 -1，-1 變 1）
@@ -62,11 +56,8 @@ class TicTacToe3DGame(Game):
                 valid_moves[action] = 1
                 
         return valid_moves
-<<<<<<< HEAD
         # b = np.asarray(board).reshape(-1)  # 展平为27维
         # return (b == 0).astype(int) 
-=======
->>>>>>> origin/dev
 
     def getGameEnded(self, board, player):
         """
@@ -101,7 +92,6 @@ class TicTacToe3DGame(Game):
 
     def getSymmetries(self, board, pi):
         """
-<<<<<<< HEAD
         為 3D 井字棋量身打造的 3D 空間數據增強 (支援 48 種旋轉與鏡像組合)
         完美適配目前的 (z, y, x) 棋盤與一維 pi 映射
         """
@@ -150,22 +140,12 @@ class TicTacToe3DGame(Game):
                             symmetries_dict[b_bytes] = (b, list(p_flat))
                             
         return list(symmetries_dict.values())
-=======
-        MVP 階段的數據增強實作：先不進行 3D 空間的旋轉/鏡像增強，
-        直接原樣回傳，確保 pipeline 最快跑通。後期優化再加入旋轉。
-        """
-        return [(board, pi)]
->>>>>>> origin/dev
 
     def stringRepresentation(self, board):
         """將棋盤轉成 bytes，做為 MCTS 字典的唯一 Key"""
         b = np.asarray(board).reshape(3, 3, 3)
-<<<<<<< HEAD
         return b.tobytes()  
         # return np.asarray(board).tobytes() 
-=======
-        return b.tobytes()
->>>>>>> origin/dev
 
     # ==========================================================
     # 內部私有檢查邏輯（相容 1 與 -1 的 3D 連線演算法）

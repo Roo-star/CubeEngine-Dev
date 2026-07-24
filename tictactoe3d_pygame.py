@@ -16,10 +16,7 @@ from tictactoe3d_logic import (
 )
 from tictactoe3d_nnet import NNetWrapper # 引入你的 AI 包裝層
 from game_for_training import TicTacToe3DGame # 引入遊戲規則層
-<<<<<<< HEAD
 from MCTS import MCTS
-=======
->>>>>>> origin/dev
 from utils import dotdict
 import numpy as np
 
@@ -49,7 +46,6 @@ O_COLOR = (220, 80, 80)
 HIGHLIGHT_COLOR = (44, 170, 100)
 BTN_COLOR = (70, 110, 190)
 BTN_TEXT_COLOR = (255, 255, 255)
-<<<<<<< HEAD
 args = dotdict({
     'num_channels': 128,
     'dropout': 0.3,
@@ -128,47 +124,6 @@ def ai_move(board, player):
     y = (action % 9) // 3
     z = action % 3
     return (x, y, z)
-=======
-args = dotdict({'num_channels': 64, 'dropout': 0.3})
-
-
-def ai_move(board, player):
-    """
-    AI 落子介面 (玩家2)。
-
-    目前先用隨機策略當佔位：從合法步中隨機選一格。
-    未來可在這裡替換為「訓練好的 AI 模型推理」，
-    而不用修改其他 pygame 畫面或流程程式碼。
-    """
-    # 1. 初始化 AI
-    game = TicTacToe3DGame()
-    nnet = NNetWrapper(game, args)
-    
-    # 2. 載入訓練好的最佳權重（用相對「腳本檔案」的絕對路徑，避免受工作目錄影響）
-    ckpt_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'checkpoints')
-    nnet.load_checkpoint(ckpt_dir, 'best.pth.tar')
-    
-    # 3. 將棋盤轉為 AI 視角 (Canonical Form)
-    canonical_board = game.getCanonicalForm(board, player)
-    
-    # 4. 取得 AI 的策略機率分佈 (pi)
-    pi, _ = nnet.predict(canonical_board)
-    
-    # 5. 根據策略，選擇機率最高的合法動作
-    valids = game.getValidMoves(canonical_board, 1)
-    
-    # 遮罩非法落子：將非法動作機率設為 0
-    pi = pi * valids
-    
-    # 選擇機率最高的一步
-    action = int(np.argmax(pi))
-    
-    # 將 action 解碼為 (x, y, z) 並回傳
-    x = action // 9
-    y = (action % 9) // 3
-    z = action % 3
-    return (x, y ,z)
->>>>>>> origin/dev
 
 
 def load_font(size, bold=False):
