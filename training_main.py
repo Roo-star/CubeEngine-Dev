@@ -18,20 +18,20 @@ args = dotdict({
     
     # 2. 自對弈（Self-Play）參數
     'numEps': 100,                    # 驗證用：每輪只自己跟自己下 4 盤收集棋譜。正式訓練建議：100+
-    'tempThreshold': 30,            # 前幾步探索落子的隨機度閥值
+    'tempThreshold': 10,           # 前幾步探索；超過後 temp=0 以強化終局戰術（如擋子）
     'maxlenOfQueue': 200000,        # 記憶體中最多存放的棋譜步數
     
     # 3. MCTS (蒙地卡羅樹搜尋) 腦內模擬次數
-    'numMCTSSims': 200,              # 驗證用：每次落子只模擬 10 步（關鍵加速點）。正式訓練建議：100~200
+    'numMCTSSims': 400,              # 驗證用：每次落子只模擬 10 步（關鍵加速點）。正式訓練建議：100~200
     
     # 4. 新舊模型對決（Arena）參數
     'arenaCompare': 40,              # 驗證用：新舊模型只互打 2 盤（必須是偶數）。正式訓練建議：40+
     'updateThreshold': 0.55,        # 新模型在對決中勝率必須超過 55% 才會被錄用為下一代 best.pth.tar
-    'cpuct': 2.0,                   # MCTS 的探索與維護權重常數 (UCT 算法中的 C)
+    'cpuct': 1.2,                   # MCTS 的探索與維護權重常數 (UCT 算法中的 C)
 
     # 5. 模型儲存與載入設定
     'checkpoint': './checkpoints/',  # 權重儲存資料夾
-    'load_model': False,            # 是否要讀取舊模型繼續練
+    'load_model': True,            # 是否要讀取舊模型繼續練
     'load_folder_file': ('./checkpoints/', 'best.pth.tar'),
     'numItersForTrainExamplesHistory': 15, # 保留過去幾輪的棋譜一起訓練
 
@@ -63,7 +63,7 @@ def main():
     log.info('--- 步驟 3: 喚醒 Coach 總教練，開始組裝自動化 Pipeline ---')
     c = Coach(g, nnet, args)
 
-    log.info('--- 步驟 4: 啟動進化循環 (自對弈 -> 收集 -> 訓練 -> 對決 -> 跌代) ---')
+    log.info('--- 步驟 4: 啟動進化循環 (自對弈 -> 收集 -> 訓練 -> 對決 -> 遞代) ---')
     c.learn()
 
 if __name__ == "__main__":

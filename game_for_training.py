@@ -2,6 +2,7 @@ import numpy as np
 from Game import Game  # 繼承 alpha-zero-general 的基類
 
 class TicTacToe3DGame(Game):
+    WINNING_LINES = None  # 类变量
     def __init__(self):
         super(TicTacToe3DGame, self).__init__()
         self.grid_size = 3
@@ -31,6 +32,8 @@ class TicTacToe3DGame(Game):
         z = action % 3
         
         # 在對應的矩陣位置落子 (注意索引維持 z, y, x)
+        if b[z, y, x] != 0:
+            raise ValueError(f"Invalid move: position ({x},{y},{z}) already occupied")
         b[z, y, x] = player
         
         # 回傳新棋盤與換手（1 變 -1，-1 變 1）
@@ -53,6 +56,8 @@ class TicTacToe3DGame(Game):
                 valid_moves[action] = 1
                 
         return valid_moves
+        # b = np.asarray(board).reshape(-1)  # 展平为27维
+        # return (b == 0).astype(int) 
 
     def getGameEnded(self, board, player):
         """
@@ -87,15 +92,60 @@ class TicTacToe3DGame(Game):
 
     def getSymmetries(self, board, pi):
         """
-        MVP 階段的數據增強實作：先不進行 3D 空間的旋轉/鏡像增強，
-        直接原樣回傳，確保 pipeline 最快跑通。後期優化再加入旋轉。
+        為 3D 井字棋量身打造的 3D 空間數據增強 (支援 48 種旋轉與鏡像組合)
+        完美適配目前的 (z, y, x) 棋盤與一維 pi 映射
         """
-        return [(board, pi)]
+        # 1. 將一維的 pi 向量還原為 3D 矩陣
+        # 根據 action 解碼邏輯 (x=action//9, z=action%3)，初始 reshape 出來的維度是 (X, Y, Z)
+        pi_xyz = np.reshape(pi, (3, 3, 3))
+        
+        # 2. 【核心軸對齊】將 pi 的維度從 (X, Y, Z) 轉換成與 board 一致的 (Z, Y, X)
+        # 這樣後續的空間旋轉函數才能同時正確作用在棋盤與策略機率上
+        pi_board = pi_xyz.transpose(2, 1, 0)
+        
+        symmetries_dict = {}
+
+        # 3. 窮舉 3D 空間的所有旋轉與翻轉組合 (共 48 種可能，去重後保留獨特盤面)
+        for x_rot in range(4):
+            for y_rot in range(4):
+                for z_rot in range(4):
+                    for flip in [False, True]:
+                        # 複製當前狀態進行旋轉
+                        b = np.copy(board)
+                        p = np.copy(pi_board)
+                        
+                        # 繞各個軸旋轉
+                        if x_rot > 0:
+                            b = np.rot90(b, x_rot, axes=(1, 2))  # Y-X 平面旋轉
+                            p = np.rot90(p, x_rot, axes=(1, 2))
+                        if y_rot > 0:
+                            b = np.rot90(b, y_rot, axes=(0, 2))  # Z-X 平面旋轉
+                            p = np.rot90(p, y_rot, axes=(0, 2))
+                        if z_rot > 0:
+                            b = np.rot90(b, z_rot, axes=(0, 1))  # Z-Y 平面旋轉
+                            p = np.rot90(p, z_rot, axes=(0, 1))
+                        
+                        # 鏡像翻轉 (增加防守對稱性)
+                        if flip:
+                            b = np.flip(b, axis=0)  # 沿 Z 軸翻轉
+                            p = np.flip(p, axis=0)
+                            
+                        # 使用 tobytes() 作為唯一的字典 Key 進行盤面去重
+                        b_bytes = b.tobytes()
+                        if b_bytes not in symmetries_dict:
+                            # 4. 【還原軸順序】將 p 從 (Z, Y, X) 轉回 (X, Y, Z)，再拉平成一維 27 維向量
+                            # 這樣才能完美對應你的 x = action // 9 解碼規則
+                            p_flat = p.transpose(2, 1, 0).ravel()
+                            
+                            symmetries_dict[b_bytes] = (b, list(p_flat))
+                            
+        return list(symmetries_dict.values())
 
     def stringRepresentation(self, board):
         """將棋盤轉成 bytes，做為 MCTS 字典的唯一 Key"""
         b = np.asarray(board).reshape(3, 3, 3)
-        return b.tobytes()
+        return b.tobytes()  
+        # return np.asarray(board).tobytes() 
 
     # ==========================================================
     # 內部私有檢查邏輯（相容 1 與 -1 的 3D 連線演算法）
