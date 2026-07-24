@@ -18,7 +18,11 @@ args = dotdict({
     
     # 2. 自對弈（Self-Play）參數
     'numEps': 100,                    # 驗證用：每輪只自己跟自己下 4 盤收集棋譜。正式訓練建議：100+
+<<<<<<< HEAD
     'tempThreshold': 10,           # 前幾步探索；超過後 temp=0 以強化終局戰術（如擋子）
+=======
+    'tempThreshold': 30,            # 前幾步探索落子的隨機度閥值
+>>>>>>> origin/dev
     'maxlenOfQueue': 200000,        # 記憶體中最多存放的棋譜步數
     
     # 3. MCTS (蒙地卡羅樹搜尋) 腦內模擬次數
@@ -38,8 +42,13 @@ args = dotdict({
     # 6. 3D 神經網路內部超參數 (傳遞給 TicTacToe3DNNet)
     'lr': 0.001,                    # 學習率
     'dropout': 0.3,                 # 防止過擬合的丟棄率
+<<<<<<< HEAD
     'epochs': 10,                    # 驗證用：每輪棋譜只練 2 個 Epoch。正式訓練建議：10~15
     'num_channels': 128,             # 3D-CNN 卷積核的通道深度
+=======
+    'epochs': 6,                    # 驗證用：每輪棋譜只練 2 個 Epoch。正式訓練建議：10~15
+    'num_channels': 64,             # 3D-CNN 卷積核的通道深度
+>>>>>>> origin/dev
 })
 
 def main():
@@ -63,7 +72,11 @@ def main():
     log.info('--- 步驟 3: 喚醒 Coach 總教練，開始組裝自動化 Pipeline ---')
     c = Coach(g, nnet, args)
 
+<<<<<<< HEAD
     log.info('--- 步驟 4: 啟動進化循環 (自對弈 -> 收集 -> 訓練 -> 對決 -> 遞代) ---')
+=======
+    log.info('--- 步驟 4: 啟動進化循環 (自對弈 -> 收集 -> 訓練 -> 對決 -> 跌代) ---')
+>>>>>>> origin/dev
     c.learn()
 
 if __name__ == "__main__":

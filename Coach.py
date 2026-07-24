@@ -1,8 +1,14 @@
+<<<<<<< HEAD
 import json
 import logging
 import os
 import sys
 import time
+=======
+import logging
+import os
+import sys
+>>>>>>> origin/dev
 from collections import deque
 from pickle import Pickler, Unpickler
 from random import shuffle
@@ -16,6 +22,7 @@ from MCTS import MCTS
 log = logging.getLogger(__name__)
 
 
+<<<<<<< HEAD
 def _debug_log(hypothesis_id, location, message, data, run_id='pre-fix'):
     # region agent log
     try:
@@ -34,6 +41,8 @@ def _debug_log(hypothesis_id, location, message, data, run_id='pre-fix'):
     # endregion
 
 
+=======
+>>>>>>> origin/dev
 class Coach():
     """
     This class executes the self-play + learning. It uses the functions defined
@@ -75,6 +84,7 @@ class Coach():
             canonicalBoard = self.game.getCanonicalForm(board, self.curPlayer)
             temp = int(episodeStep < self.args.tempThreshold)
 
+<<<<<<< HEAD
             # region agent log
             if episodeStep <= 3 or episodeStep >= self.args.tempThreshold:
                 _debug_log('H2', 'Coach.py:executeEpisode', 'self-play temperature', {
@@ -84,6 +94,8 @@ class Coach():
                 })
             # endregion
 
+=======
+>>>>>>> origin/dev
             pi = self.mcts.getActionProb(canonicalBoard, temp=temp)
             sym = self.game.getSymmetries(canonicalBoard, pi)
             for b, p in sym:
@@ -133,6 +145,7 @@ class Coach():
             for e in self.trainExamplesHistory:
                 trainExamples.extend(e)
             shuffle(trainExamples)
+<<<<<<< HEAD
             # 1. 将样本按胜负结果分组 (draw uses 1e-4 from getGameEnded, not 0)
             win_examples = [ex for ex in trainExamples if ex[2] > 0.5]
             lose_examples = [ex for ex in trainExamples if ex[2] < -0.5]
@@ -152,6 +165,12 @@ class Coach():
                 'draw_sample_values': [ex[2] for ex in draw_examples[:3]],
             })
             # endregion
+=======
+            # 1. 将样本按胜负结果分组
+            win_examples = [ex for ex in trainExamples if ex[2] == 1]   # 假设1表示赢
+            lose_examples = [ex for ex in trainExamples if ex[2] == -1]  # 假设-1表示输
+            draw_examples = [ex for ex in trainExamples if ex[2] == 0]
+>>>>>>> origin/dev
 
             # 2. 调整采样权重 (这里只是演示思路，不唯一)
             # 例如：将失败样本的数量复制3倍，强行提高其比例
