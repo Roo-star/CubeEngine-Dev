@@ -85,7 +85,6 @@ def _get_ai_engine():
         ckpt_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'checkpoints')
         nnet.load_checkpoint(ckpt_dir, 'best.pth.tar')
      
-        nnet.load_checkpoint('./checkpoints/', 'best.pth.tar')
         _ai_engine = {
             'game': game,
             'nnet': nnet,
