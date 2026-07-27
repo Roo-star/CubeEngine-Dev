@@ -80,6 +80,11 @@ def _get_ai_engine():
     if _ai_engine is None:
         game = TicTacToe3DGame()
         nnet = NNetWrapper(game, args)
+         
+        # 2. 載入訓練好的最佳權重（用相對「腳本檔案」的絕對路徑，避免受工作目錄影響）
+        ckpt_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'checkpoints')
+        nnet.load_checkpoint(ckpt_dir, 'best.pth.tar')
+     
         nnet.load_checkpoint('./checkpoints/', 'best.pth.tar')
         _ai_engine = {
             'game': game,
