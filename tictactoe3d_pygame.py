@@ -48,11 +48,11 @@ START_BTN_RECT = pygame.Rect(365, 430, 250, 56)
 SCREEN_MENU = "menu"
 SCREEN_GAME = "game"
 
-# 難度 → MCTS temperature（越高越隨機＝越容易）
-DIFFICULTY_TEMP = {
-    "easy": 1.0,
-    "medium": 0.5,
-    "hard": 0.0,
+# 難度 → 選擇 MCTS 最佳步的機率（ε-greedy）
+DIFFICULTY_BEST_MOVE_PROB = {
+    "easy": 0.40,
+    "medium": 0.60,
+    "hard": 0.80,
 }
 DIFFICULTY_LABEL = {
     "easy": "簡單",
@@ -118,38 +118,47 @@ def _get_ai_engine():
     return _ai_engine
 
 
-def ai_move(board, player, temp=0.0):
-    """AI move using MCTS + trained network. temp>0 softens play (easier)."""
+def ai_move(board, player, best_move_prob=0.8):
+    """AI move via MCTS; with probability best_move_prob pick the best action (ε-greedy)."""
     engine = _get_ai_engine()
     game = engine['game']
     nnet = engine['nnet']
 
     canonical_board = game.getCanonicalForm(board, player)
-    valids = game.getValidMoves(canonical_board, 1)
-
-    raw_pi, _ = nnet.predict(canonical_board)
-    raw_pi = raw_pi * valids
-    raw_action = int(np.argmax(raw_pi))
+    valids = np.asarray(game.getValidMoves(canonical_board, 1), dtype=float)
 
     mcts = MCTS(game, nnet, args)
-    pi = mcts.getActionProb(canonical_board, temp=temp)
-    pi = np.asarray(pi, dtype=float) * valids
+    # temp=1 → visit proportions; best move = argmax of visits
+    pi = np.asarray(mcts.getActionProb(canonical_board, temp=1), dtype=float) * valids
     sum_pi = float(np.sum(pi))
     if sum_pi <= 0:
         action = int(np.argmax(valids))
-    elif temp == 0:
-        action = int(np.argmax(pi))
+        used_best = True
+        roll = None
     else:
         pi = pi / sum_pi
-        action = int(np.random.choice(len(pi), p=pi))
+        best_action = int(np.argmax(pi))
+        roll = float(np.random.random())
+        if roll < best_move_prob:
+            action = best_action
+            used_best = True
+        else:
+            # Sample among legal non-best moves (uniform) so P(best) == best_move_prob exactly
+            others = [a for a in range(len(valids)) if valids[a] and a != best_action]
+            if not others:
+                action = best_action
+                used_best = True
+            else:
+                action = int(np.random.choice(others))
+                used_best = False
 
     # region agent log
-    top3 = np.argsort(pi)[-3:][::-1].tolist()
-    _debug_log('H2', 'tictactoe3d_pygame.py:ai_move', 'ai move with temp', {
-        'temp': temp,
+    _debug_log('H2', 'tictactoe3d_pygame.py:ai_move', 'epsilon-greedy move', {
+        'best_move_prob': best_move_prob,
+        'roll': roll,
+        'used_best': used_best,
         'chosen_action': action,
-        'raw_chosen_action': raw_action,
-        'mcts_top3': [{'action': int(a), 'prob': float(pi[a])} for a in top3],
+        'best_action': int(np.argmax(pi)) if sum_pi > 0 else action,
     })
     # endregion
 
@@ -237,15 +246,16 @@ def draw_menu(screen, fonts, human_first, difficulty):
     draw_button(screen, FIRST_HUMAN_RECT, "玩家先手", font_small, selected=human_first)
     draw_button(screen, FIRST_AI_RECT, "AI 先手", font_small, selected=not human_first)
 
-    diff_label = font_mid.render("難度（MCTS temp）", True, TEXT_COLOR)
+    diff_label = font_mid.render("難度（選最佳步機率）", True, TEXT_COLOR)
     screen.blit(diff_label, (280, 285))
-    draw_button(screen, DIFF_EASY_RECT, "簡單", font_small, selected=difficulty == "easy")
-    draw_button(screen, DIFF_MED_RECT, "中等", font_small, selected=difficulty == "medium")
-    draw_button(screen, DIFF_HARD_RECT, "困難", font_small, selected=difficulty == "hard")
+    draw_button(screen, DIFF_EASY_RECT, "簡單 40%", font_small, selected=difficulty == "easy")
+    draw_button(screen, DIFF_MED_RECT, "中等 60%", font_small, selected=difficulty == "medium")
+    draw_button(screen, DIFF_HARD_RECT, "困難 80%", font_small, selected=difficulty == "hard")
 
-    temp = DIFFICULTY_TEMP[difficulty]
+    p_best = DIFFICULTY_BEST_MOVE_PROB[difficulty]
     tip = font_small.render(
-        f"目前: {'玩家' if human_first else 'AI'}先手 · {DIFFICULTY_LABEL[difficulty]} (temp={temp})",
+        f"目前: {'玩家' if human_first else 'AI'}先手 · {DIFFICULTY_LABEL[difficulty]} "
+        f"(最佳步 {int(p_best * 100)}%)",
         True,
         (75, 75, 75),
     )
@@ -345,9 +355,9 @@ def try_player_move(board, cell_rects, mouse_pos):
     return False
 
 
-def do_ai_turn(board, player, temp=0.0):
+def do_ai_turn(board, player, best_move_prob=0.8):
     """執行 AI (O=-1) 落子。"""
-    move = ai_move(board, player, temp=temp)
+    move = ai_move(board, player, best_move_prob=best_move_prob)
     if move is None:
         return
     x, y, z = move
@@ -372,7 +382,7 @@ def handle_menu_click(pos, human_first, difficulty):
         _debug_log('H1', 'tictactoe3d_pygame.py:handle_menu_click', 'start game settings', {
             'human_first': human_first,
             'difficulty': difficulty,
-            'temp': DIFFICULTY_TEMP[difficulty],
+            'best_move_prob': DIFFICULTY_BEST_MOVE_PROB[difficulty],
         })
         # endregion
         return human_first, difficulty, True
@@ -442,7 +452,11 @@ def main():
                                 current_player = -1
 
         if screen_state == SCREEN_GAME and status == "ongoing" and current_player == -1:
-            do_ai_turn(board, current_player, temp=DIFFICULTY_TEMP[difficulty])
+            do_ai_turn(
+                board,
+                current_player,
+                best_move_prob=DIFFICULTY_BEST_MOVE_PROB[difficulty],
+            )
             status = game_status(board)
             if status == "ongoing":
                 current_player = 1
