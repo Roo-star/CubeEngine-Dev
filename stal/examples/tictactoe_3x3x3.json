@@ -1,0 +1,6 @@
+{
+  "schema_version": "cubeengine.srtp-stal/topology-v1",
+  "game_id": "empty_3d_grid",
+  "dimensions": {"x": 3, "y": 3, "z": 3},
+  "metadata": {"display_name": "3 x 3 x 3 Empty Topology"}
+}
