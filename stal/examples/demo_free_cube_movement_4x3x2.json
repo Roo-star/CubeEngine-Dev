@@ -1,0 +1,33 @@
+{
+  "schema_version": "cubeengine.srtp-demo/v1",
+  "game_id": "demo_free_cube_movement",
+  "display_name": "Game 3 — Moving Cube Collector",
+  "description": "Move the selected blue cube through the generated board and collect the small green ball.",
+  "instructions": "Use arrow keys relative to the screen. Each collected ball respawns at another empty coordinate.",
+  "dimensions": {"x": 4, "y": 3, "z": 2},
+  "state_legend": {
+    "0": "empty",
+    "1": "movable cube",
+    "2": "collectible ball"
+  },
+  "initial_state": [
+    {"coordinate": [0, 0, 0], "state": 1},
+    {"coordinate": [3, 2, 1], "state": 2}
+  ],
+  "demo_rules": {
+    "type": "axis_runner",
+    "empty_state": 0,
+    "runner_state": 1,
+    "food_state": 2,
+    "spawn_seed": 73021,
+    "directions": [
+      {"name": "+X", "delta": [1, 0, 0]},
+      {"name": "-X", "delta": [-1, 0, 0]},
+      {"name": "+Y", "delta": [0, 1, 0]},
+      {"name": "-Y", "delta": [0, -1, 0]},
+      {"name": "+Z", "delta": [0, 0, 1]},
+      {"name": "-Z", "delta": [0, 0, -1]}
+    ]
+  },
+  "outcome_rules": []
+}

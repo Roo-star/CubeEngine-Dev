@@ -1,0 +1,23 @@
+{
+  "schema_version": "cubeengine.srtp-demo/v1",
+  "game_id": "demo_multi_cell_selection",
+  "display_name": "Game 2 — Intersection Multi-selection",
+  "description": "Only line intersections are selectable; the spaces between lines are not board positions.",
+  "instructions": "Select or unselect any number of intersection points. This demo has no terminal limit.",
+  "dimensions": {"x": 3, "y": 3, "z": 2},
+  "state_legend": {
+    "0": "unselected",
+    "1": "selected"
+  },
+  "initial_state": [],
+  "presentation": {
+    "coordinate_anchor": "grid_intersection",
+    "draw_grid_lines": true
+  },
+  "demo_rules": {
+    "type": "toggle_cell",
+    "unselected_state": 0,
+    "selected_state": 1
+  },
+  "outcome_rules": []
+}

@@ -1,0 +1,34 @@
+{
+  "schema_version": "cubeengine.srtp-demo/v1",
+  "game_id": "demo_single_cell_placement",
+  "display_name": "Game 1 — Single-cell Placement",
+  "description": "Click an empty coordinate to place one cube. A placed coordinate cannot be used again.",
+  "instructions": "Goal: place a cube on every coordinate. Click any transparent coordinate.",
+  "dimensions": {"x": 2, "y": 2, "z": 2},
+  "state_legend": {
+    "0": "empty",
+    "1": "placed cube"
+  },
+  "initial_state": [],
+  "demo_rules": {
+    "type": "place_once",
+    "empty_state": 0,
+    "placed_state": 1
+  },
+  "outcome_rules": [
+    {
+      "rule_id": "all_coordinates_placed",
+      "priority": 100,
+      "condition": {
+        "type": "all_cells_equal",
+        "state": 1
+      },
+      "result": {
+        "status": "placement_complete",
+        "is_terminal": true,
+        "reason": "Every generated coordinate contains a placed cube.",
+        "winners": ["selector"]
+      }
+    }
+  ]
+}

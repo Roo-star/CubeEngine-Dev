@@ -1,0 +1,6 @@
+{
+  "schema_version": "cubeengine.srtp-stal/topology-v1",
+  "game_id": "rectangular_empty_topology",
+  "dimensions": {"x": 4, "y": 3, "z": 2},
+  "metadata": {"display_name": "4 x 3 x 2 Empty Topology"}
+}

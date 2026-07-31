@@ -1,0 +1,5 @@
+=== play_debug 啟動 ===
+python: 3.9.1 (tags/v3.9.1:1e5d33e, Dec  7 2020, 17:08:21) [MSC v.1927 64 bit (AMD64)]
+numpy 2.0.2 | torch 2.4.1+cpu | pygame 2.6.1
+模塊導入成功，啟動 main() ...
+正常退出 (SystemExit)
