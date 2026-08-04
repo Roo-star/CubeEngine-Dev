@@ -1,25 +1,26 @@
-"""Controller tests for the SRTP Function 1 Workbench."""
+"""Controller tests for the fidelity-first SRTP Function 1 Workbench."""
 
 import unittest
-from pathlib import Path
-from unittest.mock import patch
 
-from srtp.workbench import EXAMPLE_FILES, SrtpWorkbench
+from srtp.source_runner import OriginalGameProcess
+from srtp.workbench import REFERENCE_GAMES, SrtpWorkbench
 
 
 class FakeDpg:
     def __init__(self):
         self.values = {
-            "srtp_example_selector": next(iter(EXAMPLE_FILES)),
+            "srtp_reference_selector": next(iter(REFERENCE_GAMES)),
             "srtp_source_path": "",
-            "srtp_dim_x": 3,
-            "srtp_dim_y": 3,
-            "srtp_dim_z": 1,
-            "srtp_anchor": "unknown",
-            "srtp_topology": "rectangular_grid",
-            "srtp_flow": "unknown",
-            "srtp_information": "unknown",
-            "srtp_randomness": "deterministic",
+            "srtp_target_x": 1,
+            "srtp_target_y": 1,
+            "srtp_target_z": 2,
+            "srtp_preserve_x": True,
+            "srtp_preserve_y": True,
+            "srtp_safe_parameter": "",
+            "srtp_safe_parameter_value": "",
+            "srtp_source_summary": "",
+            "srtp_parameters": "",
+            "srtp_transform": "",
             "srtp_schema_output": "",
             "srtp_diagnostics": "",
             "srtp_handoff": "",
@@ -34,42 +35,59 @@ class FakeDpg:
         self.values[tag] = value
 
 
+class FakeRunner:
+    def __init__(self):
+        self.calls = []
+
+    def launch(self, package, **kwargs):
+        self.calls.append((package, kwargs))
+        return OriginalGameProcess(package, None)
+
+
 class SrtpWorkbenchTests(unittest.TestCase):
-    def test_bundled_example_populates_schema_diagnostics_and_editor(self):
+    def test_real_reference_populates_runtime_evidence_and_source_dimensions(self):
         dpg = FakeDpg()
         controller = SrtpWorkbench(dpg)
 
-        controller.load_selected_example()
+        controller.load_selected_reference()
 
-        self.assertIsNotNone(controller.report)
-        self.assertIn('"schema_version": "cubeengine.srtp/rule-schema-v1"', dpg.values["srtp_schema_output"])
-        self.assertEqual(dpg.values["srtp_dim_x"], 3)
-        self.assertEqual(dpg.values["srtp_anchor"], "cell_center")
-        self.assertIn("readiness=complete", dpg.values["srtp_status"])
+        self.assertIsNotNone(controller.package)
+        self.assertEqual(controller.package.runtime.framework, "turtle")
+        self.assertEqual(controller.package.transformation.source_dimensions, {"x": 38, "y": 38, "z": 1})
+        self.assertIn("Original runtime: runnable", dpg.values["srtp_source_summary"])
+        self.assertIn("source_patch", dpg.values["srtp_parameters"])
 
-    def test_designer_override_updates_schema_with_provenance(self):
+    def test_transform_target_preserves_source_xy_and_records_only_new_z(self):
         dpg = FakeDpg()
         controller = SrtpWorkbench(dpg)
-        controller.load_selected_example()
-        dpg.values.update({"srtp_dim_x": 6, "srtp_dim_y": 4, "srtp_dim_z": 1, "srtp_anchor": "grid_intersection"})
+        controller.load_selected_reference()
+        dpg.values.update({"srtp_target_x": 7, "srtp_target_y": 9, "srtp_target_z": 5})
 
-        controller.apply_designer_overrides()
+        controller.apply_transform_target()
 
-        self.assertEqual(controller.report.schema["space"]["dimensions"], {"x": 6, "y": 4, "z": 1})
-        self.assertEqual(controller.report.schema["space"]["coordinate_anchor"], "grid_intersection")
-        self.assertEqual(controller.report.provenance["space.dimensions.x"][-1].method, "designer_override")
+        self.assertEqual(controller.package.transformation.target_dimensions, {"x": 38, "y": 38, "z": 5})
+        self.assertIn("Source X/Y are preserved", dpg.values["srtp_status"])
 
-    def test_preview_launch_passes_complete_canonical_schema(self):
+    def test_original_launch_uses_source_runtime_not_generic_ursina_schema(self):
+        dpg = FakeDpg()
+        runner = FakeRunner()
+        controller = SrtpWorkbench(dpg, runner=runner)
+        controller.load_selected_reference()
+
+        controller.launch_original()
+
+        package, kwargs = runner.calls[0]
+        self.assertEqual(package.runtime.command[-2:], ["-m", "freegames.snake"])
+        self.assertTrue(kwargs["embed_parent_title"])
+
+    def test_incomplete_3d_lift_refuses_misleading_generic_cube_preview(self):
         dpg = FakeDpg()
         controller = SrtpWorkbench(dpg)
-        controller.load_selected_example()
+        controller.load_selected_reference()
 
-        with patch("srtp.workbench.subprocess.Popen") as popen:
-            controller.launch_preview()
+        controller.open_transformed_preview()
 
-        command = popen.call_args.args[0]
-        self.assertIn("stal.ursina_viewer", command)
-        self.assertIn("cubeengine.srtp/rule-schema-v1", command[-1])
+        self.assertIn("generic cube would not be this game", dpg.values["srtp_status"])
 
 
 if __name__ == "__main__":

@@ -12,7 +12,10 @@ from .report import Diagnostic
 RULE_SCHEMA_VERSION = "cubeengine.srtp/rule-schema-v1"
 JSON_SCHEMA_PATH = Path(__file__).with_name("rule-schema-v1.schema.json")
 
-FLOW_MODELS = {"turn_based", "simultaneous", "real_time", "tick_based", "hybrid", "unknown"}
+FLOW_MODELS = {
+    "turn_based", "simultaneous", "event_driven", "real_time",
+    "tick_based", "hybrid", "unknown",
+}
 ANCHORS = {"cell_center", "grid_intersection", "edge", "free", "unknown"}
 TOPOLOGIES = {"rectangular_grid", "hex_grid", "graph", "continuous", "unknown"}
 ACTOR_KINDS = {"human", "ai", "human_or_ai", "system", "chance"}
@@ -221,11 +224,17 @@ def validate_rule_schema(schema: Mapping[str, Any]) -> List[Diagnostic]:
         if actor not in ("current_role", "any", "system", "chance") and actor not in participant_ids:
             diagnostics.append(Diagnostic("error", "action.actor_reference", "actions[{0}].actor".format(index), "Action actor is not declared."))
         if action.get("executable") is False:
-            diagnostics.append(Diagnostic(
-                "warning", "action.semantic_handoff", "actions[{0}]".format(index),
-                "The action was detected, but its source function was not converted into declarative preconditions/effects.",
-                requires_llm=True,
-            ))
+            if action.get("semantic_status") == "proven":
+                diagnostics.append(Diagnostic(
+                    "info", "action.source_runtime", "actions[{0}]".format(index),
+                    "The action is understood and executable in the original game, but is not compiled into STAL yet.",
+                ))
+            else:
+                diagnostics.append(Diagnostic(
+                    "warning", "action.semantic_handoff", "actions[{0}]".format(index),
+                    "The action was detected, but its source function was not converted into declarative preconditions/effects.",
+                    requires_llm=True,
+                ))
         actor_state_required = any(
             isinstance(effect, Mapping) and effect.get("value") == "$actor_state"
             for effect in action.get("effects", []) if isinstance(action.get("effects"), list)
@@ -249,11 +258,17 @@ def validate_rule_schema(schema: Mapping[str, Any]) -> List[Diagnostic]:
         if not isinstance(result.get("is_terminal"), bool):
             diagnostics.append(Diagnostic("error", "outcome.terminal_type", "outcomes[{0}].result.is_terminal".format(index), "is_terminal must be boolean."))
         if outcome.get("executable") is False:
-            diagnostics.append(Diagnostic(
-                "warning", "outcome.semantic_handoff", "outcomes[{0}]".format(index),
-                "A result function was detected but not safely converted into a declarative condition.",
-                requires_llm=True,
-            ))
+            if outcome.get("semantic_status") == "proven":
+                diagnostics.append(Diagnostic(
+                    "info", "outcome.source_runtime", "outcomes[{0}]".format(index),
+                    "The outcome is understood in the original runtime but is not compiled into STAL yet.",
+                ))
+            else:
+                diagnostics.append(Diagnostic(
+                    "warning", "outcome.semantic_handoff", "outcomes[{0}]".format(index),
+                    "A result function was detected but not safely converted into a declarative condition.",
+                    requires_llm=True,
+                ))
 
     randomness = _mapping(schema.get("randomness"))
     if randomness.get("model") not in ("deterministic", "stochastic", "mixed", "unknown"):

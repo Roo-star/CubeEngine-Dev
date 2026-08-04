@@ -1,12 +1,14 @@
 # CubeEngine Rule Schema v1 — field contract
 
-`cubeengine.srtp/rule-schema-v1` 是 SRTP 三種輸入途徑共同填充的唯一模型：
+`cubeengine.srtp/rule-schema-v1` 是 SRTP 三種規則輸入途徑共同填充的中間表示（IR），不是完整源遊戲包，也不是「已完成 3D 轉化」的證明：
 
-- Function 1：JSON/Python deterministic extraction。
+- Function 1：完整 Source Game Package 中的 evidence-backed extraction。
 - Function 2：自然語言與 unresolved semantic completion。
 - Function 3：骨幹表單 designer override。
 
-後續 Function 4 只讀這份模型做 2D→3D mapping；STAL 不再讀任意來源腳本。
+Function 1 同時保留原專案的 runtime、素材、來源位置和理解覆蓋率。後續 Function 4 讀取 Rule Schema 與 mechanic lift plan 做 2D→3D mapping；STAL 不直接執行任意來源腳本。
+
+完整外層契約見 `SRTP_SOURCE_GAME_PACKAGE.md`。
 
 ## 最小結構
 
