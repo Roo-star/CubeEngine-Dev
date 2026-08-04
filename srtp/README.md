@@ -15,8 +15,10 @@ Key modules:
 - `source_importer.py` — whole-project inventory, Python AST/data analysis,
   runtime/dependency discovery and source-backed parameters.
 - `source_game.py` — Source Game Package, coverage and transformation plan.
-- `source_runner.py` — supervised original-game fidelity runtime and Windows
-  best-effort embedding.
+- `source_runner.py` — supervised original-game fidelity runtime using reliable
+  native Windows game windows.
+- `transformed_games.py` — testable source-specific 3D rule implementations.
+- `transformed_viewer.py` / `transform_runner.py` — playable Ursina Play Mode.
 - `variant.py` — reversible variants for isolated safe data settings.
 - `runtime_bootstrap.py` — logged framework compatibility boundary; never used
   during static import.
@@ -24,8 +26,9 @@ Key modules:
 - `stal_adapter.py` — the proven declarative subset only.
 - `reference_games/` — unmodified, licensed, runnable third-party source games.
 
-The Workbench deliberately blocks a generic Ursina cube when source-specific
-mechanic and renderer lifts have not been compiled.
+The bundled Snake, Minesweeper, Connect and 2048 references have registered
+playable 3D adapters. Other sources still block generic cube output until a
+source-specific mechanic and renderer lift has been compiled.
 
 See `SRTP_FUNCTION_1.md`, `SRTP_SOURCE_GAME_PACKAGE.md`,
 `SRTP_RULE_SCHEMA_V1.md` and `THIRD_PARTY_NOTICES.md` in the repository root.

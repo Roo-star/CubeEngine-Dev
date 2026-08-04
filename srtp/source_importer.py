@@ -410,8 +410,8 @@ class SourceGameImporter:
             value, location = tick
             result.append(SourceParameter(
                 id="source_tick_ms", label="Source update interval (ms)", category="flow",
-                value=value, value_type="integer", applicability="applicable", edit_mode="source_patch",
-                reason="The interval is a literal passed to the source timer.", locations=[location],
+                value=value, value_type="integer", applicability="applicable", edit_mode="literal_patch",
+                reason="The interval is one proven timer literal and can be changed in a derived source copy.", locations=[location],
                 constraints={"minimum": 1}, affects=["game speed"],
             ))
         mine_count = facts.mine_count()
@@ -419,8 +419,8 @@ class SourceGameImporter:
             value, location = mine_count
             result.append(SourceParameter(
                 id="source_mine_count", label="Mine count", category="randomness",
-                value=value, value_type="integer", applicability="applicable", edit_mode="source_patch",
-                reason="The source repeats mine placement this many times.", locations=[location],
+                value=value, value_type="integer", applicability="applicable", edit_mode="literal_patch",
+                reason="The source repeats mine placement with one proven loop literal; a derived copy can change it.", locations=[location],
                 constraints={"minimum": 1}, affects=["difficulty", "mine distribution"],
             ))
         for key, value, location in facts.json_display_parameters():
@@ -459,53 +459,70 @@ class SourceGameImporter:
         self, report: ParseReport, facts: "_PythonProjectFacts", framework: str,
     ) -> TransformationPlan:
         source_dimensions = dict(report.schema.get("space", {}).get("dimensions", {"x": None, "y": None, "z": 1}))
+        action_ids = {item.get("id") for item in report.schema.get("actions", []) if isinstance(item, Mapping)}
+        source_names = {Path(name).stem.lower() for name in facts.sources}
+        adapter_id = ""
+        if "snake" in source_names and "change_direction" in action_ids:
+            adapter_id = "snake"
+        elif "minesweeper" in source_names and "reveal_cell" in action_ids:
+            adapter_id = "minesweeper"
+        elif "connect" in source_names and "place_at_click" in action_ids:
+            adapter_id = "connect"
+        elif {"main", "game", "logic"}.issubset(source_names) and "shift_merge" in action_ids:
+            adapter_id = "2048"
+        adapter_status = "ready" if adapter_id else "needs_adapter"
+        adapter_reason = (
+            "A tested Ursina transformation adapter is registered for this source mechanic."
+            if adapter_id
+            else "A source-framework transformation adapter has not been registered."
+        )
         lifts = [
             MechanicLift(
                 "add_z_axis", "Add Z axis", "The source uses a 2D logical plane.",
                 "Preserve source X/Y and let the designer choose a positive Z extent.",
-                "designer_decision", "Z has no source value; it is the deliberate CubeEngine transformation input.",
+                "ready", "Z is exposed as the single primary spatial input in the Workbench Inspector.",
             ),
             MechanicLift(
                 "source_renderer", "Preserve source visual identity",
                 "The original framework owns drawing, assets, layout and feedback.",
                 "Map the same visual vocabulary to 3D geometry instead of replacing it with generic cubes.",
-                "needs_adapter", "A renderer-specific adapter is required for {0}.".format(framework),
+                adapter_status, adapter_reason,
             ),
         ]
-        action_ids = {item.get("id") for item in report.schema.get("actions", []) if isinstance(item, Mapping)}
         if "change_direction" in action_ids:
             lifts.append(MechanicLift(
                 "direction_lift", "Lift directional control", "The player selects one of four planar directions.",
                 "Retain the four source directions and add +Z/-Z while preserving reversal and collision rules.",
-                "needs_adapter", "The movement, collision and input functions must be rewritten as one coupled 3D mechanic.",
+                adapter_status, adapter_reason,
             ))
         if "reveal_cell" in action_ids:
             lifts.append(MechanicLift(
                 "neighbourhood_lift", "Lift reveal neighbourhood", "A clicked cell reveals source-defined planar neighbours.",
                 "Extend the exact source neighbourhood through Z and update mine counts/flood fill consistently.",
-                "needs_adapter", "Board storage, neighbour count, random placement and flood reveal are coupled.",
+                adapter_status, adapter_reason,
             ))
         if "shift_merge" in action_ids:
             lifts.append(MechanicLift(
                 "merge_lift", "Lift shift/merge", "All tiles shift and merge along four planar directions.",
                 "Apply the same ordered merge invariant along six 3D directions and spawn on empty 3D sites.",
-                "needs_adapter", "Every hard-coded row/column loop and rotation helper must become axis-generic.",
+                adapter_status, adapter_reason,
             ))
         if report.schema.get("randomness", {}).get("model") in ("stochastic", "mixed"):
             lifts.append(MechanicLift(
                 "random_lift", "Lift random generation", "Random events choose positions on the source plane.",
                 "Use the same distribution over valid 3D sites without changing event probabilities.",
-                "needs_adapter", "The source distribution and exclusions must first be fully resolved.",
+                adapter_status, adapter_reason,
             ))
         if report.schema.get("outcomes"):
             lifts.append(MechanicLift(
                 "outcome_lift", "Lift terminal and scoring conditions", "Source outcomes inspect 2D state.",
                 "Re-express the same objective over the lifted state without inventing a new win condition.",
-                "needs_adapter", "Outcome predicates must be transformed together with their referenced mechanics.",
+                adapter_status, adapter_reason,
             ))
         return TransformationPlan(
             source_dimensions=source_dimensions,
-            target_dimensions={"x": source_dimensions.get("x"), "y": source_dimensions.get("y"), "z": None},
+            target_dimensions={"x": source_dimensions.get("x"), "y": source_dimensions.get("y"), "z": 3},
+            adapter_id=adapter_id,
             lifts=lifts,
         )
 

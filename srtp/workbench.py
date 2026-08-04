@@ -1,4 +1,4 @@
-"""Fidelity-first SRTP Function 1 designer workbench."""
+"""SRTP source-to-spatial workbench with a viewport-first editor layout."""
 
 from __future__ import annotations
 
@@ -12,41 +12,48 @@ if __package__ in (None, ""):
     from srtp.source_game import SourceGamePackage
     from srtp.source_importer import SourceGameImporter
     from srtp.source_runner import OriginalGameProcess, SourceGameRunner
+    from srtp.transform_runner import TransformedGameProcess, TransformedGameRunner
     from srtp.variant import SourceVariantBuilder
 else:
     from .source_game import SourceGamePackage
     from .source_importer import SourceGameImporter
     from .source_runner import OriginalGameProcess, SourceGameRunner
+    from .transform_runner import TransformedGameProcess, TransformedGameRunner
     from .variant import SourceVariantBuilder
 
 
 PACKAGE_DIR = Path(__file__).resolve().parent
-VIEWPORT_TITLE = "CubeEngine SRTP — Source Fidelity Workbench"
+VIEWPORT_TITLE = "CubeEngine SRTP — Spatial Rule Workbench"
 REFERENCE_GAMES = {
-    "Apache-2.0 | Snake (完整 Turtle 遊戲)": PACKAGE_DIR / "reference_games" / "free_python_games" / "freegames" / "snake.py",
-    "Apache-2.0 | Minesweeper (完整 Turtle 遊戲)": PACKAGE_DIR / "reference_games" / "free_python_games" / "freegames" / "minesweeper.py",
-    "Apache-2.0 | Connect Four (來源原型)": PACKAGE_DIR / "reference_games" / "free_python_games" / "freegames" / "connect.py",
-    "MIT | 2048 (完整多文件 Pygame 遊戲)": PACKAGE_DIR / "reference_games" / "pygame_2048" / "main.py",
+    "Snake · Turtle source": PACKAGE_DIR / "reference_games" / "free_python_games" / "freegames" / "snake.py",
+    "Minesweeper · Turtle source": PACKAGE_DIR / "reference_games" / "free_python_games" / "freegames" / "minesweeper.py",
+    "Connect · Turtle prototype": PACKAGE_DIR / "reference_games" / "free_python_games" / "freegames" / "connect.py",
+    "2048 · Pygame project": PACKAGE_DIR / "reference_games" / "pygame_2048" / "main.py",
 }
 
 
 class SrtpWorkbench:
     def __init__(
         self, dpg, importer: Optional[SourceGameImporter] = None,
-        runner: Optional[SourceGameRunner] = None, variant_builder: Optional[SourceVariantBuilder] = None,
+        runner: Optional[SourceGameRunner] = None,
+        transformed_runner: Optional[TransformedGameRunner] = None,
+        variant_builder: Optional[SourceVariantBuilder] = None,
     ) -> None:
         self.dpg = dpg
         self.importer = importer or SourceGameImporter()
         self.runner = runner or SourceGameRunner()
+        self.transformed_runner = transformed_runner or TransformedGameRunner()
         self.variant_builder = variant_builder or SourceVariantBuilder()
         self.package: Optional[SourceGamePackage] = None
         self.original_process: Optional[OriginalGameProcess] = None
+        self.transformed_process: Optional[TransformedGameProcess] = None
 
-    def load_selected_reference(self) -> None:
+    def load_selected_reference(self, sender=None, app_data=None, user_data=None) -> None:
         path = REFERENCE_GAMES.get(self.dpg.get_value("srtp_reference_selector"))
         if path is None:
-            self._message("Select a real reference game.")
+            self._message("Select a source game from the Library.")
             return
+        self.stop_preview(quiet=True)
         self.dpg.set_value("srtp_source_path", str(path))
         self.import_source()
 
@@ -66,72 +73,93 @@ class SrtpWorkbench:
     def import_source(self) -> None:
         raw_path = self.dpg.get_value("srtp_source_path")
         if not isinstance(raw_path, str) or not raw_path.strip():
-            self._message("Choose a complete game project, project folder, or its entry file first.")
+            self._message("Choose a game project or runnable entry point.")
             return
         try:
             self.package = self.importer.import_path(Path(raw_path.strip()))
         except Exception as error:
-            self._message("Source import failed safely: {0}".format(error))
+            self._message("Import failed safely: {0}".format(error), error=True)
             return
         self._render_package()
 
-    def launch_original(self, embedded: bool = True) -> None:
-        if self.package is None:
-            self._message("Import a source game first.")
-            return
-        if self.original_process and self.original_process.running:
-            self._message("The original game is already running.")
-            return
-        try:
-            self.original_process = self.runner.launch(
-                self.package,
-                embed_parent_title=VIEWPORT_TITLE if embedded else "",
-                embed_bounds=(550, 72, 820, 710),
-            )
-        except (OSError, RuntimeError) as error:
-            self._message("Original 2D preview blocked: {0}".format(error))
-            return
-        mode = "embedded when supported; otherwise its own window" if embedded else "in its own source window"
-        self._message("Original source game launched {0}. Click the game surface to focus its controls.".format(mode))
+    def set_preview_mode(self, sender=None, app_data=None, user_data=None) -> None:
+        self.stop_preview(quiet=True)
+        self._render_viewport()
+        self._message("{0} preview selected. Press Play to open it.".format(self._preview_mode()))
 
-    def stop_original(self) -> None:
-        if self.original_process and self.original_process.running:
-            self.original_process.stop()
-            self._message("Original source-game process stopped. The source files were not changed.")
+    def toggle_preview(self) -> None:
+        if self._active_process_running():
+            self.stop_preview()
+            return
+        if self._preview_mode() == "Source 2D":
+            self.launch_original()
         else:
-            self._message("No original game process is running.")
+            self.open_transformed_preview()
 
-    def apply_transform_target(self) -> None:
+    def launch_original(self, embedded: bool = False) -> None:
         if self.package is None:
-            self._message("Import a source game before defining the 3D target.")
+            self._message("Select a source game first.")
+            return
+        self.stop_preview(quiet=True)
+        try:
+            # Foreign Turtle/Pygame windows are deliberately kept native on
+            # Windows.  Win32 re-parenting under Dear PyGui hides them behind
+            # the GPU viewport on several drivers.
+            self.original_process = self.runner.launch(self.package)
+        except (OSError, RuntimeError) as error:
+            self._message("Source preview failed: {0}".format(error), error=True)
+            return
+        self._set_play_label("STOP")
+        self._message("Source 2D is running in its native Windows game window. Click that window to control it.")
+
+    def open_transformed_preview(self) -> None:
+        if self.package is None:
+            self._message("Select a source game first.")
+            return
+        self.apply_transform_target(silent=True)
+        self.stop_preview(quiet=True)
+        try:
+            self.transformed_process = self.transformed_runner.launch(self.package)
+        except (OSError, RuntimeError) as error:
+            self._message("3D Play Mode failed: {0}".format(error), error=True)
+            return
+        self._set_play_label("STOP")
+        self._message("3D Play Mode is running in an Ursina window with source-specific mechanics.")
+
+    def stop_preview(self, quiet: bool = False) -> None:
+        stopped = False
+        for process in (self.original_process, self.transformed_process):
+            if process is not None and process.running:
+                process.stop()
+                stopped = True
+        self.original_process = None
+        self.transformed_process = None
+        self._set_play_label("PLAY")
+        if stopped and not quiet:
+            self._message("Preview stopped. Source files were not changed.")
+
+    def poll_processes(self) -> None:
+        if not self._active_process_running():
+            self._set_play_label("PLAY")
+
+    def apply_transform_target(self, sender=None, app_data=None, user_data=None, silent: bool = False) -> None:
+        if self.package is None:
+            return
+        z = self.dpg.get_value("srtp_target_z")
+        if isinstance(z, bool) or not isinstance(z, int) or z < 2:
+            self._message("Depth (Z) must be an integer of 2 or more.", error=True)
             return
         source = self.package.transformation.source_dimensions
-        preserve_x = bool(self.dpg.get_value("srtp_preserve_x"))
-        preserve_y = bool(self.dpg.get_value("srtp_preserve_y"))
-        values = {
-            "x": self.dpg.get_value("srtp_target_x"),
-            "y": self.dpg.get_value("srtp_target_y"),
-            "z": self.dpg.get_value("srtp_target_z"),
+        self.package.transformation.preserve_x = True
+        self.package.transformation.preserve_y = True
+        self.package.transformation.target_dimensions = {
+            "x": source.get("x"), "y": source.get("y"), "z": z,
         }
-        if any(isinstance(value, bool) or not isinstance(value, int) or value <= 0 for value in values.values()):
-            self._message("Target X/Y/Z must be positive integer logical site counts.")
-            return
-        if values["z"] < 2:
-            self._message("A spatial expansion requires target Z >= 2. Z=1 is still the original 2D game.")
-            return
-        values["x"] = source.get("x") if preserve_x else values["x"]
-        values["y"] = source.get("y") if preserve_y else values["y"]
-        self.package.transformation.preserve_x = preserve_x
-        self.package.transformation.preserve_y = preserve_y
-        self.package.transformation.target_dimensions = values
-        self._render_package()
-        changed = []
-        if not preserve_x:
-            changed.append("X")
-        if not preserve_y:
-            changed.append("Y")
-        suffix = " X/Y changes remain adapter work: {0}.".format(", ".join(changed)) if changed else " Source X/Y are preserved."
-        self._message("3D target recorded; no source rule was silently rewritten." + suffix)
+        self._render_space_inspector()
+        self._render_viewport()
+        self.dpg.set_value("srtp_transform", json.dumps(self.package.transformation.to_mapping(), ensure_ascii=False, indent=2))
+        if not silent:
+            self._message("Target depth updated. X and Y remain source-owned unless a source parameter changes them.")
 
     def select_safe_parameter(self) -> None:
         if self.package is None:
@@ -143,41 +171,33 @@ class SrtpWorkbench:
 
     def apply_safe_source_parameter(self) -> None:
         if self.package is None:
-            self._message("Import a source game first.")
             return
         identifier = self.dpg.get_value("srtp_safe_parameter")
+        self._create_source_variant(identifier, self.dpg.get_value("srtp_safe_parameter_value"))
+
+    def apply_parameter_by_id(self, identifier: str, value_tag: str) -> None:
+        self._create_source_variant(identifier, self.dpg.get_value(value_tag))
+
+    def _create_source_variant(self, identifier, raw_value) -> None:
+        if self.package is None:
+            return
         parameter = self.package.parameter(identifier) if isinstance(identifier, str) else None
         if parameter is None or not parameter.safely_editable:
-            self._message("N/A: this source has no independently safe parameter with that name.")
+            self._message("This property is source-owned and cannot be changed safely without an adapter.", error=True)
             return
-        raw_value = self.dpg.get_value("srtp_safe_parameter_value")
         try:
-            entrypoint = self.variant_builder.create(self.package, parameter, raw_value)
+            entrypoint = self.variant_builder.create(
+                self.package, parameter, raw_value
+            )
         except (OSError, ValueError, TypeError, json.JSONDecodeError) as error:
-            self._message("Source-derived variant blocked: {0}".format(error))
+            self._message("Variant creation failed: {0}".format(error), error=True)
             return
         self.dpg.set_value("srtp_source_path", str(entrypoint))
         self.import_source()
-        self._message("Created and imported a reversible source-derived variant. The upstream source was not modified.")
-
-    def open_transformed_preview(self) -> None:
-        if self.package is None:
-            self._message("Import a source game first.")
-            return
-        plan = self.package.transformation
-        if plan.readiness != "ready":
-            missing = [item.label for item in plan.lifts if item.status != "ready"]
-            self._message(
-                "3D preview intentionally blocked: a generic cube would not be this game. Required lifts: {0}".format(
-                    ", ".join(missing)
-                )
-            )
-            return
-        self._message("The transformation plan is ready, but no renderer compiler is registered for this source framework.")
+        self._message("A reversible source variant is now selected. The upstream project is unchanged.")
 
     def save_package(self) -> None:
         if self.package is None:
-            self._message("Nothing to save; import a source game first.")
             return
         raw_path = self.dpg.get_value("srtp_output_path")
         if not isinstance(raw_path, str) or not raw_path.strip():
@@ -186,51 +206,143 @@ class SrtpWorkbench:
         try:
             Path(raw_path).write_text(json.dumps(self.package.to_mapping(), ensure_ascii=False, indent=2), encoding="utf-8")
         except OSError as error:
-            self._message("Could not save the source-game package: {0}".format(error))
+            self._message("Save failed: {0}".format(error), error=True)
             return
-        self._message("Saved evidence, Rule Schema and transformation plan. Original source remains unchanged.")
+        self._message("Analysis package saved. The source project remains unchanged.")
 
     def _render_package(self) -> None:
         assert self.package is not None
         package = self.package
-        source_dims = package.transformation.source_dimensions
-        target_dims = package.transformation.target_dimensions
-        for axis in ("x", "y"):
-            value = target_dims.get(axis) if isinstance(target_dims.get(axis), int) else source_dims.get(axis)
-            self.dpg.set_value("srtp_target_{0}".format(axis), value if isinstance(value, int) else 1)
-        self.dpg.set_value("srtp_target_z", target_dims.get("z") if isinstance(target_dims.get("z"), int) else 2)
-        self.dpg.set_value("srtp_preserve_x", package.transformation.preserve_x)
-        self.dpg.set_value("srtp_preserve_y", package.transformation.preserve_y)
+        target_z = package.transformation.target_dimensions.get("z")
+        self.dpg.set_value("srtp_target_z", target_z if isinstance(target_z, int) else 3)
         self.dpg.set_value("srtp_source_summary", self._summary_text(package))
         self.dpg.set_value("srtp_parameters", self._parameters_text(package))
         self.dpg.set_value("srtp_transform", json.dumps(package.transformation.to_mapping(), ensure_ascii=False, indent=2))
         self.dpg.set_value("srtp_schema_output", json.dumps(package.rule_report.schema, ensure_ascii=False, indent=2))
         diagnostics = list(package.rule_report.diagnostics) + list(package.diagnostics)
-        text = "\n".join(
-            "[{0}] {1} {2}: {3}".format(item.severity.upper(), item.code, item.path, item.message)
+        self.dpg.set_value("srtp_diagnostics", "\n".join(
+            "[{0}] {1}: {2}".format(item.severity.upper(), item.code, item.message)
             for item in diagnostics
-        ) or "No diagnostics."
-        self.dpg.set_value("srtp_diagnostics", text)
+        ) or "No diagnostics.")
         handoff = package.rule_report.llm_handoff()
-        handoff["source_game_package"] = {
-            "coverage": package.coverage.to_mapping(),
-            "parameters": [item.to_mapping() for item in package.parameters if item.edit_mode == "llm" or item.applicability == "unresolved"],
-            "transformation_gaps": [item.to_mapping() for item in package.transformation.lifts if item.status in ("needs_llm", "needs_adapter", "designer_decision")],
-        }
         self.dpg.set_value("srtp_handoff", json.dumps(handoff, ensure_ascii=False, indent=2))
         safe_parameters = [item for item in package.parameters if item.safely_editable]
-        choices = [item.id for item in safe_parameters] or ["N/A | no isolated safe source parameter"]
+        choices = [item.id for item in safe_parameters] or ["N/A"]
         if hasattr(self.dpg, "configure_item"):
-            self.dpg.configure_item("srtp_safe_parameter", items=choices)
+            self.dpg.configure_item("srtp_safe_parameter", items=choices, enabled=bool(safe_parameters))
         self.dpg.set_value("srtp_safe_parameter", choices[0])
         self.dpg.set_value("srtp_safe_parameter_value", str(safe_parameters[0].value) if safe_parameters else "N/A")
+        self._render_library_details()
+        self._render_space_inspector()
+        self._render_parameter_inspector()
+        self._render_transform_inspector()
+        self._render_viewport()
         self._message(
-            "Original={0} | framework={1} | rule coverage={2}/{3} | 3D plan={4}".format(
-                package.original_preview_status, package.runtime.framework,
-                package.coverage.understood, package.coverage.total,
-                package.transformation.readiness,
+            "Loaded {0} · {1}/{2} rule categories proven · 3D adapter: {3}".format(
+                package.title, package.coverage.understood, package.coverage.total,
+                package.transformation.adapter_id or "not available",
             )
         )
+
+    def _render_library_details(self) -> None:
+        if self.package is None:
+            return
+        package = self.package
+        text = "{0}\n{1}\n{2} files · {3} assets".format(
+            package.runtime.framework.upper(), package.license_name,
+            len(package.files), len(package.assets),
+        )
+        self.dpg.set_value("srtp_library_details", text)
+
+    def _render_space_inspector(self) -> None:
+        if self.package is None:
+            return
+        source = self.package.transformation.source_dimensions
+        target = self.package.transformation.target_dimensions
+        self.dpg.set_value("srtp_source_plane", "{0} × {1}".format(source.get("x", "?"), source.get("y", "?")))
+        self.dpg.set_value("srtp_target_volume", "{0} × {1} × {2}".format(
+            target.get("x", "?"), target.get("y", "?"), target.get("z", "?"),
+        ))
+
+    def _render_parameter_inspector(self) -> None:
+        if self.package is None or not hasattr(self.dpg, "delete_item"):
+            return
+        self.dpg.delete_item("srtp_parameter_rows", children_only=True)
+        for item in self.package.parameters:
+            state = "EDITABLE" if item.safely_editable else (
+                "SOURCE" if item.applicability == "fixed_by_source" else item.applicability.upper()
+            )
+            with self.dpg.group(parent="srtp_parameter_rows"):
+                self.dpg.add_text(item.label, color=(210, 214, 222))
+                self.dpg.add_text("{0}   ·   {1}".format(item.value, state), color=(122, 168, 224))
+                if item.safely_editable:
+                    value_tag = "srtp_inline_{0}".format(item.id)
+                    self.dpg.add_input_text(default_value=str(item.value), tag=value_tag, width=-1)
+                    self.dpg.add_button(
+                        label="APPLY TO SOURCE COPY", width=-1,
+                        callback=lambda sender=None, app_data=None, user_data=None, identifier=item.id, tag=value_tag:
+                            self.apply_parameter_by_id(identifier, tag),
+                    )
+                self.dpg.add_spacer(height=4)
+
+    def _render_transform_inspector(self) -> None:
+        if self.package is None or not hasattr(self.dpg, "delete_item"):
+            return
+        self.dpg.delete_item("srtp_transform_rows", children_only=True)
+        for lift in self.package.transformation.lifts:
+            good = lift.status == "ready"
+            self.dpg.add_text(
+                "{0}  {1}".format("READY" if good else lift.status.upper(), lift.label),
+                parent="srtp_transform_rows", color=(91, 196, 138) if good else (230, 168, 84),
+            )
+
+    def _render_viewport(self) -> None:
+        if self.package is None:
+            self.dpg.set_value("srtp_viewport_heading", "No source game selected")
+            self.dpg.set_value("srtp_viewport_body", "Choose a game from the Source Library or import a project.")
+            return
+        mode = self._preview_mode()
+        package = self.package
+        target = package.transformation.target_dimensions
+        if mode == "Source 2D":
+            heading = package.title
+            body = (
+                "SOURCE REFERENCE\n\n"
+                "{0} · {1}\n"
+                "Logical plane  {2} × {3}\n\n"
+                "Play opens the untouched game in its native Windows window.\n"
+                "That window is the visual and interaction fidelity reference."
+            ).format(package.runtime.language.upper(), package.runtime.framework.upper(),
+                     package.transformation.source_dimensions.get("x", "?"),
+                     package.transformation.source_dimensions.get("y", "?"))
+        else:
+            heading = "{0} — Spatial Result".format(package.title)
+            body = (
+                "3D PLAY MODE\n\n"
+                "Target volume  {0} × {1} × {2}\n"
+                "Adapter  {3}\n"
+                "Readiness  {4}\n\n"
+                "Play opens the source-specific Ursina reconstruction."
+            ).format(target.get("x", "?"), target.get("y", "?"), target.get("z", "?"),
+                     package.transformation.adapter_id or "not available",
+                     package.transformation.readiness.upper())
+        self.dpg.set_value("srtp_viewport_heading", heading)
+        self.dpg.set_value("srtp_viewport_body", body)
+
+    def _preview_mode(self) -> str:
+        return self.dpg.get_value("srtp_preview_mode") or "Source 2D"
+
+    def _active_process_running(self) -> bool:
+        return any(process is not None and process.running for process in (self.original_process, self.transformed_process))
+
+    def _set_play_label(self, label: str) -> None:
+        if hasattr(self.dpg, "configure_item"):
+            self.dpg.configure_item("srtp_play", label=label)
+
+    def _message(self, message: str, error: bool = False) -> None:
+        self.dpg.set_value("srtp_status", message)
+        if hasattr(self.dpg, "configure_item"):
+            self.dpg.configure_item("srtp_status", color=(238, 105, 105) if error else (160, 170, 188))
 
     @staticmethod
     def _summary_text(package: SourceGamePackage) -> str:
@@ -243,10 +355,8 @@ class SrtpWorkbench:
             "Original runtime: {0}".format(package.original_preview_status),
             "Source logical space: X={0}, Y={1}, Z=1".format(dims.get("x", "unresolved"), dims.get("y", "unresolved")),
             "Assets preserved: {0}".format(len(package.assets)),
-            "License: {0} {1}".format(package.license_name, package.license_path),
-            "Missing dependencies: {0}".format(", ".join(runtime.missing_dependencies) or "none"),
+            "License: {0}".format(package.license_name),
             "Rule understanding: {0}/{1} categories proven".format(package.coverage.understood, package.coverage.total),
-            "Important: runnable original != fully understood != compiled 3D game.",
         ])
 
     @staticmethod
@@ -254,19 +364,31 @@ class SrtpWorkbench:
         lines = []
         for item in package.parameters:
             state = "EDITABLE" if item.safely_editable else item.applicability.upper()
-            locations = ", ".join(
-                "{0}:{1}".format(location.path, location.line or "-") for location in item.locations
-            ) or "no proven source location"
-            lines.extend([
-                "{0} = {1}  [{2}; {3}]".format(item.label, item.value, state, item.edit_mode),
-                "  Why: {0}".format(item.reason),
-                "  Source: {0}".format(locations),
-                "",
-            ])
+            lines.append("{0} = {1}  [{2}; {3}]".format(item.label, item.value, state, item.edit_mode))
+            lines.append("  {0}".format(item.reason))
+            lines.append("")
         return "\n".join(lines) or "No source-backed parameters were proven."
 
-    def _message(self, message: str) -> None:
-        self.dpg.set_value("srtp_status", message)
+
+def _build_theme(dpg):
+    with dpg.theme() as theme:
+        with dpg.theme_component(dpg.mvAll):
+            dpg.add_theme_color(dpg.mvThemeCol_WindowBg, (25, 27, 33))
+            dpg.add_theme_color(dpg.mvThemeCol_ChildBg, (30, 33, 40))
+            dpg.add_theme_color(dpg.mvThemeCol_FrameBg, (39, 43, 52))
+            dpg.add_theme_color(dpg.mvThemeCol_FrameBgHovered, (48, 54, 66))
+            dpg.add_theme_color(dpg.mvThemeCol_FrameBgActive, (55, 63, 78))
+            dpg.add_theme_color(dpg.mvThemeCol_Button, (48, 54, 66))
+            dpg.add_theme_color(dpg.mvThemeCol_ButtonHovered, (64, 86, 115))
+            dpg.add_theme_color(dpg.mvThemeCol_ButtonActive, (73, 105, 145))
+            dpg.add_theme_color(dpg.mvThemeCol_Header, (47, 53, 64))
+            dpg.add_theme_color(dpg.mvThemeCol_HeaderHovered, (59, 75, 98))
+            dpg.add_theme_color(dpg.mvThemeCol_CheckMark, (91, 156, 231))
+            dpg.add_theme_color(dpg.mvThemeCol_Separator, (55, 60, 70))
+            dpg.add_theme_style(dpg.mvStyleVar_FrameRounding, 3)
+            dpg.add_theme_style(dpg.mvStyleVar_WindowPadding, 10, 10)
+            dpg.add_theme_style(dpg.mvStyleVar_ItemSpacing, 7, 7)
+    return theme
 
 
 def main() -> None:
@@ -277,85 +399,122 @@ def main() -> None:
 
     controller = SrtpWorkbench(dpg)
     dpg.create_context()
-    ui_font = None
-    chinese_font_path = Path(r"C:\Windows\Fonts\msjh.ttc")
-    if chinese_font_path.is_file():
-        with dpg.font_registry():
-            with dpg.font(str(chinese_font_path), 18) as ui_font:
-                dpg.add_font_range_hint(dpg.mvFontRangeHint_Chinese_Full)
-    dpg.create_viewport(title=VIEWPORT_TITLE, width=1400, height=860, resizable=False)
+    dpg.create_viewport(title=VIEWPORT_TITLE, width=1440, height=880, min_width=1180, min_height=720, resizable=True)
+    dpg.bind_theme(_build_theme(dpg))
+
     with dpg.file_dialog(directory_selector=False, show=False, callback=controller.choose_source, tag="srtp_file_dialog", width=760, height=520):
-        dpg.add_file_extension(".py", color=(100, 180, 255, 255))
-        dpg.add_file_extension(".pyw", color=(100, 180, 255, 255))
-        dpg.add_file_extension(".html", color=(255, 180, 100, 255))
+        dpg.add_file_extension(".py")
+        dpg.add_file_extension(".pyw")
+        dpg.add_file_extension(".html")
         dpg.add_file_extension(".*")
     with dpg.file_dialog(directory_selector=True, show=False, callback=controller.choose_directory, tag="srtp_directory_dialog", width=760, height=520):
         pass
 
-    with dpg.window(label="SRTP Function 1 - 完整源遊戲匯入", tag="srtp_primary", width=1380, height=820):
-        dpg.add_text("完整源遊戲 -> 原版 2D 驗證 -> 有證據的規則理解 -> 3D 升維計畫", color=(100, 215, 245), wrap=1340)
-        dpg.add_text("匯入分析不會執行來源程式。只有按下運行按鈕才會啟動原遊戲，請僅運行可信任的專案。", wrap=1340)
+    with dpg.window(label="SRTP", tag="srtp_primary"):
+        with dpg.menu_bar():
+            with dpg.menu(label="File"):
+                dpg.add_menu_item(label="Open Entry Point...", callback=lambda: dpg.show_item("srtp_file_dialog"))
+                dpg.add_menu_item(label="Open Project...", callback=lambda: dpg.show_item("srtp_directory_dialog"))
+                dpg.add_menu_item(label="Save Analysis Package", callback=lambda: controller.save_package())
+            with dpg.menu(label="View"):
+                dpg.add_menu_item(label="Source 2D", callback=lambda: (dpg.set_value("srtp_preview_mode", "Source 2D"), controller.set_preview_mode()))
+                dpg.add_menu_item(label="Transformed 3D", callback=lambda: (dpg.set_value("srtp_preview_mode", "Transformed 3D"), controller.set_preview_mode()))
         with dpg.group(horizontal=True):
-            with dpg.child_window(width=515, height=735):
-                dpg.add_text("1. 匯入完整源遊戲")
-                dpg.add_combo(items=list(REFERENCE_GAMES), default_value=next(iter(REFERENCE_GAMES)), tag="srtp_reference_selector", width=-1)
-                dpg.add_button(label="載入真實開源遊戲", callback=lambda: controller.load_selected_reference(), width=-1)
-                dpg.add_input_text(tag="srtp_source_path", hint="專案資料夾或可運行入口文件", width=-1)
+            dpg.add_text("CubeEngine", color=(105, 177, 245))
+            dpg.add_text("SRTP / Function 1", color=(150, 158, 173))
+            dpg.add_spacer(width=30)
+            dpg.add_radio_button(
+                items=["Source 2D", "Transformed 3D"], horizontal=True,
+                default_value="Source 2D", tag="srtp_preview_mode", callback=controller.set_preview_mode,
+            )
+            dpg.add_spacer(width=18)
+            dpg.add_button(label="PLAY", tag="srtp_play", callback=lambda: controller.toggle_preview(), width=82)
+        dpg.add_separator()
+
+        with dpg.group(horizontal=True):
+            with dpg.child_window(width=245, height=735, border=True):
+                dpg.add_text("SOURCE LIBRARY", color=(132, 142, 160))
+                dpg.add_combo(
+                    items=list(REFERENCE_GAMES), default_value=next(iter(REFERENCE_GAMES)),
+                    tag="srtp_reference_selector", callback=controller.load_selected_reference, width=-1,
+                )
+                dpg.add_spacer(height=4)
+                dpg.add_text("PROJECT", color=(132, 142, 160))
+                dpg.add_input_text(tag="srtp_source_path", readonly=True, multiline=True, height=72, width=-1)
                 with dpg.group(horizontal=True):
-                    dpg.add_button(label="選擇入口文件", callback=lambda: dpg.show_item("srtp_file_dialog"), width=235)
-                    dpg.add_button(label="選擇專案資料夾", callback=lambda: dpg.show_item("srtp_directory_dialog"), width=235)
-                dpg.add_button(label="匯入專案 / 理解規則", callback=lambda: controller.import_source(), width=-1)
-                dpg.add_spacer(height=6)
-                dpg.add_text("2. 驗證未修改的原版遊戲")
+                    dpg.add_button(label="ENTRY...", callback=lambda: dpg.show_item("srtp_file_dialog"), width=105)
+                    dpg.add_button(label="PROJECT...", callback=lambda: dpg.show_item("srtp_directory_dialog"), width=105)
+                dpg.add_separator()
+                dpg.add_text("", tag="srtp_library_details", wrap=215, color=(174, 181, 193))
+                dpg.add_spacer(height=12)
+                dpg.add_text("ANALYSIS", color=(132, 142, 160))
+                with dpg.collapsing_header(label="Source Evidence"):
+                    dpg.add_input_text(tag="srtp_source_summary", multiline=True, readonly=True, width=-1, height=180)
+                with dpg.collapsing_header(label="Rule Schema IR"):
+                    dpg.add_input_text(tag="srtp_schema_output", multiline=True, readonly=True, width=-1, height=220)
+                with dpg.collapsing_header(label="Diagnostics"):
+                    dpg.add_input_text(tag="srtp_diagnostics", multiline=True, readonly=True, width=-1, height=180)
+                with dpg.collapsing_header(label="Function 2 Handoff"):
+                    dpg.add_input_text(tag="srtp_handoff", multiline=True, readonly=True, width=-1, height=180)
+
+            with dpg.child_window(width=800, height=735, border=True):
                 with dpg.group(horizontal=True):
-                    dpg.add_button(label="運行原版 2D", callback=lambda: controller.launch_original(True), width=235)
-                    dpg.add_button(label="停止原版", callback=lambda: controller.stop_original(), width=235)
-                dpg.add_text("原版的畫面、素材、控制與時間流程是忠實度基準。", wrap=485)
-                dpg.add_spacer(height=6)
-                dpg.add_text("3. 來源確實支持的安全設定")
-                dpg.add_combo(items=["N/A | import a source first"], tag="srtp_safe_parameter", callback=lambda: controller.select_safe_parameter(), width=-1)
-                dpg.add_input_text(tag="srtp_safe_parameter_value", hint="在衍生副本中使用的新值", width=-1)
-                dpg.add_button(label="建立可還原的來源衍生版本", callback=lambda: controller.apply_safe_source_parameter(), width=-1)
-                dpg.add_text("只有孤立且安全的資料/啟動設定會出現在這裡；耦合程式、固定機制與未解析項保持 N/A。", wrap=485)
-                dpg.add_spacer(height=6)
-                dpg.add_text("4. 定義 3D 空間目標")
-                dpg.add_text("X/Y 預設保留原版；Z 是新增軸，不是原遊戲的既有規則。", wrap=485)
-                with dpg.group(horizontal=True):
-                    dpg.add_input_int(label="Target X", tag="srtp_target_x", default_value=1, min_value=1, min_clamped=True, width=170)
-                    dpg.add_input_int(label="Target Y", tag="srtp_target_y", default_value=1, min_value=1, min_clamped=True, width=170)
-                    dpg.add_input_int(label="Target Z", tag="srtp_target_z", default_value=2, min_value=2, min_clamped=True, width=170)
-                with dpg.group(horizontal=True):
-                    dpg.add_checkbox(label="保留原版 X", tag="srtp_preserve_x", default_value=True)
-                    dpg.add_checkbox(label="保留原版 Y", tag="srtp_preserve_y", default_value=True)
-                dpg.add_button(label="記錄 3D 目標 / 檢查升維缺口", callback=lambda: controller.apply_transform_target(), width=-1)
-                dpg.add_button(label="開啟忠實的 3D 轉化預覽", callback=lambda: controller.open_transformed_preview(), width=-1)
-                dpg.add_spacer(height=6)
-                dpg.add_input_text(tag="srtp_output_path", hint="Optional source-game-package.json path", width=-1)
-                dpg.add_button(label="儲存證據與分析包", callback=lambda: controller.save_package(), width=-1)
-                dpg.add_text("請選擇完整源遊戲專案。", tag="srtp_status", wrap=485, color=(255, 215, 90))
-            with dpg.child_window(width=835, height=735):
-                with dpg.tab_bar():
-                    with dpg.tab(label="來源 / 運行"):
-                        dpg.add_input_text(tag="srtp_source_summary", multiline=True, readonly=True, width=-1, height=650)
-                    with dpg.tab(label="來源參數"):
-                        dpg.add_input_text(tag="srtp_parameters", multiline=True, readonly=True, width=-1, height=650)
-                    with dpg.tab(label="3D 升維計畫"):
-                        dpg.add_input_text(tag="srtp_transform", multiline=True, readonly=True, width=-1, height=650)
-                    with dpg.tab(label="Rule Schema IR"):
-                        dpg.add_input_text(tag="srtp_schema_output", multiline=True, readonly=True, width=-1, height=650)
-                    with dpg.tab(label="診斷"):
-                        dpg.add_input_text(tag="srtp_diagnostics", multiline=True, readonly=True, width=-1, height=650)
-                    with dpg.tab(label="Function 2 交接"):
-                        dpg.add_input_text(tag="srtp_handoff", multiline=True, readonly=True, width=-1, height=650)
+                    dpg.add_text("VIEWPORT", color=(132, 142, 160))
+                    dpg.add_spacer(width=545)
+                    dpg.add_text("Native Windows preview", color=(104, 112, 128))
+                dpg.add_separator()
+                with dpg.child_window(height=590, border=False):
+                    dpg.add_spacer(height=145)
+                    dpg.add_text("No source game selected", tag="srtp_viewport_heading", indent=55, color=(220, 224, 231))
+                    dpg.add_spacer(height=18)
+                    dpg.add_text(
+                        "Choose a game from the Source Library or import a project.",
+                        tag="srtp_viewport_body", indent=55, wrap=650, color=(145, 154, 170),
+                    )
+                dpg.add_separator()
+                dpg.add_text("CONSOLE", color=(132, 142, 160))
+                dpg.add_text("Ready", tag="srtp_status", wrap=750, color=(160, 170, 188))
+
+            with dpg.child_window(width=345, height=735, border=True):
+                dpg.add_text("INSPECTOR", color=(132, 142, 160))
+                dpg.add_separator()
+                dpg.add_text("SPACE LIFT", color=(132, 142, 160))
+                dpg.add_text("Source plane")
+                dpg.add_text("—", tag="srtp_source_plane", color=(190, 198, 211))
+                dpg.add_input_int(
+                    label="Depth (Z)", tag="srtp_target_z", default_value=3,
+                    min_value=2, min_clamped=True, width=155, callback=controller.apply_transform_target,
+                )
+                dpg.add_text("Target volume")
+                dpg.add_text("—", tag="srtp_target_volume", color=(105, 177, 245))
+                dpg.add_spacer(height=8)
+                dpg.add_text("TRANSFORMATION", color=(132, 142, 160))
+                with dpg.child_window(tag="srtp_transform_rows", height=132, border=False):
+                    pass
+                dpg.add_text("SOURCE PARAMETERS", color=(132, 142, 160))
+                with dpg.child_window(tag="srtp_parameter_rows", height=260, border=False):
+                    pass
+                with dpg.collapsing_header(label="Create Source Variant"):
+                    dpg.add_combo(items=["N/A"], tag="srtp_safe_parameter", callback=lambda: controller.select_safe_parameter(), width=-1)
+                    dpg.add_input_text(tag="srtp_safe_parameter_value", width=-1)
+                    dpg.add_button(label="APPLY TO COPY", callback=lambda: controller.apply_safe_source_parameter(), width=-1)
+                with dpg.collapsing_header(label="Export"):
+                    dpg.add_input_text(tag="srtp_output_path", hint="source-game-package.json", width=-1)
+                    dpg.add_button(label="SAVE ANALYSIS PACKAGE", callback=lambda: controller.save_package(), width=-1)
+                dpg.add_input_text(tag="srtp_parameters", show=False)
+                dpg.add_input_text(tag="srtp_transform", show=False)
 
     dpg.set_primary_window("srtp_primary", True)
-    if ui_font is not None:
-        dpg.bind_font(ui_font)
     dpg.setup_dearpygui()
     dpg.show_viewport()
-    dpg.start_dearpygui()
-    if controller.original_process and controller.original_process.running:
-        controller.original_process.stop()
+    controller.load_selected_reference()
+    frame = 0
+    while dpg.is_dearpygui_running():
+        dpg.render_dearpygui_frame()
+        frame += 1
+        if frame % 30 == 0:
+            controller.poll_processes()
+    controller.stop_preview(quiet=True)
     dpg.destroy_context()
 
 

@@ -90,6 +90,20 @@ class SourceGameImporterTests(unittest.TestCase):
             self.assertEqual(variant["size"], 640)
             self.assertEqual(unchanged, original)
 
+    def test_proven_timer_literal_creates_playable_source_copy(self):
+        with tempfile.TemporaryDirectory() as temp:
+            source = Path(temp) / "free_python_games"
+            shutil.copytree(str(REFERENCE_ROOT / "free_python_games"), str(source))
+            original_path = source / "freegames" / "snake.py"
+            original = original_path.read_text(encoding="utf-8")
+            package = self.importer.import_path(original_path)
+            parameter = package.parameter("source_tick_ms")
+
+            variant_entry = SourceVariantBuilder().create(package, parameter, "160")
+
+            self.assertIn("ontimer(move, 160)", variant_entry.read_text(encoding="utf-8"))
+            self.assertEqual(original_path.read_text(encoding="utf-8"), original)
+
 
 if __name__ == "__main__":
     unittest.main()

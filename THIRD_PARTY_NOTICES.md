@@ -10,6 +10,10 @@ The following unmodified upstream source files are included solely as runnable S
 - Included: `freegames/__init__.py`, `utils.py`, `snake.py`, `minesweeper.py`, `connect.py`
 - License copy: `srtp/reference_games/free_python_games/LICENSE`
 
+These are the upstream educational programs without CubeEngine patches.
+`connect.py` explicitly leaves row/win/full-board validation as exercises, so
+the Workbench labels it as a source prototype rather than a complete ruleset.
+
 ## 2048-pygame
 
 - Upstream: <https://github.com/rajitbanerjee/2048-pygame>
