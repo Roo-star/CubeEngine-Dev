@@ -81,7 +81,7 @@
       "information": {"enum": ["perfect", "imperfect", "partial", "hidden", "unknown"]}
     }, "additionalProperties": true},
     "flow": {"type": "object", "required": ["model", "turn_order", "phases", "tick_rate"], "properties": {
-      "model": {"enum": ["turn_based", "simultaneous", "real_time", "tick_based", "hybrid", "unknown"]},
+      "model": {"enum": ["turn_based", "simultaneous", "event_driven", "real_time", "tick_based", "hybrid", "unknown"]},
       "turn_order": {"type": "array", "items": {"type": "string"}},
       "phases": {"type": "array"}, "tick_rate": {"type": ["number", "null"], "exclusiveMinimum": 0}
     }, "additionalProperties": true},
