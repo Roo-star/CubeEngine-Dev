@@ -116,6 +116,12 @@ class UnifiedRuleRuntime:
         if self.source.get("schema_version") == DEMO_SCHEMA_VERSION:
             self.session = build_demo_session(self.source)
             self.board = self.session.board
+        elif self.source.get("schema_version") == "cubeengine.srtp/rule-schema-v1":
+            # Imported lazily so STAL v1 remains independently usable.
+            from srtp.stal_adapter import build_stal_session
+
+            self.session = build_stal_session(self.source)
+            self.board = self.session.board
         else:
             self.session = None
             self.board = Battlefield(GridRules.from_mapping(self.source))

@@ -1,0 +1,42 @@
+{
+  "game_id": "placement_line_3x3",
+  "title": "2D Placement Line",
+  "description": "Two roles alternate placing marks on cell centres; three aligned marks win.",
+  "board": {
+    "rows": 3,
+    "columns": 3,
+    "placement": "cell_center"
+  },
+  "turn_based": true,
+  "players": [
+    {
+      "id": "cross",
+      "name": "Cross",
+      "symmetry_group": "markers",
+      "piece": {"id": "cross_mark", "state": 1, "supply": {"model": "unlimited"}}
+    },
+    {
+      "id": "circle",
+      "name": "Circle",
+      "symmetry_group": "markers",
+      "piece": {"id": "circle_mark", "state": 2, "supply": {"model": "unlimited"}}
+    }
+  ],
+  "turn_order": ["cross", "circle"],
+  "state_legend": {"0": "empty", "1": "cross", "2": "circle"},
+  "moves": [
+    {
+      "id": "place_mark",
+      "name": "Place mark",
+      "type": "place",
+      "on": "empty"
+    }
+  ],
+  "win_conditions": [
+    {"id": "three_aligned", "type": "line", "length": 3, "status": "win", "priority": 100}
+  ],
+  "draw_conditions": [
+    {"id": "board_filled", "type": "board_full", "status": "draw", "priority": 10}
+  ],
+  "modes": ["standard"]
+}
