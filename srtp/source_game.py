@@ -48,7 +48,7 @@ class SourceParameter:
     @property
     def safely_editable(self) -> bool:
         return self.applicability == "applicable" and self.edit_mode in {
-            "runtime_argument", "data_file", "adapter_setting"
+            "runtime_argument", "data_file", "literal_patch", "adapter_setting"
         }
 
     def to_mapping(self) -> Dict[str, Any]:
@@ -125,6 +125,7 @@ class MechanicLift:
 class TransformationPlan:
     source_dimensions: Dict[str, Optional[int]]
     target_dimensions: Dict[str, Optional[int]]
+    adapter_id: str = ""
     preserve_x: bool = True
     preserve_y: bool = True
     renderer_policy: str = "preserve_source_identity"
@@ -143,6 +144,7 @@ class TransformationPlan:
         return {
             "source_dimensions": self.source_dimensions,
             "target_dimensions": self.target_dimensions,
+            "adapter_id": self.adapter_id,
             "preserve_x": self.preserve_x,
             "preserve_y": self.preserve_y,
             "renderer_policy": self.renderer_policy,

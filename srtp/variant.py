@@ -15,7 +15,7 @@ class SourceVariantBuilder:
     def create(self, package: SourceGamePackage, parameter: SourceParameter, raw_value: Any) -> Path:
         if not parameter.safely_editable:
             raise ValueError("This parameter is not independently safe to edit.")
-        if parameter.edit_mode != "data_file":
+        if parameter.edit_mode not in ("data_file", "literal_patch"):
             raise ValueError("No variant writer is registered for edit mode {0}.".format(parameter.edit_mode))
         value = _coerce(raw_value, parameter.value_type)
         _validate(value, parameter.constraints)
@@ -23,10 +23,12 @@ class SourceVariantBuilder:
             raise ValueError("The source location for this parameter is unresolved.")
         location = parameter.locations[0]
         source_file = package.root / location.path
-        if source_file.suffix.lower() != ".json":
-            raise ValueError("The safe data-file writer currently supports JSON values only.")
 
-        variants_root = package.root.parent / ".cubeengine_variants"
+        variants_root = (
+            package.root.parent
+            if package.root.parent.name == ".cubeengine_variants"
+            else package.root.parent / ".cubeengine_variants"
+        )
         variants_root.mkdir(parents=True, exist_ok=True)
         token = _slug("{0}-{1}-{2}".format(package.entrypoint.stem, parameter.id, value))
         destination = variants_root / token
@@ -37,12 +39,17 @@ class SourceVariantBuilder:
         shutil.copytree(str(package.root), str(destination))
 
         target_file = destination / location.path
-        data = json.loads(target_file.read_text(encoding="utf-8-sig"))
-        key = parameter.id.replace("source_visual_", "", 1)
-        if key not in data:
-            raise ValueError("The proven JSON key no longer exists in the source copy.")
-        data[key] = value
-        target_file.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+        if parameter.edit_mode == "data_file":
+            if source_file.suffix.lower() != ".json":
+                raise ValueError("The safe data-file writer currently supports JSON values only.")
+            data = json.loads(target_file.read_text(encoding="utf-8-sig"))
+            key = parameter.id.replace("source_visual_", "", 1)
+            if key not in data:
+                raise ValueError("The proven JSON key no longer exists in the source copy.")
+            data[key] = value
+            target_file.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+        else:
+            _patch_proven_literal(target_file, parameter, value)
         manifest = {
             "variant_version": "cubeengine.srtp/source-variant-v1",
             "source_root": str(package.root),
@@ -85,6 +92,30 @@ def _validate(value: Any, constraints: Any) -> None:
             raise ValueError("Value is below the proven safe minimum.")
         if "maximum" in constraints and value > constraints["maximum"]:
             raise ValueError("Value is above the proven safe maximum.")
+
+
+def _patch_proven_literal(path: Path, parameter: SourceParameter, value: Any) -> None:
+    """Patch one importer-proven literal, refusing ambiguous source changes."""
+
+    location = parameter.locations[0]
+    if not location.line:
+        raise ValueError("The proven literal has no source line.")
+    lines = path.read_text(encoding="utf-8-sig").splitlines(keepends=True)
+    index = location.line - 1
+    if not 0 <= index < len(lines):
+        raise ValueError("The proven source line no longer exists.")
+    old = re.escape(str(parameter.value))
+    if parameter.id == "source_tick_ms":
+        pattern = re.compile(r"(\bontimer\s*\([^,]+,\s*){0}(\s*\))".format(old))
+    elif parameter.id == "source_mine_count":
+        pattern = re.compile(r"(\brange\s*\(\s*){0}(\s*\))".format(old))
+    else:
+        raise ValueError("No literal patch contract exists for {0}.".format(parameter.id))
+    replaced, count = pattern.subn(r"\g<1>{0}\g<2>".format(value), lines[index])
+    if count != 1:
+        raise ValueError("The proven literal changed or became ambiguous; no source file was modified.")
+    lines[index] = replaced
+    path.write_text("".join(lines), encoding="utf-8")
 
 
 def _slug(value: str) -> str:

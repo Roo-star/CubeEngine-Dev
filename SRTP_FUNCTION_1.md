@@ -138,25 +138,23 @@ C:\Users\Yingr\.pyenv\pyenv-win\versions\3.9.1\python.exe -m srtp.workbench
 
 建議驗收順序：
 
-1. 選擇一個真實開源遊戲。
-2. 按 `Import project / understand rules`。
-3. 先按 `Run original 2D`，確認原遊戲、素材和控制正常。
-4. 查看 `Source-backed parameters` 的值、來源行號、適用性及 edit mode。
-5. 查看 Rule Schema IR 與 coverage；partial 必須說明缺什麼。
-6. 保留來源 X/Y，輸入 Z；查看 `3D lift plan`。
-7. 在 lift 尚未編譯時，`Open faithful transformed preview` 必須拒絕開啟通用立方體。
+1. 從左側 Source Library 選擇遊戲；切換選項會立即載入與分析。
+2. 保持上方 `Source 2D`，按唯一的 `PLAY` 控制；原版會在原生 Windows 遊戲視窗運行。
+3. 右側 Inspector 直接顯示 Source plane、可調的 `Depth (Z)`、Target volume、轉化狀態與所有來源參數。
+4. 切換上方 `Transformed 3D`，按同一個 `PLAY`；已註冊的來源適配器會開啟 Ursina Play Mode。
+5. Rule Schema、Diagnostics 與 Function 2 handoff 收在左側 Analysis，不佔據主要設計工作流。
 
-Windows 上會嘗試把 Turtle/Pygame 原視窗嵌入 Workbench；框架不接受 reparent 時會保留為獨立原版視窗。Pygame 官方提供 `SDL_WINDOWID` 嵌入方式，但並非所有來源都在建立 display 前遵守該契約：<https://www.pygame.org/docs/ref/display.html>。Qt 對 foreign window 有正式的 `QWindow::fromWinId()` / `createWindowContainer()` 支援；若「穩定嵌入任意原版視窗」成為產品硬需求，預覽外殼應遷移至 PySide6/PyQt：<https://doc.qt.io/qt-6/qtdoc-demos-windowembedding-example.html>。
+Windows 不再把 Turtle/Pygame 視窗強制 reparent 到 Dear PyGui。實測這會讓子視窗被 GPU viewport 遮蔽；原版與 Ursina 因此使用可靠的原生獨立視窗。若「任意外來遊戲視窗穩定內嵌」成為硬需求，預覽外殼應遷移到正式支援 `QWindow::fromWinId()` / `createWindowContainer()` 的 PySide6/PyQt：<https://doc.qt.io/qt-6/qtdoc-demos-windowembedding-example.html>。
 
 ## 8. 當前能力與邊界
 
 | 來源 | 原版運行 | 全專案盤點 | 規則靜態分析 | 安全資料變體 | 忠實 3D compiler |
 |---|---:|---:|---:|---:|---:|
-| Python/Turtle | 是 | 是 | 部分，附證據 | 依來源 | 尚未 |
-| Python/Pygame | 是 | 是 | 部分，附證據 | JSON data 可用 | 尚未 |
+| Python/Turtle | 是 | 是 | 部分，附證據 | 依來源 | Snake / Minesweeper / Connect 適配器 |
+| Python/Pygame | 是 | 是 | 部分，附證據 | JSON data 可用 | 2048 適配器 |
 | Canonical JSON | 無原遊戲可運行 | 單檔 | 是 | 是 | 僅既有 declarative subset |
 | HTML/JavaScript | 瀏覽器基線 | 基礎 | 尚未 | 尚未 | 尚未 |
 | Unity/C# | 需對應 Unity 版本 | 尚未 | 尚未 | 尚未 | 尚未 |
 | Godot | 需對應 Godot 版本 | 尚未 | 尚未 | 尚未 | 尚未 |
 
-這個 Function 1 版本已建立正確入口與驗收邏輯，但沒有宣稱 Snake、Minesweeper 或 2048 已完成 3D 轉化。忠實 3D compiler 是後續 SRTP 2D→3D mapping 與 framework adapter 的工作。
+目前四個 reference 的 3D compiler 是明確註冊的 vertical slice，不是任意 Python 遊戲的通用轉化器。未註冊來源仍必須停在 `needs_adapter`，不能退回通用立方體。
