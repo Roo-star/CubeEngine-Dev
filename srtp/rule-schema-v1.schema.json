@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cubeengine.dev/schema/srtp/rule-schema-v1.json",
+  "title": "CubeEngine SRTP Rule Schema v1",
+  "description": "Canonical source-game rule model produced by SRTP Function 1.",
+  "type": "object",
+  "required": [
+    "schema_version", "source", "game", "space", "participants", "entities",
+    "state", "setup", "flow", "actions", "randomness", "goals", "outcomes",
+    "modes", "ui_hints", "extensions"
+  ],
+  "properties": {
+    "schema_version": {"const": "cubeengine.srtp/rule-schema-v1"},
+    "source": {"$ref": "#/$defs/source"},
+    "game": {"$ref": "#/$defs/game"},
+    "space": {"$ref": "#/$defs/space"},
+    "participants": {"type": "array", "items": {"$ref": "#/$defs/participant"}},
+    "entities": {"type": "array", "items": {"$ref": "#/$defs/entity"}},
+    "state": {"$ref": "#/$defs/state"},
+    "setup": {"type": "object", "required": ["placements", "generators"], "properties": {
+      "placements": {"type": "array"}, "generators": {"type": "array"}
+    }, "additionalProperties": true},
+    "flow": {"$ref": "#/$defs/flow"},
+    "actions": {"type": "array", "items": {"$ref": "#/$defs/action"}},
+    "randomness": {"type": "object", "required": ["model", "events"], "properties": {
+      "model": {"enum": ["deterministic", "stochastic", "mixed", "unknown"]},
+      "events": {"type": "array"}
+    }, "additionalProperties": true},
+    "goals": {"type": "array", "items": {"type": "object", "required": ["id", "type"], "properties": {
+      "id": {"$ref": "#/$defs/id"}, "type": {"enum": ["intermediate", "terminal", "player_defined", "unknown"]}
+    }, "additionalProperties": true}},
+    "outcomes": {"type": "array", "items": {"$ref": "#/$defs/outcome"}},
+    "modes": {"type": "array", "minItems": 1, "items": {"type": "object", "required": ["id", "name", "overrides"], "properties": {
+      "id": {"$ref": "#/$defs/id"}, "name": {"type": "string", "minLength": 1}, "overrides": {"type": "object"}
+    }, "additionalProperties": false}},
+    "ui_hints": {"type": "object"},
+    "extensions": {"type": "object"}
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "id": {"type": "string", "minLength": 1, "pattern": "^[A-Za-z0-9_][A-Za-z0-9_.-]*$"},
+    "source": {"type": "object", "required": ["path", "format", "sha256", "provenance"], "properties": {
+      "path": {"type": "string"}, "format": {"type": "string"},
+      "sha256": {"type": "string", "pattern": "^$|^[0-9a-f]{64}$"}, "provenance": {"type": "object"}
+    }, "additionalProperties": false},
+    "game": {"type": "object", "required": ["id", "name", "description", "classification"], "properties": {
+      "id": {"$ref": "#/$defs/id"}, "name": {"type": "string", "minLength": 1},
+      "description": {"type": "string"}, "classification": {"type": "object"}
+    }, "additionalProperties": true},
+    "space": {"type": "object", "required": ["topology", "dimensions", "coordinate_anchor", "coordinate_system", "adjacency", "boundaries"], "properties": {
+      "topology": {"enum": ["rectangular_grid", "hex_grid", "graph", "continuous", "unknown"]},
+      "dimensions": {"type": "object", "required": ["x", "y", "z"], "properties": {
+        "x": {"type": ["integer", "null"], "minimum": 1},
+        "y": {"type": ["integer", "null"], "minimum": 1},
+        "z": {"type": ["integer", "null"], "minimum": 1}
+      }, "additionalProperties": false},
+      "coordinate_anchor": {"enum": ["cell_center", "grid_intersection", "edge", "free", "unknown"]},
+      "coordinate_system": {"type": "object", "required": ["origin", "axis_order", "index_base"], "properties": {
+        "origin": {"type": "array", "prefixItems": [{"type": "integer"}, {"type": "integer"}, {"type": "integer"}], "items": false},
+        "axis_order": {"type": "array", "prefixItems": [{"const": "x"}, {"const": "y"}, {"const": "z"}], "items": false},
+        "index_base": {"type": "integer"}
+      }, "additionalProperties": false},
+      "adjacency": {"type": "object"}, "boundaries": {"type": "object"}
+    }, "additionalProperties": true},
+    "participant": {"type": "object", "required": ["id", "name", "kind"], "properties": {
+      "id": {"$ref": "#/$defs/id"}, "name": {"type": "string", "minLength": 1},
+      "kind": {"enum": ["human", "ai", "human_or_ai", "system", "chance"]},
+      "symmetry_group": {"type": "string"}
+    }, "additionalProperties": true},
+    "entity": {"type": "object", "required": ["id", "name", "kind", "owner", "supply"], "properties": {
+      "id": {"$ref": "#/$defs/id"}, "name": {"type": "string", "minLength": 1},
+      "kind": {"enum": ["piece", "avatar", "token", "terrain", "cell_marker", "projectile", "collectible", "obstacle", "region", "system_object", "unknown"]},
+      "owner": {"type": ["string", "null"]}, "state_value": {"type": "integer"},
+      "supply": {"type": "object"}
+    }, "additionalProperties": true},
+    "state": {"type": "object", "required": ["board", "variables", "information"], "properties": {
+      "board": {"type": "object", "required": ["empty_value", "cell_states"], "properties": {
+        "empty_value": {"type": "integer"}, "cell_states": {"type": "object"}
+      }, "additionalProperties": true},
+      "variables": {"type": "array"},
+      "information": {"enum": ["perfect", "imperfect", "partial", "hidden", "unknown"]}
+    }, "additionalProperties": true},
+    "flow": {"type": "object", "required": ["model", "turn_order", "phases", "tick_rate"], "properties": {
+      "model": {"enum": ["turn_based", "simultaneous", "real_time", "tick_based", "hybrid", "unknown"]},
+      "turn_order": {"type": "array", "items": {"type": "string"}},
+      "phases": {"type": "array"}, "tick_rate": {"type": ["number", "null"], "exclusiveMinimum": 0}
+    }, "additionalProperties": true},
+    "action": {"type": "object", "required": ["id", "name", "actor", "verb", "target", "parameters", "preconditions", "effects", "timing", "executable"], "properties": {
+      "id": {"$ref": "#/$defs/id"}, "name": {"type": "string", "minLength": 1},
+      "actor": {"type": "string"},
+      "verb": {"enum": ["place", "move", "select", "reveal", "toggle", "rotate", "transform", "spawn", "remove", "capture", "swap", "push", "shoot", "control", "pass", "resolve", "tick", "unknown"]},
+      "target": {"type": "object"}, "parameters": {"type": "array"},
+      "preconditions": {"type": "array"}, "effects": {"type": "array"},
+      "timing": {"type": "object"}, "executable": {"type": "boolean"},
+      "source_ref": {"type": "string"}
+    }, "additionalProperties": true},
+    "outcome": {"type": "object", "required": ["id", "priority", "condition", "result", "executable"], "properties": {
+      "id": {"$ref": "#/$defs/id"}, "priority": {"type": "integer"},
+      "condition": {"type": "object"},
+      "result": {"type": "object", "required": ["status", "is_terminal"], "properties": {
+        "status": {"type": "string", "minLength": 1}, "is_terminal": {"type": "boolean"},
+        "winners": {"type": "array", "items": {"type": "string"}},
+        "losers": {"type": "array", "items": {"type": "string"}}
+      }, "additionalProperties": true},
+      "executable": {"type": "boolean"}, "source_ref": {"type": "string"}
+    }, "additionalProperties": true}
+  }
+}

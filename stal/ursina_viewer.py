@@ -102,6 +102,12 @@ class StalUrsinaViewer:
         self.markers: Dict[Coordinate, object] = {}
         self.grid_lines = []
         presentation = runtime.source.get("presentation", {})
+        if runtime.source.get("schema_version") == "cubeengine.srtp/rule-schema-v1":
+            presentation = {
+                "coordinate_anchor": runtime.source.get("space", {}).get(
+                    "coordinate_anchor", "cell_center"
+                )
+            }
         self.intersection_mode = (
             isinstance(presentation, Mapping)
             and presentation.get("coordinate_anchor") == "grid_intersection"
@@ -447,9 +453,14 @@ class StalUrsinaViewer:
             legal_count = len(session.actions.legal_action_codes())
             action_summary = "{0}/{1} legal actions".format(legal_count, session.actions.action_count)
             if session.runtime_data:
-                action_summary += " | collected={0}".format(
-                    session.runtime_data.get("collected", 0)
-                )
+                if "collected" in session.runtime_data:
+                    action_summary += " | collected={0}".format(
+                        session.runtime_data.get("collected", 0)
+                    )
+                if "current_role" in session.runtime_data:
+                    action_summary += " | actor={0}".format(
+                        session.runtime_data.get("current_role")
+                    )
             report = self.runtime.outcome()
             assert report is not None
             outcome_summary = "{0}, terminal={1}, winners={2}".format(
