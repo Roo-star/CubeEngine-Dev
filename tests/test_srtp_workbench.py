@@ -12,6 +12,8 @@ class FakeDpg:
         self.values = {
             "srtp_reference_selector": next(iter(REFERENCE_GAMES)),
             "srtp_source_path": "",
+            "srtp_target_x": 4,
+            "srtp_target_y": 4,
             "srtp_target_z": 3,
             "srtp_preview_mode": "Source 2D",
             "srtp_safe_parameter": "",
@@ -27,6 +29,7 @@ class FakeDpg:
             "srtp_library_details": "",
             "srtp_source_plane": "",
             "srtp_target_volume": "",
+            "srtp_lift_policy": "",
             "srtp_viewport_heading": "",
             "srtp_viewport_body": "",
         }
@@ -56,7 +59,27 @@ class FakeTransformRunner:
         return TransformedGameProcess(None)
 
 
+class FailingImporter:
+    def import_path(self, _path):
+        raise ValueError("broken project")
+
+
 class SrtpWorkbenchTests(unittest.TestCase):
+    def test_failed_project_import_clears_previous_game_instead_of_reusing_its_adapter(self):
+        dpg = FakeDpg()
+        good = SrtpWorkbench(dpg)
+        good.load_selected_reference()
+        previous_package = good.package
+        self.assertEqual(previous_package.transformation.adapter_id, "snake")
+
+        good.importer = FailingImporter()
+        dpg.values["srtp_source_path"] = r"E:\broken-game"
+        good.import_source()
+
+        self.assertIsNone(good.package)
+        self.assertEqual(dpg.values["srtp_viewport_heading"], "Source import failed")
+        self.assertIn("No previous game", dpg.values["srtp_viewport_body"])
+
     def test_real_reference_populates_runtime_evidence_and_source_dimensions(self):
         dpg = FakeDpg()
         controller = SrtpWorkbench(dpg)
@@ -64,21 +87,24 @@ class SrtpWorkbenchTests(unittest.TestCase):
         controller.load_selected_reference()
 
         self.assertIsNotNone(controller.package)
-        self.assertEqual(controller.package.runtime.framework, "turtle")
-        self.assertEqual(controller.package.transformation.source_dimensions, {"x": 38, "y": 38, "z": 1})
+        self.assertEqual(controller.package.runtime.framework, "pygame")
+        self.assertEqual(controller.package.transformation.source_dimensions, {"x": 20, "y": 20, "z": 1})
+        self.assertGreater(len(controller.package.assets), 10)
         self.assertIn("Original runtime: runnable", dpg.values["srtp_source_summary"])
-        self.assertIn("source_patch", dpg.values["srtp_parameters"])
+        self.assertIn("Movement interval", dpg.values["srtp_parameters"])
 
-    def test_transform_target_preserves_source_xy_and_records_only_new_z(self):
+    def test_transform_target_defaults_to_source_xy_but_allows_designer_resize(self):
         dpg = FakeDpg()
         controller = SrtpWorkbench(dpg)
         controller.load_selected_reference()
-        dpg.values.update({"srtp_target_z": 5})
+        dpg.values.update({"srtp_target_x": 12, "srtp_target_y": 14, "srtp_target_z": 5})
 
         controller.apply_transform_target()
 
-        self.assertEqual(controller.package.transformation.target_dimensions, {"x": 38, "y": 38, "z": 5})
-        self.assertIn("X and Y remain source-owned", dpg.values["srtp_status"])
+        self.assertEqual(controller.package.transformation.target_dimensions, {"x": 12, "y": 14, "z": 5})
+        self.assertFalse(controller.package.transformation.preserve_x)
+        self.assertFalse(controller.package.transformation.preserve_y)
+        self.assertIn("Target volume updated", dpg.values["srtp_status"])
 
     def test_original_launch_uses_source_runtime_not_generic_ursina_schema(self):
         dpg = FakeDpg()
@@ -89,7 +115,7 @@ class SrtpWorkbenchTests(unittest.TestCase):
         controller.launch_original()
 
         package, kwargs = runner.calls[0]
-        self.assertEqual(package.runtime.command[-2:], ["-m", "freegames.snake"])
+        self.assertTrue(package.runtime.command[-1].endswith("pygame_snake\\snake.py"))
         self.assertEqual(kwargs, {})
 
     def test_registered_source_adapter_launches_playable_3d_preview(self):

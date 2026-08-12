@@ -106,12 +106,20 @@ def _patch_proven_literal(path: Path, parameter: SourceParameter, value: Any) ->
         raise ValueError("The proven source line no longer exists.")
     old = re.escape(str(parameter.value))
     if parameter.id == "source_tick_ms":
-        pattern = re.compile(r"(\bontimer\s*\([^,]+,\s*){0}(\s*\))".format(old))
+        patterns = [re.compile(r"((?:\bontimer|\b(?:pygame\.)?time\.set_timer)\s*\([^,]+,\s*){0}(\s*\))".format(old))]
     elif parameter.id == "source_mine_count":
-        pattern = re.compile(r"(\brange\s*\(\s*){0}(\s*\))".format(old))
+        patterns = [
+            re.compile(r"((?:\brange)\s*\(\s*){0}(\s*\))".format(old)),
+            re.compile(r"((?:\bUserInterface|\bBoard)\s*\([^,]+,[^,]+,\s*){0}(\s*[,\)])".format(old)),
+            re.compile(r"^(\s*){0}(\s*,\s*(?:#.*)?(?:\r?\n)?)$".format(old)),
+        ]
     else:
         raise ValueError("No literal patch contract exists for {0}.".format(parameter.id))
-    replaced, count = pattern.subn(r"\g<1>{0}\g<2>".format(value), lines[index])
+    replaced, count = lines[index], 0
+    for pattern in patterns:
+        replaced, count = pattern.subn(r"\g<1>{0}\g<2>".format(value), lines[index])
+        if count == 1:
+            break
     if count != 1:
         raise ValueError("The proven literal changed or became ambiguous; no source file was modified.")
     lines[index] = replaced

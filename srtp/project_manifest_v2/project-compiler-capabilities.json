@@ -1,0 +1,25 @@
+{
+  "capability_id": "cubeengine.project-compiler/2.0-alpha.1",
+  "manifest_version": "cubeengine.project-manifest/2.0-alpha.2",
+  "required_documents": {
+    "rule_ir": "cubeengine.rule-ir/2.0-alpha.1",
+    "scene_ir": "cubeengine.scene-ir/2.0-alpha.1",
+    "asset_ir": "cubeengine.asset-ir/2.0-alpha.1",
+    "input_ir": "cubeengine.input-ir/2.0-alpha.1"
+  },
+  "compile_order": ["rule_ir", "asset_ir", "scene_ir", "input_ir"],
+  "cross_links": [
+    "scene_ir->rule_ir",
+    "scene_ir->asset_ir",
+    "input_ir->rule_ir"
+  ],
+  "variants": ["source", "target"],
+  "target_requires_source_manifest_pin": true,
+  "input_may_write_rule_state": false,
+  "project_session_applies_validated_rule_requests": true,
+  "external_extensions": {
+    "sdk": "cubeengine.extension-sdk/1.0",
+    "project_pins_required": true,
+    "supported_integration": ["rule_function"]
+  }
+}

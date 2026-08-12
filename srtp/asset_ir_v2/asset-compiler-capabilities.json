@@ -1,0 +1,44 @@
+{
+  "capability_id": "cubeengine.asset-compiler/2.0-alpha.1",
+  "asset_ir_version": "cubeengine.asset-ir/2.0-alpha.1",
+  "source_schemes": ["project"],
+  "importers": {
+    "cubeengine.raw-file": ["1.0"],
+    "cubeengine.image": ["1.0"],
+    "cubeengine.json": ["1.0"]
+  },
+  "asset_kinds": ["image", "audio", "font", "model", "material", "data", "text", "binary"],
+  "derivation_strategies": [
+    "identity",
+    "atlas_region",
+    "billboard",
+    "extrusion",
+    "cube_face_projection",
+    "mesh_substitution",
+    "procedural_mesh"
+  ],
+  "declared_but_extension_required": ["custom_renderer"],
+  "presentation_mapping_strategies": [
+    "billboard",
+    "extrusion",
+    "cube_face_projection",
+    "mesh_substitution",
+    "procedural_mesh",
+    "custom_renderer"
+  ],
+  "compiled_descriptor_media_type": "application/vnd.cubeengine.presentation+json",
+  "hash_algorithm": "sha256",
+  "cache_layout": "cache://sha256/{content_hash}.{extension}",
+  "default_limits": {
+    "max_asset_bytes": 67108864,
+    "max_total_bytes": 536870912,
+    "max_image_pixels": 100000000
+  },
+  "security": {
+    "executes_source_files": false,
+    "allows_absolute_source_paths": false,
+    "allows_parent_traversal": false,
+    "allows_project_root_escape": false,
+    "case_insensitive_uri_collisions_rejected": true
+  }
+}

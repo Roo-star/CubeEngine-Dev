@@ -13,6 +13,14 @@
 - `rule_report`：Rule Schema、diagnostics、provenance 及 Function 2 handoff。
 - `transformation`：來源 X/Y、目標 XYZ 與每項 mechanic lift。
 
+`rule_report.schema.ui_hints.interaction_contract` 另保存：
+
+- 由來源行號證明的鍵盤／滑鼠輸入、事件與 handler；
+- 3D gameplay 對應輸入；
+- CubeEngine 固定保留的視角／圖層輸入；
+- WASD、右鍵等衝突的分流決策；
+- 每項輸入應產生的可見回饋與 focus 要求。
+
 ## 三個獨立 readiness
 
 ### Original runtime

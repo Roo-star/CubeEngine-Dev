@@ -1,0 +1,128 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cubeengine.local/schema/asset-ir-v2.schema.json",
+  "title": "CubeEngine Asset IR v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "ir_version", "document_id", "revision", "content_hash", "metadata",
+    "assets", "derivations", "roles", "presentation_mappings", "provenance", "unresolved"
+  ],
+  "properties": {
+    "ir_version": {"const": "cubeengine.asset-ir/2.0-alpha.1"},
+    "document_id": {"$ref": "#/$defs/assetId"},
+    "revision": {"type": "integer", "minimum": 0},
+    "content_hash": {"type": "string", "pattern": "^$|^[0-9a-f]{64}$"},
+    "metadata": {
+      "type": "object", "additionalProperties": false,
+      "required": ["title", "description", "source_project_hash"],
+      "properties": {
+        "title": {"type": "string", "minLength": 1},
+        "description": {"type": "string"},
+        "source_project_hash": {"type": "string", "pattern": "^$|^[0-9a-f]{64}$"}
+      }
+    },
+    "assets": {"type": "array", "items": {"$ref": "#/$defs/sourceAsset"}},
+    "derivations": {"type": "array", "items": {"$ref": "#/$defs/derivation"}},
+    "roles": {"type": "array", "items": {"$ref": "#/$defs/role"}},
+    "presentation_mappings": {"type": "array", "items": {"$ref": "#/$defs/mapping"}},
+    "provenance": {"type": "object"},
+    "unresolved": {"type": "array", "items": {"$ref": "#/$defs/unresolved"}}
+  },
+  "$defs": {
+    "assetId": {"type": "string", "pattern": "^asset:[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$"},
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "mediaType": {"type": "string", "pattern": "^[a-z0-9][a-z0-9!#$&^_.+-]*/[a-z0-9][a-z0-9!#$&^_.+-]*$"},
+    "license": {
+      "type": "object", "additionalProperties": false,
+      "required": ["spdx_id", "attribution", "source_uri", "redistribution"],
+      "properties": {
+        "spdx_id": {"type": "string", "minLength": 1},
+        "attribution": {"type": "string"},
+        "source_uri": {"type": ["string", "null"]},
+        "redistribution": {"enum": ["allowed", "restricted", "unknown"]}
+      }
+    },
+    "sourceAsset": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "name", "kind", "media_type", "source", "license", "importer", "metadata"],
+      "properties": {
+        "id": {"$ref": "#/$defs/assetId"},
+        "name": {"type": "string", "minLength": 1},
+        "kind": {"enum": ["image", "audio", "font", "model", "material", "data", "text", "binary"]},
+        "media_type": {"$ref": "#/$defs/mediaType"},
+        "source": {
+          "type": "object", "additionalProperties": false,
+          "required": ["uri", "content_hash", "byte_size"],
+          "properties": {
+            "uri": {"type": "string", "pattern": "^project://[^\\\\]+$"},
+            "content_hash": {"$ref": "#/$defs/sha256"},
+            "byte_size": {"type": "integer", "minimum": 0}
+          }
+        },
+        "license": {"$ref": "#/$defs/license"},
+        "importer": {
+          "type": "object", "additionalProperties": false,
+          "required": ["capability", "version", "settings"],
+          "properties": {
+            "capability": {"enum": ["cubeengine.raw-file", "cubeengine.image", "cubeengine.json"]},
+            "version": {"type": "string", "minLength": 1},
+            "settings": {"type": "object"}
+          }
+        },
+        "metadata": {"type": "object"}
+      }
+    },
+    "derivation": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "name", "kind", "media_type", "strategy", "inputs", "settings", "expected_content_hash", "license_policy"],
+      "properties": {
+        "id": {"$ref": "#/$defs/assetId"},
+        "name": {"type": "string", "minLength": 1},
+        "kind": {"enum": ["image", "audio", "font", "model", "material", "data", "text", "binary"]},
+        "media_type": {"$ref": "#/$defs/mediaType"},
+        "strategy": {"enum": ["identity", "atlas_region", "billboard", "extrusion", "cube_face_projection", "mesh_substitution", "procedural_mesh", "custom_renderer"]},
+        "inputs": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/assetId"}},
+        "settings": {"type": "object"},
+        "expected_content_hash": {"type": "string", "pattern": "^$|^[0-9a-f]{64}$"},
+        "license_policy": {"const": "inherit"},
+        "extension": {"type": "string", "pattern": "^extension:[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*(?:/[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*)*/[1-9][0-9]*(?:\\.[0-9]+){0,2}$"}
+      }
+    },
+    "role": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "name", "semantic", "resource", "usage", "required"],
+      "properties": {
+        "id": {"$ref": "#/$defs/assetId"},
+        "name": {"type": "string", "minLength": 1},
+        "semantic": {"type": "string", "pattern": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$"},
+        "resource": {"$ref": "#/$defs/assetId"},
+        "usage": {"enum": ["world_texture", "world_mesh", "world_material", "ui_texture", "ui_font", "audio", "data", "other"]},
+        "required": {"type": "boolean"}
+      }
+    },
+    "mapping": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "name", "source_role", "target_resource", "strategy", "fidelity", "settings"],
+      "properties": {
+        "id": {"$ref": "#/$defs/assetId"},
+        "name": {"type": "string", "minLength": 1},
+        "source_role": {"$ref": "#/$defs/assetId"},
+        "target_resource": {"$ref": "#/$defs/assetId"},
+        "strategy": {"enum": ["billboard", "extrusion", "cube_face_projection", "mesh_substitution", "procedural_mesh", "custom_renderer"]},
+        "fidelity": {"enum": ["source_exact", "source_derived", "designer_substitution"]},
+        "settings": {"type": "object"}
+      }
+    },
+    "unresolved": {
+      "type": "object", "additionalProperties": false,
+      "required": ["path", "reason", "required", "owner"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "reason": {"type": "string", "minLength": 1},
+        "required": {"type": "boolean"},
+        "owner": {"enum": ["importer", "adapter", "designer", "llm", "extension"]}
+      }
+    }
+  }
+}

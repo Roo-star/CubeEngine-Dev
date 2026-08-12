@@ -22,6 +22,7 @@ class OriginalGameProcess:
     process: Optional[subprocess.Popen]
     embedded: bool = False
     window_handle: int = 0
+    reported: bool = False
 
     @property
     def running(self) -> bool:
@@ -30,6 +31,14 @@ class OriginalGameProcess:
     def stop(self) -> None:
         if self.running and self.process is not None:
             self.process.terminate()
+
+    def collect_output(self) -> str:
+        if self.process is None or self.process.poll() is None or self.process.stdout is None:
+            return ""
+        try:
+            return self.process.stdout.read() or ""
+        except (OSError, ValueError):
+            return ""
 
 
 class SourceGameRunner:
@@ -60,6 +69,11 @@ class SourceGameRunner:
             package.runtime.command,
             cwd=package.runtime.cwd,
             env=env,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
         )
         result = OriginalGameProcess(package, process)
         if embed_parent_title and sys.platform == "win32":
@@ -69,7 +83,20 @@ class SourceGameRunner:
                 daemon=True,
             )
             thread.start()
+        elif sys.platform == "win32":
+            threading.Thread(target=self._focus_later, args=(result,), daemon=True).start()
         return result
+
+    @staticmethod
+    def _focus_later(result: OriginalGameProcess) -> None:
+        handle = _wait_for_process_window(result.process.pid if result.process else 0, timeout=8.0)
+        result.window_handle = handle
+        if not handle:
+            return
+        user32 = ctypes.windll.user32
+        user32.ShowWindow(handle, 9)  # SW_RESTORE
+        user32.BringWindowToTop(handle)
+        user32.SetForegroundWindow(handle)
 
     @staticmethod
     def _embed_later(result, parent_title, bounds, callback) -> None:

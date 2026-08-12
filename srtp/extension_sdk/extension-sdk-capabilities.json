@@ -1,0 +1,33 @@
+{
+  "sdk_version": "cubeengine.extension-sdk/1.0",
+  "manifest_version": "cubeengine.extension-manifest/1.0",
+  "protocol_version": "cubeengine.extension-rpc/1.0",
+  "host_capability": "cubeengine.extension-host/1.0",
+  "capability_kinds": [
+    "rule_function",
+    "rule_effect",
+    "scene_component",
+    "asset_derivation",
+    "input_provider",
+    "importer",
+    "spatial_lift"
+  ],
+  "local_execution": {
+    "trust_levels": ["first_party", "designer_reviewed"],
+    "blocked_trust_levels": ["untrusted_generated"],
+    "isolation": "cooperative_process",
+    "hostile_code_containment": false,
+    "network": false,
+    "subprocess": false,
+    "native_code": false,
+    "filesystem_write": false,
+    "environment_allowlist": false,
+    "windows_job_limits": ["kill_on_close", "active_process", "process_memory", "process_cpu_time"]
+  },
+  "untrusted_execution_requires": "os_sandbox_required",
+  "supported_project_integration": ["rule_function"],
+  "message_encoding": "utf-8-json-lines",
+  "lifecycle": ["hello", "initialize", "invoke", "snapshot", "restore", "shutdown"],
+  "determinism_checks": ["pure_snapshot_stability", "fresh_process_repetition", "request_response_hash_log"],
+  "external_dependencies": false
+}

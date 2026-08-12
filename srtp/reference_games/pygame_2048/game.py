@@ -169,6 +169,7 @@ def playGame(theme, difficulty):
     else:
         text_col = WHITE
     board = newGame(theme, text_col)
+    drag_start = None
 
     # main game loop
     while True:
@@ -178,6 +179,23 @@ def playGame(theme, difficulty):
                 # exit if q is pressed
                 pygame.quit()
                 sys.exit()
+
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                drag_start = event.pos
+
+            if event.type == pygame.MOUSEBUTTONUP and event.button == 1 and drag_start is not None:
+                dx, dy = event.pos[0] - drag_start[0], event.pos[1] - drag_start[1]
+                drag_start = None
+                if max(abs(dx), abs(dy)) >= 24:
+                    key = "d" if abs(dx) >= abs(dy) and dx > 0 else \
+                          "a" if abs(dx) >= abs(dy) else \
+                          "s" if dy > 0 else "w"
+                    new_board = move(key, deepcopy(board))
+                    if new_board != board:
+                        board = fillTwoOrFour(new_board)
+                        display(board, theme)
+                        status = checkGameStatus(board, difficulty)
+                        (board, status) = winCheck(board, status, theme, text_col)
 
             # a key has been pressed
             if event.type == pygame.KEYDOWN:

@@ -1,0 +1,28 @@
+{
+  "adapter_version": "cubeengine.alphazero-adapter/1.0",
+  "capability": "cubeengine.alphazero-general-nine-api/1.0",
+  "framework_contract": "suragnair/alpha-zero-general.Game",
+  "supported": {
+    "flow_models": ["turn_based"],
+    "participants": 2,
+    "information_models": ["perfect"],
+    "determinism": ["deterministic"],
+    "authoritative_state": "one_finite_topology_site_grid",
+    "tensor_dtypes": ["int8"],
+    "forced_pass": true,
+    "action_coordinates": "exactly_one_declared_coordinate_parameter",
+    "topology_ranks": [1, 2, 3],
+    "symmetry_model": "declared_axis_permutation_and_reflection"
+  },
+  "blocked": [
+    "single_player", "more_than_two_players", "simultaneous", "real_time",
+    "event_driven", "stochastic", "hidden_information", "entity_state",
+    "global_or_scoped_state", "runtime_extensions", "continuous_actions",
+    "multi_coordinate_actions", "role_specific_action_catalogues"
+  ],
+  "nine_apis": [
+    "getInitBoard", "getBoardSize", "getActionSize", "getNextState",
+    "getValidMoves", "getGameEnded", "getCanonicalForm", "getSymmetries",
+    "stringRepresentation"
+  ]
+}

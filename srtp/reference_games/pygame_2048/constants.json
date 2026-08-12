@@ -48,10 +48,14 @@
 	},
 
 	"keys": {
-		"_comment": "Arrow keys/WASD are valid moves...",
+		"_comment": "Arrow keys/WASD are valid moves. Both Pygame 1 and SDL2/Pygame 2 arrow codes are accepted.",
 		"273": "w", "119": "w",
 		"274": "s", "115": "s",
 		"276": "a", "97": "a",
-		"275": "d", "100": "d"
+		"275": "d", "100": "d",
+		"1073741906": "w",
+		"1073741905": "s",
+		"1073741904": "a",
+		"1073741903": "d"
 	}
 }

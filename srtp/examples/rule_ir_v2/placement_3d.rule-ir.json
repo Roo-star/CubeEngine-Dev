@@ -1,0 +1,168 @@
+{
+  "ir_version": "cubeengine.rule-ir/2.0-alpha.1",
+  "document_id": "rule:game.placement_demo",
+  "revision": 0,
+  "content_hash": "",
+  "metadata": {
+    "title": "3D Placement Contract Example",
+    "description": "A minimal executable Rule IR v2 document used to test the contract, not a source-game conversion claim.",
+    "source_project_hash": "",
+    "determinism": "deterministic"
+  },
+  "dependencies": {
+    "scene_ir": null,
+    "asset_ir": null,
+    "input_ir": null,
+    "extensions": []
+  },
+  "parameters": [],
+  "types": [
+    {
+      "id": "rule:type.cell_state",
+      "name": "Cell State",
+      "kind": "enum",
+      "values": {"empty": 0, "occupied": 1}
+    }
+  ],
+  "participants": [
+    {"id": "rule:participant.player", "name": "Player", "kind": "human_or_agent"}
+  ],
+  "topologies": [
+    {
+      "id": "rule:topology.board",
+      "name": "Board",
+      "kind": "rect_grid",
+      "anchor": "cell",
+      "axes": [
+        {"name": "x", "extent": 3, "boundary": "bounded"},
+        {"name": "y", "extent": 3, "boundary": "bounded"},
+        {"name": "z", "extent": 3, "boundary": "bounded"}
+      ],
+      "neighborhoods": []
+    }
+  ],
+  "state": {
+    "variables": [
+      {
+        "id": "rule:state.board_cell",
+        "name": "Board cell",
+        "type": "rule:type.cell_state",
+        "scope": "topology_site",
+        "topology": "rule:topology.board",
+        "initial": {"op": "literal", "value": 0}
+      }
+    ],
+    "entity_types": [],
+    "initial_effects": [],
+    "information_model": "perfect"
+  },
+  "queries": [],
+  "events": [],
+  "actions": [
+    {
+      "id": "rule:action.place",
+      "name": "Place",
+      "actor": {"op": "literal", "value": "rule:participant.player"},
+      "parameters": [
+        {
+          "name": "target",
+          "type": "core:coord",
+          "domain": {
+            "op": "call",
+            "function": "core:topology.sites",
+            "args": [{"op": "literal", "value": "rule:topology.board"}]
+          }
+        }
+      ],
+      "precondition": {
+        "op": "call",
+        "function": "core:grid.equals",
+        "args": [
+          {"op": "literal", "value": "rule:state.board_cell"},
+          {"op": "param", "name": "target"},
+          {"op": "literal", "value": 0}
+        ]
+      },
+      "effects": [
+        {
+          "op": "grid.set",
+          "state": "rule:state.board_cell",
+          "topology": "rule:topology.board",
+          "coordinate": {"op": "param", "name": "target"},
+          "value": {"op": "literal", "value": 1}
+        }
+      ],
+      "timing": {"phase": "rule:phase.input"},
+      "encoding": {
+        "kind": "parameter_product",
+        "parameters": ["target"],
+        "ordering": "lexicographic"
+      }
+    }
+  ],
+  "systems": [],
+  "flow": {
+    "model": "turn_based",
+    "phases": [
+      {"id": "rule:phase.input", "order": 100},
+      {"id": "rule:phase.update", "order": 200},
+      {"id": "rule:phase.outcome", "order": 300}
+    ],
+    "initial_phase": "rule:phase.input",
+    "scheduler": {
+      "clock": "turn",
+      "tick_hz": null,
+      "ordering": "phase_priority_id"
+    },
+    "turn_order": ["rule:participant.player"]
+  },
+  "random_streams": [],
+  "goals": [
+    {"id": "rule:goal.fill_board", "name": "Fill the board"}
+  ],
+  "outcomes": [
+    {
+      "id": "rule:outcome.complete",
+      "name": "Board complete",
+      "priority": 100,
+      "condition": {
+        "op": "call",
+        "function": "core:grid.none_equal",
+        "args": [
+          {"op": "literal", "value": "rule:state.board_cell"},
+          {"op": "literal", "value": 0}
+        ]
+      },
+      "result": {
+        "status": "completed",
+        "terminal": true,
+        "winners": [{"op": "literal", "value": "rule:participant.player"}]
+      }
+    }
+  ],
+  "modes": [
+    {"id": "rule:mode.default", "name": "Default", "overrides": []}
+  ],
+  "invariants": [
+    {
+      "id": "rule:invariant.cell_domain",
+      "name": "Cell state remains in its enum",
+      "condition": {
+        "op": "call",
+        "function": "core:grid.values_in_type",
+        "args": [
+          {"op": "literal", "value": "rule:state.board_cell"},
+          {"op": "literal", "value": "rule:type.cell_state"}
+        ]
+      },
+      "severity": "error"
+    }
+  ],
+  "extensions": {},
+  "provenance": {
+    "/topologies/0": [
+      {"author": "designer", "method": "contract_example", "confidence": 1.0}
+    ]
+  },
+  "unresolved": []
+}

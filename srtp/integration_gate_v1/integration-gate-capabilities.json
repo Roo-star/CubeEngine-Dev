@@ -1,0 +1,20 @@
+{
+  "gate_version": "cubeengine.non-llm-integration-gate/1.0",
+  "capability_id": "cubeengine.non-llm-integration-gate-runner/1.0",
+  "required_capabilities": {
+    "rule_runtime": "cubeengine.rule-runtime/2.0-alpha.2",
+    "random_service": "cubeengine.random-service/1.0",
+    "scene_compiler": "cubeengine.scene-compiler/2.0-alpha.1",
+    "asset_compiler": "cubeengine.asset-compiler/2.0-alpha.1",
+    "input_compiler": "cubeengine.input-compiler/2.0-alpha.1",
+    "project_compiler": "cubeengine.project-compiler/2.0-alpha.1",
+    "extension_sdk": "cubeengine.extension-sdk/1.0",
+    "alphazero_adapter": "cubeengine.alphazero-general-nine-api/1.0"
+  },
+  "gate_checks": [
+    "source_project_compile", "target_project_compile", "source_target_lineage",
+    "input_rule_scene_transition", "rule_replay", "extension_fresh_process",
+    "extension_determinism", "ai_rule_pin", "ai_complete_rollout",
+    "tamper_rejection", "capability_rejection"
+  ]
+}

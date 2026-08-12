@@ -1,0 +1,194 @@
+{
+  "ir_version": "cubeengine.input-ir/2.0-alpha.1",
+  "document_id": "input:game.placement_demo",
+  "revision": 0,
+  "content_hash": "7ebc74d690dbc46afa3793f9e2099c6c37a214e038e04a8ec0846318316b5746",
+  "metadata": {
+    "title": "3D Placement Keyboard and Mouse Input",
+    "description": "Mouse placement, arrow-key cursor movement and editor navigation intents for the placement contract example.",
+    "source_project_hash": ""
+  },
+  "dependencies": {
+    "rule_ir": {
+      "document_id": "rule:game.placement_demo",
+      "content_hash": "dddbeb6e2be4dbbc33b2ffc782f336156ca74abac2684439b6886d5832a3bf79"
+    },
+    "extensions": []
+  },
+  "contexts": [
+    {
+      "id": "input:context.play",
+      "name": "Play",
+      "priority": 100,
+      "enabled_by_default": true,
+      "focus": "viewport",
+      "consume_policy": "first_match",
+      "exclusive_group": "runtime_mode"
+    }
+  ],
+  "intents": [
+    {
+      "id": "input:action.place",
+      "name": "Place",
+      "value_type": "digital",
+      "required": true,
+      "target": {
+        "kind": "rule_action",
+        "action": "rule:action.place",
+        "parameters": {
+          "target": {
+            "source": "event_data",
+            "key": "rule_coordinate",
+            "value_type": "core:coord"
+          }
+        }
+      }
+    },
+    {
+      "id": "input:action.move_cursor",
+      "name": "Move Cursor",
+      "value_type": "vector2",
+      "required": true,
+      "target": {"kind": "semantic"}
+    },
+    {
+      "id": "input:action.snap_front",
+      "name": "Snap Camera Front",
+      "value_type": "digital",
+      "required": true,
+      "target": {"kind": "semantic"}
+    },
+    {
+      "id": "input:action.focus_next_layer",
+      "name": "Focus Next Layer",
+      "value_type": "digital",
+      "required": true,
+      "target": {"kind": "semantic"}
+    }
+  ],
+  "bindings": [
+    {
+      "id": "input:binding.place_mouse",
+      "name": "Place with Primary Mouse Button",
+      "context": "input:context.play",
+      "intent": "input:action.place",
+      "priority": 100,
+      "enabled": true,
+      "consume": true,
+      "rebindable": true,
+      "slot": "primary",
+      "accessibility_label": "Place on selected board site",
+      "trigger": {
+        "kind": "control",
+        "device": "mouse",
+        "control": "mouse.button.primary",
+        "phase": "press",
+        "modifiers": [],
+        "modifier_policy": "exact"
+      },
+      "processing": {
+        "dead_zone": 0,
+        "sensitivity_numerator": 1,
+        "sensitivity_denominator": 1,
+        "invert": false,
+        "clamp_min": -32768,
+        "clamp_max": 32767
+      }
+    },
+    {
+      "id": "input:binding.move_cursor_arrows",
+      "name": "Move Cursor with Arrow Keys",
+      "context": "input:context.play",
+      "intent": "input:action.move_cursor",
+      "priority": 90,
+      "enabled": true,
+      "consume": true,
+      "rebindable": true,
+      "slot": "primary",
+      "accessibility_label": "Move the logical cursor",
+      "trigger": {
+        "kind": "vector2_composite",
+        "up": {"device": "keyboard", "control": "keyboard.key.arrow_up"},
+        "down": {"device": "keyboard", "control": "keyboard.key.arrow_down"},
+        "left": {"device": "keyboard", "control": "keyboard.key.arrow_left"},
+        "right": {"device": "keyboard", "control": "keyboard.key.arrow_right"},
+        "phases": ["press", "release", "repeat"],
+        "scale": 32767
+      },
+      "processing": {
+        "dead_zone": 0,
+        "sensitivity_numerator": 1,
+        "sensitivity_denominator": 1,
+        "invert": false,
+        "clamp_min": -32768,
+        "clamp_max": 32767
+      }
+    },
+    {
+      "id": "input:binding.snap_front_w",
+      "name": "Snap Front with W",
+      "context": "input:context.play",
+      "intent": "input:action.snap_front",
+      "priority": 80,
+      "enabled": true,
+      "consume": true,
+      "rebindable": true,
+      "slot": "primary",
+      "accessibility_label": "Snap the camera to the front orthogonal view",
+      "trigger": {
+        "kind": "control",
+        "device": "keyboard",
+        "control": "keyboard.key.w",
+        "phase": "press",
+        "modifiers": [],
+        "modifier_policy": "exact"
+      },
+      "processing": {
+        "dead_zone": 0,
+        "sensitivity_numerator": 1,
+        "sensitivity_denominator": 1,
+        "invert": false,
+        "clamp_min": -32768,
+        "clamp_max": 32767
+      }
+    },
+    {
+      "id": "input:binding.focus_layer_z",
+      "name": "Focus Next Layer with Z",
+      "context": "input:context.play",
+      "intent": "input:action.focus_next_layer",
+      "priority": 80,
+      "enabled": true,
+      "consume": true,
+      "rebindable": true,
+      "slot": "primary",
+      "accessibility_label": "Focus the next board layer without hiding placed state",
+      "trigger": {
+        "kind": "control",
+        "device": "keyboard",
+        "control": "keyboard.key.z",
+        "phase": "press",
+        "modifiers": [],
+        "modifier_policy": "exact"
+      },
+      "processing": {
+        "dead_zone": 0,
+        "sensitivity_numerator": 1,
+        "sensitivity_denominator": 1,
+        "invert": false,
+        "clamp_min": -32768,
+        "clamp_max": 32767
+      }
+    }
+  ],
+  "provenance": {
+    "/bindings": [
+      {
+        "author": "designer",
+        "method": "locked_workbench_controls",
+        "confidence": 1.0
+      }
+    ]
+  },
+  "unresolved": []
+}

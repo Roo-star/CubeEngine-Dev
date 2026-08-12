@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cubeengine.dev/schema/non-llm-integration-gate/1.0.json",
+  "title": "CubeEngine Non-LLM Integration Gate 1.0",
+  "type": "object",
+  "required": [
+    "gate_version", "gate_id", "revision", "content_hash", "metadata",
+    "requirements", "source_project", "target_project", "ai_adapter",
+    "extension_probes", "acceptance", "provenance", "unresolved"
+  ],
+  "properties": {
+    "gate_version": {"const": "cubeengine.non-llm-integration-gate/1.0"},
+    "gate_id": {"type": "string", "pattern": "^gate:[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$"},
+    "revision": {"type": "integer", "minimum": 0},
+    "content_hash": {"type": "string", "pattern": "^$|^[0-9a-f]{64}$"},
+    "metadata": {
+      "type": "object",
+      "required": ["name", "description"],
+      "properties": {"name": {"type": "string", "minLength": 1}, "description": {"type": "string"}},
+      "additionalProperties": false
+    },
+    "requirements": {"type": "object"},
+    "source_project": {"$ref": "#/$defs/projectPin"},
+    "target_project": {"$ref": "#/$defs/projectPin"},
+    "ai_adapter": {
+      "type": "object", "required": ["adapter_id", "content_hash"],
+      "properties": {
+        "adapter_id": {"type": "string", "pattern": "^ai:"},
+        "content_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      },
+      "additionalProperties": false
+    },
+    "extension_probes": {
+      "type": "array", "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["extension_id", "version", "content_hash", "cases"],
+        "properties": {
+          "extension_id": {"type": "string", "pattern": "^extension:"},
+          "version": {"type": "string"},
+          "content_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+          "cases": {
+            "type": "array", "minItems": 1,
+            "items": {
+              "type": "object", "required": ["capability_id", "requests"],
+              "properties": {
+                "capability_id": {"type": "string", "pattern": "^extension:"},
+                "requests": {"type": "array", "minItems": 1}
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "acceptance": {
+      "type": "object",
+      "required": ["source_inputs", "target_inputs", "ai_maximum_plies"],
+      "properties": {
+        "source_inputs": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/inputStep"}},
+        "target_inputs": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/inputStep"}},
+        "ai_maximum_plies": {"type": "integer", "minimum": 1, "maximum": 100000}
+      },
+      "additionalProperties": false
+    },
+    "provenance": {"type": "object"},
+    "unresolved": {"type": "array", "items": {"type": "object"}}
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "projectPin": {
+      "type": "object", "required": ["project_id", "content_hash"],
+      "properties": {
+        "project_id": {"type": "string", "pattern": "^project:"},
+        "content_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      },
+      "additionalProperties": false
+    },
+    "inputStep": {
+      "type": "object", "required": ["event", "active_contexts", "focus"],
+      "properties": {
+        "event": {"type": "object"},
+        "active_contexts": {"type": ["array", "null"], "items": {"type": "string"}},
+        "focus": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": false
+    }
+  }
+}

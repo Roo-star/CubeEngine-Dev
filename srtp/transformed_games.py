@@ -34,22 +34,41 @@ class Snake3D:
 
     def reset(self) -> None:
         center = tuple(value // 2 for value in self.dimensions)
-        self.body: List[Coordinate] = [center]  # type: ignore[list-item]
-        self.direction: Direction = (0, -1, 0)
+        # The reference game starts with a three-segment snake and direction
+        # (0, 0): it waits for the player's first key instead of falling into
+        # a wall before the 3D window receives focus.
+        body_length = min(3, self.dimensions[0])
+        self.body = [
+            (center[0] - offset, center[1], center[2])
+            for offset in reversed(range(body_length))
+        ]
+        self.direction: Direction = (0, 0, 0)
         self.pending_direction: Direction = self.direction
         self.alive = True
+        self.paused = False
         self.score = 0
         self.food = self._new_food()
 
+    @property
+    def started(self) -> bool:
+        return self.direction in DIRECTIONS or self.pending_direction in DIRECTIONS
+
     def set_direction(self, direction: Direction) -> bool:
-        if direction not in DIRECTIONS or direction == tuple(-value for value in self.direction):
+        if not self.alive or direction not in DIRECTIONS:
+            return False
+        if self.direction in DIRECTIONS and direction == tuple(-value for value in self.direction):
             return False
         self.pending_direction = direction
+        self.paused = False
         return True
 
     def step(self) -> str:
         if not self.alive:
             return "game_over"
+        if self.paused:
+            return "paused"
+        if self.pending_direction not in DIRECTIONS:
+            return "waiting_for_input"
         self.direction = self.pending_direction
         head = _add(self.body[-1], self.direction)
         if not self.in_bounds(head) or head in self.body:
@@ -72,12 +91,22 @@ class Snake3D:
 
 
 class Minesweeper3D:
-    """The source reveal/flood mechanic extended to a 26-neighbour volume."""
+    """Classic Minesweeper lifted to a 26-neighbour spatial volume.
 
-    def __init__(self, dimensions: Sequence[int], source_mines: int = 8, seed: int = 0) -> None:
+    Source mine density is preserved across the target volume. Mines are
+    unique and generated on the first reveal so the selected cell and its
+    immediate 3D neighbourhood are safe, matching the reference's first-click
+    protection policy.
+    """
+
+    def __init__(
+        self, dimensions: Sequence[int], source_mines: int = 8,
+        source_area: Optional[int] = None, seed: int = 0,
+    ) -> None:
         self.dimensions = tuple(int(value) for value in dimensions)
-        source_area = max(1, self.dimensions[0] * self.dimensions[1])
-        self.mine_attempts = max(1, round(source_mines * (self.cell_count / source_area)))
+        source_area = max(1, int(source_area or (self.dimensions[0] * self.dimensions[1])))
+        self.source_mines = int(source_mines)
+        self.mine_attempts = min(self.cell_count - 1, max(1, round(source_mines * (self.cell_count / source_area))))
         self.random = Random(seed)
         self.reset()
 
@@ -89,23 +118,22 @@ class Minesweeper3D:
         return product(*(range(size) for size in self.dimensions))
 
     def reset(self) -> None:
-        choices = list(self.coordinates())
-        # The reference repeats random placement and therefore permits duplicate
-        # picks.  Preserve that behavior instead of silently forcing N uniques.
-        self.mines: Set[Coordinate] = {self.random.choice(choices) for _ in range(self.mine_attempts)}
+        self.mines: Set[Coordinate] = set()
+        self.generated = False
         self.revealed: Set[Coordinate] = set()
+        self.flags: Set[Coordinate] = set()
         self.exploded: Optional[Coordinate] = None
 
     @property
     def status(self) -> str:
         if self.exploded is not None:
             return "lost"
-        if len(self.revealed) == self.cell_count - len(self.mines):
-            return "all_safe_revealed"
+        if self.generated and len(self.revealed) == self.cell_count - len(self.mines):
+            return "won"
         return "playing"
 
     def adjacent_mines(self, coordinate: Coordinate) -> int:
-        return sum(neighbour in self.mines for neighbour in self.neighbours(coordinate, include_self=True))
+        return sum(neighbour in self.mines for neighbour in self.neighbours(coordinate))
 
     def neighbours(self, coordinate: Coordinate, include_self: bool = False) -> Iterable[Coordinate]:
         for delta in product((-1, 0, 1), repeat=3):
@@ -116,8 +144,13 @@ class Minesweeper3D:
                 yield neighbour
 
     def reveal(self, coordinate: Coordinate) -> str:
-        if self.status != "playing" or coordinate in self.revealed:
+        if self.status != "playing" or coordinate in self.revealed or coordinate in self.flags:
             return "ignored"
+        if not self.generated:
+            if self.mines:
+                self.generated = True
+            else:
+                self._generate_mines(coordinate)
         if coordinate in self.mines:
             self.exploded = coordinate
             return "mine"
@@ -131,32 +164,96 @@ class Minesweeper3D:
                 queue.extend(self.neighbours(current))
         return self.status
 
+    def toggle_flag(self, coordinate: Coordinate) -> str:
+        if self.status != "playing" or coordinate in self.revealed:
+            return "ignored"
+        if coordinate in self.flags:
+            self.flags.remove(coordinate)
+            return "flag_removed"
+        self.flags.add(coordinate)
+        return "flagged"
+
+    def _generate_mines(self, first_click: Coordinate) -> None:
+        protected = {first_click, *self.neighbours(first_click)}
+        candidates = [coordinate for coordinate in self.coordinates() if coordinate not in protected]
+        if len(candidates) < self.mine_attempts:
+            candidates = [coordinate for coordinate in self.coordinates() if coordinate != first_click]
+        count = min(self.mine_attempts, len(candidates))
+        self.mines = set(self.random.sample(candidates, count))
+        self.generated = True
+
 
 class Connect3D:
     """Lift the reference's click-column and Y-gravity behavior through Z."""
 
-    def __init__(self, dimensions: Sequence[int]) -> None:
+    def __init__(self, dimensions: Sequence[int], connect_n: int = 4) -> None:
         self.dimensions = tuple(int(value) for value in dimensions)
+        self.connect_n = max(2, int(connect_n))
         self.reset()
 
     def reset(self) -> None:
         self.board: Dict[Coordinate, str] = {}
         self.player = "yellow"
+        self.winner: Optional[str] = None
+        self.winning_coordinates: Tuple[Coordinate, ...] = ()
 
     def drop(self, x: int, z: int) -> Optional[Coordinate]:
+        if self.status != "playing":
+            return None
         if not (0 <= x < self.dimensions[0] and 0 <= z < self.dimensions[2]):
             return None
         for y in range(self.dimensions[1]):
             coordinate = (x, y, z)
             if coordinate not in self.board:
-                self.board[coordinate] = self.player
-                self.player = "red" if self.player == "yellow" else "yellow"
+                placed_by = self.player
+                self.board[coordinate] = placed_by
+                line = self._winning_line(coordinate, placed_by)
+                if line:
+                    self.winner = placed_by
+                    self.winning_coordinates = line
+                else:
+                    self.player = "red" if placed_by == "yellow" else "yellow"
                 return coordinate
         return None
 
     @property
     def full(self) -> bool:
         return len(self.board) == self.dimensions[0] * self.dimensions[1] * self.dimensions[2]
+
+    @property
+    def status(self) -> str:
+        if self.winner:
+            return "win"
+        if self.full:
+            return "draw"
+        return "playing"
+
+    def _winning_line(self, origin: Coordinate, player: str) -> Tuple[Coordinate, ...]:
+        # One representative from every opposite direction pair: 13 straight
+        # axes in a cubic lattice (3 orthogonal, 6 face diagonals, 4 spatial
+        # diagonals).  This is the 3D lift of the source's four 2D directions.
+        directions = [
+            direction for direction in product((-1, 0, 1), repeat=3)
+            if direction != (0, 0, 0) and next(value for value in direction if value) > 0
+        ]
+        for direction in directions:
+            negative = tuple(-value for value in direction)
+            line = list(reversed(self._ray(origin, negative, player))) + [origin] + self._ray(origin, direction, player)
+            if len(line) >= self.connect_n:
+                origin_index = line.index(origin)
+                start_min = max(0, origin_index - self.connect_n + 1)
+                start_max = min(origin_index, len(line) - self.connect_n)
+                start = start_min if start_min <= start_max else 0
+                return tuple(line[start:start + self.connect_n])
+        return ()
+
+    def _ray(self, origin: Coordinate, direction: Direction, player: str) -> List[Coordinate]:
+        result: List[Coordinate] = []
+        current = _add(origin, direction)
+        while self.board.get(current) == player:
+            result.append(current)
+            current = _add(current, direction)
+        return result
 
 
 class Game2048_3D:

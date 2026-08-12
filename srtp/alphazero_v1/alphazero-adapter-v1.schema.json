@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cubeengine.dev/schema/alphazero-adapter/1.0.json",
+  "title": "CubeEngine AlphaZero General Adapter Manifest 1.0",
+  "type": "object",
+  "required": [
+    "adapter_version", "adapter_id", "revision", "content_hash", "metadata",
+    "rule", "players", "tensor", "actions", "outcomes", "symmetries",
+    "provenance", "unresolved"
+  ],
+  "properties": {
+    "adapter_version": {"const": "cubeengine.alphazero-adapter/1.0"},
+    "adapter_id": {"type": "string", "pattern": "^ai:[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$"},
+    "revision": {"type": "integer", "minimum": 0},
+    "content_hash": {"type": "string", "pattern": "^$|^[0-9a-f]{64}$"},
+    "metadata": {
+      "type": "object",
+      "required": ["name", "description"],
+      "properties": {"name": {"type": "string", "minLength": 1}, "description": {"type": "string"}},
+      "additionalProperties": false
+    },
+    "rule": {
+      "type": "object",
+      "required": ["document_id", "content_hash", "mode_id", "parameters"],
+      "properties": {
+        "document_id": {"type": "string", "pattern": "^rule:"},
+        "content_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "mode_id": {"type": ["string", "null"]},
+        "parameters": {"type": "object"}
+      },
+      "additionalProperties": false
+    },
+    "players": {
+      "type": "object",
+      "required": ["positive", "negative", "canonicalization"],
+      "properties": {
+        "positive": {"type": "string", "pattern": "^rule:participant\\."},
+        "negative": {"type": "string", "pattern": "^rule:participant\\."},
+        "canonicalization": {"const": "swap_player_owned_values"}
+      },
+      "additionalProperties": false
+    },
+    "tensor": {
+      "type": "object",
+      "required": ["topology", "state", "dtype", "value_map"],
+      "properties": {
+        "topology": {"type": "string", "pattern": "^rule:topology\\."},
+        "state": {"type": "string", "pattern": "^rule:state\\."},
+        "dtype": {"const": "int8"},
+        "value_map": {
+          "type": "array", "minItems": 2,
+          "items": {
+            "type": "object", "required": ["rule_value", "tensor_value", "owner"],
+            "properties": {
+              "rule_value": {},
+              "tensor_value": {"type": "integer", "minimum": -128, "maximum": 127},
+              "owner": {"enum": ["positive", "negative", null]}
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "actions": {
+      "type": "object",
+      "required": ["catalogue", "coordinate_parameter", "forced_pass"],
+      "properties": {
+        "catalogue": {"const": "rule_runtime_stable"},
+        "coordinate_parameter": {"type": "string", "minLength": 1},
+        "forced_pass": {"type": "boolean"}
+      },
+      "additionalProperties": false
+    },
+    "outcomes": {
+      "type": "object",
+      "required": ["draw_value", "draw_statuses"],
+      "properties": {
+        "draw_value": {"type": "number", "exclusiveMinimum": 0, "maximum": 0.01},
+        "draw_statuses": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true}
+      },
+      "additionalProperties": false
+    },
+    "symmetries": {
+      "type": "array", "minItems": 1,
+      "items": {
+        "type": "object", "required": ["id", "axis_permutation", "axis_reflections"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$"},
+          "axis_permutation": {"type": "array", "items": {"type": "integer", "minimum": 0}},
+          "axis_reflections": {"type": "array", "items": {"type": "boolean"}}
+        },
+        "additionalProperties": false
+      }
+    },
+    "provenance": {"type": "object"},
+    "unresolved": {"type": "array", "items": {"type": "object"}}
+  },
+  "additionalProperties": false
+}
