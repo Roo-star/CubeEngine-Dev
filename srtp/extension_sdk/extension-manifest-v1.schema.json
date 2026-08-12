@@ -1,0 +1,136 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cubeengine.local/schema/extension-manifest-v1.schema.json",
+  "title": "CubeEngine Extension Manifest v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "manifest_version", "sdk_version", "extension_id", "version", "content_hash",
+    "metadata", "entrypoint", "files", "capabilities", "permissions", "runtime",
+    "dependencies", "provenance", "unresolved"
+  ],
+  "properties": {
+    "manifest_version": {"const": "cubeengine.extension-manifest/1.0"},
+    "sdk_version": {"const": "cubeengine.extension-sdk/1.0"},
+    "extension_id": {"$ref": "#/$defs/extensionId"},
+    "version": {"$ref": "#/$defs/semver"},
+    "content_hash": {"type": "string", "pattern": "^$|^[0-9a-f]{64}$"},
+    "metadata": {
+      "type": "object", "additionalProperties": false,
+      "required": ["name", "description", "publisher", "trust"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "description": {"type": "string"},
+        "publisher": {"type": "string", "minLength": 1},
+        "trust": {"enum": ["first_party", "designer_reviewed", "untrusted_generated"]}
+      }
+    },
+    "entrypoint": {
+      "type": "object", "additionalProperties": false,
+      "required": ["file", "factory"],
+      "properties": {
+        "file": {"type": "string", "minLength": 1},
+        "factory": {"type": "string", "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$"}
+      }
+    },
+    "files": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/file"}},
+    "capabilities": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/capability"}},
+    "permissions": {"$ref": "#/$defs/permissions"},
+    "runtime": {"$ref": "#/$defs/runtime"},
+    "dependencies": {"type": "array", "items": {"$ref": "#/$defs/dependency"}},
+    "provenance": {"type": "object"},
+    "unresolved": {"type": "array", "items": {"$ref": "#/$defs/unresolved"}}
+  },
+  "$defs": {
+    "extensionId": {"type": "string", "pattern": "^extension:[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$"},
+    "capabilityId": {"type": "string", "pattern": "^extension:[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*(?:/[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*)+/[1-9][0-9]*(?:\\.[0-9]+){0,2}$"},
+    "semver": {"type": "string", "pattern": "^(?:0|[1-9][0-9]*)\\.(?:0|[1-9][0-9]*)\\.(?:0|[1-9][0-9]*)$"},
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "file": {
+      "type": "object", "additionalProperties": false,
+      "required": ["path", "sha256", "byte_size"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "byte_size": {"type": "integer", "minimum": 0}
+      }
+    },
+    "ruleSignature": {
+      "type": "object", "additionalProperties": false,
+      "required": ["result_type", "argument_types", "variadic"],
+      "properties": {
+        "result_type": {"type": "string", "minLength": 1},
+        "argument_types": {"type": "array", "items": {"type": "string", "minLength": 1}},
+        "variadic": {"type": "boolean"}
+      }
+    },
+    "capability": {
+      "type": "object", "additionalProperties": false,
+      "required": [
+        "id", "kind", "method", "request_schema", "response_schema",
+        "deterministic", "replay_safe", "side_effects", "rule_signature"
+      ],
+      "properties": {
+        "id": {"$ref": "#/$defs/capabilityId"},
+        "kind": {"enum": ["rule_function", "rule_effect", "scene_component", "asset_derivation", "input_provider", "importer", "spatial_lift"]},
+        "method": {"type": "string", "pattern": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$"},
+        "request_schema": {"type": "object"},
+        "response_schema": {"type": "object"},
+        "deterministic": {"type": "boolean"},
+        "replay_safe": {"type": "boolean"},
+        "side_effects": {"enum": ["none", "stateful", "external"]},
+        "rule_signature": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/ruleSignature"}]}
+      }
+    },
+    "permissions": {
+      "type": "object", "additionalProperties": false,
+      "required": ["filesystem_read", "filesystem_write", "network", "subprocess", "native_code", "environment", "python_modules"],
+      "properties": {
+        "filesystem_read": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+        "filesystem_write": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+        "network": {"type": "boolean"},
+        "subprocess": {"type": "boolean"},
+        "native_code": {"type": "boolean"},
+        "environment": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+        "python_modules": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^[a-zA-Z_][a-zA-Z0-9_.]*$"}}
+      }
+    },
+    "runtime": {
+      "type": "object", "additionalProperties": false,
+      "required": [
+        "protocol_version", "python_min", "timeout_ms", "max_request_bytes",
+        "max_response_bytes", "max_memory_mb", "max_cpu_ms", "max_processes", "isolation"
+      ],
+      "properties": {
+        "protocol_version": {"const": "cubeengine.extension-rpc/1.0"},
+        "python_min": {"type": "string", "pattern": "^[1-9][0-9]*\\.[0-9]+$"},
+        "timeout_ms": {"type": "integer", "minimum": 10, "maximum": 30000},
+        "max_request_bytes": {"type": "integer", "minimum": 256, "maximum": 1048576},
+        "max_response_bytes": {"type": "integer", "minimum": 256, "maximum": 1048576},
+        "max_memory_mb": {"type": "integer", "minimum": 16, "maximum": 2048},
+        "max_cpu_ms": {"type": "integer", "minimum": 10, "maximum": 60000},
+        "max_processes": {"const": 1},
+        "isolation": {"enum": ["cooperative_process", "os_sandbox_required"]}
+      }
+    },
+    "dependency": {
+      "type": "object", "additionalProperties": false,
+      "required": ["extension_id", "version", "content_hash"],
+      "properties": {
+        "extension_id": {"$ref": "#/$defs/extensionId"},
+        "version": {"$ref": "#/$defs/semver"},
+        "content_hash": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "unresolved": {
+      "type": "object", "additionalProperties": false,
+      "required": ["path", "reason", "required", "owner"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "reason": {"type": "string", "minLength": 1},
+        "required": {"type": "boolean"},
+        "owner": {"enum": ["developer", "designer", "llm", "security_review"]}
+      }
+    }
+  }
+}

@@ -1,0 +1,386 @@
+"""Interactive controller for the IR v2 Acceptance Workbench.
+
+The controller has no GUI dependency. Every cell interaction goes through the
+compiled Input IR, Rule Runtime and Scene projection owned by Project Session.
+"""
+
+from __future__ import annotations
+
+import re
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
+
+from srtp.alphazero_v1 import assess_alphazero_conformance, compile_alphazero_game
+from srtp.input_ir_v2 import PhysicalInputEvent
+from srtp.integration_gate_v1.reference_fixture import (
+    ReferenceGateFixture,
+    build_project_artifacts,
+    build_reference_gate,
+)
+from srtp.ir_v2 import (
+    assess_rule_ir_conformance,
+    load_rule_ir,
+    replay_rule_ir,
+    seal_rule_ir,
+)
+from srtp.project_manifest_v2 import compile_project_manifest
+
+
+class IRAcceptanceError(RuntimeError):
+    pass
+
+
+@dataclass(frozen=True)
+class ProjectViewState:
+    key: str
+    label: str
+    project_id: str
+    variant: str
+    rule_id: str
+    dimensions: Tuple[int, ...]
+    grid: Any
+    current_actor: Optional[str]
+    current_actor_name: str
+    revision: int
+    state_hash: str
+    legal_actions: int
+    total_actions: int
+    outcome_status: str
+    terminal: bool
+    winners: Tuple[str, ...]
+    replay_entries: int
+    scene_sites: int
+    last_scene_commands: int
+
+    def to_mapping(self) -> Dict[str, Any]:
+        return {
+            "key": self.key,
+            "label": self.label,
+            "project_id": self.project_id,
+            "variant": self.variant,
+            "rule_id": self.rule_id,
+            "dimensions": list(self.dimensions),
+            "grid": self.grid,
+            "current_actor": self.current_actor,
+            "current_actor_name": self.current_actor_name,
+            "revision": self.revision,
+            "state_hash": self.state_hash,
+            "legal_actions": self.legal_actions,
+            "total_actions": self.total_actions,
+            "outcome_status": self.outcome_status,
+            "terminal": self.terminal,
+            "winners": list(self.winners),
+            "replay_entries": self.replay_entries,
+            "scene_sites": self.scene_sites,
+            "last_scene_commands": self.last_scene_commands,
+        }
+
+
+@dataclass(frozen=True)
+class InteractionResult:
+    project_key: str
+    coordinate: Tuple[int, ...]
+    accepted: bool
+    code: str
+    message: str
+    transition_count: int
+    scene_command_count: int
+    state: ProjectViewState
+
+    def to_mapping(self) -> Dict[str, Any]:
+        return {
+            "project_key": self.project_key,
+            "coordinate": list(self.coordinate),
+            "accepted": self.accepted,
+            "code": self.code,
+            "message": self.message,
+            "transition_count": self.transition_count,
+            "scene_command_count": self.scene_command_count,
+            "state": self.state.to_mapping(),
+        }
+
+
+class IRAcceptanceController:
+    """Own compiled Project Sessions used by a renderer/editor front end."""
+
+    def __init__(self, repository_root: Optional[Path] = None) -> None:
+        self.repository_root = Path(
+            repository_root or Path(__file__).resolve().parents[1]
+        ).resolve()
+        self.fixture: Optional[ReferenceGateFixture] = None
+        self.projects: Dict[str, Any] = {}
+        self.bundles: Dict[str, Any] = {}
+        self.sessions: Dict[str, Any] = {}
+        self.labels: Dict[str, str] = {}
+        self.sequence: Dict[str, int] = {}
+        self.last_scene_commands: Dict[str, int] = {}
+        self.activity: List[str] = []
+        self.active_key = "source"
+        self.load_reference()
+
+    @property
+    def project_keys(self) -> Tuple[str, ...]:
+        ordered = [key for key in ("source", "target", "loaded") if key in self.projects]
+        ordered.extend(sorted(set(self.projects) - set(ordered)))
+        return tuple(ordered)
+
+    def load_reference(self) -> None:
+        self.close()
+        self.fixture = build_reference_gate(self.repository_root)
+        self.projects = {
+            "source": self.fixture.source,
+            "target": self.fixture.target,
+        }
+        self.labels = {
+            "source": "Source 2D",
+            "target": "Target 3D",
+        }
+        self.bundles = {
+            "source": self._compile(self.fixture.source),
+            "target": self._compile(
+                self.fixture.target, source_manifest=self.fixture.source.manifest,
+            ),
+        }
+        self.sessions = {}
+        self.sequence = {}
+        self.last_scene_commands = {}
+        for key in ("source", "target"):
+            self._new_session(key)
+        self.active_key = "source"
+        self.activity = [
+            "Loaded sealed 2D source and 3D target reference Projects.",
+            "All interactions use Input IR → Rule Runtime → Scene projection.",
+        ]
+
+    def open_rule_preview(self, path: Path) -> str:
+        rule_path = Path(path).resolve()
+        try:
+            document = load_rule_ir(rule_path)
+        except Exception as exc:
+            raise IRAcceptanceError("Could not load Rule IR: {0}".format(exc)) from exc
+        if not document.get("content_hash"):
+            document = seal_rule_ir(document)
+        report = assess_rule_ir_conformance(document)
+        if not report.compile_ready:
+            detail = next(
+                (item.message for item in report.diagnostics if item.severity == "error"),
+                "Rule IR is not compile-ready.",
+            )
+            raise IRAcceptanceError(detail)
+        self._require_preview_contract(document)
+        slug = _slug(str(document.get("document_id", "loaded_rule")))
+        artifacts = build_project_artifacts(
+            document, "project:preview.{0}".format(slug), self.repository_root,
+        )
+        if "loaded" in self.sessions:
+            self.sessions.pop("loaded").close()
+        self.projects["loaded"] = artifacts
+        self.labels["loaded"] = "Loaded Rule IR"
+        self.bundles["loaded"] = self._compile(artifacts)
+        self._new_session("loaded")
+        self.active_key = "loaded"
+        self.activity.append("Opened Rule IR preview: {0}".format(rule_path.name))
+        return "loaded"
+
+    def select_project(self, key: str) -> ProjectViewState:
+        if key not in self.projects:
+            raise IRAcceptanceError("Unknown Workbench project: " + str(key))
+        self.active_key = key
+        return self.snapshot(key)
+
+    def reset(self, key: Optional[str] = None) -> ProjectViewState:
+        selected = key or self.active_key
+        if selected not in self.bundles:
+            raise IRAcceptanceError("Unknown Workbench project: " + str(selected))
+        if selected in self.sessions:
+            self.sessions.pop(selected).close()
+        self._new_session(selected)
+        self.activity.append("Reset {0}.".format(self.labels[selected]))
+        return self.snapshot(selected)
+
+    def click(self, coordinate: Sequence[int], key: Optional[str] = None) -> InteractionResult:
+        selected = key or self.active_key
+        state = self.snapshot(selected)
+        coord = tuple(int(item) for item in coordinate)
+        if len(coord) != len(state.dimensions) or any(
+            value < 0 or value >= state.dimensions[index]
+            for index, value in enumerate(coord)
+        ):
+            raise IRAcceptanceError("Coordinate is outside the active topology.")
+        self.sequence[selected] += 1
+        session = self.sessions[selected]
+        result = session.handle_input(PhysicalInputEvent(
+            self.sequence[selected], "mouse", "mouse.button.primary", "press",
+            position=(0, 0), data={"rule_coordinate": list(coord)},
+        ))
+        accepted = bool(result.transitions) and not result.rejections
+        if accepted:
+            code = "transition_committed"
+            message = "Accepted {0}; Rule revision is now {1}.".format(
+                coord, session.rule_runtime.state.revision,
+            )
+        elif result.rejections:
+            code = result.rejections[0].code
+            message = result.rejections[0].message
+        else:
+            code = "input_not_resolved"
+            message = "Input IR did not resolve this event to a Rule action."
+        self.last_scene_commands[selected] = len(result.scene_delta.commands)
+        marker = "ACCEPT" if accepted else "REJECT"
+        self.activity.append("{0} {1} {2}: {3}".format(
+            marker, self.labels[selected], coord, code,
+        ))
+        return InteractionResult(
+            selected, coord, accepted, code, message,
+            len(result.transitions), len(result.scene_delta.commands),
+            self.snapshot(selected),
+        )
+
+    def snapshot(self, key: Optional[str] = None) -> ProjectViewState:
+        selected = key or self.active_key
+        if selected not in self.sessions:
+            raise IRAcceptanceError("Unknown Workbench project: " + str(selected))
+        artifacts = self.projects[selected]
+        session = self.sessions[selected]
+        runtime = session.rule_runtime
+        if not runtime.state.topologies or not runtime.state.grids:
+            raise IRAcceptanceError("Workbench preview requires a topology-site grid.")
+        topology_id, dimensions = next(iter(runtime.state.topologies.items()))
+        _, grid = next(iter(runtime.state.grids.items()))
+        outcome = runtime.evaluate_outcome()
+        participant_names = {
+            str(item["id"]): str(item.get("name", item["id"]))
+            for item in artifacts.rule.get("participants", [])
+        }
+        actor = runtime.state.current_actor
+        winners = tuple(participant_names.get(str(item), str(item)) for item in outcome.winners)
+        scene_sites = sum(len(items) for items in session.scene.topology_sites.values())
+        return ProjectViewState(
+            key=selected,
+            label=self.labels[selected],
+            project_id=str(artifacts.manifest["project_id"]),
+            variant=str(artifacts.manifest["variant"]),
+            rule_id=str(artifacts.rule["document_id"]),
+            dimensions=tuple(int(item) for item in dimensions),
+            grid=grid.tolist(),
+            current_actor=actor,
+            current_actor_name=participant_names.get(str(actor), str(actor or "N/A")),
+            revision=int(runtime.state.revision),
+            state_hash=runtime.state.state_hash(),
+            legal_actions=len(runtime.legal_actions()),
+            total_actions=runtime.action_count,
+            outcome_status=str(outcome.status),
+            terminal=bool(outcome.terminal),
+            winners=winners,
+            replay_entries=len(runtime.export_replay_trace()),
+            scene_sites=scene_sites,
+            last_scene_commands=self.last_scene_commands.get(selected, 0),
+        )
+
+    def legal_coordinates(self, key: Optional[str] = None) -> Tuple[Tuple[int, ...], ...]:
+        selected = key or self.active_key
+        values = []
+        for action in self.sessions[selected].rule_runtime.legal_actions():
+            target = action.parameters.get("target")
+            if isinstance(target, (list, tuple)):
+                values.append(tuple(int(item) for item in target))
+        return tuple(values)
+
+    def verify_replay(self, key: Optional[str] = None) -> Mapping[str, Any]:
+        selected = key or self.active_key
+        session = self.sessions[selected]
+        trace = tuple(item.to_mapping() for item in session.rule_runtime.export_replay_trace())
+        replay = replay_rule_ir(self.projects[selected].rule, trace)
+        try:
+            expected = session.rule_runtime.state.state_hash()
+            actual = replay.state.state_hash()
+        finally:
+            replay.close()
+        passed = actual == expected
+        self.activity.append("Replay {0}: {1}.".format(
+            self.labels[selected], "PASS" if passed else "FAIL",
+        ))
+        return {
+            "passed": passed,
+            "entries": len(trace),
+            "expected_state_hash": expected,
+            "actual_state_hash": actual,
+        }
+
+    def run_integration_gate(self) -> Mapping[str, Any]:
+        if self.fixture is None:
+            raise IRAcceptanceError("Reference Integration Gate is not loaded.")
+        report = self.fixture.run().to_mapping()
+        self.activity.append("Non-LLM Integration Gate: {0}.".format(
+            "PASS" if report["passed"] else "FAIL",
+        ))
+        return report
+
+    def run_ai_conformance(self) -> Mapping[str, Any]:
+        if self.fixture is None:
+            raise IRAcceptanceError("Reference AI Adapter is not loaded.")
+        if self.active_key != "target":
+            raise IRAcceptanceError(
+                "The AlphaZero Adapter is pinned to the built-in Target 3D Project. "
+                "Switch the Project selector to Target 3D first."
+            )
+        game = compile_alphazero_game(
+            self.fixture.target.rule, self.fixture.ai_manifest,
+        )
+        report = assess_alphazero_conformance(game, maximum_plies=64).to_mapping()
+        self.activity.append("AlphaZero nine-API conformance: {0}.".format(
+            "PASS" if report["passed"] else "FAIL",
+        ))
+        return report
+
+    def activity_text(self, maximum: int = 80) -> str:
+        return "\n".join(self.activity[-maximum:])
+
+    def close(self) -> None:
+        for session in list(getattr(self, "sessions", {}).values()):
+            session.close()
+        self.sessions = {}
+
+    def _compile(self, artifacts: Any, source_manifest: Optional[Mapping[str, Any]] = None):
+        registry = self.fixture.extension_registry if self.fixture is not None else None
+        return compile_project_manifest(
+            artifacts.manifest,
+            rule_document=artifacts.rule,
+            scene_document=artifacts.scene,
+            asset_document=artifacts.asset,
+            input_document=artifacts.input,
+            asset_project_root=artifacts.asset_project_root,
+            source_manifest=source_manifest,
+            extension_registry=registry,
+        )
+
+    def _new_session(self, key: str) -> None:
+        session = self.bundles[key].create_session()
+        self.sessions[key] = session
+        self.sequence[key] = 0
+        self.last_scene_commands[key] = len(session.initial_scene_delta.commands)
+
+    @staticmethod
+    def _require_preview_contract(document: Mapping[str, Any]) -> None:
+        topology_ids = {str(item.get("id")) for item in document.get("topologies", [])}
+        state_ids = {str(item.get("id")) for item in document.get("state", {}).get("variables", [])}
+        action_ids = {str(item.get("id")) for item in document.get("actions", [])}
+        required = (
+            "rule:topology.board" in topology_ids,
+            "rule:state.board_cell" in state_ids,
+            "rule:action.place" in action_ids,
+        )
+        if not all(required):
+            raise IRAcceptanceError(
+                "Rule-only preview currently requires rule:topology.board, "
+                "rule:state.board_cell and rule:action.place. A full Project "
+                "package is required for other mechanics."
+            )
+
+
+def _slug(value: str) -> str:
+    result = re.sub(r"[^a-z0-9]+", "_", value.lower()).strip("_")
+    if not result or not result[0].isalpha():
+        result = "rule_" + result
+    return result[:80]

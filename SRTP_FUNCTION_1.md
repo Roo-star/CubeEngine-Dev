@@ -23,7 +23,7 @@ Rule Schema 仍然存在，但它只是有證據的中間表示（IR），不是
   → 全專案靜態分析（不執行來源）
   → Rule Schema + 來源行號 + 理解覆蓋率
   → 僅顯示來源確實存在的可調項
-  → 保留 X/Y，設計 Z
+  → 以來源 X/Y 為預設，設計師可調整目標 X/Y/Z
   → 逐項完成 movement / collision / spawn / neighbourhood / outcome / renderer lift
   → 忠實的 3D 重建版本
 ```
@@ -82,13 +82,13 @@ Workbench 不再顯示通用的 anchor / flow / randomness 下拉選單。這些
 
 ### Snake
 
-來源：[Grant Jenks / Free Python Games](https://github.com/grantjenks/free-python-games)，Apache-2.0。
+來源：[Anish Kumar Vedant / Snake-game](https://github.com/anishvedant/Snake-game)，MIT；包含完整 Pygame 素材、聲音、分數與暫停介面。
 
 Function 1 從未修改的來源中辨識：
 
-- 38×38 有效移動晶格（由 `inside()` 邊界與 10 單位步長共同推導）
-- 鍵盤四方向輸入
-- 100ms 更新間隔（10Hz）
+- 20×20 邏輯晶格
+- 方向鍵、Space 暫停與 Escape 離開
+- 125ms 更新間隔（8Hz）
 - snake ordered body、food collectible
 - food 隨機生成
 - 越界／自身碰撞終止
@@ -97,19 +97,17 @@ Function 1 從未修改的來源中辨識：
 
 ### Minesweeper
 
-來源同上，Apache-2.0。
+來源：[pygame-minesweeper](https://pypi.org/project/pygame-minesweeper/)，MIT；包含經典 sprite、計時、旗標、重開與完整核心規則。
 
 Function 1 正確區分：
 
-- 內部 10×10 padded neighbour map
-- 玩家真正可點擊的 8×8 surface
-- cell click/reveal
-- hidden bombs / shown / neighbour counts 三組狀態
-- 8 個隨機 mine placements
-- 點中 mine 的失敗條件
-- 來源沒有完整寫出「揭開所有安全格」的勝利檢查，因此 goals/outcomes 覆蓋率為 partial，而不是自行補規則
+- Basic 預設為 10×10、10 mines，並保留其他 difficulty/custom 模式
+- 左鍵揭露、右鍵依次切換旗標／問號／未標記
+- 第一次揭露保護、零鄰雷 flood reveal
+- hidden mine map、revealed map、flags、timer 與剩餘 mine 顯示
+- 點中 mine 失敗；所有安全格揭露即勝利
 
-3D lift 需要將同一來源鄰域、mine count、flood reveal 與 mine distribution 一起升維。
+3D lift 將同一鄰域、mine count、flood reveal、旗標與 mine distribution 一起升維。Mine 數量按來源密度縮放至 X×Y×Z，使用唯一座標並在第一次點擊時隨機生成；Workbench 直接顯示公式與結果，來源文件不被改寫。
 
 ### 2048
 
@@ -123,11 +121,34 @@ Function 1 讀取完整多文件專案及素材，辨識：
 - WIN / LOSE / PLAY 狀態
 - light/dark source modes
 - JSON 中獨立的尺寸、padding、font 與 font size
-- Pygame 圖片素材及原輸入映射
+- Pygame 圖片素材及原輸入映射；兼容 Pygame 1/2 方向鍵碼
+- 2D 可用方向鍵、WASD 或滑鼠拖曳；3D 以方向鍵／滑動／空間軸 handle 避開 WASD 視角衝突
 
 其中視覺 JSON 值可以在衍生副本修改；4×4 則硬編碼於多個算法，不能以單一尺寸欄位安全改寫。
 
-## 7. Workbench 驗收
+### Turtle Connect
+
+先前採用的 Free Python Games 教學檔在原始碼中明確把 winner detection
+留作 TODO，因此當時的 N/A 並不是解析器漏讀，而是來源根本沒有可讀取的
+勝負規則；用該檔驗收 Function 1 是錯誤的產品選擇。
+
+Workbench 現改用獨立標示的完整 Turtle Connect Four 來源。Function 1 可從
+來源證明 7×6、`CONNECT_N = 4`、點擊落子、滿盤和局及連線勝利。3D 版本保留
+connect-four 長度，並在立方網格的 13 組無重複直線方向判定、顯示勝者與勝利
+座標。這條終局不是 Ursina 預覽自行猜出的規則。
+
+## 7. Presentation mapping
+
+Function 1 現會在 Rule Schema 的 `ui_hints.presentation_mapping` 保存素材角色、
+映射策略與未解項。已證明的 tile、sprite、顏色、字體和 vector primitive 才會
+自動映射；數字與格子狀態被合成為同一個立方體表面材質，不再使用會與棋盤
+分離的浮動文字。
+
+單張正面圖片不能唯一決定物件背面、深度、拓撲、骨骼和遮擋面，因此不能把
+這類推測冒充「自動忠實轉化」。這些項會留給 Function 2、專用 renderer adapter
+或設計師確認。完整分層與驗收約束見 [SRTP_PRESENTATION_MAPPING.md](SRTP_PRESENTATION_MAPPING.md)。
+
+## 8. Workbench 驗收
 
 啟動：
 
@@ -140,18 +161,18 @@ C:\Users\Yingr\.pyenv\pyenv-win\versions\3.9.1\python.exe -m srtp.workbench
 
 1. 從左側 Source Library 選擇遊戲；切換選項會立即載入與分析。
 2. 保持上方 `Source 2D`，按唯一的 `PLAY` 控制；原版會在原生 Windows 遊戲視窗運行。
-3. 右側 Inspector 直接顯示 Source plane、可調的 `Depth (Z)`、Target volume、轉化狀態與所有來源參數。
+3. 右側 Inspector 顯示唯讀 Source plane 與可調的 Target `X / Y / Z`；初值採來源 X/Y。下方直接說明隨機生成／密度／Z 升維策略。
 4. 切換上方 `Transformed 3D`，按同一個 `PLAY`；已註冊的來源適配器會開啟 Ursina Play Mode。
 5. Rule Schema、Diagnostics 與 Function 2 handoff 收在左側 Analysis，不佔據主要設計工作流。
 
 Windows 不再把 Turtle/Pygame 視窗強制 reparent 到 Dear PyGui。實測這會讓子視窗被 GPU viewport 遮蔽；原版與 Ursina 因此使用可靠的原生獨立視窗。若「任意外來遊戲視窗穩定內嵌」成為硬需求，預覽外殼應遷移到正式支援 `QWindow::fromWinId()` / `createWindowContainer()` 的 PySide6/PyQt：<https://doc.qt.io/qt-6/qtdoc-demos-windowembedding-example.html>。
 
-## 8. 當前能力與邊界
+## 9. 當前能力與邊界
 
 | 來源 | 原版運行 | 全專案盤點 | 規則靜態分析 | 安全資料變體 | 忠實 3D compiler |
 |---|---:|---:|---:|---:|---:|
-| Python/Turtle | 是 | 是 | 部分，附證據 | 依來源 | Snake / Minesweeper / Connect 適配器 |
-| Python/Pygame | 是 | 是 | 部分，附證據 | JSON data 可用 | 2048 適配器 |
+| Python/Turtle | 是 | 是 | 部分，附證據 | 依來源 | Connect 適配器 |
+| Python/Pygame | 是 | 是 | 部分，附證據 | JSON／已證明單一 literal | Snake / Minesweeper / 2048 適配器 |
 | Canonical JSON | 無原遊戲可運行 | 單檔 | 是 | 是 | 僅既有 declarative subset |
 | HTML/JavaScript | 瀏覽器基線 | 基礎 | 尚未 | 尚未 | 尚未 |
 | Unity/C# | 需對應 Unity 版本 | 尚未 | 尚未 | 尚未 | 尚未 |

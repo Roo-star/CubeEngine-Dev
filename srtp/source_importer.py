@@ -22,6 +22,7 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
 from .parser import RuleFileParser
+from .presentation_bridge import presentation_manifest
 from .report import Diagnostic, ParseReport, SourceEvidence, deduplicate_diagnostics
 from .schema import classify_schema, set_path, validate_rule_schema
 from .source_game import (
@@ -50,9 +51,10 @@ FRAMEWORK_IMPORTS = {
     "pyglet": "pyglet",
 }
 STANDARD_LIBRARY = {
-    "argparse", "ast", "collections", "copy", "dataclasses", "datetime", "enum", "functools",
+    "__future__", "_winreg", "argparse", "array", "ast", "collections", "com", "copy", "ctypes", "dataclasses", "datetime", "enum", "functools",
     "hashlib", "heapq", "importlib", "itertools", "json", "math", "os", "pathlib", "random",
-    "re", "sys", "time", "tkinter", "turtle", "typing", "unittest", "uuid",
+    "platform", "re", "sys", "time", "tkinter", "turtle", "typing", "unittest", "uuid",
+    "win32api", "win32com", "winreg",
 }
 
 
@@ -84,6 +86,10 @@ class SourceGameImporter:
 
         parameters = self._source_parameters(facts, report, framework, root)
         transformation = self._transformation_plan(report, facts, framework)
+        self._attach_interaction_contract(report, facts.controls(), transformation.adapter_id)
+        report.schema.setdefault("ui_hints", {})["presentation_mapping"] = presentation_manifest(
+            transformation.adapter_id, root, assets,
+        )
         license_name, license_path = self._license(root)
         upstream_url = self._upstream(root)
         coverage = coverage_from_schema(report.schema, proven_overrides=("visual/assets",) if assets else ())
@@ -105,18 +111,87 @@ class SourceGameImporter:
             diagnostics=diagnostics,
         )
 
+    @staticmethod
+    def _attach_interaction_contract(
+        report: ParseReport, controls: Sequence[Mapping[str, Any]], adapter_id: str,
+    ) -> None:
+        """Publish source input evidence and the explicit 3D conflict policy.
+
+        Function 1 proves what the source listens to.  The registered spatial
+        adapter then declares how those inputs are exposed in 3D; it never
+        silently steals CubeEngine's stable viewport controls.
+        """
+
+        target_bindings = {
+            "snake": [
+                {"action": "move_x_y", "inputs": ["Arrow keys", "click an adjacent cell"]},
+                {"action": "move_z", "inputs": ["Page Up / Page Down", "click an adjacent Z cell"]},
+            ],
+            "minesweeper": [
+                {"action": "reveal_cell", "inputs": ["Left click"]},
+                {"action": "toggle_flag", "inputs": ["Right click without dragging"]},
+            ],
+            "connect": [
+                {"action": "select_and_drop", "inputs": ["Left click a column"]},
+            ],
+            "2048": [
+                {"action": "shift_x_y", "inputs": ["Arrow keys", "left-drag swipe"]},
+                {"action": "shift_z", "inputs": ["Page Up / Page Down", "click a spatial axis handle"]},
+            ],
+        }.get(adapter_id, [])
+        reserved = [
+            {"input": "Right drag", "action": "orbit camera"},
+            {"input": "Mouse wheel", "action": "zoom camera"},
+            {"input": "W / A / S / D", "action": "snap view by 90 degrees"},
+            {"input": "Z / [ / ]", "action": "inspect depth layer"},
+            {"input": "V", "action": "show all layers"},
+        ]
+        conflicts = []
+        source_inputs = {str(item.get("input", "")).lower() for item in controls}
+        if source_inputs.intersection({"w", "a", "s", "d"}):
+            conflicts.append({
+                "source": "W/A/S/D gameplay",
+                "resolution": "Arrow keys and pointer gestures retain gameplay; W/A/S/D remain viewport navigation in 3D.",
+            })
+        if any("right click" in value or "right_click" in value for value in source_inputs):
+            conflicts.append({
+                "source": "Right click gameplay",
+                "resolution": "A stationary right click performs gameplay; a right drag always orbits the camera.",
+            })
+        feedback = {
+            "snake": ["snake position and direction", "apple respawn", "body growth", "score", "pause/game-over state"],
+            "minesweeper": ["covered/revealed/flagged cell", "adjacent mine number", "flood reveal", "mine counter/timer", "win/loss face"],
+            "connect": ["placed piece", "next participant", "full column rejection"],
+            "2048": ["tile positions and values", "merge result", "new random tile", "win/loss overlay"],
+        }.get(adapter_id, ["source-defined visual state change"])
+        report.schema.setdefault("ui_hints", {})["interaction_contract"] = {
+            "source_bindings": list(controls),
+            "target_3d_bindings": target_bindings,
+            "reserved_3d_bindings": reserved,
+            "conflicts": conflicts,
+            "focus": "The native game or Ursina viewport must have keyboard focus.",
+            "visible_feedback": feedback,
+            "acceptance_rule": "Every accepted input must change visible state or publish a reason in the viewport status line.",
+        }
+
     def _resolve_entrypoint(self, selected: Path) -> Tuple[Path, Path]:
         if selected.is_file():
             entrypoint = selected
-            if selected.parent.joinpath("__init__.py").exists():
-                return entrypoint, selected.parent.parent
-            return entrypoint, selected.parent
+            return entrypoint, self._project_root_for(entrypoint)
         if not selected.is_dir():
             return selected, selected.parent
         for name in PYTHON_ENTRY_NAMES:
             candidate = selected / name
             if candidate.is_file():
                 return candidate, selected
+        for folder in ("src", "source", "game"):
+            for name in PYTHON_ENTRY_NAMES:
+                candidate = selected / folder / name
+                if candidate.is_file():
+                    return candidate, selected
+        package_entries = sorted(selected.glob("*/__main__.py"))
+        if package_entries:
+            return package_entries[0], selected
         html = selected / "index.html"
         if html.is_file():
             return html, selected
@@ -125,22 +200,41 @@ class SourceGameImporter:
             return python_files[0], selected
         return selected, selected
 
+    @staticmethod
+    def _project_root_for(entrypoint: Path) -> Path:
+        markers = ("pyproject.toml", "requirements.txt", "setup.py", "LICENSE", "LICENSE.txt", ".git")
+        candidate = entrypoint.parent
+        for parent in (entrypoint.parent, *tuple(entrypoint.parents)[1:3]):
+            if any((parent / marker).exists() for marker in markers):
+                candidate = parent
+        return candidate
+
     def _inventory(self, root: Path, entrypoint: Path) -> List[Path]:
         if not root.is_dir():
             return [root] if root.is_file() else []
         result: List[Path] = []
         total = 0
-        for item in sorted(root.rglob("*")):
+        candidates = sorted(
+            root.rglob("*"),
+            key=lambda item: (item.suffix.lower() in ASSET_SUFFIXES, item.as_posix().lower()),
+        )
+        for item in candidates:
             if any(part in IGNORED_PARTS for part in item.parts) or not item.is_file():
                 continue
             try:
                 size = item.stat().st_size
             except OSError:
                 continue
-            if len(result) >= MAX_PROJECT_FILES or total + size > MAX_PROJECT_BYTES:
+            if len(result) >= MAX_PROJECT_FILES:
                 break
+            if total + size > MAX_PROJECT_BYTES:
+                # A large sound/background file must not prevent later source
+                # files from entering the static analysis inventory.
+                continue
             result.append(item)
             total += size
+        if entrypoint.is_file() and entrypoint not in result:
+            result.insert(0, entrypoint)
         if entrypoint.parent.joinpath("__init__.py").is_file():
             package_sources = self._package_source_closure(entrypoint)
             result = [
@@ -210,7 +304,7 @@ class SourceGameImporter:
     def _dependencies(self, trees: Mapping[str, ast.Module], root: Path) -> Tuple[List[str], List[str]]:
         imports = sorted(_import_roots(trees.values()))
         local_roots = {item.stem for item in root.rglob("*.py")}
-        local_roots.update(item.name for item in root.iterdir() if item.is_dir()) if root.is_dir() else None
+        local_roots.update(item.name for item in root.rglob("*") if item.is_dir()) if root.is_dir() else None
         dependencies: List[str] = []
         missing: List[str] = []
         for module in imports:
@@ -226,17 +320,19 @@ class SourceGameImporter:
         dependencies: List[str], missing: List[str],
     ) -> RuntimeSpec:
         if entrypoint.suffix.lower() in (".py", ".pyw"):
-            if entrypoint.parent.joinpath("__init__.py").exists():
-                module = "{0}.{1}".format(entrypoint.parent.name, entrypoint.stem)
-                command = [self.python_executable, "-m", module]
-            else:
-                command = [self.python_executable, entrypoint.name]
+            is_package_entry = entrypoint.name == "__main__.py" or entrypoint.parent.joinpath("__init__.py").exists()
+            module = "{0}.{1}".format(entrypoint.parent.name, entrypoint.stem) if is_package_entry else ""
+            command = [self.python_executable, "-m", module] if module else [self.python_executable, str(entrypoint)]
             compatibility_notes: List[str] = []
             if framework == "pygame" and entrypoint.name != "runtime_bootstrap.py":
                 bootstrap = Path(__file__).with_name("runtime_bootstrap.py")
-                command = [self.python_executable, str(bootstrap), str(entrypoint)]
+                command = (
+                    [self.python_executable, str(bootstrap), "--module", module]
+                    if module else
+                    [self.python_executable, str(bootstrap), "--script", str(entrypoint)]
+                )
                 compatibility_notes.append(
-                    "Pygame source is executed unchanged behind a Windows font-registry compatibility boundary."
+                    "Pygame source is executed unchanged behind Windows font and legacy NumPy compatibility boundaries."
                 )
             return RuntimeSpec(
                 kind="python", command=command, cwd=str(root), framework=framework,
@@ -409,10 +505,10 @@ class SourceGameImporter:
         if tick:
             value, location = tick
             result.append(SourceParameter(
-                id="source_tick_ms", label="Source update interval (ms)", category="flow",
+                id="source_tick_ms", label="Movement interval (milliseconds)", category="flow",
                 value=value, value_type="integer", applicability="applicable", edit_mode="literal_patch",
-                reason="The interval is one proven timer literal and can be changed in a derived source copy.", locations=[location],
-                constraints={"minimum": 1}, affects=["game speed"],
+                reason="Time between automatic movement updates. A smaller value makes the game faster; a larger value makes it slower. The upstream source is never edited in place.", locations=[location],
+                constraints={"minimum": 25, "maximum": 1000}, affects=["movement speed"],
             ))
         mine_count = facts.mine_count()
         if mine_count:
@@ -422,6 +518,15 @@ class SourceGameImporter:
                 value=value, value_type="integer", applicability="applicable", edit_mode="literal_patch",
                 reason="The source repeats mine placement with one proven loop literal; a derived copy can change it.", locations=[location],
                 constraints={"minimum": 1}, affects=["difficulty", "mine distribution"],
+            ))
+        connect_length = facts.connect_length()
+        if connect_length:
+            value, location = connect_length
+            result.append(SourceParameter(
+                id="source_connect_n", label="Winning line length", category="outcome",
+                value=value, value_type="integer", applicability="applicable", edit_mode="literal_patch",
+                reason="The source defines this terminal rule explicitly; the 3D lift keeps the same line length across spatial directions.",
+                locations=[location], constraints={"minimum": 2}, affects=["win condition", "terminal state"],
             ))
         for key, value, location in facts.json_display_parameters():
             constraints = {
@@ -461,12 +566,13 @@ class SourceGameImporter:
         source_dimensions = dict(report.schema.get("space", {}).get("dimensions", {"x": None, "y": None, "z": 1}))
         action_ids = {item.get("id") for item in report.schema.get("actions", []) if isinstance(item, Mapping)}
         source_names = {Path(name).stem.lower() for name in facts.sources}
+        root_token = facts.root.as_posix().lower()
         adapter_id = ""
-        if "snake" in source_names and "change_direction" in action_ids:
+        if ("snake" in source_names or "snake" in root_token) and "change_direction" in action_ids:
             adapter_id = "snake"
-        elif "minesweeper" in source_names and "reveal_cell" in action_ids:
+        elif ("minesweeper" in source_names or "minesweeper" in root_token) and "reveal_cell" in action_ids:
             adapter_id = "minesweeper"
-        elif "connect" in source_names and "place_at_click" in action_ids:
+        elif any(name.startswith("connect") for name in source_names) and "place_at_click" in action_ids:
             adapter_id = "connect"
         elif {"main", "game", "logic"}.issubset(source_names) and "shift_merge" in action_ids:
             adapter_id = "2048"
@@ -479,8 +585,8 @@ class SourceGameImporter:
         lifts = [
             MechanicLift(
                 "add_z_axis", "Add Z axis", "The source uses a 2D logical plane.",
-                "Preserve source X/Y and let the designer choose a positive Z extent.",
-                "ready", "Z is exposed as the single primary spatial input in the Workbench Inspector.",
+                "Use source X/Y as defaults, while allowing the designer to resize X, Y and choose a positive Z extent.",
+                "ready", "Target X/Y/Z are explicit spatial inputs. Source X/Y remain visible as the fidelity baseline.",
             ),
             MechanicLift(
                 "source_renderer", "Preserve source visual identity",
@@ -527,8 +633,9 @@ class SourceGameImporter:
         )
 
     def _license(self, root: Path) -> Tuple[str, str]:
-        for name in ("LICENSE", "LICENSE.txt", "LICENSE.md", "COPYING"):
-            path = root / name
+        candidates = [root / name for name in ("LICENSE", "LICENSE.txt", "LICENSE.md", "COPYING")]
+        candidates.extend(sorted(root.glob("LICENSE-*")))
+        for path in candidates:
             if not path.is_file():
                 continue
             try:
@@ -546,6 +653,10 @@ class SourceGameImporter:
             return "https://github.com/grantjenks/free-python-games"
         if "pygame_2048" in token or "2048-pygame" in token:
             return "https://github.com/rajitbanerjee/2048-pygame"
+        if "pygame_snake" in token:
+            return "https://github.com/anishvedant/Snake-game"
+        if "pygame_minesweeper" in token:
+            return "https://pypi.org/project/pygame-minesweeper/"
         return ""
 
     @staticmethod
@@ -597,6 +708,9 @@ class _PythonProjectFacts:
                 shape = _nested_board_shape(node, constants)
                 if shape:
                     candidates.append((shape[0], shape[1], "nested logical board construction", 0.98, SourceLocation(path, getattr(node, "lineno", None))))
+                shape = _constructor_grid_shape(node, constants)
+                if shape:
+                    candidates.append((shape[0], shape[1], "grid dimensions passed to source board constructor", 0.99, SourceLocation(path, getattr(node, "lineno", None))))
             for function in _functions(tree):
                 shape = _draw_loop_shape(function, constants)
                 if shape:
@@ -615,22 +729,56 @@ class _PythonProjectFacts:
         result: List[Dict[str, Any]] = []
         for path, tree in self.trees.items():
             for node in ast.walk(tree):
-                if not isinstance(node, ast.Call):
-                    continue
-                name = _call_name(node.func)
-                if name in ("onkey", "turtle.onkey") and len(node.args) >= 2:
-                    key = _string_value(node.args[1])
-                    if key:
-                        result.append({"device": "keyboard", "input": key, "handler": _handler_name(node.args[0]), "source": SourceLocation(path, node.lineno).to_mapping()})
-                elif name in ("onscreenclick", "turtle.onscreenclick") and node.args:
-                    result.append({"device": "mouse", "input": "left_click", "handler": _handler_name(node.args[0]), "source": SourceLocation(path, node.lineno).to_mapping()})
+                if isinstance(node, ast.Call):
+                    name = _call_name(node.func)
+                    if (name in ("onkey", "turtle.onkey") or name.endswith(".onkey")) and len(node.args) >= 2:
+                        key = _string_value(node.args[1])
+                        if key:
+                            result.append({"device": "keyboard", "event": "key_down", "input": key, "handler": _handler_name(node.args[0]), "source": SourceLocation(path, node.lineno).to_mapping()})
+                    elif (name in ("onscreenclick", "turtle.onscreenclick", "onclick") or name.endswith(".onclick")) and node.args:
+                        button = _int_value(node.args[1]) if len(node.args) > 1 else 1
+                        result.append({
+                            "device": "mouse", "event": "click",
+                            "input": _mouse_button_name(button),
+                            "handler": _handler_name(node.args[0]),
+                            "source": SourceLocation(path, node.lineno).to_mapping(),
+                        })
+                if isinstance(node, ast.Compare) and len(node.ops) == 1 and len(node.comparators) == 1:
+                    left_name = _call_name(node.left)
+                    right_name = _call_name(node.comparators[0])
+                    if left_name.endswith("event.key") or right_name.endswith("event.key"):
+                        symbol = right_name if left_name.endswith("event.key") else left_name
+                        if symbol:
+                            result.append({
+                                "device": "keyboard", "event": "key_down",
+                                "input": _pygame_key_label(symbol),
+                                "handler": self._scope_for_line(path, node.lineno),
+                                "source": SourceLocation(path, node.lineno).to_mapping(),
+                            })
+                    if left_name.endswith("event.button") or right_name.endswith("event.button"):
+                        value_node = node.comparators[0] if left_name.endswith("event.button") else node.left
+                        button = _int_value(value_node)
+                        symbol = _call_name(value_node)
+                        if button is None:
+                            button = {"BUTTON_LEFT": 1, "BUTTON_RIGHT": 3}.get(symbol.split(".")[-1])
+                        if button in (1, 2, 3):
+                            result.append({
+                                "device": "mouse", "event": "button",
+                                "input": _mouse_button_name(button),
+                                "handler": self._scope_for_line(path, node.lineno),
+                                "source": SourceLocation(path, node.lineno).to_mapping(),
+                            })
         for path, value in self._json_files():
             keys = value.get("keys") if isinstance(value, Mapping) else None
             if isinstance(keys, Mapping):
                 for raw, action in keys.items():
                     if str(raw).startswith("_"):
                         continue
-                    result.append({"device": "keyboard", "input": str(raw), "handler": str(action), "source": SourceLocation(path).to_mapping()})
+                    result.append({
+                        "device": "keyboard", "event": "key_down",
+                        "input": _pygame_numeric_key_label(str(raw)),
+                        "handler": str(action), "source": SourceLocation(path).to_mapping(),
+                    })
         unique: List[Dict[str, Any]] = []
         seen = set()
         for item in result:
@@ -642,18 +790,25 @@ class _PythonProjectFacts:
 
     def actions(self, controls: Sequence[Mapping[str, Any]]) -> List[Dict[str, Any]]:
         names = self._function_names()
+        classes = self._class_names()
+        inputs = {str(item.get("input", "")).lower() for item in controls}
         actions: List[Dict[str, Any]] = []
-        if "change" in names and "move" in names and any(item.get("device") == "keyboard" for item in controls):
+        if (
+            ("change" in names and "move" in names)
+            or ("snake" in classes and inputs.intersection({"arrow up", "arrow down", "arrow left", "arrow right"}))
+        ) and any(item.get("device") == "keyboard" for item in controls):
             actions.extend([
                 _action("change_direction", "Change direction", "control", "human_player", "change", "input_driven"),
                 _action("advance", "Advance moving body", "move", "system", "move", "timer"),
             ])
         elif {"moveleft", "moveright", "moveup", "movedown"}.issubset({name.lower() for name in names}):
             actions.append(_action("shift_merge", "Shift and merge every tile", "transform", "human_player", "move", "input_driven"))
-        if "tap" in names and any(item.get("device") == "mouse" for item in controls):
+        if ("tap" in names or self.hidden_information()) and any(item.get("device") == "mouse" for item in controls):
             verb = "reveal" if self.hidden_information() else "place"
             identifier = "reveal_cell" if verb == "reveal" else "place_at_click"
             actions.append(_action(identifier, "Reveal cell" if verb == "reveal" else "Act at clicked cell", verb, "human_player", "tap", "input_driven"))
+            if self.hidden_information() and any("right" in value for value in inputs):
+                actions.append(_action("toggle_flag", "Toggle mine flag", "mark", "human_player", "right_click", "input_driven"))
         return actions
 
     def flow(self) -> Dict[str, Any]:
@@ -678,21 +833,20 @@ class _PythonProjectFacts:
 
     def entities_state(self, framework: str) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
         names = self._assigned_names()
+        classes = self._class_names()
         entities: List[Dict[str, Any]] = []
         variables: List[Dict[str, Any]] = []
-        if "snake" in names:
+        if "snake" in names or "snake" in classes:
             entities.append({"id": "snake", "name": "Snake", "kind": "avatar", "owner": "human_player", "supply": {"model": "grows"}})
-            variables.append({"id": "snake_body", "type": "ordered_coordinate_list", "source_ref": names["snake"].to_mapping()})
-        if "food" in names:
+            source_ref = names.get("snake")
+            variables.append({"id": "snake_body", "type": "ordered_coordinate_list", "source_ref": source_ref.to_mapping() if source_ref else {"class": "SNAKE"}})
+        if "food" in names or "fruit" in classes:
             entities.append({"id": "food", "name": "Food", "kind": "collectible", "owner": "system", "supply": {"model": "respawn"}})
-            variables.append({"id": "food_position", "type": "coordinate", "source_ref": names["food"].to_mapping()})
-        if all(name in names for name in ("bombs", "shown", "counts")):
+            source_ref = names.get("food")
+            variables.append({"id": "food_position", "type": "coordinate", "source_ref": source_ref.to_mapping() if source_ref else {"class": "FRUIT"}})
+        if all(name in names for name in ("bombs", "shown", "counts")) or self.hidden_information():
             entities.append({"id": "mine_field", "name": "Hidden mine field", "kind": "cell_marker", "owner": "system", "supply": {"model": "generated"}})
-            variables.extend([
-                {"id": "bombs", "type": "hidden_cell_map", "source_ref": names["bombs"].to_mapping()},
-                {"id": "shown", "type": "visibility_cell_map", "source_ref": names["shown"].to_mapping()},
-                {"id": "neighbour_counts", "type": "integer_cell_map", "source_ref": names["counts"].to_mapping()},
-            ])
+            variables.extend([{"id": "mine_layout", "type": "hidden_cell_map"}, {"id": "revealed", "type": "visibility_cell_map"}, {"id": "flags", "type": "marker_cell_set"}])
         if {"moveleft", "moveright", "moveup", "movedown"}.issubset({name.lower() for name in self._function_names()}):
             entities.append({"id": "number_tiles", "name": "Number tiles", "kind": "token", "owner": "system", "supply": {"model": "spawned"}})
             variables.extend([
@@ -747,7 +901,47 @@ class _PythonProjectFacts:
             path, node = tap
             outcomes.append(_outcome("mine_loss", "loss", True, path, node.lineno, "clicking a mined cell reveals all mines and ends the handler"))
             goals.append({"id": "reveal_safe_cells", "type": "terminal", "owner": "human_player", "executable": False})
+        source_lower = "\n".join(self.sources.values()).lower()
+        if self.hidden_information() and ("is_game_over" in source_lower or "game_over" in source_lower):
+            if not any(item["id"] == "mine_loss" for item in outcomes):
+                path = next(iter(self.sources), "source")
+                outcomes.append(_outcome("mine_loss", "loss", True, path, 1, "opening a mined cell ends the game"))
+            if "is_game_finished" in source_lower or "game_finished" in source_lower or "game_done" in source_lower:
+                path = next(iter(self.sources), "source")
+                outcomes.append(_outcome("safe_cells_cleared", "win", True, path, 1, "all non-mine cells are revealed"))
+                goals = [{"id": "reveal_safe_cells", "type": "terminal", "condition_ref": "safe_cells_cleared", "owner": "human_player"}]
+        if "snake" in self._class_names() and any(name in self._function_names() for name in ("check_fail", "game_over")):
+            if not any(item["id"] == "collision_loss" for item in outcomes):
+                path = next(iter(self.sources), "source")
+                outcomes.append(_outcome("collision_loss", "loss", True, path, 1, "snake collides with the boundary or its own body"))
+            goals.append({"id": "consume_collectibles", "type": "intermediate", "owner": "human_player"})
+        winner = next((item for name, item in function_map.items() if name.lower() in ("check_winner", "winner", "get_winner")), None)
+        connect = self.connect_length()
+        if winner and connect and not any(item["id"] == "connected_line_win" for item in outcomes):
+            path, node = winner
+            length, _location = connect
+            outcomes.append({
+                "id": "connected_line_win", "priority": 100,
+                "condition": {"op": "line", "length": length, "state": "$matching_role_state", "directions": "grid_all"},
+                "result": {"status": "win", "is_terminal": True, "winners": ["$matching_role"]},
+                "executable": True,
+                "source_ref": {"path": path, "line": node.lineno, "symbol": getattr(node, "name", "check_winner")},
+            })
+            goals.append({"id": "form_connected_line", "type": "terminal", "condition_ref": "connected_line_win", "owner": "$current_role"})
         return outcomes, goals
+
+    def connect_length(self) -> Optional[Tuple[int, SourceLocation]]:
+        for path, tree in self.trees.items():
+            constants = _module_constants(tree)
+            for name in ("CONNECT_N", "WIN_LENGTH", "LINE_LENGTH"):
+                value = constants.get(name)
+                if isinstance(value, int) and not isinstance(value, bool) and value >= 2:
+                    line = next((node.lineno for node in ast.walk(tree) if isinstance(node, (ast.Assign, ast.AnnAssign)) and any(
+                        isinstance(target, ast.Name) and target.id == name
+                        for target in (node.targets if isinstance(node, ast.Assign) else [node.target])
+                    )), 1)
+                    return value, SourceLocation(path, line, name)
+        return None
 
     def coordinate_anchor(self, framework: str) -> Optional[str]:
         if self.hidden_information():
@@ -781,9 +975,22 @@ class _PythonProjectFacts:
                     value = _int_value(node.args[1])
                     if value and value > 0:
                         return value, SourceLocation(path, node.lineno)
+                if isinstance(node, ast.Call) and _call_name(node.func).endswith("time.set_timer") and len(node.args) >= 2:
+                    value = _int_value(node.args[1], _module_constants(tree))
+                    if value and value > 0:
+                        return value, SourceLocation(path, node.lineno)
         return None
 
     def mine_count(self) -> Optional[Tuple[int, SourceLocation]]:
+        for path, tree in self.trees.items():
+            constants = _module_constants(tree)
+            for node in ast.walk(tree):
+                if not isinstance(node, ast.Call) or _call_name(node.func).split(".")[-1] not in ("UserInterface", "Board"):
+                    continue
+                if len(node.args) >= 3:
+                    value = _int_value(node.args[2], constants)
+                    if value and value > 0:
+                        return value, SourceLocation(path, getattr(node.args[2], "lineno", node.lineno), _call_name(node.func))
         for path, tree in self.trees.items():
             for function in _functions(tree):
                 if function.name.lower() not in ("initialize", "new_game", "game_new"):
@@ -844,8 +1051,30 @@ class _PythonProjectFacts:
         return {
             function.name: (path, function)
             for path, tree in self.trees.items()
-            for function in _functions(tree)
+            for function in ast.walk(tree)
+            if isinstance(function, (ast.FunctionDef, ast.AsyncFunctionDef))
         }
+
+    def _class_names(self) -> set:
+        return {
+            node.name.lower()
+            for tree in self.trees.values() for node in ast.walk(tree)
+            if isinstance(node, ast.ClassDef)
+        }
+
+    def _scope_for_line(self, path: str, line: int) -> str:
+        tree = self.trees.get(path)
+        if tree is None:
+            return "source_event_loop"
+        candidates = [
+            node for node in ast.walk(tree)
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and node.lineno <= line <= getattr(node, "end_lineno", node.lineno)
+        ]
+        if not candidates:
+            return "source_event_loop"
+        scope = min(candidates, key=lambda node: getattr(node, "end_lineno", node.lineno) - node.lineno)
+        return scope.name
 
     def _assigned_names(self) -> Dict[str, SourceLocation]:
         result: Dict[str, SourceLocation] = {}
@@ -932,10 +1161,26 @@ def _nested_board_shape(node: ast.AST, constants: Mapping[str, Any]) -> Optional
     return None
 
 
+def _constructor_grid_shape(node: ast.AST, constants: Mapping[str, Any]) -> Optional[Tuple[int, int]]:
+    if not isinstance(node, ast.Call) or _call_name(node.func).split(".")[-1] not in ("Board", "UserInterface"):
+        return None
+    if len(node.args) < 2:
+        return None
+    rows = _int_value(node.args[0], constants)
+    cols = _int_value(node.args[1], constants)
+    if rows and cols and rows > 1 and cols > 1:
+        return cols, rows
+    return None
+
+
 def _draw_loop_shape(function: ast.AST, constants: Mapping[str, Any]) -> Optional[Tuple[int, int]]:
     if not isinstance(function, (ast.FunctionDef, ast.AsyncFunctionDef)):
         return None
-    if function.name.lower() not in ("draw", "grid", "display", "initialize", "create_board", "newgame"):
+    if function.name.lower() not in (
+        "draw", "grid", "display", "initialize", "create_board", "newgame",
+        "draw_board", "drawboard", "displaydiscs", "render", "renderdata",
+        "render_data", "update",
+    ):
         return None
     x_counts, y_counts = [], []
     has_grid_call = any(
@@ -962,6 +1207,12 @@ def _draw_loop_shape(function: ast.AST, constants: Mapping[str, Any]) -> Optiona
                 for child in ast.walk(inner)
             )
             if inner_axis and inner_axis != outer_axis and inner_count and has_site_draw:
+                drawn_axes = _drawn_loop_axes(
+                    inner,
+                    {outer.target.id: outer_count, inner.target.id: inner_count},
+                )
+                if "x" in drawn_axes and "y" in drawn_axes:
+                    return drawn_axes["x"], drawn_axes["y"]
                 counts = {outer_axis: outer_count, inner_axis: inner_count}
                 return counts["x"], counts["y"]
     for node in ast.walk(function):
@@ -979,6 +1230,36 @@ def _draw_loop_shape(function: ast.AST, constants: Mapping[str, Any]) -> Optiona
     return None
 
 
+def _drawn_loop_axes(scope: ast.AST, loop_counts: Mapping[str, int]) -> Dict[str, int]:
+    """Infer X/Y from actual draw coordinates instead of assuming i=row.
+
+    Pygame projects commonly use ``i`` as X and ``j`` as Y, while others use
+    the opposite convention.  A proven ``blit(..., (i * cell, j * cell))`` is
+    stronger evidence than the variable spelling.
+    """
+
+    for node in ast.walk(scope):
+        if not isinstance(node, ast.Call):
+            continue
+        name = _call_name(node.func).split(".")[-1]
+        position = None
+        if name == "blit" and len(node.args) >= 2:
+            position = node.args[1]
+        elif name == "set_at" and node.args:
+            position = node.args[0]
+        elif name == "rect" and len(node.args) >= 3:
+            position = node.args[2]
+        if not isinstance(position, (ast.Tuple, ast.List)) or len(position.elts) < 2:
+            continue
+        x_names = {item.id for item in ast.walk(position.elts[0]) if isinstance(item, ast.Name)}
+        y_names = {item.id for item in ast.walk(position.elts[1]) if isinstance(item, ast.Name)}
+        x_loop = next((name for name in loop_counts if name in x_names), None)
+        y_loop = next((name for name in loop_counts if name in y_names), None)
+        if x_loop and y_loop and x_loop != y_loop:
+            return {"x": loop_counts[x_loop], "y": loop_counts[y_loop]}
+    return {}
+
+
 def _loop_axis(name: str) -> str:
     token = name.lower()
     if token in ("x", "j", "col", "column"):
@@ -989,24 +1270,56 @@ def _loop_axis(name: str) -> str:
 
 
 def _inside_lattice_shape(function: ast.AST, tree: ast.Module) -> Optional[Tuple[int, int]]:
-    if not isinstance(function, (ast.FunctionDef, ast.AsyncFunctionDef)) or function.name.lower() not in ("inside", "in_bounds", "is_inside"):
+    if not isinstance(function, (ast.FunctionDef, ast.AsyncFunctionDef)) or function.name.lower() not in (
+        "inside",
+        "in_bounds",
+        "is_inside",
+        "checkcoordrange",
+        "check_coord_range",
+        "tile_valid",
+        "is_valid_coord",
+    ):
         return None
     bounds: Dict[str, Tuple[float, float]] = {}
+    upper_bounds: Dict[str, float] = {}
     for node in ast.walk(function):
-        if not isinstance(node, ast.Compare) or len(node.ops) != 2 or len(node.comparators) != 2:
+        if not isinstance(node, ast.Compare):
             continue
-        low = _number_value(node.left)
-        high = _number_value(node.comparators[1])
-        middle = node.comparators[0]
-        axis = middle.attr.lower() if isinstance(middle, ast.Attribute) else ""
-        if axis in ("x", "y") and low is not None and high is not None:
-            bounds[axis] = (low, high)
+        if len(node.ops) == 2 and len(node.comparators) == 2:
+            low = _number_value(node.left)
+            high = _number_value(node.comparators[1])
+            middle = node.comparators[0]
+            axis = _coordinate_axis(middle)
+            if axis and low is not None and high is not None:
+                bounds[axis] = (low, high)
+        if len(node.ops) == 1 and len(node.comparators) == 1:
+            axis = _coordinate_axis(node.left)
+            high = _number_value(node.comparators[0])
+            if axis and high is not None and isinstance(node.ops[0], (ast.Lt, ast.LtE)):
+                # ``x < 8`` means eight integer coordinates; ``x <= 7`` does too.
+                upper_bounds[axis] = high + (1 if isinstance(node.ops[0], ast.LtE) else 0)
+    if "x" in upper_bounds and "y" in upper_bounds:
+        return max(1, int(upper_bounds["x"])), max(1, int(upper_bounds["y"]))
     step = _movement_step([tree])
     if "x" in bounds and "y" in bounds and step:
         size_x = max(1, int((bounds["x"][1] - bounds["x"][0] - 1) // step[0]))
         size_y = max(1, int((bounds["y"][1] - bounds["y"][0] - 1) // step[0]))
         return size_x, size_y
     return None
+
+
+def _coordinate_axis(node: ast.AST) -> str:
+    if isinstance(node, ast.Name):
+        token = node.id.lower()
+    elif isinstance(node, ast.Attribute):
+        token = node.attr.lower()
+    else:
+        return ""
+    if token in ("x", "col", "column"):
+        return "x"
+    if token in ("y", "row"):
+        return "y"
+    return ""
 
 
 def _movement_step(trees: Iterable[ast.Module]) -> Optional[Tuple[int, str, int]]:
@@ -1043,7 +1356,13 @@ def _range_count(node: ast.AST, constants: Mapping[str, Any]) -> Optional[int]:
 
 
 def _functions(tree: ast.Module) -> List[ast.AST]:
-    return [node for node in tree.body if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))]
+    # Game mechanics commonly live in class methods (Board.legal_moves,
+    # Matrix.update, GameApp.pushData).  Restricting analysis to module-level
+    # functions made complete OOP projects appear semantically empty.
+    return [
+        node for node in ast.walk(tree)
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+    ]
 
 
 def _int_value(node: ast.AST, constants: Optional[Mapping[str, Any]] = None) -> Optional[int]:
@@ -1078,6 +1397,34 @@ def _handler_name(node: ast.AST) -> str:
     return _call_name(node)
 
 
+def _pygame_key_label(symbol: str) -> str:
+    token = symbol.split(".")[-1]
+    labels = {
+        "K_UP": "Arrow Up", "K_DOWN": "Arrow Down",
+        "K_LEFT": "Arrow Left", "K_RIGHT": "Arrow Right",
+        "K_SPACE": "Space", "K_ESCAPE": "Escape",
+        "K_PAGEUP": "Page Up", "K_PAGEDOWN": "Page Down",
+    }
+    if token in labels:
+        return labels[token]
+    return token[2:].upper() if token.startswith("K_") else token
+
+
+def _pygame_numeric_key_label(value: str) -> str:
+    labels = {
+        "273": "Arrow Up", "1073741906": "Arrow Up",
+        "274": "Arrow Down", "1073741905": "Arrow Down",
+        "276": "Arrow Left", "1073741904": "Arrow Left",
+        "275": "Arrow Right", "1073741903": "Arrow Right",
+        "119": "W", "115": "S", "97": "A", "100": "D",
+    }
+    return labels.get(value, value)
+
+
+def _mouse_button_name(button: Optional[int]) -> str:
+    return {1: "Left click", 2: "Middle click", 3: "Right click"}.get(button, "Mouse click")
+
+
 def _subscript_root(node: ast.AST) -> str:
     current = node
     while isinstance(current, ast.Subscript):
@@ -1107,4 +1454,9 @@ def _outcome(identifier: str, status: str, terminal: bool, path: str, line: int,
 
 
 def _dimension_priority(detail: str) -> int:
-    return {"nested logical board construction": 3, "nested source draw/input lattice": 2, "movement boundary divided by proven spatial step": 1}.get(detail, 0)
+    return {
+        "grid dimensions passed to source board constructor": 4,
+        "nested logical board construction": 3,
+        "nested source draw/input lattice": 2,
+        "movement boundary divided by proven spatial step": 1,
+    }.get(detail, 0)

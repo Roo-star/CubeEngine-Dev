@@ -1,0 +1,53 @@
+{
+  "adapter_version": "cubeengine.alphazero-adapter/1.0",
+  "adapter_id": "ai:othello_2d",
+  "revision": 0,
+  "content_hash": "3fed87153f48bc23a5ed77b6b01e397c1f290e0b66c36e1b0dc7341ec1c8977a",
+  "metadata": {
+    "name": "Othello 2D AlphaZero Adapter",
+    "description": "Reviewed two-player zero-sum training projection for the source-evidenced Othello Rule IR."
+  },
+  "rule": {
+    "document_id": "rule:game.othello_source_equivalent",
+    "content_hash": "c109092b67a6ef3a994546c76ab9e9d041a7c0c2db7ecd5556ac47e6d2f899f5",
+    "mode_id": "rule:mode.default",
+    "parameters": {}
+  },
+  "players": {
+    "positive": "rule:participant.black",
+    "negative": "rule:participant.white",
+    "canonicalization": "swap_player_owned_values"
+  },
+  "tensor": {
+    "topology": "rule:topology.board",
+    "state": "rule:state.board_cell",
+    "dtype": "int8",
+    "value_map": [
+      {"rule_value": 0, "tensor_value": 0, "owner": null},
+      {"rule_value": 1, "tensor_value": 1, "owner": "positive"},
+      {"rule_value": -1, "tensor_value": -1, "owner": "negative"}
+    ]
+  },
+  "actions": {
+    "catalogue": "rule_runtime_stable",
+    "coordinate_parameter": "target",
+    "forced_pass": true
+  },
+  "outcomes": {"draw_value": 0.0001, "draw_statuses": ["draw"]},
+  "symmetries": [
+    {"id": "identity", "axis_permutation": [0, 1], "axis_reflections": [false, false]},
+    {"id": "reflect_rows", "axis_permutation": [0, 1], "axis_reflections": [true, false]},
+    {"id": "reflect_columns", "axis_permutation": [0, 1], "axis_reflections": [false, true]},
+    {"id": "rotate_180", "axis_permutation": [0, 1], "axis_reflections": [true, true]},
+    {"id": "transpose", "axis_permutation": [1, 0], "axis_reflections": [false, false]},
+    {"id": "rotate_90", "axis_permutation": [1, 0], "axis_reflections": [false, true]},
+    {"id": "rotate_270", "axis_permutation": [1, 0], "axis_reflections": [true, false]},
+    {"id": "anti_transpose", "axis_permutation": [1, 0], "axis_reflections": [true, true]}
+  ],
+  "provenance": {
+    "/players": [{"author": "engineer", "method": "rule_ir_review", "confidence": 1.0}],
+    "/tensor": [{"author": "engineer", "method": "enum_and_owner_mapping", "confidence": 1.0}],
+    "/symmetries": [{"author": "engineer", "method": "othello_d4_group", "confidence": 1.0}]
+  },
+  "unresolved": []
+}

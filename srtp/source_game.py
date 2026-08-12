@@ -210,6 +210,43 @@ class SourceGamePackage:
     def parameter(self, identifier: str) -> Optional[SourceParameter]:
         return next((item for item in self.parameters if item.id == identifier), None)
 
+    def llm_handoff(self) -> Dict[str, Any]:
+        """Whole-project Function 2 input; richer than a single ParseReport."""
+
+        analysis = self.rule_report.llm_handoff()
+        return {
+            "handoff_version": "cubeengine.srtp/source-project-llm-handoff-v2",
+            "source_project": {
+                "title": self.title,
+                "root": str(self.root),
+                "entrypoint": str(self.entrypoint),
+                "runtime": self.runtime.to_mapping(),
+                "inventory": {"files": self.files, "assets": self.assets},
+                "license": {
+                    "name": self.license_name,
+                    "path": self.license_path,
+                    "upstream_url": self.upstream_url,
+                },
+            },
+            "static_analysis": analysis,
+            "coverage": self.coverage.to_mapping(),
+            "source_parameters": [item.to_mapping() for item in self.parameters],
+            "transformation": self.transformation.to_mapping(),
+            "transformation_gaps": [
+                item.to_mapping()
+                for item in self.transformation.lifts
+                if item.status != "ready"
+            ],
+            "project_diagnostics": [item.to_mapping() for item in self.diagnostics],
+            "acceptance_gate": {
+                "original_2d_must_run": True,
+                "z_equals_one_must_match_source": True,
+                "all_rule_ir_references_must_resolve": True,
+                "generated_code_must_pass_in_sandbox": True,
+                "designer_approval_required_before_apply": True,
+            },
+        }
+
     def to_mapping(self) -> Dict[str, Any]:
         return {
             "package_version": "cubeengine.srtp/source-game-package-v1",
@@ -230,6 +267,7 @@ class SourceGamePackage:
             "transformation": self.transformation.to_mapping(),
             "diagnostics": [item.to_mapping() for item in self.diagnostics],
             "needs_llm": self.needs_llm,
+            "llm_handoff": self.llm_handoff(),
         }
 
 

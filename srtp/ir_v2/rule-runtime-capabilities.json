@@ -1,0 +1,43 @@
+{
+  "capability_id": "cubeengine.rule-runtime/2.0-alpha.2",
+  "rule_ir_version": "cubeengine.rule-ir/2.0-alpha.1",
+  "topology": {
+    "kinds": ["rect_grid"],
+    "anchors": ["cell", "vertex"],
+    "boundaries": ["bounded"],
+    "rank": {"minimum": 1, "maximum": null}
+  },
+  "flow": {
+    "models": ["turn_based", "simultaneous", "event_driven", "fixed_tick", "real_time", "hybrid"],
+    "clocks": ["turn", "event_queue", "fixed_tick", "real_time"],
+    "system_triggers": ["event", "tick", "phase_enter", "phase_exit", "state_changed", "manual"],
+    "ordering": "phase_priority_id",
+    "simultaneous_resolution": "action_code",
+    "wall_clock_input": "integer_nanoseconds_quantized_to_ticks"
+  },
+  "internal_events": ["rule:event.action_applied", "rule:event.joint_actions_applied"],
+  "information_models": ["perfect"],
+  "action_encodings": ["none", "finite_catalogue", "parameter_product"],
+  "state_scopes": ["global", "participant", "topology_site", "entity"],
+  "branching": {
+    "compiled_metadata_reuse": true,
+    "authoritative_state_isolation": true,
+    "extension_session_sharing": false
+  },
+  "effect_commands": ["state.set", "state.increment", "grid.set", "grid.toggle", "entity.spawn", "entity.despawn", "entity.set", "event.emit", "event.schedule", "event.cancel", "phase.set", "random.sample", "random.draw", "foreach", "assert"],
+  "random_service": {
+    "capability_id": "cubeengine.random-service/1.0",
+    "algorithms": ["cubeengine.pcg32/1", "cubeengine.recorded/1"],
+    "seed_policies": ["fixed", "session", "external", "recorded"],
+    "distributions": ["choice", "uniform_int", "bernoulli", "weighted_choice", "shuffle", "sample"],
+    "transactional": true,
+    "chance_result_audit": true,
+    "snapshot_restore": true,
+    "conformance_vectors": "random-conformance-vectors.json"
+  },
+  "external_extensions": {
+    "sdk": "cubeengine.extension-sdk/1.0",
+    "rule_function": true,
+    "rule_effect": false
+  }
+}

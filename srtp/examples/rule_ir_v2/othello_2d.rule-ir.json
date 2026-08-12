@@ -1,0 +1,577 @@
+{
+  "ir_version": "cubeengine.rule-ir/2.0-alpha.1",
+  "document_id": "rule:game.othello_source_equivalent",
+  "revision": 0,
+  "content_hash": "",
+  "metadata": {
+    "title": "Othello Source-Equivalent Rules",
+    "description": "Executable 2D Rule IR recovered from the local Othello-Reversi-Game source. This is a Rule IR runtime proof, not yet a 3D lift.",
+    "source_project_hash": "",
+    "determinism": "deterministic"
+  },
+  "dependencies": {
+    "scene_ir": null,
+    "asset_ir": null,
+    "input_ir": null,
+    "extensions": []
+  },
+  "parameters": [],
+  "types": [
+    {
+      "id": "rule:type.disc_state",
+      "name": "Disc State",
+      "kind": "enum",
+      "values": {"white": -1, "empty": 0, "black": 1}
+    }
+  ],
+  "participants": [
+    {"id": "rule:participant.black", "name": "Black", "kind": "human_or_agent"},
+    {"id": "rule:participant.white", "name": "White", "kind": "human_or_agent"}
+  ],
+  "topologies": [
+    {
+      "id": "rule:topology.board",
+      "name": "Othello Board",
+      "kind": "rect_grid",
+      "anchor": "cell",
+      "axes": [
+        {"name": "row", "extent": 8, "boundary": "bounded"},
+        {"name": "column", "extent": 8, "boundary": "bounded"}
+      ],
+      "neighborhoods": [
+        {
+          "name": "Eight directions",
+          "kind": "unit_offsets",
+          "include_diagonals": true
+        }
+      ]
+    }
+  ],
+  "state": {
+    "variables": [
+      {
+        "id": "rule:state.board_cell",
+        "name": "Board Disc",
+        "type": "rule:type.disc_state",
+        "scope": "topology_site",
+        "topology": "rule:topology.board",
+        "initial": {"op": "literal", "value": 0}
+      }
+    ],
+    "entity_types": [
+      {
+        "id": "rule:entity.black_disc",
+        "name": "Black Disc",
+        "components": [
+          {
+            "name": "legacy_state_value",
+            "type": "core:int",
+            "default": {"op": "literal", "value": 1}
+          }
+        ],
+        "legacy": {"owner": "rule:participant.black", "state_value": 1}
+      },
+      {
+        "id": "rule:entity.white_disc",
+        "name": "White Disc",
+        "components": [
+          {
+            "name": "legacy_state_value",
+            "type": "core:int",
+            "default": {"op": "literal", "value": -1}
+          }
+        ],
+        "legacy": {"owner": "rule:participant.white", "state_value": -1}
+      }
+    ],
+    "initial_effects": [
+      {
+        "op": "grid.set",
+        "state": "rule:state.board_cell",
+        "coordinate": {"op": "literal", "value": [3, 3]},
+        "value": {"op": "literal", "value": -1}
+      },
+      {
+        "op": "grid.set",
+        "state": "rule:state.board_cell",
+        "coordinate": {"op": "literal", "value": [4, 4]},
+        "value": {"op": "literal", "value": -1}
+      },
+      {
+        "op": "grid.set",
+        "state": "rule:state.board_cell",
+        "coordinate": {"op": "literal", "value": [3, 4]},
+        "value": {"op": "literal", "value": 1}
+      },
+      {
+        "op": "grid.set",
+        "state": "rule:state.board_cell",
+        "coordinate": {"op": "literal", "value": [4, 3]},
+        "value": {"op": "literal", "value": 1}
+      }
+    ],
+    "information_model": "perfect"
+  },
+  "queries": [
+    {
+      "id": "rule:query.opponent",
+      "name": "Opponent",
+      "parameters": [{"name": "actor", "type": "core:participant_id"}],
+      "result_type": "core:participant_id",
+      "ordering": "declared",
+      "expression": {
+        "op": "if",
+        "condition": {
+          "op": "eq",
+          "args": [
+            {"op": "param", "name": "actor"},
+            {"op": "literal", "value": "rule:participant.black"}
+          ]
+        },
+        "then": {"op": "literal", "value": "rule:participant.white"},
+        "else": {"op": "literal", "value": "rule:participant.black"}
+      }
+    },
+    {
+      "id": "rule:query.captured_sites",
+      "name": "Captured Sites",
+      "parameters": [
+        {"name": "target", "type": "core:coord"},
+        {"name": "actor", "type": "core:participant_id"}
+      ],
+      "result_type": "core:any",
+      "ordering": "lexicographic",
+      "expression": {
+        "op": "call",
+        "function": "core:grid.bracketed_sites",
+        "args": [
+          {"op": "literal", "value": "rule:state.board_cell"},
+          {"op": "param", "name": "target"},
+          {
+            "op": "call",
+            "function": "core:participant.state",
+            "args": [
+              {
+                "op": "call",
+                "function": "rule:query.opponent",
+                "args": [{"op": "param", "name": "actor"}]
+              }
+            ]
+          },
+          {
+            "op": "call",
+            "function": "core:participant.state",
+            "args": [{"op": "param", "name": "actor"}]
+          },
+          {"op": "literal", "value": true}
+        ]
+      }
+    },
+    {
+      "id": "rule:query.has_legal_move",
+      "name": "Has Legal Move",
+      "parameters": [{"name": "actor", "type": "core:participant_id"}],
+      "result_type": "core:bool",
+      "ordering": "declared",
+      "expression": {
+        "op": "call",
+        "function": "core:grid.has_bracketed_site",
+        "args": [
+          {"op": "literal", "value": "rule:state.board_cell"},
+          {"op": "literal", "value": 0},
+          {
+            "op": "call",
+            "function": "core:participant.state",
+            "args": [
+              {
+                "op": "call",
+                "function": "rule:query.opponent",
+                "args": [{"op": "param", "name": "actor"}]
+              }
+            ]
+          },
+          {
+            "op": "call",
+            "function": "core:participant.state",
+            "args": [{"op": "param", "name": "actor"}]
+          },
+          {"op": "literal", "value": true}
+        ]
+      }
+    }
+  ],
+  "events": [],
+  "actions": [
+    {
+      "id": "rule:action.place_and_flip",
+      "name": "Place Disc and Flip Bracketed Runs",
+      "actor": {"op": "ref", "path": "flow.current_actor"},
+      "parameters": [
+        {
+          "name": "target",
+          "type": "core:coord",
+          "domain": {
+            "op": "call",
+            "function": "core:topology.sites",
+            "args": [{"op": "literal", "value": "rule:topology.board"}]
+          }
+        }
+      ],
+      "precondition": {
+        "op": "and",
+        "args": [
+          {
+            "op": "call",
+            "function": "core:grid.equals",
+            "args": [
+              {"op": "literal", "value": "rule:state.board_cell"},
+              {"op": "param", "name": "target"},
+              {"op": "literal", "value": 0}
+            ]
+          },
+          {
+            "op": "gt",
+            "args": [
+              {
+                "op": "count",
+                "args": [
+                  {
+                    "op": "call",
+                    "function": "rule:query.captured_sites",
+                    "args": [
+                      {"op": "param", "name": "target"},
+                      {"op": "ref", "path": "flow.current_actor"}
+                    ]
+                  }
+                ]
+              },
+              {"op": "literal", "value": 0}
+            ]
+          }
+        ]
+      },
+      "effects": [
+        {
+          "op": "foreach",
+          "as": "captured",
+          "query": {
+            "op": "call",
+            "function": "rule:query.captured_sites",
+            "args": [
+              {"op": "param", "name": "target"},
+              {"op": "ref", "path": "flow.current_actor"}
+            ]
+          },
+          "effects": [
+            {
+              "op": "grid.set",
+              "state": "rule:state.board_cell",
+              "coordinate": {"op": "var", "name": "captured"},
+              "value": {
+                "op": "call",
+                "function": "core:participant.state",
+                "args": [{"op": "ref", "path": "flow.current_actor"}]
+              }
+            }
+          ]
+        },
+        {
+          "op": "grid.set",
+          "state": "rule:state.board_cell",
+          "coordinate": {"op": "param", "name": "target"},
+          "value": {
+            "op": "call",
+            "function": "core:participant.state",
+            "args": [{"op": "ref", "path": "flow.current_actor"}]
+          }
+        }
+      ],
+      "timing": {"phase": "rule:phase.input"},
+      "encoding": {
+        "kind": "parameter_product",
+        "parameters": ["target"],
+        "ordering": "lexicographic"
+      }
+    }
+  ],
+  "systems": [],
+  "flow": {
+    "model": "turn_based",
+    "phases": [
+      {"id": "rule:phase.input", "order": 100},
+      {"id": "rule:phase.update", "order": 200},
+      {"id": "rule:phase.outcome", "order": 300}
+    ],
+    "initial_phase": "rule:phase.input",
+    "scheduler": {
+      "clock": "turn",
+      "tick_hz": null,
+      "ordering": "phase_priority_id"
+    },
+    "turn_order": ["rule:participant.black", "rule:participant.white"],
+    "turn_eligibility": {
+      "op": "call",
+      "function": "rule:query.has_legal_move",
+      "args": [{"op": "ref", "path": "flow.current_actor"}]
+    }
+  },
+  "random_streams": [],
+  "goals": [
+    {"id": "rule:goal.most_discs", "name": "Finish with more discs than the opponent"}
+  ],
+  "outcomes": [
+    {
+      "id": "rule:outcome.black_win",
+      "name": "Black Wins",
+      "priority": 100,
+      "condition": {
+        "op": "and",
+        "args": [
+          {
+            "op": "not",
+            "args": [
+              {
+                "op": "call",
+                "function": "rule:query.has_legal_move",
+                "args": [{"op": "literal", "value": "rule:participant.black"}]
+              }
+            ]
+          },
+          {
+            "op": "not",
+            "args": [
+              {
+                "op": "call",
+                "function": "rule:query.has_legal_move",
+                "args": [{"op": "literal", "value": "rule:participant.white"}]
+              }
+            ]
+          },
+          {
+            "op": "gt",
+            "args": [
+              {
+                "op": "call",
+                "function": "core:grid.count_equal",
+                "args": [
+                  {"op": "literal", "value": "rule:state.board_cell"},
+                  {"op": "literal", "value": 1}
+                ]
+              },
+              {
+                "op": "call",
+                "function": "core:grid.count_equal",
+                "args": [
+                  {"op": "literal", "value": "rule:state.board_cell"},
+                  {"op": "literal", "value": -1}
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "result": {
+        "status": "win",
+        "terminal": true,
+        "winners": [{"op": "literal", "value": "rule:participant.black"}],
+        "losers": [{"op": "literal", "value": "rule:participant.white"}],
+        "scores": {
+          "black": {
+            "op": "call",
+            "function": "core:grid.count_equal",
+            "args": [{"op": "literal", "value": "rule:state.board_cell"}, {"op": "literal", "value": 1}]
+          },
+          "white": {
+            "op": "call",
+            "function": "core:grid.count_equal",
+            "args": [{"op": "literal", "value": "rule:state.board_cell"}, {"op": "literal", "value": -1}]
+          }
+        }
+      }
+    },
+    {
+      "id": "rule:outcome.white_win",
+      "name": "White Wins",
+      "priority": 100,
+      "condition": {
+        "op": "and",
+        "args": [
+          {
+            "op": "not",
+            "args": [
+              {
+                "op": "call",
+                "function": "rule:query.has_legal_move",
+                "args": [{"op": "literal", "value": "rule:participant.black"}]
+              }
+            ]
+          },
+          {
+            "op": "not",
+            "args": [
+              {
+                "op": "call",
+                "function": "rule:query.has_legal_move",
+                "args": [{"op": "literal", "value": "rule:participant.white"}]
+              }
+            ]
+          },
+          {
+            "op": "lt",
+            "args": [
+              {
+                "op": "call",
+                "function": "core:grid.count_equal",
+                "args": [
+                  {"op": "literal", "value": "rule:state.board_cell"},
+                  {"op": "literal", "value": 1}
+                ]
+              },
+              {
+                "op": "call",
+                "function": "core:grid.count_equal",
+                "args": [
+                  {"op": "literal", "value": "rule:state.board_cell"},
+                  {"op": "literal", "value": -1}
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "result": {
+        "status": "win",
+        "terminal": true,
+        "winners": [{"op": "literal", "value": "rule:participant.white"}],
+        "losers": [{"op": "literal", "value": "rule:participant.black"}],
+        "scores": {
+          "black": {
+            "op": "call",
+            "function": "core:grid.count_equal",
+            "args": [{"op": "literal", "value": "rule:state.board_cell"}, {"op": "literal", "value": 1}]
+          },
+          "white": {
+            "op": "call",
+            "function": "core:grid.count_equal",
+            "args": [{"op": "literal", "value": "rule:state.board_cell"}, {"op": "literal", "value": -1}]
+          }
+        }
+      }
+    },
+    {
+      "id": "rule:outcome.draw",
+      "name": "Draw",
+      "priority": 100,
+      "condition": {
+        "op": "and",
+        "args": [
+          {
+            "op": "not",
+            "args": [
+              {
+                "op": "call",
+                "function": "rule:query.has_legal_move",
+                "args": [{"op": "literal", "value": "rule:participant.black"}]
+              }
+            ]
+          },
+          {
+            "op": "not",
+            "args": [
+              {
+                "op": "call",
+                "function": "rule:query.has_legal_move",
+                "args": [{"op": "literal", "value": "rule:participant.white"}]
+              }
+            ]
+          },
+          {
+            "op": "eq",
+            "args": [
+              {
+                "op": "call",
+                "function": "core:grid.count_equal",
+                "args": [
+                  {"op": "literal", "value": "rule:state.board_cell"},
+                  {"op": "literal", "value": 1}
+                ]
+              },
+              {
+                "op": "call",
+                "function": "core:grid.count_equal",
+                "args": [
+                  {"op": "literal", "value": "rule:state.board_cell"},
+                  {"op": "literal", "value": -1}
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "result": {
+        "status": "draw",
+        "terminal": true,
+        "scores": {
+          "black": {
+            "op": "call",
+            "function": "core:grid.count_equal",
+            "args": [{"op": "literal", "value": "rule:state.board_cell"}, {"op": "literal", "value": 1}]
+          },
+          "white": {
+            "op": "call",
+            "function": "core:grid.count_equal",
+            "args": [{"op": "literal", "value": "rule:state.board_cell"}, {"op": "literal", "value": -1}]
+          }
+        }
+      }
+    }
+  ],
+  "modes": [
+    {"id": "rule:mode.default", "name": "Source-equivalent board rules", "overrides": []}
+  ],
+  "invariants": [
+    {
+      "id": "rule:invariant.disc_domain",
+      "name": "Every site contains an allowed disc state",
+      "condition": {
+        "op": "call",
+        "function": "core:grid.values_in_type",
+        "args": [
+          {"op": "literal", "value": "rule:state.board_cell"},
+          {"op": "literal", "value": "rule:type.disc_state"}
+        ]
+      },
+      "severity": "error"
+    }
+  ],
+  "extensions": {},
+  "provenance": {
+    "source": {
+      "project": "SRTP-Source-Games/Othello-Reversi-Game",
+      "license": "MIT",
+      "files": [
+        {
+          "path": "src/utils/board.py",
+          "sha256": "6de6957a121880410dae16ef35c7d7b82844ae47de1a404777ceb29bbefc3839"
+        },
+        {
+          "path": "src/utils/setup.py",
+          "sha256": "534bc0c9fb7ad0943d3154bb097677735d1eaa6ee1e1a045cfc7a2d9eceadb9d"
+        }
+      ]
+    },
+    "/topologies/0": [
+      {"author": "engineer", "method": "source_evidence", "source": "src/utils/board.py:21-35", "confidence": 1.0}
+    ],
+    "/actions/0": [
+      {"author": "engineer", "method": "source_evidence", "source": "src/utils/board.py:38-114", "confidence": 1.0}
+    ],
+    "/flow/turn_eligibility": [
+      {"author": "engineer", "method": "source_evidence", "source": "src/utils/setup.py:175-187", "confidence": 1.0}
+    ],
+    "/outcomes": [
+      {"author": "engineer", "method": "source_evidence", "source": "src/utils/board.py:129-135; src/utils/setup.py:206-218", "confidence": 1.0}
+    ]
+  },
+  "unresolved": []
+}

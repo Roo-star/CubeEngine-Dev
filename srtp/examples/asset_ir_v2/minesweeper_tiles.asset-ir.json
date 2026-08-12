@@ -1,0 +1,100 @@
+{
+  "ir_version": "cubeengine.asset-ir/2.0-alpha.1",
+  "document_id": "asset:game.minesweeper_tiles",
+  "revision": 0,
+  "content_hash": "58b193dff4c80a2b2bd950080ace5beefe5d84ee2d608ae25277c4e8765772aa",
+  "metadata": {
+    "title": "pygame-minesweeper Tile Presentation",
+    "description": "Source atlas evidence, deterministic covered-tile crop and cube-face presentation mapping.",
+    "source_project_hash": ""
+  },
+  "assets": [
+    {
+      "id": "asset:image.minesweeper_atlas_2000",
+      "name": "Minesweeper 2000 Tile Atlas",
+      "kind": "image",
+      "media_type": "image/png",
+      "source": {
+        "uri": "project://minesweeper/images/tiles/2000.png",
+        "content_hash": "fe658c317f759c45cfedd3802bac9b2cf47e139c0670fe67214bac512e99e648",
+        "byte_size": 1222
+      },
+      "license": {
+        "spdx_id": "MIT",
+        "attribution": "Andreas Isnes Nilsen and pygame-minesweeper contributors",
+        "source_uri": "https://pypi.org/project/pygame-minesweeper/",
+        "redistribution": "allowed"
+      },
+      "importer": {
+        "capability": "cubeengine.image",
+        "version": "1.0",
+        "settings": {
+          "color_space": "srgb",
+          "alpha": "straight"
+        }
+      },
+      "metadata": {
+        "source_dimensions": [128, 32],
+        "tile_layout": [8, 2]
+      }
+    }
+  ],
+  "derivations": [
+    {
+      "id": "asset:image.minesweeper_covered",
+      "name": "Covered Cell",
+      "kind": "image",
+      "media_type": "image/png",
+      "strategy": "atlas_region",
+      "inputs": ["asset:image.minesweeper_atlas_2000"],
+      "settings": {"x": 0, "y": 0, "width": 16, "height": 16},
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:material.minesweeper_covered_cube",
+      "name": "Covered Cell Cube Surface",
+      "kind": "material",
+      "media_type": "application/vnd.cubeengine.presentation+json",
+      "strategy": "cube_face_projection",
+      "inputs": ["asset:image.minesweeper_covered"],
+      "settings": {"faces": "all", "uv_policy": "stretch"},
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    }
+  ],
+  "roles": [
+    {
+      "id": "asset:role.cell_covered",
+      "name": "Covered Cell",
+      "semantic": "cell.covered",
+      "resource": "asset:image.minesweeper_covered",
+      "usage": "world_texture",
+      "required": true
+    }
+  ],
+  "presentation_mappings": [
+    {
+      "id": "asset:mapping.cell_covered_3d",
+      "name": "Covered Cell to Cube",
+      "source_role": "asset:role.cell_covered",
+      "target_resource": "asset:material.minesweeper_covered_cube",
+      "strategy": "cube_face_projection",
+      "fidelity": "source_derived",
+      "settings": {
+        "evidence": "The same proven source-state tile is attached to every exposed cube face."
+      }
+    }
+  ],
+  "provenance": {
+    "/assets/0/source": {
+      "author": "static",
+      "source": "pygame-minesweeper published sprites package"
+    },
+    "/presentation_mappings/0": {
+      "author": "designer",
+      "source": "accepted CubeEngine Minesweeper 3D presentation behavior"
+    }
+  },
+  "unresolved": []
+}

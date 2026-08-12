@@ -1,0 +1,123 @@
+{
+  "ir_version": "cubeengine.scene-ir/2.0-alpha.1",
+  "document_id": "scene:game.othello_source_equivalent",
+  "revision": 0,
+  "content_hash": "",
+  "metadata": {
+    "title": "Othello Source-Equivalent Scene",
+    "description": "Renderer-neutral board projection for the source-derived Othello Rule IR. It demonstrates Scene compilation rather than a final art direction.",
+    "source_project_hash": ""
+  },
+  "dependencies": {
+    "rule_ir": {
+      "document_id": "rule:game.othello_source_equivalent",
+      "content_hash": "c109092b67a6ef3a994546c76ab9e9d041a7c0c2db7ecd5556ac47e6d2f899f5"
+    },
+    "asset_ir": null,
+    "extensions": []
+  },
+  "layers": [
+    {"id": "scene:layer.runtime", "name": "Runtime", "kind": "runtime", "visible": true, "pickable": true, "opacity": 1.0},
+    {"id": "scene:layer.editor", "name": "Editor", "kind": "editor", "visible": true, "pickable": true, "opacity": 0.65}
+  ],
+  "prefabs": [
+    {
+      "id": "scene:prefab.othello_site",
+      "name": "Othello Site",
+      "root": {
+        "local_id": "root",
+        "name": "Board Site",
+        "active": true,
+        "transform": {"translation": [0.0, 0.0, 0.0], "rotation_euler_deg": [0.0, 0.0, 0.0], "scale": [0.94, 0.94, 0.1]},
+        "components": [
+          {
+            "id": "renderer",
+            "type": "renderer",
+            "enabled": true,
+            "properties": {"geometry": "builtin:cube", "visible": true, "color": [0.08, 0.42, 0.20, 1.0], "opacity": 1.0, "variant": "empty"}
+          },
+          {
+            "id": "collider",
+            "type": "collider",
+            "enabled": true,
+            "properties": {"shape": "box", "size": [1.0, 1.0, 1.0], "is_trigger": false, "selectable": true}
+          }
+        ],
+        "children": []
+      }
+    }
+  ],
+  "nodes": [
+    {
+      "id": "scene:node.board",
+      "name": "Othello Board",
+      "parent": null,
+      "active": true,
+      "layer": "scene:layer.runtime",
+      "transform": {"translation": [-3.5, 0.0, 3.5], "rotation_euler_deg": [0.0, 0.0, 0.0], "scale": [1.0, 1.0, 1.0]},
+      "components": [
+        {
+          "id": "sites",
+          "type": "topology_visualizer",
+          "enabled": true,
+          "properties": {
+            "rule_topology": "rule:topology.board",
+            "prefab": "scene:prefab.othello_site",
+            "index_to_world": [
+              1.0, 0.0, 0.0, 0.0,
+              0.0, 0.0, 1.0, 0.0,
+              0.0, -1.0, 0.0, 0.0,
+              0.0, 0.0, 0.0, 1.0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "scene:node.camera",
+      "name": "Game Camera",
+      "parent": null,
+      "active": true,
+      "layer": "scene:layer.runtime",
+      "transform": {"translation": [0.0, 9.0, -10.0], "rotation_euler_deg": [32.0, 0.0, 0.0], "scale": [1.0, 1.0, 1.0]},
+      "components": [
+        {"id": "camera", "type": "camera", "enabled": true, "properties": {"projection": "perspective", "near_clip": 0.1, "far_clip": 200.0, "active": true, "fov": 55.0}}
+      ]
+    },
+    {
+      "id": "scene:node.key_light",
+      "name": "Key Light",
+      "parent": null,
+      "active": true,
+      "layer": "scene:layer.runtime",
+      "transform": {"translation": [0.0, 8.0, -4.0], "rotation_euler_deg": [50.0, -25.0, 0.0], "scale": [1.0, 1.0, 1.0]},
+      "components": [
+        {"id": "light", "type": "light", "enabled": true, "properties": {"kind": "directional", "color": [1.0, 0.96, 0.88, 1.0], "intensity": 1.25}}
+      ]
+    }
+  ],
+  "bindings": [
+    {
+      "id": "scene:binding.board_variant",
+      "name": "Board Disc Presentation",
+      "source": {"kind": "state", "scope": "topology_site", "variable": "rule:state.board_cell"},
+      "target": {"selector": "topology_sites", "node": "scene:node.board", "visualizer": "sites", "component": "renderer", "property": "variant"},
+      "transform": {
+        "kind": "map",
+        "cases": [
+          {"equals": -1, "value": "white_disc"},
+          {"equals": 0, "value": "empty"},
+          {"equals": 1, "value": "black_disc"}
+        ]
+      }
+    }
+  ],
+  "provenance": {
+    "/nodes/0/components/0/properties/rule_topology": {
+      "author": "generated",
+      "method": "rule_ir_projection",
+      "source": "srtp/examples/rule_ir_v2/othello_2d.rule-ir.json"
+    }
+  },
+  "unresolved": []
+}

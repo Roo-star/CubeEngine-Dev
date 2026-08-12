@@ -1,0 +1,318 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cubeengine.dev/schema/rule-ir/2.0-alpha.1.json",
+  "title": "CubeEngine Rule IR v2 Alpha 1",
+  "type": "object",
+  "required": [
+    "ir_version", "document_id", "revision", "content_hash", "metadata",
+    "dependencies", "parameters", "types", "participants", "topologies",
+    "state", "queries", "events", "actions", "systems", "flow",
+    "random_streams", "goals", "outcomes", "modes", "invariants",
+    "extensions", "provenance", "unresolved"
+  ],
+  "properties": {
+    "ir_version": {"const": "cubeengine.rule-ir/2.0-alpha.1"},
+    "document_id": {"$ref": "#/$defs/ruleId"},
+    "revision": {"type": "integer", "minimum": 0},
+    "content_hash": {"type": "string", "pattern": "^$|^[0-9a-f]{64}$"},
+    "metadata": {
+      "type": "object",
+      "required": ["title", "description", "source_project_hash", "determinism"],
+      "properties": {
+        "title": {"type": "string", "minLength": 1},
+        "description": {"type": "string"},
+        "source_project_hash": {"type": "string", "pattern": "^$|^[0-9a-f]{64}$"},
+        "determinism": {"enum": ["deterministic", "seeded", "external"]}
+      },
+      "additionalProperties": true
+    },
+    "dependencies": {
+      "type": "object",
+      "required": ["scene_ir", "asset_ir", "input_ir", "extensions"],
+      "properties": {
+        "scene_ir": {"type": ["object", "null"]},
+        "asset_ir": {"type": ["object", "null"]},
+        "input_ir": {"type": ["object", "null"]},
+        "extensions": {
+          "type": "array", "uniqueItems": true,
+          "items": {"type": "string", "pattern": "^extension:[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*(?:/[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*)+/[1-9][0-9]*(?:\\.[0-9]+){0,2}$"}
+        }
+      },
+      "additionalProperties": false
+    },
+    "parameters": {"type": "array", "items": {"$ref": "#/$defs/typedObject"}},
+    "types": {"type": "array", "items": {"$ref": "#/$defs/typeDefinition"}},
+    "participants": {"type": "array", "items": {"$ref": "#/$defs/participant"}},
+    "topologies": {"type": "array", "items": {"$ref": "#/$defs/topology"}},
+    "state": {"$ref": "#/$defs/state"},
+    "queries": {"type": "array", "items": {"$ref": "#/$defs/query"}},
+    "events": {"type": "array", "items": {"$ref": "#/$defs/event"}},
+    "actions": {"type": "array", "items": {"$ref": "#/$defs/action"}},
+    "systems": {"type": "array", "items": {"$ref": "#/$defs/system"}},
+    "flow": {"$ref": "#/$defs/flow"},
+    "random_streams": {"type": "array", "items": {"$ref": "#/$defs/randomStream"}},
+    "goals": {"type": "array", "items": {"$ref": "#/$defs/namedObject"}},
+    "outcomes": {"type": "array", "items": {"$ref": "#/$defs/outcome"}},
+    "modes": {"type": "array", "items": {"$ref": "#/$defs/mode"}},
+    "invariants": {"type": "array", "items": {"$ref": "#/$defs/invariant"}},
+    "extensions": {"type": "object"},
+    "provenance": {"type": "object"},
+    "unresolved": {"type": "array", "items": {"$ref": "#/$defs/unresolved"}}
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "ruleId": {"type": "string", "pattern": "^rule:[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$"},
+    "localId": {"type": "string", "pattern": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$"},
+    "typeRef": {"type": "string", "pattern": "^(?:core|rule):[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$"},
+    "namedObject": {
+      "type": "object", "required": ["id", "name"],
+      "properties": {"id": {"$ref": "#/$defs/ruleId"}, "name": {"type": "string", "minLength": 1}},
+      "additionalProperties": true
+    },
+    "typedObject": {
+      "type": "object", "required": ["id", "name", "type", "default"],
+      "properties": {
+        "id": {"$ref": "#/$defs/ruleId"}, "name": {"type": "string", "minLength": 1},
+        "type": {"$ref": "#/$defs/typeRef"}, "default": {"$ref": "#/$defs/expression"},
+        "key": {"$ref": "#/$defs/localId"},
+        "minimum": {"type": "integer"}, "maximum": {"type": "integer"},
+        "choices": {"type": "array"}
+      },
+      "additionalProperties": true
+    },
+    "typeDefinition": {
+      "type": "object", "required": ["id", "name", "kind"],
+      "properties": {
+        "id": {"$ref": "#/$defs/ruleId"}, "name": {"type": "string", "minLength": 1},
+        "kind": {"enum": ["enum", "record", "list", "set", "map", "optional", "fixed"]},
+        "values": {"type": "object"},
+        "fields": {"type": "array", "items": {"type": "object"}},
+        "element_type": {"$ref": "#/$defs/typeRef"},
+        "key_type": {"$ref": "#/$defs/typeRef"},
+        "value_type": {"$ref": "#/$defs/typeRef"},
+        "item_type": {"$ref": "#/$defs/typeRef"},
+        "scale": {"type": "integer", "minimum": 1},
+        "min_items": {"type": "integer", "minimum": 0},
+        "max_items": {"type": "integer", "minimum": 0},
+        "min_scaled": {"type": "integer"},
+        "max_scaled": {"type": "integer"}
+      },
+      "additionalProperties": true
+    },
+    "participant": {
+      "type": "object", "required": ["id", "name", "kind"],
+      "properties": {
+        "id": {"$ref": "#/$defs/ruleId"}, "name": {"type": "string", "minLength": 1},
+        "kind": {"enum": ["human", "agent", "human_or_agent", "system", "chance"]}
+      },
+      "additionalProperties": true
+    },
+    "axis": {
+      "type": "object", "required": ["name", "extent", "boundary"],
+      "properties": {
+        "name": {"$ref": "#/$defs/localId"}, "extent": {"type": "integer", "minimum": 1},
+        "boundary": {"enum": ["bounded", "wrap", "reflect", "open"]}
+      },
+      "additionalProperties": false
+    },
+    "topology": {
+      "type": "object", "required": ["id", "name", "kind", "anchor", "axes", "neighborhoods"],
+      "properties": {
+        "id": {"$ref": "#/$defs/ruleId"}, "name": {"type": "string", "minLength": 1},
+        "kind": {"enum": ["rect_grid", "hex_grid", "graph", "continuous", "hybrid"]},
+        "anchor": {"enum": ["cell", "vertex", "edge", "free"]},
+        "axes": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/axis"}},
+        "neighborhoods": {"type": "array", "items": {"type": "object"}}
+      },
+      "additionalProperties": true
+    },
+    "expression": {
+      "type": "object", "required": ["op"],
+      "properties": {"op": {"type": "string"}},
+      "additionalProperties": true
+    },
+    "command": {
+      "type": "object", "required": ["op"],
+      "properties": {
+        "op": {"enum": ["state.set", "state.increment", "grid.set", "grid.toggle", "entity.spawn", "entity.despawn", "entity.set", "event.emit", "event.schedule", "event.cancel", "phase.set", "random.sample", "random.draw", "foreach", "assert"]}
+      },
+      "additionalProperties": true
+    },
+    "parameter": {
+      "type": "object", "required": ["name", "type"],
+      "properties": {
+        "name": {"$ref": "#/$defs/localId"}, "type": {"$ref": "#/$defs/typeRef"},
+        "domain": {"$ref": "#/$defs/expression"}
+      },
+      "additionalProperties": false
+    },
+    "stateVariable": {
+      "type": "object", "required": ["id", "name", "type", "scope", "initial"],
+      "properties": {
+        "id": {"$ref": "#/$defs/ruleId"}, "name": {"type": "string", "minLength": 1},
+        "type": {"$ref": "#/$defs/typeRef"},
+        "scope": {"enum": ["global", "participant", "topology_site", "entity"]},
+        "topology": {"$ref": "#/$defs/ruleId"},
+        "entity_type": {"$ref": "#/$defs/ruleId"},
+        "initial": {"$ref": "#/$defs/expression"}
+      },
+      "additionalProperties": true
+    },
+    "entityType": {
+      "type": "object", "required": ["id", "name", "components"],
+      "properties": {
+        "id": {"$ref": "#/$defs/ruleId"}, "name": {"type": "string", "minLength": 1},
+        "components": {"type": "array", "items": {"type": "object"}}
+      },
+      "additionalProperties": true
+    },
+    "state": {
+      "type": "object", "required": ["variables", "entity_types", "initial_effects", "information_model"],
+      "properties": {
+        "variables": {"type": "array", "items": {"$ref": "#/$defs/stateVariable"}},
+        "entity_types": {"type": "array", "items": {"$ref": "#/$defs/entityType"}},
+        "initial_effects": {"type": "array", "items": {"$ref": "#/$defs/command"}},
+        "information_model": {"enum": ["perfect", "imperfect", "hidden", "mixed"]}
+      },
+      "additionalProperties": true
+    },
+    "query": {
+      "type": "object", "required": ["id", "name", "parameters", "result_type", "ordering", "expression"],
+      "properties": {
+        "id": {"$ref": "#/$defs/ruleId"}, "name": {"type": "string", "minLength": 1},
+        "parameters": {"type": "array", "items": {"$ref": "#/$defs/parameter"}},
+        "result_type": {"$ref": "#/$defs/typeRef"},
+        "ordering": {"enum": ["lexicographic", "stable_id", "distance_then_id", "declared"]},
+        "expression": {"$ref": "#/$defs/expression"}
+      },
+      "additionalProperties": false
+    },
+    "event": {
+      "type": "object", "required": ["id", "name", "payload"],
+      "properties": {
+        "id": {"$ref": "#/$defs/ruleId"}, "name": {"type": "string", "minLength": 1},
+        "payload": {"type": "array", "items": {"$ref": "#/$defs/parameter"}}
+      },
+      "additionalProperties": false
+    },
+    "action": {
+      "type": "object", "required": ["id", "name", "actor", "parameters", "precondition", "effects", "timing", "encoding"],
+      "properties": {
+        "id": {"$ref": "#/$defs/ruleId"}, "name": {"type": "string", "minLength": 1},
+        "actor": {"$ref": "#/$defs/expression"},
+        "parameters": {"type": "array", "items": {"$ref": "#/$defs/parameter"}},
+        "precondition": {"$ref": "#/$defs/expression"},
+        "effects": {"type": "array", "items": {"$ref": "#/$defs/command"}},
+        "timing": {"type": "object", "required": ["phase"], "properties": {"phase": {"$ref": "#/$defs/ruleId"}}, "additionalProperties": true},
+        "encoding": {"type": "object", "required": ["kind"], "properties": {"kind": {"enum": ["none", "finite_catalogue", "parameter_product", "runtime_enumerated"]}}, "additionalProperties": true}
+      },
+      "additionalProperties": true
+    },
+    "system": {
+      "type": "object", "required": ["id", "name", "phase", "priority", "trigger", "condition", "effects"],
+      "properties": {
+        "id": {"$ref": "#/$defs/ruleId"}, "name": {"type": "string", "minLength": 1},
+        "phase": {"$ref": "#/$defs/ruleId"}, "priority": {"type": "integer"},
+        "trigger": {
+          "type": "object", "required": ["kind"],
+          "properties": {
+            "kind": {"enum": ["event", "tick", "phase_enter", "phase_exit", "state_changed", "manual"]},
+            "event": {"$ref": "#/$defs/ruleId"},
+            "phase": {"$ref": "#/$defs/ruleId"},
+            "state": {"$ref": "#/$defs/ruleId"},
+            "name": {"$ref": "#/$defs/localId"},
+            "every": {"type": "integer", "minimum": 1},
+            "offset": {"type": "integer", "minimum": 0}
+          },
+          "additionalProperties": false
+        }, "condition": {"$ref": "#/$defs/expression"},
+        "effects": {"type": "array", "items": {"$ref": "#/$defs/command"}}
+      },
+      "additionalProperties": true
+    },
+    "flow": {
+      "type": "object", "required": ["model", "phases", "initial_phase", "scheduler"],
+      "properties": {
+        "model": {"enum": ["turn_based", "simultaneous", "event_driven", "fixed_tick", "real_time", "hybrid"]},
+        "phases": {
+          "type": "array", "minItems": 1,
+          "items": {
+            "type": "object", "required": ["id", "order"],
+            "properties": {
+              "id": {"$ref": "#/$defs/ruleId"},
+              "order": {"type": "integer"}
+            },
+            "additionalProperties": false
+          }
+        },
+        "initial_phase": {"$ref": "#/$defs/ruleId"},
+        "turn_eligibility": {"$ref": "#/$defs/expression"},
+        "scheduler": {
+          "type": "object", "required": ["clock", "tick_hz", "ordering"],
+          "properties": {
+            "clock": {"enum": ["turn", "event_queue", "fixed_tick", "real_time"]},
+            "tick_hz": {"type": ["integer", "null"], "minimum": 1},
+            "ordering": {"const": "phase_priority_id"},
+            "max_catch_up_ticks": {"type": "integer", "minimum": 1},
+            "simultaneous_resolution": {"const": "action_code"}
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "randomStream": {
+      "type": "object", "required": ["id", "name", "algorithm", "seed_policy"],
+      "properties": {
+        "id": {"$ref": "#/$defs/ruleId"}, "name": {"type": "string", "minLength": 1},
+        "algorithm": {"enum": ["cubeengine.pcg32/1", "cubeengine.recorded/1"]},
+        "seed_policy": {"enum": ["fixed", "session", "external", "recorded"]},
+        "seed": {"type": "integer", "minimum": 0, "maximum": 18446744073709551615},
+        "sequence": {"type": "integer", "minimum": 0, "maximum": 18446744073709551615},
+        "recorded_values": {"type": "array"}
+      },
+      "additionalProperties": true
+    },
+    "outcome": {
+      "type": "object", "required": ["id", "name", "priority", "condition", "result"],
+      "properties": {
+        "id": {"$ref": "#/$defs/ruleId"}, "name": {"type": "string", "minLength": 1},
+        "priority": {"type": "integer"}, "condition": {"$ref": "#/$defs/expression"},
+        "result": {"type": "object", "required": ["status", "terminal"], "properties": {"status": {"type": "string", "minLength": 1}, "terminal": {"type": "boolean"}}, "additionalProperties": true}
+      },
+      "additionalProperties": true
+    },
+    "mode": {
+      "type": "object", "required": ["id", "name", "overrides"],
+      "properties": {
+        "id": {"$ref": "#/$defs/ruleId"}, "name": {"type": "string", "minLength": 1},
+        "overrides": {"type": "array", "items": {"$ref": "#/$defs/modeOverride"}}
+      },
+      "additionalProperties": false
+    },
+    "modeOverride": {
+      "type": "object", "required": ["parameter", "value"],
+      "properties": {
+        "parameter": {"$ref": "#/$defs/ruleId"},
+        "value": {"$ref": "#/$defs/expression"}
+      },
+      "additionalProperties": false
+    },
+    "invariant": {
+      "type": "object", "required": ["id", "name", "condition", "severity"],
+      "properties": {
+        "id": {"$ref": "#/$defs/ruleId"}, "name": {"type": "string", "minLength": 1},
+        "condition": {"$ref": "#/$defs/expression"}, "severity": {"enum": ["error", "warning"]}
+      },
+      "additionalProperties": false
+    },
+    "unresolved": {
+      "type": "object", "required": ["path", "reason", "required", "owner"],
+      "properties": {
+        "path": {"type": "string", "pattern": "^/"}, "reason": {"type": "string", "minLength": 1},
+        "required": {"type": "boolean"}, "owner": {"enum": ["importer", "llm", "designer", "importer_or_llm", "extension"]}
+      },
+      "additionalProperties": true
+    }
+  }
+}

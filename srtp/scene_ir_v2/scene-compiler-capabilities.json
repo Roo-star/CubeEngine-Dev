@@ -1,0 +1,42 @@
+{
+  "capability_id": "cubeengine.scene-compiler/2.0-alpha.1",
+  "scene_ir_version": "cubeengine.scene-ir/2.0-alpha.1",
+  "hierarchy": {
+    "stable_parent_tree": true,
+    "prefab_expansion": true,
+    "maximum_depth": 256
+  },
+  "components": [
+    "renderer",
+    "camera",
+    "light",
+    "collider",
+    "topology_visualizer",
+    "rule_entity_visualizer",
+    "ui_canvas",
+    "authoring_marker"
+  ],
+  "topology_visualizer": {
+    "rule_kinds": ["rect_grid"],
+    "minimum_rank": 1,
+    "maximum_rank": 3,
+    "index_to_world": "row_major_4x4"
+  },
+  "binding_sources": ["state", "flow", "entity_component"],
+  "state_scopes": ["global", "participant", "topology_site", "entity"],
+  "binding_targets": ["node", "topology_sites", "entity_nodes"],
+  "binding_transforms": ["direct", "not", "map", "numeric", "format"],
+  "renderer_commands": [
+    "register_asset",
+    "configure_layer",
+    "define_prefab",
+    "create_node",
+    "add_component",
+    "destroy_node",
+    "create_prefab_instance",
+    "set_transform",
+    "set_property"
+  ],
+  "asset_reference_validation": "pinned_asset_catalog_required",
+  "external_extensions": false
+}

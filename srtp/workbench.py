@@ -25,9 +25,9 @@ else:
 PACKAGE_DIR = Path(__file__).resolve().parent
 VIEWPORT_TITLE = "CubeEngine SRTP — Spatial Rule Workbench"
 REFERENCE_GAMES = {
-    "Snake · Turtle source": PACKAGE_DIR / "reference_games" / "free_python_games" / "freegames" / "snake.py",
-    "Minesweeper · Turtle source": PACKAGE_DIR / "reference_games" / "free_python_games" / "freegames" / "minesweeper.py",
-    "Connect · Turtle prototype": PACKAGE_DIR / "reference_games" / "free_python_games" / "freegames" / "connect.py",
+    "Snake · Complete Pygame source": PACKAGE_DIR / "reference_games" / "pygame_snake" / "snake.py",
+    "Minesweeper · Classic Pygame source": PACKAGE_DIR / "reference_games" / "pygame_minesweeper" / "run_game.py",
+    "Connect Four · Turtle complete": PACKAGE_DIR / "reference_games" / "turtle_connect_complete" / "connect_complete.py",
     "2048 · Pygame project": PACKAGE_DIR / "reference_games" / "pygame_2048" / "main.py",
 }
 
@@ -75,12 +75,37 @@ class SrtpWorkbench:
         if not isinstance(raw_path, str) or not raw_path.strip():
             self._message("Choose a game project or runnable entry point.")
             return
+        # A source switch is transactional.  Keeping an earlier Snake/Ursina
+        # process alive after a new project fails to load makes that stale
+        # preview look like the new project's conversion result.
+        self.stop_preview(quiet=True)
         try:
-            self.package = self.importer.import_path(Path(raw_path.strip()))
+            imported = self.importer.import_path(Path(raw_path.strip()))
         except Exception as error:
+            self.package = None
+            self._clear_package_views()
             self._message("Import failed safely: {0}".format(error), error=True)
             return
+        self.package = imported
         self._render_package()
+
+    def _clear_package_views(self) -> None:
+        values = {
+            "srtp_source_summary": "",
+            "srtp_parameters": "",
+            "srtp_transform": "",
+            "srtp_schema_output": "",
+            "srtp_diagnostics": "",
+            "srtp_handoff": "",
+            "srtp_library_details": "",
+            "srtp_source_plane": "—",
+            "srtp_target_volume": "—",
+            "srtp_lift_policy": "",
+            "srtp_viewport_heading": "Source import failed",
+            "srtp_viewport_body": "No previous game or 3D adapter remains active.",
+        }
+        for tag, value in values.items():
+            self.dpg.set_value(tag, value)
 
     def set_preview_mode(self, sender=None, app_data=None, user_data=None) -> None:
         self.stop_preview(quiet=True)
@@ -118,6 +143,13 @@ class SrtpWorkbench:
             return
         self.apply_transform_target(silent=True)
         self.stop_preview(quiet=True)
+        if not self.package.transformation.adapter_id:
+            self._message(
+                "3D compilation is not available for this source yet. The original project was imported, "
+                "but its mechanics and renderer still require an SRTP adapter or Function 2 LLM proposal.",
+                error=True,
+            )
+            return
         try:
             self.transformed_process = self.transformed_runner.launch(self.package)
         except (OSError, RuntimeError) as error:
@@ -139,27 +171,41 @@ class SrtpWorkbench:
             self._message("Preview stopped. Source files were not changed.")
 
     def poll_processes(self) -> None:
+        for label, process in (
+            ("Source 2D", self.original_process),
+            ("Transformed 3D", self.transformed_process),
+        ):
+            if process is None or process.running or getattr(process, "reported", False):
+                continue
+            process.reported = True
+            return_code = process.process.returncode if process.process is not None else 0
+            output = process.collect_output() if hasattr(process, "collect_output") else ""
+            if return_code:
+                detail = output.strip().splitlines()[-1] if output.strip() else "exit code {0}".format(return_code)
+                self._message("{0} closed with an error: {1}".format(label, detail), error=True)
+            else:
+                self._message("{0} preview closed.".format(label))
         if not self._active_process_running():
             self._set_play_label("PLAY")
 
     def apply_transform_target(self, sender=None, app_data=None, user_data=None, silent: bool = False) -> None:
         if self.package is None:
             return
+        x = self.dpg.get_value("srtp_target_x")
+        y = self.dpg.get_value("srtp_target_y")
         z = self.dpg.get_value("srtp_target_z")
-        if isinstance(z, bool) or not isinstance(z, int) or z < 2:
-            self._message("Depth (Z) must be an integer of 2 or more.", error=True)
+        if any(isinstance(value, bool) or not isinstance(value, int) or value < 2 for value in (x, y, z)):
+            self._message("Target X, Y and Z must each be an integer of 2 or more.", error=True)
             return
         source = self.package.transformation.source_dimensions
-        self.package.transformation.preserve_x = True
-        self.package.transformation.preserve_y = True
-        self.package.transformation.target_dimensions = {
-            "x": source.get("x"), "y": source.get("y"), "z": z,
-        }
+        self.package.transformation.preserve_x = x == source.get("x")
+        self.package.transformation.preserve_y = y == source.get("y")
+        self.package.transformation.target_dimensions = {"x": x, "y": y, "z": z}
         self._render_space_inspector()
         self._render_viewport()
         self.dpg.set_value("srtp_transform", json.dumps(self.package.transformation.to_mapping(), ensure_ascii=False, indent=2))
         if not silent:
-            self._message("Target depth updated. X and Y remain source-owned unless a source parameter changes them.")
+            self._message("Target volume updated. The source X/Y remain visible as defaults; the source project was not modified.")
 
     def select_safe_parameter(self) -> None:
         if self.package is None:
@@ -213,7 +259,11 @@ class SrtpWorkbench:
     def _render_package(self) -> None:
         assert self.package is not None
         package = self.package
-        target_z = package.transformation.target_dimensions.get("z")
+        target = package.transformation.target_dimensions
+        source = package.transformation.source_dimensions
+        self.dpg.set_value("srtp_target_x", target.get("x") if isinstance(target.get("x"), int) else source.get("x") or 4)
+        self.dpg.set_value("srtp_target_y", target.get("y") if isinstance(target.get("y"), int) else source.get("y") or 4)
+        target_z = target.get("z")
         self.dpg.set_value("srtp_target_z", target_z if isinstance(target_z, int) else 3)
         self.dpg.set_value("srtp_source_summary", self._summary_text(package))
         self.dpg.set_value("srtp_parameters", self._parameters_text(package))
@@ -224,7 +274,7 @@ class SrtpWorkbench:
             "[{0}] {1}: {2}".format(item.severity.upper(), item.code, item.message)
             for item in diagnostics
         ) or "No diagnostics.")
-        handoff = package.rule_report.llm_handoff()
+        handoff = package.llm_handoff()
         self.dpg.set_value("srtp_handoff", json.dumps(handoff, ensure_ascii=False, indent=2))
         safe_parameters = [item for item in package.parameters if item.safely_editable]
         choices = [item.id for item in safe_parameters] or ["N/A"]
@@ -263,6 +313,7 @@ class SrtpWorkbench:
         self.dpg.set_value("srtp_target_volume", "{0} × {1} × {2}".format(
             target.get("x", "?"), target.get("y", "?"), target.get("z", "?"),
         ))
+        self.dpg.set_value("srtp_lift_policy", self._lift_policy_text())
 
     def _render_parameter_inspector(self) -> None:
         if self.package is None or not hasattr(self.dpg, "delete_item"):
@@ -304,30 +355,102 @@ class SrtpWorkbench:
         mode = self._preview_mode()
         package = self.package
         target = package.transformation.target_dimensions
+        controls = self._interaction_text(mode)
         if mode == "Source 2D":
             heading = package.title
             body = (
                 "SOURCE REFERENCE\n\n"
                 "{0} · {1}\n"
                 "Logical plane  {2} × {3}\n\n"
-                "Play opens the untouched game in its native Windows window.\n"
-                "That window is the visual and interaction fidelity reference."
+                "Play opens the game in its native Windows window.\n"
+                "Click the game window once before using its keyboard controls.\n\n"
+                "HOW TO PLAY\n{4}"
             ).format(package.runtime.language.upper(), package.runtime.framework.upper(),
-                     package.transformation.source_dimensions.get("x", "?"),
-                     package.transformation.source_dimensions.get("y", "?"))
+                      package.transformation.source_dimensions.get("x", "?"),
+                      package.transformation.source_dimensions.get("y", "?"), controls)
         else:
             heading = "{0} — Spatial Result".format(package.title)
+            if not package.transformation.adapter_id:
+                body = (
+                    "3D COMPILATION REQUIRED\n\n"
+                    "The source project and evidence were imported, but no mechanic/renderer adapter exists.\n"
+                    "CubeEngine will not substitute an unrelated demo or generic white cubes.\n\n"
+                    "NEXT STEP\nGenerate and validate a Rule/Scene IR proposal with Function 2, or install an adapter plugin."
+                )
+                self.dpg.set_value("srtp_viewport_heading", heading)
+                self.dpg.set_value("srtp_viewport_body", body)
+                return
             body = (
                 "3D PLAY MODE\n\n"
                 "Target volume  {0} × {1} × {2}\n"
                 "Adapter  {3}\n"
                 "Readiness  {4}\n\n"
-                "Play opens the source-specific Ursina reconstruction."
+                "Play opens the source-specific Ursina spatial lift.\n"
+                "Source sprites, palettes and state symbols are mapped when proven.\n"
+                "Click the viewport once to give it keyboard focus.\n\n"
+                "HOW TO PLAY\n{5}"
             ).format(target.get("x", "?"), target.get("y", "?"), target.get("z", "?"),
-                     package.transformation.adapter_id or "not available",
-                     package.transformation.readiness.upper())
+                      package.transformation.adapter_id or "not available",
+                      package.transformation.readiness.upper(), controls)
         self.dpg.set_value("srtp_viewport_heading", heading)
         self.dpg.set_value("srtp_viewport_body", body)
+
+    def _interaction_text(self, mode: str) -> str:
+        if self.package is None:
+            return "No interaction contract available."
+        adapter = self.package.transformation.adapter_id
+        if mode == "Source 2D":
+            source_help = {
+                "snake": "Arrow keys: steer · Space: pause/resume · Escape: quit\nEat the apple, grow, and avoid walls or your own body.",
+                "minesweeper": "Left click: reveal · Right click: flag / question / clear\nClick the face to restart; reveal every safe cell without opening a mine.",
+                "2048": "First choose theme + target, then click Play.\nArrow keys or W/A/S/D or left-drag: shift/merge · N: restart · Q: quit.",
+                "connect": "Left click a column: drop the next piece · R: restart.\nFirst player to connect the source-defined line length wins.",
+            }
+            if adapter in source_help:
+                return source_help[adapter]
+        contract = self.package.rule_report.schema.get("ui_hints", {}).get("interaction_contract", {})
+        bindings = contract.get("source_bindings", []) if mode == "Source 2D" else contract.get("target_3d_bindings", [])
+        lines = []
+        for item in bindings:
+            if mode == "Source 2D":
+                lines.append("{0}: {1}".format(item.get("input", "input"), item.get("handler", "source action")))
+            else:
+                lines.append("{0}: {1}".format(" / ".join(item.get("inputs", [])), item.get("action", "action")))
+        if mode != "Source 2D":
+            lines.append("W/A/S/D: 90° view · right-drag: orbit · wheel: zoom · Z/V: layers")
+        return "\n".join(lines) if lines else "The source input could not be proven; use Function 2 handoff."
+
+    def _lift_policy_text(self) -> str:
+        if self.package is None:
+            return ""
+        adapter = self.package.transformation.adapter_id
+        source = self.package.transformation.source_dimensions
+        target = self.package.transformation.target_dimensions
+        if adapter == "minesweeper":
+            mine_parameter = self.package.parameter("source_mine_count")
+            source_mines = mine_parameter.value if mine_parameter else 10
+            source_area = max(1, int(source.get("x") or 1) * int(source.get("y") or 1))
+            target_cells = max(1, int(target.get("x") or 1) * int(target.get("y") or 1) * int(target.get("z") or 1))
+            target_mines = max(1, round(int(source_mines) * target_cells / source_area))
+            return (
+                "Z generation: one continuous 3D volume, not one game per layer.\n"
+                "Each number counts mines in up to 26 surrounding XYZ cells.\n"
+                "First-click safety protects its 3×3×3 neighbourhood, matching the source's 3×3 protection.\n"
+                "Density policy: {0}/{1} source cells → {2} mines in target volume.\n"
+                "The source file is not rewritten."
+            ).format(source_mines, source_area, target_mines)
+        if adapter == "snake":
+            return "Z generation: one continuous 3D arena; food respawns uniformly on an empty target cell."
+        if adapter == "2048":
+            return "Z generation: one 3D board; every accepted shift spawns one 2/4 tile on an empty target cell."
+        if adapter == "connect":
+            connect_parameter = self.package.parameter("source_connect_n")
+            length = connect_parameter.value if connect_parameter else "unresolved"
+            return (
+                "Z generation: each X/Z coordinate is a gravity column.\n"
+                "Outcome lift: connect {0} across the 13 straight 3D directions; win/draw is shown in the viewport."
+            ).format(length)
+        return "No compiled spatial generation policy is available."
 
     def _preview_mode(self) -> str:
         return self.dpg.get_value("srtp_preview_mode") or "Source 2D"
@@ -348,6 +471,7 @@ class SrtpWorkbench:
     def _summary_text(package: SourceGamePackage) -> str:
         runtime = package.runtime
         dims = package.transformation.source_dimensions
+        presentation = package.rule_report.schema.get("ui_hints", {}).get("presentation_mapping", {})
         return "\n".join([
             "Game: {0}".format(package.title),
             "Entry: {0}".format(package.entrypoint),
@@ -355,6 +479,7 @@ class SrtpWorkbench:
             "Original runtime: {0}".format(package.original_preview_status),
             "Source logical space: X={0}, Y={1}, Z=1".format(dims.get("x", "unresolved"), dims.get("y", "unresolved")),
             "Assets preserved: {0}".format(len(package.assets)),
+            "3D presentation mapping: {0}".format(presentation.get("strategy", "unresolved")),
             "License: {0}".format(package.license_name),
             "Rule understanding: {0}/{1} categories proven".format(package.coverage.understood, package.coverage.total),
         ])
@@ -481,12 +606,13 @@ def main() -> None:
                 dpg.add_text("SPACE LIFT", color=(132, 142, 160))
                 dpg.add_text("Source plane")
                 dpg.add_text("—", tag="srtp_source_plane", color=(190, 198, 211))
-                dpg.add_input_int(
-                    label="Depth (Z)", tag="srtp_target_z", default_value=3,
-                    min_value=2, min_clamped=True, width=155, callback=controller.apply_transform_target,
-                )
+                with dpg.group(horizontal=True):
+                    dpg.add_input_int(label="X", tag="srtp_target_x", default_value=4, min_value=2, min_clamped=True, width=86, callback=controller.apply_transform_target)
+                    dpg.add_input_int(label="Y", tag="srtp_target_y", default_value=4, min_value=2, min_clamped=True, width=86, callback=controller.apply_transform_target)
+                    dpg.add_input_int(label="Z", tag="srtp_target_z", default_value=3, min_value=2, min_clamped=True, width=86, callback=controller.apply_transform_target)
                 dpg.add_text("Target volume")
                 dpg.add_text("—", tag="srtp_target_volume", color=(105, 177, 245))
+                dpg.add_text("", tag="srtp_lift_policy", wrap=315, color=(150, 160, 178))
                 dpg.add_spacer(height=8)
                 dpg.add_text("TRANSFORMATION", color=(132, 142, 160))
                 with dpg.child_window(tag="srtp_transform_rows", height=132, border=False):

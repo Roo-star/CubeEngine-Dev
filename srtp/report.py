@@ -129,7 +129,8 @@ class ParseReport:
         """Machine-readable package reserved for SRTP Function 2."""
 
         return {
-            "handoff_version": "cubeengine.srtp/llm-handoff-v1",
+            "handoff_version": "cubeengine.srtp/llm-handoff-v2",
+            "task": "complete_rule_ir_from_source_evidence",
             "source": {
                 "path": self.source_path,
                 "format": self.source_format,
@@ -144,6 +145,33 @@ class ParseReport:
                 path: [item.to_mapping() for item in evidence]
                 for path, evidence in self.provenance.items()
             },
+            "required_outputs": [
+                "rule_ir_patch",
+                "scene_ir_patch",
+                "asset_role_bindings",
+                "input_contract",
+                "spatial_lift_proposals",
+                "acceptance_tests",
+                "clarification_questions",
+            ],
+            "hard_constraints": [
+                "Cite source file and line evidence for every inferred mechanic.",
+                "Do not overwrite or execute the source project.",
+                "Use unresolved when evidence is insufficient; do not invent rules.",
+                "Runtime legality and outcomes must be deterministic compiled logic, not live LLM decisions.",
+                "A proposed 3D lift must preserve the proven 2D behavior when z equals one.",
+            ],
+            "downstream_game_api": [
+                "getInitBoard",
+                "getBoardSize",
+                "getActionSize",
+                "getNextState",
+                "getValidMoves",
+                "getGameEnded",
+                "getCanonicalForm",
+                "getSymmetries",
+                "stringRepresentation",
+            ],
         }
 
     def to_mapping(self) -> Dict[str, Any]:

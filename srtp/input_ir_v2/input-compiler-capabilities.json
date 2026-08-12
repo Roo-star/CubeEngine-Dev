@@ -1,0 +1,24 @@
+{
+  "capability_id": "cubeengine.input-compiler/2.0-alpha.1",
+  "input_ir_version": "cubeengine.input-ir/2.0-alpha.1",
+  "devices": ["keyboard", "mouse", "touch", "gamepad", "gesture"],
+  "phases": ["press", "release", "repeat", "hold", "axis", "move", "scroll", "gesture", "text"],
+  "trigger_kinds": ["control", "chord", "axis_composite", "vector2_composite"],
+  "intent_value_types": ["digital", "scalar", "vector2", "pointer", "text"],
+  "focus_scopes": ["global", "viewport", "ui", "text_entry"],
+  "consume_policies": ["binding", "first_match", "all_events"],
+  "target_kinds": ["semantic", "rule_action"],
+  "parameter_sources": ["constant", "intent_value", "event_value", "event_position", "event_delta", "event_data"],
+  "normalization": {
+    "analog_min": -32768,
+    "analog_max": 32767,
+    "floating_point_input": false,
+    "global_monotonic_sequence_required": true,
+    "hold_repeat_generated_by_platform_adapter": true,
+    "gesture_recognition_generated_by_platform_adapter": true
+  },
+  "conflict_ordering": ["context_priority_desc", "context_id", "binding_priority_desc", "binding_id"],
+  "rebind_model": "validated_overlay_profile",
+  "writes_rule_state": false,
+  "external_extensions": false
+}

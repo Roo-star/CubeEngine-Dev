@@ -8,17 +8,39 @@ from __future__ import annotations
 
 import runpy
 import sys
+import argparse
 from pathlib import Path
 
 
 def main() -> None:
-    if len(sys.argv) != 2:
-        raise SystemExit("usage: runtime_bootstrap.py <entrypoint.py>")
-    entrypoint = Path(sys.argv[1]).resolve()
-    sys.path.insert(0, str(entrypoint.parent))
+    parser = argparse.ArgumentParser()
+    source = parser.add_mutually_exclusive_group(required=True)
+    source.add_argument("--script")
+    source.add_argument("--module")
+    args = parser.parse_args()
     _install_pygame_windows_font_fallback()
+    _install_numpy_legacy_aliases()
+    if args.module:
+        sys.argv = [args.module]
+        runpy.run_module(args.module, run_name="__main__", alter_sys=True)
+        return
+    entrypoint = Path(args.script).resolve()
+    sys.path.insert(0, str(entrypoint.parent))
     sys.argv = [str(entrypoint)]
     runpy.run_path(str(entrypoint), run_name="__main__")
+
+
+def _install_numpy_legacy_aliases() -> None:
+    """Keep older complete games runnable without rewriting their source."""
+
+    try:
+        import numpy
+    except ModuleNotFoundError:
+        return
+    aliases = {"int": int, "float": float, "bool": bool, "object": object}
+    for name, value in aliases.items():
+        if name not in numpy.__dict__:
+            setattr(numpy, name, value)
 
 
 def _install_pygame_windows_font_fallback() -> None:
