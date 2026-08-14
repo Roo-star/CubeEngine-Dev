@@ -1,0 +1,16 @@
+(meta (format "cubeengine.ludeme/0.1"))
+(game "Tic-Tac-Toe"
+  (players 2)
+  (equipment {
+    (board (rect 3 3 1))
+    (piece "X" P1)
+    (piece "O" P2)
+  })
+  (rules
+    (play (move Add (to (sites Empty))))
+    (end
+      (if (is Line 3) (result Mover Win))
+      (if (and (not (is Line 3)) (is Full)) (result Draw))
+    )
+  )
+)
