@@ -10,6 +10,10 @@ cd E:\CubeEngine\CubeEngine-SRTP
 C:\Users\Yingr\.pyenv\pyenv-win\versions\3.9.1\python.exe -m srtp.workbench
 ```
 
+On the project Windows PC, `Run CubeEngine Workbench.bat` is the simplest
+launcher. The same V1 window now hosts Source 2D, Transformed 3D and the IR v2
+Project Session; the former standalone IR v2 UI is developer-only.
+
 Key modules:
 
 - `source_importer.py` — whole-project inventory, Python AST/data analysis,
@@ -24,6 +28,8 @@ Key modules:
   during static import.
 - `parser.py` / `extractors/` — lower-level single-file Rule Schema extraction.
 - `stal_adapter.py` — the proven declarative subset only.
+- `ir_acceptance.py` — V1 Project Session bridge for sealed Rule/Scene/Asset/Input
+  IR bundles, Replay, Integration Gate and AlphaZero conformance.
 - `reference_games/` — licensed, runnable third-party source games, complete assets,
   license copies and documented compatibility additions.
 

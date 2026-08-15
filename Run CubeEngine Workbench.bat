@@ -9,8 +9,6 @@ if not exist "%CUBEENGINE_PYTHON%" (
     pause
     exit /b 1
 )
-echo The IR v2 acceptance UI is now integrated into the main V1 Workbench.
-echo Opening CubeEngine Workbench...
 "%CUBEENGINE_PYTHON%" -m srtp.workbench
 if errorlevel 1 (
     echo.

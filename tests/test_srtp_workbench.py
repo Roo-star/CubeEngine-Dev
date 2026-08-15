@@ -1,6 +1,7 @@
 """Controller tests for the fidelity-first SRTP Function 1 Workbench."""
 
 import unittest
+from pathlib import Path
 
 from srtp.source_runner import OriginalGameProcess
 from srtp.transform_runner import TransformedGameProcess
@@ -131,6 +132,30 @@ class SrtpWorkbenchTests(unittest.TestCase):
         self.assertEqual(controller.package.transformation.adapter_id, "snake")
         self.assertEqual(controller.package.transformation.readiness, "ready")
         self.assertIn("3D Play Mode", dpg.values["srtp_status"])
+
+    def test_v1_workbench_hosts_ir_v2_session_and_invalidates_it_on_source_change(self):
+        dpg = FakeDpg()
+        controller = SrtpWorkbench(dpg)
+        controller.load_selected_reference()
+        selected_source = controller.package.entrypoint.resolve()
+        rule_path = (
+            Path(__file__).resolve().parents[1] / "srtp" / "examples" /
+            "rule_ir_v2" / "tictactoe_3d.rule-ir.json"
+        )
+
+        controller.open_rule_ir(rule_path)
+
+        self.assertEqual(dpg.values["srtp_preview_mode"], "Project Session")
+        self.assertEqual(controller.core_source, selected_source)
+        self.assertTrue(controller.core_controller.has_active_project)
+        controller.click_core_cell(user_data=(0, 0, 0))
+        self.assertEqual(controller.core_controller.snapshot().revision, 1)
+        self.assertIn("rule:action.place", dpg.values["srtp_core_rule_summary"])
+
+        controller.load_selected_reference()
+
+        self.assertIsNone(controller.core_controller)
+        self.assertEqual(dpg.values["srtp_preview_mode"], "Source 2D")
 
 
 if __name__ == "__main__":
