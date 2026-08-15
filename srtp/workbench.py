@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import json
+import os
 import sys
 from pathlib import Path
-from typing import Optional
+from typing import Any, Mapping, Optional, Sequence, Tuple
 
 if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -14,12 +15,18 @@ if __package__ in (None, ""):
     from srtp.source_runner import OriginalGameProcess, SourceGameRunner
     from srtp.transform_runner import TransformedGameProcess, TransformedGameRunner
     from srtp.variant import SourceVariantBuilder
+    from srtp.ir_acceptance import (
+        IRAcceptanceController, IRAcceptanceError, ProjectViewState,
+    )
 else:
     from .source_game import SourceGamePackage
     from .source_importer import SourceGameImporter
     from .source_runner import OriginalGameProcess, SourceGameRunner
     from .transform_runner import TransformedGameProcess, TransformedGameRunner
     from .variant import SourceVariantBuilder
+    from .ir_acceptance import (
+        IRAcceptanceController, IRAcceptanceError, ProjectViewState,
+    )
 
 
 PACKAGE_DIR = Path(__file__).resolve().parent
@@ -38,6 +45,7 @@ class SrtpWorkbench:
         runner: Optional[SourceGameRunner] = None,
         transformed_runner: Optional[TransformedGameRunner] = None,
         variant_builder: Optional[SourceVariantBuilder] = None,
+        core_controller: Optional[IRAcceptanceController] = None,
     ) -> None:
         self.dpg = dpg
         self.importer = importer or SourceGameImporter()
@@ -47,6 +55,9 @@ class SrtpWorkbench:
         self.package: Optional[SourceGamePackage] = None
         self.original_process: Optional[OriginalGameProcess] = None
         self.transformed_process: Optional[TransformedGameProcess] = None
+        self.core_controller = core_controller
+        self.core_source: Optional[Path] = None
+        self.core_last_result: Mapping[str, Any] = {}
 
     def load_selected_reference(self, sender=None, app_data=None, user_data=None) -> None:
         path = REFERENCE_GAMES.get(self.dpg.get_value("srtp_reference_selector"))
@@ -79,6 +90,7 @@ class SrtpWorkbench:
         # process alive after a new project fails to load makes that stale
         # preview look like the new project's conversion result.
         self.stop_preview(quiet=True)
+        self._detach_core()
         try:
             imported = self.importer.import_path(Path(raw_path.strip()))
         except Exception as error:
@@ -87,6 +99,7 @@ class SrtpWorkbench:
             self._message("Import failed safely: {0}".format(error), error=True)
             return
         self.package = imported
+        self.dpg.set_value("srtp_preview_mode", "Source 2D")
         self._render_package()
 
     def _clear_package_views(self) -> None:
@@ -110,16 +123,137 @@ class SrtpWorkbench:
     def set_preview_mode(self, sender=None, app_data=None, user_data=None) -> None:
         self.stop_preview(quiet=True)
         self._render_viewport()
-        self._message("{0} preview selected. Press Play to open it.".format(self._preview_mode()))
+        if self._preview_mode() == "Project Session":
+            self._message(
+                "Project Session runs inside this Workbench. Open a sealed Project Manifest "
+                "or Rule IR to connect the selected source to the non-LLM core."
+            )
+        else:
+            self._message("{0} preview selected. Press Play to open it.".format(self._preview_mode()))
 
     def toggle_preview(self) -> None:
         if self._active_process_running():
             self.stop_preview()
             return
-        if self._preview_mode() == "Source 2D":
+        if self._preview_mode() == "Project Session":
+            self._render_viewport()
+            self._message("Project Session is already running inside the Workbench.")
+        elif self._preview_mode() == "Source 2D":
             self.launch_original()
         else:
             self.open_transformed_preview()
+
+    def choose_rule_ir(self, sender=None, app_data=None, user_data=None) -> None:
+        selections = app_data.get("selections", {}) if isinstance(app_data, dict) else {}
+        path = next(iter(selections.values()), None)
+        if path:
+            self.open_rule_ir(Path(path))
+
+    def choose_project_manifest(self, sender=None, app_data=None, user_data=None) -> None:
+        selections = app_data.get("selections", {}) if isinstance(app_data, dict) else {}
+        path = next(iter(selections.values()), None)
+        if path:
+            self.open_project_manifest(Path(path))
+
+    def open_rule_ir(self, path: Path) -> None:
+        if self.package is None:
+            self._message("Import the source game before attaching its Rule IR.", error=True)
+            return
+        try:
+            core = self._ensure_core()
+            core.open_rule_preview(path)
+        except (IRAcceptanceError, OSError, ValueError) as error:
+            self._message("Rule IR could not open: {0}".format(error), error=True)
+            return
+        self._attach_core_to_current_source()
+        self._activate_core_mode("Rule IR compiled into a live Project Session.")
+
+    def open_project_manifest(self, path: Path) -> None:
+        if self.package is None:
+            self._message("Import the source game before attaching its Project Manifest.", error=True)
+            return
+        try:
+            core = self._ensure_core()
+            core.open_project_bundle(path)
+        except (IRAcceptanceError, OSError, ValueError) as error:
+            self._message("Project bundle could not open: {0}".format(error), error=True)
+            return
+        self._attach_core_to_current_source()
+        self._activate_core_mode("Sealed Project Manifest compiled into a live Project Session.")
+
+    def select_core_project(self, sender=None, app_data=None, user_data=None) -> None:
+        core = self.core_controller
+        if core is None:
+            return
+        label = app_data if isinstance(app_data, str) else self.dpg.get_value("srtp_core_project")
+        key = next((key for key, value in core.labels.items() if value == label), None)
+        if key is None:
+            self._message("Select a compiled Project Session.", error=True)
+            return
+        try:
+            core.select_project(key)
+            self._render_core_scene()
+        except IRAcceptanceError as error:
+            self._message(str(error), error=True)
+
+    def click_core_cell(self, sender=None, app_data=None, user_data=None) -> None:
+        if self.core_controller is None:
+            return
+        try:
+            result = self.core_controller.click(tuple(user_data or ()))
+            self.core_last_result = result.to_mapping()
+            self._render_core_scene()
+            self._message(result.message, error=not result.accepted)
+        except (IRAcceptanceError, ValueError) as error:
+            self._message(str(error), error=True)
+
+    def reset_core(self, sender=None, app_data=None, user_data=None) -> None:
+        if self.core_controller is None:
+            return
+        try:
+            self.core_controller.reset()
+            self.core_last_result = {}
+            self._render_core_scene()
+            self._message("Project Session reset to its deterministic initial state.")
+        except IRAcceptanceError as error:
+            self._message(str(error), error=True)
+
+    def verify_core_replay(self, sender=None, app_data=None, user_data=None) -> None:
+        if self.core_controller is None or not self.core_controller.has_active_project:
+            self._message("Open a Rule IR or Project Manifest before verifying Replay.", error=True)
+            return
+        try:
+            report = self.core_controller.verify_replay()
+            self._set_core_verification(report)
+            self._render_core_scene()
+            self._message(
+                "Replay state hash verified." if report["passed"] else "Replay verification failed.",
+                error=not report["passed"],
+            )
+        except Exception as error:
+            self._message("Replay verification failed: {0}".format(error), error=True)
+
+    def run_core_self_test(self, kind: str = "gate") -> None:
+        """Run repository self-tests without replacing the user's active Project."""
+
+        probe = None
+        try:
+            probe = IRAcceptanceController(PACKAGE_DIR.parent)
+            if kind == "ai":
+                probe.select_project("target")
+                report = probe.run_ai_conformance()
+                message = "Built-in AlphaZero nine-API self-test passed."
+            else:
+                report = probe.run_integration_gate()
+                message = "Built-in non-LLM Integration Gate passed."
+            self._set_core_verification(report)
+            passed = bool(report.get("passed"))
+            self._message(message if passed else "Engine core self-test failed.", error=not passed)
+        except Exception as error:
+            self._message("Engine core self-test failed: {0}".format(error), error=True)
+        finally:
+            if probe is not None:
+                probe.close()
 
     def launch_original(self, embedded: bool = False) -> None:
         if self.package is None:
@@ -187,6 +321,11 @@ class SrtpWorkbench:
                 self._message("{0} preview closed.".format(label))
         if not self._active_process_running():
             self._set_play_label("PLAY")
+
+    def close(self) -> None:
+        self.stop_preview(quiet=True)
+        if self.core_controller is not None:
+            self.core_controller.close()
 
     def apply_transform_target(self, sender=None, app_data=None, user_data=None, silent: bool = False) -> None:
         if self.package is None:
@@ -347,7 +486,173 @@ class SrtpWorkbench:
                 parent="srtp_transform_rows", color=(91, 196, 138) if good else (230, 168, 84),
             )
 
+    def _ensure_core(self) -> IRAcceptanceController:
+        if self.core_controller is None:
+            self.core_controller = IRAcceptanceController(
+                PACKAGE_DIR.parent, autoload_reference=False,
+            )
+        return self.core_controller
+
+    def _detach_core(self) -> None:
+        if self.core_controller is not None:
+            self.core_controller.close()
+        self.core_controller = None
+        self.core_source = None
+        self.core_last_result = {}
+        for tag, value in (
+            ("srtp_core_attachment", "No Project IR is attached to this source."),
+            ("srtp_core_rule_summary", ""),
+            ("srtp_core_activity", ""),
+            ("srtp_core_activity_view", ""),
+            ("srtp_core_verification", ""),
+        ):
+            self.dpg.set_value(tag, value)
+
+    def _attach_core_to_current_source(self) -> None:
+        if self.package is None or self.core_controller is None:
+            return
+        self.core_source = self.package.entrypoint.resolve()
+        self.dpg.set_value(
+            "srtp_core_attachment",
+            "Attached source evidence\n{0}\n\nThe Project Session is invalidated automatically "
+            "when the source selection changes.".format(self.core_source),
+        )
+
+    def _activate_core_mode(self, message: str) -> None:
+        self.dpg.set_value("srtp_preview_mode", "Project Session")
+        self._configure_core_projects()
+        self._render_viewport()
+        self._message(message)
+
+    def _configure_core_projects(self) -> None:
+        core = self.core_controller
+        if core is None or not hasattr(self.dpg, "configure_item"):
+            return
+        labels = [core.labels[key] for key in core.project_keys]
+        self.dpg.configure_item("srtp_core_project", items=labels, enabled=bool(labels))
+        if core.active_key in core.labels:
+            self.dpg.set_value("srtp_core_project", core.labels[core.active_key])
+
+    def _set_core_verification(self, report: Mapping[str, Any]) -> None:
+        self.dpg.set_value(
+            "srtp_core_verification",
+            json.dumps(report, ensure_ascii=False, indent=2),
+        )
+
+    def _render_core_scene(self) -> None:
+        core = self.core_controller
+        if core is None or not core.has_active_project:
+            self.dpg.set_value("srtp_core_scene_title", "No compiled Project Session")
+            self.dpg.set_value(
+                "srtp_core_scene_help",
+                "Open the LLM/compiler output Project Manifest. Rule-only preview is available "
+                "for placement contracts; all other mechanics require the complete four IRs.",
+            )
+            self.dpg.set_value("srtp_core_activity", "")
+            self.dpg.set_value("srtp_core_activity_view", "")
+            self.dpg.set_value("srtp_core_rule_summary", "")
+            return
+        state = core.snapshot()
+        self._configure_core_projects()
+        self.dpg.set_value(
+            "srtp_core_scene_title",
+            "{0} · {1}".format(
+                state.label, " × ".join(str(item) for item in state.dimensions),
+            ),
+        )
+        self.dpg.set_value(
+            "srtp_core_scene_help",
+            "Clicks are physical Input IR events. Rule Runtime owns legality, state and outcome; "
+            "Scene IR only projects the committed result.",
+        )
+        self.dpg.set_value("srtp_core_activity", core.activity_text())
+        self.dpg.set_value("srtp_core_activity_view", core.activity_text())
+        self.dpg.set_value(
+            "srtp_core_rule_summary",
+            json.dumps(core.rule_summary(), ensure_ascii=False, indent=2),
+        )
+        self._render_core_inspector(state)
+        if not all(hasattr(self.dpg, name) for name in ("delete_item", "add_text", "add_button")):
+            return
+        self.dpg.delete_item("srtp_core_scene_layers", children_only=True)
+        legal = set(core.legal_coordinates())
+        dimensions = state.dimensions
+        if len(dimensions) not in (2, 3):
+            self.dpg.add_text(
+                "This compact viewport supports rectangular 2D/3D topology grids. "
+                "The compiled Project Session remains valid for another renderer.",
+                parent="srtp_core_scene_layers", color=(238, 105, 105),
+            )
+            return
+        x_size, y_size = dimensions[0], dimensions[1]
+        z_values = range(dimensions[2]) if len(dimensions) == 3 else (None,)
+        with self.dpg.group(parent="srtp_core_scene_layers", horizontal=True):
+            for z_value in z_values:
+                width = max(178, x_size * 54 + 22)
+                with self.dpg.child_window(
+                    width=width, height=max(238, y_size * 54 + 65), border=True,
+                ):
+                    self.dpg.add_text(
+                        "SOURCE PLANE" if z_value is None else "Z LAYER  {0}".format(z_value),
+                        color=(112, 169, 232),
+                    )
+                    for y_value in range(y_size):
+                        with self.dpg.group(horizontal=True):
+                            for x_value in range(x_size):
+                                coordinate = (
+                                    (x_value, y_value) if z_value is None
+                                    else (x_value, y_value, z_value)
+                                )
+                                value = _core_grid_value(state.grid, coordinate)
+                                label, theme = _core_cell_style(value, coordinate in legal)
+                                item = self.dpg.add_button(
+                                    label=label, width=48, height=48,
+                                    callback=self.click_core_cell, user_data=coordinate,
+                                )
+                                if hasattr(self.dpg, "bind_item_theme"):
+                                    self.dpg.bind_item_theme(item, theme)
+
+    def _render_core_inspector(self, state: ProjectViewState) -> None:
+        outcome = state.outcome_status.upper()
+        if state.terminal and state.winners:
+            outcome += " · " + ", ".join(state.winners)
+        summary = "\n".join((
+            "Project   {0}".format(state.project_id),
+            "Variant   {0}".format(state.variant.upper()),
+            "Rule      {0}".format(state.rule_id),
+            "Actor     {0}".format(state.current_actor_name),
+            "Revision  {0}".format(state.revision),
+            "Actions   {0} legal / {1} total".format(
+                state.legal_actions, state.total_actions,
+            ),
+            "Outcome   {0}".format(outcome),
+            "Replay    {0} entries".format(state.replay_entries),
+            "State     {0}".format(state.state_hash),
+        ))
+        self.dpg.set_value("srtp_core_session_summary", summary)
+        last = self.core_last_result or {
+            "code": "ready", "message": "Select a legal site to submit an Input IR event.",
+        }
+        self.dpg.set_value(
+            "srtp_core_last_result", json.dumps(last, ensure_ascii=False, indent=2),
+        )
+
+    def _show_core_view(self, enabled: bool) -> None:
+        if not hasattr(self.dpg, "configure_item"):
+            return
+        self.dpg.configure_item("srtp_standard_view", show=not enabled)
+        self.dpg.configure_item("srtp_core_view", show=enabled)
+        self.dpg.configure_item(
+            "srtp_play", enabled=not enabled,
+            label="SESSION" if enabled else "PLAY",
+        )
+
     def _render_viewport(self) -> None:
+        if self._preview_mode() == "Project Session":
+            self._show_core_view(True)
+            self._render_core_scene()
+            return
+        self._show_core_view(False)
         if self.package is None:
             self.dpg.set_value("srtp_viewport_heading", "No source game selected")
             self.dpg.set_value("srtp_viewport_body", "Choose a game from the Source Library or import a project.")
@@ -495,6 +800,23 @@ class SrtpWorkbench:
         return "\n".join(lines) or "No source-backed parameters were proven."
 
 
+def _core_grid_value(grid: Any, coordinate: Sequence[int]) -> int:
+    value = grid
+    for index in coordinate:
+        value = value[index]
+    return int(value)
+
+
+def _core_cell_style(value: int, legal: bool) -> Tuple[str, str]:
+    if value > 0:
+        return "P1", "srtp_core_cell_positive"
+    if value < 0:
+        return "P2", "srtp_core_cell_negative"
+    if legal:
+        return "+", "srtp_core_cell_legal"
+    return "·", "srtp_core_cell_blocked"
+
+
 def _build_theme(dpg):
     with dpg.theme() as theme:
         with dpg.theme_component(dpg.mvAll):
@@ -513,6 +835,18 @@ def _build_theme(dpg):
             dpg.add_theme_style(dpg.mvStyleVar_FrameRounding, 3)
             dpg.add_theme_style(dpg.mvStyleVar_WindowPadding, 10, 10)
             dpg.add_theme_style(dpg.mvStyleVar_ItemSpacing, 7, 7)
+    for tag, base, hover in (
+        ("srtp_core_cell_legal", (38, 61, 79), (51, 91, 122)),
+        ("srtp_core_cell_positive", (37, 104, 164), (48, 126, 195)),
+        ("srtp_core_cell_negative", (160, 76, 86), (191, 91, 103)),
+        ("srtp_core_cell_blocked", (42, 45, 52), (55, 59, 69)),
+    ):
+        with dpg.theme(tag=tag):
+            with dpg.theme_component(dpg.mvButton):
+                dpg.add_theme_color(dpg.mvThemeCol_Button, base)
+                dpg.add_theme_color(dpg.mvThemeCol_ButtonHovered, hover)
+                dpg.add_theme_color(dpg.mvThemeCol_ButtonActive, hover)
+                dpg.add_theme_style(dpg.mvStyleVar_FrameRounding, 5)
     return theme
 
 
@@ -534,22 +868,38 @@ def main() -> None:
         dpg.add_file_extension(".*")
     with dpg.file_dialog(directory_selector=True, show=False, callback=controller.choose_directory, tag="srtp_directory_dialog", width=760, height=520):
         pass
+    with dpg.file_dialog(
+        directory_selector=False, show=False, callback=controller.choose_rule_ir,
+        tag="srtp_rule_ir_dialog", width=760, height=520,
+    ):
+        dpg.add_file_extension(".json")
+        dpg.add_file_extension(".*")
+    with dpg.file_dialog(
+        directory_selector=False, show=False, callback=controller.choose_project_manifest,
+        tag="srtp_project_manifest_dialog", width=760, height=520,
+    ):
+        dpg.add_file_extension(".json")
+        dpg.add_file_extension(".*")
 
     with dpg.window(label="SRTP", tag="srtp_primary"):
         with dpg.menu_bar():
             with dpg.menu(label="File"):
                 dpg.add_menu_item(label="Open Entry Point...", callback=lambda: dpg.show_item("srtp_file_dialog"))
                 dpg.add_menu_item(label="Open Project...", callback=lambda: dpg.show_item("srtp_directory_dialog"))
+                dpg.add_separator()
+                dpg.add_menu_item(label="Attach Rule IR...", callback=lambda: dpg.show_item("srtp_rule_ir_dialog"))
+                dpg.add_menu_item(label="Attach Project Manifest...", callback=lambda: dpg.show_item("srtp_project_manifest_dialog"))
                 dpg.add_menu_item(label="Save Analysis Package", callback=lambda: controller.save_package())
             with dpg.menu(label="View"):
                 dpg.add_menu_item(label="Source 2D", callback=lambda: (dpg.set_value("srtp_preview_mode", "Source 2D"), controller.set_preview_mode()))
                 dpg.add_menu_item(label="Transformed 3D", callback=lambda: (dpg.set_value("srtp_preview_mode", "Transformed 3D"), controller.set_preview_mode()))
+                dpg.add_menu_item(label="Project Session", callback=lambda: (dpg.set_value("srtp_preview_mode", "Project Session"), controller.set_preview_mode()))
         with dpg.group(horizontal=True):
             dpg.add_text("CubeEngine", color=(105, 177, 245))
             dpg.add_text("SRTP / Function 1", color=(150, 158, 173))
             dpg.add_spacer(width=30)
             dpg.add_radio_button(
-                items=["Source 2D", "Transformed 3D"], horizontal=True,
+                items=["Source 2D", "Transformed 3D", "Project Session"], horizontal=True,
                 default_value="Source 2D", tag="srtp_preview_mode", callback=controller.set_preview_mode,
             )
             dpg.add_spacer(width=18)
@@ -579,6 +929,23 @@ def main() -> None:
                     dpg.add_input_text(tag="srtp_schema_output", multiline=True, readonly=True, width=-1, height=220)
                 with dpg.collapsing_header(label="Diagnostics"):
                     dpg.add_input_text(tag="srtp_diagnostics", multiline=True, readonly=True, width=-1, height=180)
+                with dpg.collapsing_header(label="Project Session Core"):
+                    dpg.add_text(
+                        "No Project IR is attached to this source.",
+                        tag="srtp_core_attachment", wrap=215, color=(178, 185, 198),
+                    )
+                    dpg.add_button(
+                        label="ATTACH PROJECT MANIFEST...", width=-1,
+                        callback=lambda: dpg.show_item("srtp_project_manifest_dialog"),
+                    )
+                    dpg.add_button(
+                        label="ATTACH RULE IR...", width=-1,
+                        callback=lambda: dpg.show_item("srtp_rule_ir_dialog"),
+                    )
+                    dpg.add_input_text(
+                        tag="srtp_core_activity", multiline=True, readonly=True,
+                        width=-1, height=150,
+                    )
                 with dpg.collapsing_header(label="Function 2 Handoff"):
                     dpg.add_input_text(tag="srtp_handoff", multiline=True, readonly=True, width=-1, height=180)
 
@@ -589,13 +956,47 @@ def main() -> None:
                     dpg.add_text("Native Windows preview", color=(104, 112, 128))
                 dpg.add_separator()
                 with dpg.child_window(height=590, border=False):
-                    dpg.add_spacer(height=145)
-                    dpg.add_text("No source game selected", tag="srtp_viewport_heading", indent=55, color=(220, 224, 231))
-                    dpg.add_spacer(height=18)
-                    dpg.add_text(
-                        "Choose a game from the Source Library or import a project.",
-                        tag="srtp_viewport_body", indent=55, wrap=650, color=(145, 154, 170),
-                    )
+                    with dpg.group(tag="srtp_standard_view"):
+                        dpg.add_spacer(height=145)
+                        dpg.add_text("No source game selected", tag="srtp_viewport_heading", indent=55, color=(220, 224, 231))
+                        dpg.add_spacer(height=18)
+                        dpg.add_text(
+                            "Choose a game from the Source Library or import a project.",
+                            tag="srtp_viewport_body", indent=55, wrap=650, color=(145, 154, 170),
+                        )
+                    with dpg.group(tag="srtp_core_view", show=False):
+                        with dpg.group(horizontal=True):
+                            dpg.add_combo(
+                                items=[], tag="srtp_core_project", width=250,
+                                callback=controller.select_core_project,
+                            )
+                            dpg.add_button(label="RESET", width=72, callback=controller.reset_core)
+                            dpg.add_button(label="VERIFY REPLAY", width=118, callback=controller.verify_core_replay)
+                            dpg.add_button(
+                                label="CORE SELF-TEST", width=118,
+                                callback=lambda: controller.run_core_self_test("gate"),
+                            )
+                            dpg.add_button(
+                                label="9-API SELF-TEST", width=118,
+                                callback=lambda: controller.run_core_self_test("ai"),
+                            )
+                        dpg.add_text(
+                            "No compiled Project Session", tag="srtp_core_scene_title",
+                            color=(218, 223, 231),
+                        )
+                        dpg.add_text(
+                            "Attach a Project Manifest produced by the LLM/compiler.",
+                            tag="srtp_core_scene_help", wrap=750, color=(145, 155, 172),
+                        )
+                        dpg.add_separator()
+                        with dpg.child_window(tag="srtp_core_scene_layers", height=390, border=False):
+                            pass
+                        dpg.add_separator()
+                        dpg.add_text("PROJECT EVENT LOG", color=(132, 142, 160))
+                        dpg.add_input_text(
+                            tag="srtp_core_activity_view", multiline=True, readonly=True,
+                            width=-1, height=92,
+                        )
                 dpg.add_separator()
                 dpg.add_text("CONSOLE", color=(132, 142, 160))
                 dpg.add_text("Ready", tag="srtp_status", wrap=750, color=(160, 170, 188))
@@ -624,6 +1025,26 @@ def main() -> None:
                     dpg.add_combo(items=["N/A"], tag="srtp_safe_parameter", callback=lambda: controller.select_safe_parameter(), width=-1)
                     dpg.add_input_text(tag="srtp_safe_parameter_value", width=-1)
                     dpg.add_button(label="APPLY TO COPY", callback=lambda: controller.apply_safe_source_parameter(), width=-1)
+                with dpg.collapsing_header(label="Project Session / Rule Inspector"):
+                    dpg.add_input_text(
+                        tag="srtp_core_session_summary", multiline=True, readonly=True,
+                        width=-1, height=180,
+                    )
+                    dpg.add_text("DECLARED RULE", color=(132, 142, 160))
+                    dpg.add_input_text(
+                        tag="srtp_core_rule_summary", multiline=True, readonly=True,
+                        width=-1, height=210,
+                    )
+                    dpg.add_text("LAST INPUT / TRANSITION", color=(132, 142, 160))
+                    dpg.add_input_text(
+                        tag="srtp_core_last_result", multiline=True, readonly=True,
+                        width=-1, height=130,
+                    )
+                    dpg.add_text("VERIFICATION", color=(132, 142, 160))
+                    dpg.add_input_text(
+                        tag="srtp_core_verification", multiline=True, readonly=True,
+                        width=-1, height=210,
+                    )
                 with dpg.collapsing_header(label="Export"):
                     dpg.add_input_text(tag="srtp_output_path", hint="source-game-package.json", width=-1)
                     dpg.add_button(label="SAVE ANALYSIS PACKAGE", callback=lambda: controller.save_package(), width=-1)
@@ -634,13 +1055,17 @@ def main() -> None:
     dpg.setup_dearpygui()
     dpg.show_viewport()
     controller.load_selected_reference()
+    if os.environ.get("CUBEENGINE_SRTP_WORKBENCH_SMOKE") == "1":
+        controller.close()
+        dpg.destroy_context()
+        return
     frame = 0
     while dpg.is_dearpygui_running():
         dpg.render_dearpygui_frame()
         frame += 1
         if frame % 30 == 0:
             controller.poll_processes()
-    controller.stop_preview(quiet=True)
+    controller.close()
     dpg.destroy_context()
 
 

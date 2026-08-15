@@ -218,11 +218,7 @@ def verify_extension_package(root: Path, manifest_name: str = "extension.json") 
         target = raw_target.resolve()
         if root not in target.parents or not target.is_file() or _path_uses_symlink(root, relative):
             raise ValueError("extension inventory file is missing, outside root or a symlink: {0}".format(relative))
-        payload = target.read_bytes()
-        if len(payload) != item["byte_size"]:
-            raise ValueError("extension inventory byte size changed: {0}".format(relative))
-        if hashlib.sha256(payload).hexdigest() != item["sha256"]:
-            raise ValueError("extension inventory hash changed: {0}".format(relative))
+        payload = _verified_inventory_payload(target, item, relative)
         if target.suffix.casefold() == ".py":
             _validate_python_source(
                 payload, relative.as_posix(),
@@ -238,6 +234,29 @@ def verify_extension_package(root: Path, manifest_name: str = "extension.json") 
         content_hash=str(manifest["content_hash"]),
         capability_ids=tuple(sorted(str(item["id"]) for item in manifest["capabilities"])),
     )
+
+
+def _verified_inventory_payload(target: Path, item: Mapping[str, Any], relative: Path) -> bytes:
+    """Return the exact sealed payload, accepting Git's text EOL checkout only.
+
+    Git for Windows may materialize a sealed LF text file as CRLF.  Python and
+    JSON parse those bytes identically, so the verifier checks the raw bytes
+    first and then one narrowly defined CRLF→LF canonical form for text files.
+    No whitespace, encoding or content normalization is otherwise accepted.
+    """
+
+    payload = target.read_bytes()
+    candidates = [payload]
+    if target.suffix.casefold() in {".py", ".json", ".md", ".txt"} and b"\r\n" in payload:
+        candidates.append(payload.replace(b"\r\n", b"\n"))
+    expected_size = item["byte_size"]
+    expected_hash = item["sha256"]
+    for candidate in candidates:
+        if len(candidate) == expected_size and hashlib.sha256(candidate).hexdigest() == expected_hash:
+            return candidate
+    if all(len(candidate) != expected_size for candidate in candidates):
+        raise ValueError("extension inventory byte size changed: {0}".format(relative))
+    raise ValueError("extension inventory hash changed: {0}".format(relative))
 
 
 def _validate_metadata(value: Any, diagnostics: List[ExtensionDiagnostic]) -> None:

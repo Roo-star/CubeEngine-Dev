@@ -1,7 +1,10 @@
+import json
+import tempfile
 import unittest
 from pathlib import Path
 
 from srtp.ir_acceptance import IRAcceptanceController, IRAcceptanceError
+from srtp.integration_gate_v1.reference_fixture import build_reference_gate
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -86,6 +89,32 @@ class IRAcceptanceControllerTests(unittest.TestCase):
         self.assertTrue(ai["passed"])
         self.assertIn("Integration Gate: PASS", self.controller.activity_text())
         self.assertIn("nine-API conformance: PASS", self.controller.activity_text())
+
+    def test_product_host_can_start_empty_and_open_a_sealed_project_bundle(self):
+        fixture = build_reference_gate(ROOT)
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            documents = {
+                "source.project-manifest.json": fixture.source.manifest,
+                "target.project-manifest.json": fixture.target.manifest,
+                "target.rule-ir.json": fixture.target.rule,
+                "target.scene-ir.json": fixture.target.scene,
+                "target.asset-ir.json": fixture.target.asset,
+                "target.input-ir.json": fixture.target.input,
+            }
+            for name, document in documents.items():
+                (root / name).write_text(json.dumps(document), encoding="utf-8")
+            product = IRAcceptanceController(ROOT, autoload_reference=False)
+            self.addCleanup(product.close)
+
+            self.assertFalse(product.has_active_project)
+            key = product.open_project_bundle(root / "target.project-manifest.json")
+
+            self.assertEqual(key, "loaded")
+            self.assertTrue(product.has_active_project)
+            self.assertEqual(product.snapshot().dimensions, (3, 3, 3))
+            self.assertTrue(product.click((0, 0, 0)).accepted)
+            self.assertEqual(product.rule_summary()["actions"][0]["id"], "rule:action.place")
 
 
 if __name__ == "__main__":
