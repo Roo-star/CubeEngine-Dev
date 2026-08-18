@@ -62,9 +62,11 @@ def run_pipeline(
 
 
 def _default_output_path(source_path: Path, target_z: int) -> Path:
-    stem = source_path.stem
+    stem = source_path.stem.lower()
+    if int(target_z) >= 3 and "tictactoe" in stem:
+        return PACKAGE_DIR / "examples" / "tictactoe_3x3x3.cube.lud"
     suffix = "3d" if target_z > 1 else "2d"
-    return DEFAULT_OUTPUT_DIR / "{0}_{1}.cube.lud".format(stem, suffix)
+    return DEFAULT_OUTPUT_DIR / "{0}_{1}.cube.lud".format(source_path.stem, suffix)
 
 
 def launch_ursina(ludeme_path: Path) -> None:
@@ -90,7 +92,7 @@ def main() -> None:
             output_path=output,
             design_intent=args.intent,
         )
-    except (OSError, ValueError) as error:
+    except (OSError, ValueError, RuntimeError) as error:
         raise SystemExit(str(error)) from error
 
     print("Module 1: imported {0}".format(result.source_path))

@@ -16,7 +16,7 @@ flowchart LR
 | Module | Package | Responsibility |
 |--------|---------|----------------|
 | 1 Input | `srtp/source_importer.py` | Ingest runnable source projects into Source Game Package (inventory, AST evidence). Does not execute source during import. |
-| 2 FreeFlow | `ludeme/freeflow.py` | Convert source evidence (+ optional design intent) into `.cube.lud`. MVP uses `TicTacToeMapper` as deterministic stand-in for local LLM. |
+| 2 FreeFlow | `ludeme/freeflow.py` | `GeminiLudemeCompiler` reads source files via `freeflow-llm` Gemini and emits `.cube.lud`. Set `CUBEENGINE_FREEFLOW_BACKEND=mapper` for the offline Tic-Tac-Toe fallback. |
 | 3 Runtime | `ludeme/runtime.py` | Parse and execute the Ludeme subset: legal moves, placement, Line/Full outcomes. |
 | 4 Ursina | `ludeme/ursina_viewer.py` | Render board and collect clicks. All rule authority stays in Module 3. |
 
@@ -43,7 +43,17 @@ Golden fixtures:
 
 ```powershell
 cd C:\repos\CubeEngine-Dev
+$env:GEMINI_API_KEY = "your_key"
 python -m ludeme.pipeline --source srtp/examples/tictactoe_2d.py --z 3 --play
+```
+
+Gemini writes `ludeme/examples/tictactoe_3x3x3.cube.lud` when the source is Tic-Tac-Toe and `--z` is 3 or more.
+
+Offline mapper (no API key):
+
+```powershell
+$env:CUBEENGINE_FREEFLOW_BACKEND = "mapper"
+python -m ludeme.pipeline --source srtp/examples/tictactoe_2d.py --z 3
 ```
 
 Without `--play`, the pipeline writes `.cube.lud` under `ludeme/examples/generated/` and validates runtime readiness.
@@ -74,13 +84,11 @@ The Ludeme path replaces per-game Python adapters with one declarative format an
 
 ## MVP limits
 
-- Tic-Tac-Toe only for FreeFlow mapping
-- Placement on empty cells only
+- Runtime currently executes Add + Line/Full only; FreeFlow prompts also cover Snake, 2048, Minesweeper, and Connect Four ludemes for later interpreters
 - No Ludii JAR, no full L-GDL
-- No real LLM weights (interface ready via `FreeFlowCompiler`)
+- Gemini requires `freeflow-llm` and `GEMINI_API_KEY`
 
 ## Next steps
 
-1. Plug local LLM into `FreeFlowCompiler`
-2. Extend Ludeme subset (move, reveal, neighbourhood)
-3. Add Workbench entry pointing at `python -m ludeme.pipeline`
+1. Extend Ludeme interpreter for Drop / Slide / ShiftMerge / Reveal
+2. Add Workbench entry pointing at `python -m ludeme.pipeline`
