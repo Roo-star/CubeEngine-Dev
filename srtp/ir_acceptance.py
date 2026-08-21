@@ -285,6 +285,20 @@ class IRAcceptanceController:
         self.activity.append("Opened sealed Project bundle: {0}".format(manifest_path.name))
         return "loaded"
 
+    def compile_source_package(self, package, output_dir: Optional[Path] = None) -> str:
+        """Run FreeFlow-LLM on an imported source package and attach the sealed bundle."""
+
+        from srtp.freeflow_llm import FreeFlowLlmCompiler, FreeFlowLlmError
+
+        compiler = FreeFlowLlmCompiler()
+        try:
+            result = compiler.compile_package(package, output_dir=output_dir)
+        except FreeFlowLlmError as error:
+            raise IRAcceptanceError(str(error)) from error
+        if result.output_dir is None:
+            raise IRAcceptanceError("FreeFlow-LLM did not export a Project bundle.")
+        return self.open_project_bundle(result.output_dir / "project.manifest.json")
+
     def select_project(self, key: str) -> ProjectViewState:
         if key not in self.projects:
             raise IRAcceptanceError("Unknown Workbench project: " + str(key))

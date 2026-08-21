@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 import sys
+import tempfile
 from pathlib import Path
 from typing import Any, Mapping, Optional, Sequence, Tuple
 
@@ -180,6 +181,20 @@ class SrtpWorkbench:
             return
         self._attach_core_to_current_source()
         self._activate_core_mode("Sealed Project Manifest compiled into a live Project Session.")
+
+    def compile_freeflow_llm(self, sender=None, app_data=None, user_data=None) -> None:
+        if self.package is None:
+            self._message("Import the source game before compiling with FreeFlow-LLM.", error=True)
+            return
+        output_dir = Path(tempfile.mkdtemp(prefix="cubeengine_freeflow_"))
+        try:
+            core = self._ensure_core()
+            core.compile_source_package(self.package, output_dir=output_dir)
+        except (IRAcceptanceError, OSError, ValueError) as error:
+            self._message("FreeFlow-LLM could not compile: {0}".format(error), error=True)
+            return
+        self._attach_core_to_current_source()
+        self._activate_core_mode("FreeFlow-LLM compiled a sealed source Project Session.")
 
     def select_core_project(self, sender=None, app_data=None, user_data=None) -> None:
         core = self.core_controller
@@ -889,6 +904,7 @@ def main() -> None:
                 dpg.add_separator()
                 dpg.add_menu_item(label="Attach Rule IR...", callback=lambda: dpg.show_item("srtp_rule_ir_dialog"))
                 dpg.add_menu_item(label="Attach Project Manifest...", callback=lambda: dpg.show_item("srtp_project_manifest_dialog"))
+                dpg.add_menu_item(label="Compile with FreeFlow LLM...", callback=lambda: controller.compile_freeflow_llm())
                 dpg.add_menu_item(label="Save Analysis Package", callback=lambda: controller.save_package())
             with dpg.menu(label="View"):
                 dpg.add_menu_item(label="Source 2D", callback=lambda: (dpg.set_value("srtp_preview_mode", "Source 2D"), controller.set_preview_mode()))
