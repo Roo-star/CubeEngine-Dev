@@ -18,6 +18,9 @@ if __package__ in (None, ""):
     from srtp.ir_acceptance import (
         IRAcceptanceController, IRAcceptanceError, ProjectViewState,
     )
+    from srtp.llm_compiler_v1 import SourceToIRCompiler
+    from srtp.llm_compiler_v1.bootstrap import slugify
+    from srtp.llm_compiler_v1.client import LLMClientError
 else:
     from .source_game import SourceGamePackage
     from .source_importer import SourceGameImporter
@@ -27,6 +30,9 @@ else:
     from .ir_acceptance import (
         IRAcceptanceController, IRAcceptanceError, ProjectViewState,
     )
+    from .llm_compiler_v1 import SourceToIRCompiler
+    from .llm_compiler_v1.bootstrap import slugify
+    from .llm_compiler_v1.client import LLMClientError
 
 
 PACKAGE_DIR = Path(__file__).resolve().parent
@@ -394,6 +400,63 @@ class SrtpWorkbench:
             self._message("Save failed: {0}".format(error), error=True)
             return
         self._message("Analysis package saved. The source project remains unchanged.")
+
+    def compile_llm_source_to_ir(self, sender=None, app_data=None, user_data=None) -> None:
+        if self.package is None:
+            self._message("Import a source game before running the LLM compiler.", error=True)
+            return
+        repo_root = PACKAGE_DIR.parent
+        out_dir = repo_root / ".cubeengine_llm" / slugify(self.package.title)
+        intent = ""
+        if self.dpg.does_item_exist("srtp_llm_intent"):
+            raw = self.dpg.get_value("srtp_llm_intent")
+            if isinstance(raw, str):
+                intent = raw.strip()
+        self._message("Running LLM Source-to-IR compiler via freeflow-llm…")
+        try:
+            report = SourceToIRCompiler().compile(
+                self.package,
+                out_dir=out_dir,
+                intent_text=intent or None,
+            )
+        except LLMClientError as error:
+            self._message("LLM compiler failed: {0}".format(error), error=True)
+            return
+        except Exception as error:  # noqa: BLE001 - surface transport/import failures
+            self._message("LLM compiler failed: {0}".format(error), error=True)
+            return
+
+        lines = [
+            "LLM stage: {0}".format(report.stage),
+            "ok={0} compile_ready={1} attempts={2}".format(
+                report.ok, report.compile_ready, report.attempts,
+            ),
+            "provider={0} model={1}".format(report.provider or "-", report.model or "-"),
+            "output: {0}".format(report.output_dir or out_dir),
+        ]
+        if report.diagnostics:
+            lines.append("diagnostics:")
+            lines.extend("- {0}".format(item) for item in report.diagnostics[:20])
+        if report.unresolved_summary:
+            lines.append("unresolved: {0} item(s)".format(len(report.unresolved_summary)))
+        self.dpg.set_value("srtp_diagnostics", "\n".join(lines))
+        if report.ok and report.manifest is not None:
+            manifest_path = Path(report.output_dir or out_dir) / "project.manifest.json"
+            self._message(
+                "LLM proposal written. Use Attach Project Manifest on {0}".format(manifest_path),
+            )
+            if self.dpg.does_item_exist("srtp_core_activity"):
+                self.dpg.set_value(
+                    "srtp_core_activity",
+                    "LLM artifacts ready at:\n{0}\n\nAttach project.manifest.json to open a Project Session.".format(
+                        report.output_dir or out_dir,
+                    ),
+                )
+        else:
+            self._message(
+                "LLM compiler finished with blockers. See Diagnostics for details.",
+                error=True,
+            )
 
     def _render_package(self) -> None:
         assert self.package is not None
@@ -933,6 +996,15 @@ def main() -> None:
                     dpg.add_text(
                         "No Project IR is attached to this source.",
                         tag="srtp_core_attachment", wrap=215, color=(178, 185, 198),
+                    )
+                    dpg.add_button(
+                        label="COMPILE LLM → IR...", width=-1,
+                        callback=controller.compile_llm_source_to_ir,
+                    )
+                    dpg.add_input_text(
+                        tag="srtp_llm_intent",
+                        hint="Optional Design Intent for 3D lift",
+                        width=-1,
                     )
                     dpg.add_button(
                         label="ATTACH PROJECT MANIFEST...", width=-1,

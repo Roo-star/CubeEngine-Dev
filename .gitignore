@@ -4,5 +4,6 @@ __pycache__/
 .coverage
 *.log
 .cubeengine_variants/
+.cubeengine_llm/
 *.source-game-package.json
 *.rule-schema.json
