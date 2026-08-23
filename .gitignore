@@ -7,3 +7,4 @@ __pycache__/
 .cubeengine_llm/
 *.source-game-package.json
 *.rule-schema.json
+.env
