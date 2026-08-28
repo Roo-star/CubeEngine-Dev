@@ -25,8 +25,16 @@ def main(argv: Optional[List[str]] = None) -> int:
         help="Output directory for proposal, IR documents and manifest",
     )
     parser.add_argument(
+        "--lift-from",
+        default="",
+        help=(
+            "Approved Source bundle directory. Runs Spatial Lift into --out. "
+            "Requires --intent. Preferred two-phase path after designer approval."
+        ),
+    )
+    parser.add_argument(
         "--intent", default="",
-        help="Optional natural-language Design Intent for a target 3D lift",
+        help="Natural-language Design Intent for Spatial Lift",
     )
     parser.add_argument(
         "--language", default="en",
@@ -40,12 +48,29 @@ def main(argv: Optional[List[str]] = None) -> int:
     load_compiler_env(override=True)
 
     compiler = SourceToIRCompiler(max_repairs=args.max_repairs)
-    report = compiler.compile_path(
-        Path(args.source),
-        out_dir=Path(args.out),
-        intent_text=args.intent or None,
-        language=args.language,
-    )
+    lift_from = str(args.lift_from or "").strip()
+    intent = str(args.intent or "").strip()
+
+    if lift_from:
+        if not intent:
+            parser.error("--lift-from requires --intent")
+        report = compiler.compile_spatial_lift_path(
+            Path(args.source),
+            source_bundle_dir=Path(lift_from),
+            intent_text=intent,
+            out_dir=Path(args.out),
+            language=args.language,
+        )
+    else:
+        # Source four-IR only by default. Passing --intent without --lift-from
+        # still attempts lift but will block until the source is compile_ready.
+        report = compiler.compile_path(
+            Path(args.source),
+            out_dir=Path(args.out),
+            intent_text=intent or None,
+            language=args.language,
+        )
+
     print(json.dumps(report.to_mapping(), ensure_ascii=False, indent=2))
     return 0 if report.ok else 1
 

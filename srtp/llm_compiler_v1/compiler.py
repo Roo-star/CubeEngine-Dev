@@ -75,60 +75,25 @@ _SCENE_BINDING_TRANSFORMS = ("direct", "not", "map", "numeric", "format")
 _SCENE_STATE_SCOPES = ("global", "participant", "topology_site", "entity")
 _RULE_REFERENCE = re.compile(r"^rule:[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$")
 _SCENE_LOCAL_ID = re.compile(r"^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$")
-
-
-def _agent_dbg(hypothesis_id: str, location: str, message: str, data: Optional[Dict[str, Any]] = None) -> None:
-    # #region agent log
-    try:
-        payload = {
-            "sessionId": "0f1247",
-            "runId": "asset-importer",
-            "hypothesisId": hypothesis_id,
-            "location": location,
-            "message": message,
-            "data": data or {},
-            "timestamp": int(time.time() * 1000),
-        }
-        log_path = Path(__file__).resolve().parents[2] / "debug-0f1247.log"
-        with log_path.open("a", encoding="utf-8") as handle:
-            handle.write(json.dumps(payload, ensure_ascii=False) + "\n")
-    except Exception:
-        pass
-    # #endregion
+_SCENE_COMPONENT_TYPES = (
+    "renderer", "camera", "light", "collider",
+    "topology_visualizer", "rule_entity_visualizer", "ui_canvas", "authoring_marker",
+)
+_SCENE_COMPONENT_ID_FALLBACK = {
+    "topology_visualizer": "sites",
+    "rule_entity_visualizer": "entities",
+    "renderer": "renderer",
+    "camera": "camera",
+    "light": "light",
+    "collider": "collider",
+    "ui_canvas": "canvas",
+    "authoring_marker": "marker",
+}
 
 
 def _patch_counts(proposal: Optional[Mapping[str, Any]]) -> Dict[str, int]:
     patches = _coerce_patches_object(proposal.get("patches") if isinstance(proposal, Mapping) else None)
     return {key: len(patches.get(key) or []) for key in _IR_KEYS}
-
-
-def _rule_patch_entries(proposal: Optional[Mapping[str, Any]]) -> List[Any]:
-    patches = _coerce_patches_object(proposal.get("patches") if isinstance(proposal, Mapping) else None)
-    entries = patches.get("rule_ir") or []
-    return entries if isinstance(entries, list) else []
-
-
-def _topology_anchor_snapshot(proposal: Optional[Mapping[str, Any]]) -> List[Dict[str, Any]]:
-    snapshot: List[Dict[str, Any]] = []
-    if not isinstance(proposal, Mapping):
-        return snapshot
-    for entry in _rule_patch_entries(proposal):
-        if not isinstance(entry, Mapping):
-            continue
-        for operation in entry.get("operations") or []:
-            if not isinstance(operation, Mapping):
-                continue
-            path = str(operation.get("path") or "")
-            value = operation.get("value")
-            if "topology" not in path and not (isinstance(value, Mapping) and "anchor" in value):
-                continue
-            if isinstance(value, Mapping):
-                snapshot.append({
-                    "path": path,
-                    "anchor": value.get("anchor"),
-                    "kind": value.get("kind"),
-                })
-    return snapshot[:8]
 
 
 def _required_unresolved_count(documents: Mapping[str, Mapping[str, Any]]) -> int:
@@ -230,6 +195,13 @@ class SourceToIRCompiler:
         intent_text: Optional[str] = None,
         language: str = "en",
     ) -> CompileReport:
+        """Compile Source four-IR. Optional intent drafts lift only after approve.
+
+        Prefer the two-phase API for Spatial Lift:
+        ``compile`` (source) → approve → ``compile_spatial_lift``.
+        Passing ``intent_text`` here still gates on compile_ready (P0-4).
+        """
+
         evidence = build_evidence_pack(package)
         package_hash = str(evidence["source_package_hash"])
         bootstrap = bootstrap_documents(title=package.title, source_package_hash=package_hash)
@@ -242,6 +214,7 @@ class SourceToIRCompiler:
                 bootstrap=bootstrap,
                 job_id=job_id,
             )
+            wants_lift = bool(intent_text and str(intent_text).strip())
             if not source_report.ok:
                 if out_dir is not None:
                     source_report.output_dir = str(
@@ -249,12 +222,18 @@ class SourceToIRCompiler:
                     )
                 return source_report
 
-            if not intent_text or not str(intent_text).strip():
+            if not wants_lift:
                 if out_dir is not None:
                     source_report.output_dir = str(
                         write_compile_artifacts(out_dir, source_report)
                     )
                 return source_report
+
+            # Persist source before lift so designers can approve then resume.
+            if out_dir is not None and not source_report.compile_ready:
+                source_report.output_dir = str(
+                    write_compile_artifacts(out_dir, source_report)
+                )
 
             return self._compile_lift_stage(
                 package=package,
@@ -264,6 +243,69 @@ class SourceToIRCompiler:
                 language=language,
                 out_dir=out_dir,
             )
+
+    def compile_spatial_lift(
+        self,
+        package: SourceGamePackage,
+        *,
+        source_bundle_dir: Path,
+        intent_text: str,
+        out_dir: Optional[Path] = None,
+        language: str = "en",
+    ) -> CompileReport:
+        """Run Spatial Lift from an already-approved Source bundle on disk.
+
+        ``source_bundle_dir`` must contain ``project.manifest.json`` plus the
+        four IR documents pinned by that manifest, with ``compile_ready=true``.
+        """
+
+        intent = str(intent_text or "").strip()
+        if not intent:
+            raise ValueError("compile_spatial_lift requires non-empty intent_text")
+
+        source_report = load_compile_report_from_bundle(Path(source_bundle_dir))
+        if not source_report.compile_ready or source_report.manifest is None:
+            report = deepcopy_report(source_report)
+            report.ok = False
+            report.stage = "spatial_lift_blocked"
+            report.diagnostics = [
+                "Spatial Lift blocked: source bundle is not compile_ready "
+                "(approve the Source Project Manifest first).",
+            ]
+            if out_dir is not None:
+                report.output_dir = str(write_compile_artifacts(out_dir, report))
+            return report
+
+        evidence = build_evidence_pack(package)
+        if not source_report.source_package_hash:
+            source_report.source_package_hash = str(evidence["source_package_hash"])
+        with self.client:
+            return self._compile_lift_stage(
+                package=package,
+                evidence=evidence,
+                source_report=source_report,
+                intent_text=intent,
+                language=language,
+                out_dir=out_dir,
+            )
+
+    def compile_spatial_lift_path(
+        self,
+        source: Path,
+        *,
+        source_bundle_dir: Path,
+        intent_text: str,
+        out_dir: Optional[Path] = None,
+        language: str = "en",
+    ) -> CompileReport:
+        package = SourceGameImporter().import_path(Path(source))
+        return self.compile_spatial_lift(
+            package,
+            source_bundle_dir=source_bundle_dir,
+            intent_text=intent_text,
+            out_dir=out_dir,
+            language=language,
+        )
 
     def _compile_source_stage(
         self,
@@ -282,19 +324,14 @@ class SourceToIRCompiler:
         attempts = 0
         repair: Optional[Sequence[str]] = None
         ok = False
+        best_proposal: Optional[Dict[str, Any]] = None
+        best_diagnostics: List[str] = []
 
         while attempts < self.max_repairs + 1:
             attempts += 1
             messages = source_to_ir_messages(
                 evidence, base_pins, repair_diagnostics=repair,
             )
-            # #region agent log
-            _agent_dbg("B", "compiler.py:_compile_source_stage", "compile attempt start", {
-                "attempt": attempts,
-                "has_repair": bool(repair),
-                "repair_preview": [str(item)[:160] for item in (repair or [])][:3],
-            })
-            # #endregion
             try:
                 result = self.client.chat_json(messages)
             except LLMClientError as error:
@@ -303,12 +340,6 @@ class SourceToIRCompiler:
                 continue
             provider = result.provider
             model = result.model
-            # #region agent log
-            _agent_dbg("A", "compiler.py:_compile_source_stage", "raw topology anchors before coerce", {
-                "attempt": attempts,
-                "anchors": _topology_anchor_snapshot(result.parsed),
-            })
-            # #endregion
             proposal = _normalize_source_proposal(
                 dict(result.parsed),
                 job_id=job_id,
@@ -316,63 +347,68 @@ class SourceToIRCompiler:
                 base_pins=base_pins,
                 source_root=Path(package.root),
             )
-            # #region agent log
-            _agent_dbg("F", "compiler.py:_compile_source_stage", "normalized proposal patches", {
-                "attempt": attempts,
-                "patches_type": type((proposal or {}).get("patches")).__name__,
-                "anchors_after_coerce": _topology_anchor_snapshot(proposal),
-                "unresolved_types": [
-                    type(item).__name__
-                    for entry in _rule_patch_entries(proposal)
-                    if isinstance(entry, dict)
-                    for item in (entry.get("unresolved") or [])
-                ][:8],
-                "rule_ops": [
-                    (op.get("op"), op.get("path"))
-                    for entry in _rule_patch_entries(proposal)
-                    if isinstance(entry, dict)
-                    for op in (entry.get("operations") or [])
-                    if isinstance(op, dict)
-                ][:8],
-            })
-            # #endregion
             applied = validate_and_apply_proposal(
                 proposal,
                 bootstrap.documents,
                 require_design_intent=False,
                 source_package_hash=bootstrap.source_package_hash,
+                evidence_pack=evidence,
+                source_root=Path(package.root),
             )
             counts = _patch_counts(proposal)
             required = _required_unresolved_count(applied.documents or bootstrap.documents)
-            # #region agent log
-            _agent_dbg("A", "compiler.py:_compile_source_stage", "proposal apply result", {
-                "attempt": attempts,
-                "applied_ok": applied.ok,
-                "patch_counts": counts,
-                "patch_total": sum(counts.values()),
-                "required_unresolved": required,
-                "diagnostic_count": len(applied.diagnostics),
-                "first_diagnostic": (applied.diagnostics[0][:240] if applied.diagnostics else ""),
-            })
-            # #endregion
+            if sum(counts.values()) > 0:
+                best_proposal = deepcopy(proposal)
+                best_diagnostics = list(applied.diagnostics)
             if applied.ok:
                 if sum(counts.values()) == 0 and required > 0:
-                    # #region agent log
-                    _agent_dbg("B", "compiler.py:_compile_source_stage", "empty patches rejected", {
-                        "attempt": attempts,
-                        "required_unresolved": required,
-                    })
-                    # #endregion
                     diagnostics = [_empty_reconstruction_diagnostic(counts, required)]
                     repair = diagnostics
                     continue
-                documents = applied.documents
+                documents = _pin_cross_ir_dependencies(
+                    applied.documents,
+                    source_hints={
+                        "adapter_id": getattr(
+                            getattr(package, "transformation", None), "adapter_id", None,
+                        ),
+                        "title": getattr(package, "title", None),
+                    },
+                )
+                # #region agent log
+                try:
+                    import json as _json, time as _time
+                    _scene_deps = (documents.get("scene_ir") or {}).get("dependencies") or {}
+                    _input_deps = (documents.get("input_ir") or {}).get("dependencies") or {}
+                    with open("debug-f3e2af.log", "a", encoding="utf-8") as _f:
+                        _f.write(_json.dumps({
+                            "sessionId": "f3e2af", "runId": "post-fix", "hypothesisId": "A,B,C",
+                            "location": "compiler.py:_compile_source_stage:pinned",
+                            "message": "cross-IR pins after successful apply",
+                            "data": {
+                                "scene_rule_ir": _scene_deps.get("rule_ir"),
+                                "scene_asset_ir": _scene_deps.get("asset_ir"),
+                                "input_rule_ir": _input_deps.get("rule_ir"),
+                            },
+                            "timestamp": int(_time.time() * 1000),
+                        }) + "\n")
+                except Exception:
+                    pass
+                # #endregion
                 proposal = applied.proposal
                 diagnostics = []
                 ok = True
                 break
             diagnostics = list(applied.diagnostics)
             repair = diagnostics
+
+        if (
+            not ok
+            and best_proposal is not None
+            and (proposal is None or sum(_patch_counts(proposal).values()) == 0)
+        ):
+            proposal = best_proposal
+            if best_diagnostics:
+                diagnostics = list(best_diagnostics)
 
         manifest = None
         compile_ready = False
@@ -386,15 +422,6 @@ class SourceToIRCompiler:
             )
             compile_ready = is_project_manifest_compile_ready(manifest)
 
-        # #region agent log
-        _agent_dbg("C", "compiler.py:_compile_source_stage", "source stage exit", {
-            "ok": ok,
-            "compile_ready": compile_ready,
-            "attempts": attempts,
-            "patch_counts": _patch_counts(proposal),
-            "required_unresolved": _required_unresolved_count(documents),
-        })
-        # #endregion
 
         unresolved: List[Any] = []
         if isinstance(proposal, Mapping):
@@ -437,6 +464,50 @@ class SourceToIRCompiler:
         diagnostics: List[str] = []
         provider = source_report.provider
         model = source_report.model
+
+        # P0-4: Design Intent may be drafted early, but Spatial Lift requires an
+        # approved, compile-ready Source manifest.
+        if not source_report.compile_ready or not is_project_manifest_compile_ready(source_manifest):
+            draft_intent = {
+                "intent_version": DESIGN_INTENT_VERSION,
+                "intent_id": "intent:draft:{0}".format(uuid.uuid4().hex[:12]),
+                "conversation_id": "conversation:{0}".format(uuid.uuid4().hex[:12]),
+                "turn_id": "turn:{0}".format(uuid.uuid4().hex[:12]),
+                "project_id": source_report.project_id,
+                "source_manifest_hash": source_hash,
+                "original_text": intent_text,
+                "language": language,
+                "operation": "transform",
+                "scope": ["rule", "scene", "asset", "input"],
+                "preserve": [],
+                "changes": [],
+                "constraints": [],
+                "resolved_references": [],
+                "assumptions": [],
+                "conflicts": [],
+                "unresolved": [{
+                    "path": "/spatial_lift",
+                    "reason": (
+                        "Source Project must be compile_ready and designer-approved "
+                        "before Spatial Lift."
+                    ),
+                    "required": True,
+                    "owner": "designer",
+                }],
+                "requires_confirmation": True,
+                "status": "draft_blocked",
+                "target_base": None,
+            }
+            report = deepcopy_report(source_report)
+            report.ok = False
+            report.stage = "spatial_lift_blocked"
+            report.design_intent = draft_intent
+            report.diagnostics = [
+                "Spatial Lift blocked: source must reach compile_ready after designer approval.",
+            ]
+            if out_dir is not None:
+                report.output_dir = str(write_compile_artifacts(out_dir, report))
+            return report
 
         try:
             intent_result = self.client.chat_json(
@@ -495,6 +566,12 @@ class SourceToIRCompiler:
         target_docs = deepcopy(source_report.documents)
         for key, document in target_docs.items():
             document_id = str(document["document_id"]).replace(".source", ".target")
+            if document_id == str(document["document_id"]):
+                # Ensure target pins never collide with co-located source IR copies.
+                if document_id.endswith(".target"):
+                    pass
+                else:
+                    document_id = "{0}.target".format(document_id)
             document["document_id"] = document_id
             document["revision"] = 0
             document["content_hash"] = ""
@@ -510,6 +587,8 @@ class SourceToIRCompiler:
             "asset_ir": seal_asset_ir(target_docs["asset_ir"], revision=0),
             "input_ir": seal_input_ir(target_docs["input_ir"], revision=0),
         }
+        # Re-pin Scene/Input against retargeted Rule/Asset hashes.
+        target_docs = _pin_cross_ir_dependencies(target_docs)
         base_pins = {
             key: {
                 "document_id": doc["document_id"],
@@ -612,12 +691,16 @@ class SourceToIRCompiler:
             target_docs,
             require_design_intent=True,
             source_package_hash=source_report.source_package_hash,
+            evidence_pack=evidence,
+            source_root=Path(package.root),
         )
         if not applied.ok:
             diagnostics.extend(applied.diagnostics)
 
         ok = not diagnostics and applied.ok
         documents = applied.documents if applied.ok else target_docs
+        if ok:
+            documents = _pin_cross_ir_dependencies(documents)
         target_project_id = source_report.project_id.replace(".source", ".target")
         if not target_project_id.endswith(".target"):
             target_project_id = source_report.project_id + ".target"
@@ -657,8 +740,12 @@ class SourceToIRCompiler:
             unresolved_summary=list(proposal.get("unresolved") or [])[:50],
         )
         if out_dir is not None:
-            write_compile_artifacts(Path(out_dir) / "source", source_report)
-            report.output_dir = str(write_compile_artifacts(out_dir, report))
+            target_root = Path(out_dir)
+            # Only the source *manifest* is required beside the target for pins.
+            # Avoid copying full source IR (same document_id would confuse attach).
+            write_compile_artifacts(target_root, report)
+            _write_source_manifest_sidecar(target_root, source_report.manifest)
+            report.output_dir = str(target_root)
         return report
 
     def _build_manifest(
@@ -714,6 +801,833 @@ class SourceToIRCompiler:
         return seal_project_manifest(manifest, revision=0)
 
 
+def _pin_cross_ir_dependencies(
+    documents: Mapping[str, Mapping[str, Any]],
+    *,
+    source_hints: Optional[Mapping[str, Any]] = None,
+) -> Dict[str, Dict[str, Any]]:
+    """Fill Scene/Input dependency pins required by Project Manifest compile."""
+
+    from srtp.asset_ir_v2 import seal_asset_ir
+    from srtp.input_ir_v2 import seal_input_ir
+    from srtp.ir_v2 import seal_rule_ir
+    from srtp.scene_ir_v2 import seal_scene_ir
+
+    docs: Dict[str, Dict[str, Any]] = {
+        key: dict(value) for key, value in documents.items()
+    }
+    docs["rule_ir"] = _ensure_rule_session_contract(docs["rule_ir"])
+    docs = _wire_playable_session(docs, source_hints=source_hints)
+    docs["rule_ir"] = _mark_missing_semantics_unresolved(docs["rule_ir"])
+    docs["rule_ir"] = seal_rule_ir(
+        docs["rule_ir"], revision=int(docs["rule_ir"].get("revision") or 0),
+    )
+    docs["asset_ir"] = seal_asset_ir(
+        docs["asset_ir"], revision=int(docs["asset_ir"].get("revision") or 0),
+    )
+    rule_pin = {
+        "document_id": docs["rule_ir"]["document_id"],
+        "content_hash": docs["rule_ir"]["content_hash"],
+    }
+    asset_pin = {
+        "document_id": docs["asset_ir"]["document_id"],
+        "content_hash": docs["asset_ir"]["content_hash"],
+    }
+
+    scene = _ensure_scene_visualizer_prefabs(docs["scene_ir"])
+    scene = _wire_scene_state_bindings(scene, docs["rule_ir"])
+    scene_deps = dict(scene.get("dependencies") or {})
+    scene_deps["rule_ir"] = dict(rule_pin)
+    scene_deps["asset_ir"] = dict(asset_pin)
+    if not isinstance(scene_deps.get("extensions"), list):
+        scene_deps["extensions"] = []
+    scene["dependencies"] = scene_deps
+    docs["scene_ir"] = seal_scene_ir(scene, revision=int(scene.get("revision") or 0))
+
+    input_doc = _ensure_input_distinct_triggers(docs["input_ir"])
+    input_doc = _wire_input_rule_actions(input_doc, docs["rule_ir"])
+    input_doc = _wire_input_mouse_for_coord_actions(input_doc, docs["rule_ir"])
+    input_doc = _ensure_input_distinct_triggers(input_doc)
+    input_deps = dict(input_doc.get("dependencies") or {})
+    input_deps["rule_ir"] = dict(rule_pin)
+    if not isinstance(input_deps.get("extensions"), list):
+        input_deps["extensions"] = []
+    input_doc["dependencies"] = input_deps
+    docs["input_ir"] = seal_input_ir(
+        input_doc, revision=int(input_doc.get("revision") or 0),
+    )
+    _validate_playable_session(docs)
+    return docs
+
+
+def _wire_playable_session(
+    documents: Mapping[str, Mapping[str, Any]],
+    *,
+    source_hints: Optional[Mapping[str, Any]] = None,
+) -> Dict[str, Dict[str, Any]]:
+    """Cross-IR passthrough — no family overlays or semantic invention.
+
+    Snake playable semantics live in
+    ``snake_playable_fixture`` as an explicit reviewed fixture / dev harness.
+    They must not be applied as a silent success path when LLM effects are empty.
+    """
+
+    del source_hints  # retained for call-site compatibility
+    return {key: dict(value) for key, value in documents.items()}
+
+
+def _should_apply_snake_step_overlay(
+    documents: Mapping[str, Mapping[str, Any]],
+    source_hints: Optional[Mapping[str, Any]],
+) -> bool:
+    """Deprecated: overlay is fixture/dev-only and never auto-applied on compile."""
+
+    del documents, source_hints
+    return False
+
+
+def _mark_missing_semantics_unresolved(
+    document: Mapping[str, Any],
+) -> Dict[str, Any]:
+    """Promote missing play/rule semantics to required unresolved instead of guessing."""
+
+    result = dict(document)
+    unresolved = [
+        dict(item) for item in (result.get("unresolved") or [])
+        if isinstance(item, Mapping)
+    ]
+    existing_paths = {str(item.get("path")) for item in unresolved}
+
+    def require(path: str, reason: str) -> None:
+        if path in existing_paths:
+            return
+        unresolved.append({
+            "path": path,
+            "reason": reason,
+            "required": True,
+            "owner": "llm",
+        })
+        existing_paths.add(path)
+
+    actions = result.get("actions")
+    if isinstance(actions, list):
+        for index, action in enumerate(actions):
+            if not isinstance(action, Mapping):
+                continue
+            actor = action.get("actor")
+            if actor in (None, "", {}):
+                require(
+                    "/actions/{0}/actor".format(index),
+                    "Action actor is missing; do not invent participant semantics.",
+                )
+            effects = action.get("effects")
+            if not isinstance(effects, list) or not effects:
+                require(
+                    "/actions/{0}/effects".format(index),
+                    "Action effects are empty; do not invent game mechanics.",
+                )
+            precondition = action.get("precondition")
+            if precondition in (None, "", {}):
+                require(
+                    "/actions/{0}/precondition".format(index),
+                    "Action precondition is missing; do not default to true.",
+                )
+
+    flow = result.get("flow")
+    if isinstance(flow, Mapping):
+        model = flow.get("model")
+        if model not in {
+            "turn_based", "simultaneous", "event_driven", "fixed_tick", "real_time", "hybrid",
+        }:
+            require("/flow/model", "Flow model is missing; do not guess tick vs event.")
+        scheduler = flow.get("scheduler") if isinstance(flow.get("scheduler"), Mapping) else {}
+        if model == "fixed_tick":
+            tick_hz = scheduler.get("tick_hz")
+            if not isinstance(tick_hz, int) or isinstance(tick_hz, bool) or tick_hz <= 0:
+                require(
+                    "/flow/scheduler/tick_hz",
+                    "Tick rate is missing; do not invent tick_hz.",
+                )
+
+    participants = result.get("participants")
+    if not isinstance(participants, list) or not participants:
+        require(
+            "/participants",
+            "Participants are missing; do not invent actor=player.",
+        )
+
+    result["unresolved"] = unresolved
+    return result
+
+
+def _rule_actions_lack_effects(rule: Mapping[str, Any]) -> bool:
+    actions = rule.get("actions") or []
+    if not isinstance(actions, list) or not actions:
+        return True
+    for item in actions:
+        if isinstance(item, Mapping) and isinstance(item.get("effects"), list) and item["effects"]:
+            return False
+    return True
+
+
+def _wire_input_rule_actions(
+    input_doc: Mapping[str, Any], rule: Mapping[str, Any],
+) -> Dict[str, Any]:
+    """Point semantic intents at Rule actions when names/ids align."""
+
+    document = dict(input_doc)
+    actions = [
+        item for item in (rule.get("actions") or [])
+        if isinstance(item, Mapping) and isinstance(item.get("id"), str)
+    ]
+    if not actions:
+        return document
+    action_by_token: Dict[str, str] = {}
+    for action in actions:
+        action_id = str(action["id"])
+        local = action_id.split(":", 1)[-1].lower().replace("-", "_")
+        action_by_token[local] = action_id
+        action_by_token[local.replace("action.", "")] = action_id
+        for part in local.split("."):
+            if part and part not in ("action", "rule"):
+                action_by_token.setdefault(part, action_id)
+        name = str(action.get("name") or "").lower().replace(" ", "_")
+        if name:
+            action_by_token[name] = action_id
+
+    intents = document.get("intents")
+    if not isinstance(intents, list):
+        return document
+    for intent in intents:
+        if not isinstance(intent, dict):
+            continue
+        target = intent.get("target")
+        if isinstance(target, dict) and target.get("kind") == "rule_action":
+            action = target.get("action")
+            if isinstance(action, str) and action and not action.startswith("rule:"):
+                target["action"] = "rule:{0}".format(slugify(action, fallback="action"))
+            if not isinstance(target.get("parameters"), dict):
+                target["parameters"] = {}
+            continue
+        tokens = []
+        for field in ("id", "name"):
+            raw = str(intent.get(field) or "").lower().replace("-", "_")
+            local = raw.split(":", 1)[-1]
+            tokens.append(local)
+            tokens.extend(part for part in local.replace(".", "_").split("_") if part)
+        matched = None
+        for token in tokens:
+            if token in action_by_token:
+                matched = action_by_token[token]
+                break
+            for key, action_id in action_by_token.items():
+                if token and token in key:
+                    matched = action_id
+                    break
+            if matched:
+                break
+        if matched is None and len(actions) == 1:
+            matched = str(actions[0]["id"])
+        if matched is None:
+            intent["target"] = {"kind": "semantic"}
+            continue
+        params = {}
+        action_obj = next(item for item in actions if item["id"] == matched)
+        for parameter in action_obj.get("parameters") or []:
+            if not isinstance(parameter, Mapping):
+                continue
+            name = parameter.get("name")
+            if not isinstance(name, str) or not name:
+                continue
+            if parameter.get("type") == "core:coord":
+                params[name] = {
+                    "source": "event_data",
+                    "key": "rule_coordinate",
+                    "value_type": "core:coord",
+                }
+        intent["target"] = {
+            "kind": "rule_action",
+            "action": matched,
+            "parameters": params,
+        }
+    return document
+
+
+def _wire_input_mouse_for_coord_actions(
+    input_doc: Mapping[str, Any], rule: Mapping[str, Any],
+) -> Dict[str, Any]:
+    """Ensure a primary-click binding exists for rule_action intents with coords."""
+
+    document = dict(input_doc)
+    intents = [
+        item for item in (document.get("intents") or [])
+        if isinstance(item, Mapping)
+        and isinstance(item.get("target"), Mapping)
+        and item["target"].get("kind") == "rule_action"
+        and any(
+            isinstance(param, Mapping) and param.get("value_type") == "core:coord"
+            for param in (item["target"].get("parameters") or {}).values()
+        )
+    ]
+    if not intents:
+        return document
+    contexts = document.get("contexts") if isinstance(document.get("contexts"), list) else []
+    context_id = "input:context.play"
+    for item in contexts:
+        if isinstance(item, Mapping) and item.get("id"):
+            context_id = str(item["id"])
+            break
+    bindings = document.get("bindings")
+    if not isinstance(bindings, list):
+        bindings = []
+        document["bindings"] = bindings
+    existing_intents = {
+        str(item.get("intent"))
+        for item in bindings
+        if isinstance(item, Mapping) and item.get("enabled") is not False
+    }
+    for intent in intents:
+        intent_id = str(intent.get("id"))
+        if intent_id in existing_intents:
+            continue
+        bindings.append({
+            "id": "input:binding.mouse.{0}".format(slugify(intent_id, fallback="place")),
+            "name": "Mouse {0}".format(intent.get("name") or "Action"),
+            "context": context_id,
+            "intent": intent_id,
+            "priority": 100,
+            "enabled": True,
+            "consume": True,
+            "rebindable": True,
+            "slot": "primary",
+            "accessibility_label": str(intent.get("name") or "Action"),
+            "trigger": {
+                "kind": "control",
+                "device": "mouse",
+                "control": "mouse.button.primary",
+                "phase": "press",
+                "modifiers": [],
+                "modifier_policy": "exact",
+            },
+            "processing": _default_input_processing(),
+        })
+    return document
+
+
+def _wire_scene_state_bindings(
+    scene: Mapping[str, Any], rule: Mapping[str, Any],
+) -> Dict[str, Any]:
+    """Synthesize a topology_site → renderer.variant binding when missing."""
+
+    document = dict(scene)
+    site_vars = [
+        str(item.get("id"))
+        for item in ((rule.get("state") or {}).get("variables") or [])
+        if isinstance(item, Mapping) and item.get("scope") == "topology_site" and item.get("id")
+    ]
+    if len(site_vars) != 1:
+        return document
+    variable = site_vars[0]
+    visualizer_host = None
+    visualizer_id = None
+    for node in document.get("nodes") or []:
+        if not isinstance(node, Mapping):
+            continue
+        for component in node.get("components") or []:
+            if isinstance(component, Mapping) and component.get("type") == "topology_visualizer":
+                visualizer_host = str(node.get("id"))
+                visualizer_id = str(component.get("id") or "sites")
+                break
+        if visualizer_host:
+            break
+    if not visualizer_host:
+        return document
+    bindings = document.get("bindings")
+    if not isinstance(bindings, list):
+        bindings = []
+        document["bindings"] = bindings
+    for item in bindings:
+        if not isinstance(item, Mapping):
+            continue
+        source = item.get("source") if isinstance(item.get("source"), Mapping) else {}
+        if source.get("variable") == variable:
+            return document
+    cases = [
+        {"equals": 0, "value": "empty"},
+        {"equals": 1, "value": "body"},
+        {"equals": 2, "value": "head"},
+        {"equals": -1, "value": "food"},
+    ]
+    bindings.append({
+        "id": "scene:binding.cell_variant",
+        "name": "Cell Variant",
+        "source": {
+            "kind": "state",
+            "scope": "topology_site",
+            "variable": variable,
+        },
+        "target": {
+            "selector": "topology_sites",
+            "node": visualizer_host,
+            "visualizer": visualizer_id,
+            "component": "renderer",
+            "property": "variant",
+        },
+        "transform": {"kind": "map", "cases": cases},
+    })
+    return document
+
+
+def _validate_playable_session(documents: Mapping[str, Mapping[str, Any]]) -> None:
+    """Record playability gaps without failing the compile seal path."""
+
+    rule = documents.get("rule_ir") or {}
+    input_doc = documents.get("input_ir") or {}
+    has_effects = not _rule_actions_lack_effects(rule)
+    has_site = any(
+        isinstance(item, Mapping) and item.get("scope") == "topology_site"
+        for item in ((rule.get("state") or {}).get("variables") or [])
+    )
+    enabled_rule_bindings = 0
+    intent_targets = {
+        str(item.get("id")): item.get("target")
+        for item in (input_doc.get("intents") or [])
+        if isinstance(item, Mapping) and item.get("id")
+    }
+    for binding in input_doc.get("bindings") or []:
+        if not isinstance(binding, Mapping) or binding.get("enabled") is False:
+            continue
+        target = intent_targets.get(str(binding.get("intent")))
+        if isinstance(target, Mapping) and target.get("kind") == "rule_action":
+            enabled_rule_bindings += 1
+    # #region agent log
+    try:
+        import json as _json, time as _time
+        with open("debug-f3e2af.log", "a", encoding="utf-8") as _f:
+            _f.write(_json.dumps({
+                "sessionId": "f3e2af", "runId": "post-fix", "hypothesisId": "PLAY",
+                "location": "compiler.py:_validate_playable_session",
+                "message": "playability check",
+                "data": {
+                    "has_effects": has_effects,
+                    "has_site": has_site,
+                    "enabled_rule_bindings": enabled_rule_bindings,
+                },
+                "timestamp": int(_time.time() * 1000),
+            }) + "\n")
+    except Exception:
+        pass
+    # #endregion
+
+
+def _coerce_actor_expression(value: Any) -> Any:
+    """Normalize actor ID shape when present; never invent a missing actor."""
+
+    current_actor = {"op": "ref", "path": "flow.current_actor"}
+    if value in (None, "", {}):
+        return None
+    if isinstance(value, dict):
+        if value.get("op") == "ref" and value.get("path") == "flow.current_actor":
+            return value
+        if value.get("op") == "param":
+            return value
+        if value.get("op") == "literal":
+            raw = value.get("value")
+            if isinstance(raw, str) and raw.startswith("rule:participant."):
+                return value
+            if isinstance(raw, str) and raw.strip():
+                local = slugify(raw, fallback="player")
+                return {"op": "literal", "value": "rule:participant.{0}".format(local)}
+            return None
+        return dict(current_actor) if value.get("op") == "ref" else None
+    if isinstance(value, str) and value.strip():
+        if value.startswith("rule:participant."):
+            return {"op": "literal", "value": value}
+        return {
+            "op": "literal",
+            "value": "rule:participant.{0}".format(slugify(value, fallback="player")),
+        }
+    return None
+
+
+def _coerce_participant_object(value: Dict[str, Any]) -> None:
+    identifier = value.get("id")
+    if isinstance(identifier, str) and identifier and not identifier.startswith("rule:"):
+        value["id"] = "rule:participant.{0}".format(slugify(identifier, fallback="player"))
+    elif isinstance(identifier, str) and identifier and not str(identifier).startswith("rule:participant."):
+        local = str(identifier).split(":", 1)[-1]
+        value["id"] = "rule:participant.{0}".format(slugify(local, fallback="player"))
+    if not isinstance(value.get("name"), str) or not value.get("name"):
+        if isinstance(value.get("id"), str) and value.get("id"):
+            value["name"] = _name_from_id(value, "Player")
+    if value.get("kind") not in ("human", "agent", "human_or_agent", "system", "chance"):
+        if "kind" in value or value.get("id"):
+            value["kind"] = "human"
+
+
+def _ensure_rule_session_contract(rule: Mapping[str, Any]) -> Dict[str, Any]:
+    """Normalize participant/actor ID shapes; do not invent missing participants."""
+
+    document = dict(rule)
+    participants = document.get("participants")
+    if not isinstance(participants, list):
+        participants = []
+        document["participants"] = participants
+    for item in participants:
+        if isinstance(item, dict):
+            _coerce_participant_object(item)
+    ids = {
+        str(item.get("id"))
+        for item in participants
+        if isinstance(item, dict) and item.get("id")
+    }
+    for action in document.get("actions") or []:
+        if not isinstance(action, dict):
+            continue
+        coerced = _coerce_actor_expression(action.get("actor"))
+        if coerced is not None:
+            action["actor"] = coerced
+        actor = action.get("actor")
+        if isinstance(actor, dict) and actor.get("op") == "literal":
+            pid = actor.get("value")
+            if isinstance(pid, str) and pid.startswith("rule:participant.") and pid not in ids:
+                # Shape-only: materialize participant when action already named one.
+                local = pid.rsplit(".", 1)[-1]
+                participants.append({
+                    "id": pid,
+                    "name": local.replace("_", " ").title() or "Player",
+                    "kind": "human",
+                })
+                ids.add(pid)
+    document = _ensure_topology_site_grid(document)
+    return document
+
+
+def _ensure_topology_site_grid(rule: Mapping[str, Any]) -> Dict[str, Any]:
+    """Workbench Project Session needs a topology_site grid to render cells."""
+
+    document = dict(rule)
+    topologies = [
+        item for item in (document.get("topologies") or [])
+        if isinstance(item, dict) and item.get("kind") == "rect_grid" and item.get("id")
+    ]
+    if not topologies:
+        return document
+    state = document.get("state")
+    if not isinstance(state, dict):
+        state = {
+            "variables": [],
+            "entity_types": [],
+            "initial_effects": [],
+            "information_model": "perfect",
+        }
+        document["state"] = state
+    variables = state.get("variables")
+    if not isinstance(variables, list):
+        variables = []
+        state["variables"] = variables
+    has_site = any(
+        isinstance(item, dict) and item.get("scope") == "topology_site"
+        for item in variables
+    )
+    if has_site:
+        return document
+    topology_ids = [str(item["id"]) for item in topologies]
+    topology_id = (
+        "rule:topology.board" if "rule:topology.board" in topology_ids else topology_ids[0]
+    )
+    variables.append({
+        "id": "rule:state.board_cell",
+        "name": "Board Cell",
+        "type": "core:int",
+        "scope": "topology_site",
+        "topology": topology_id,
+        "initial": {"op": "literal", "value": 0},
+    })
+    # #region agent log
+    try:
+        import json as _json, time as _time
+        with open("debug-f3e2af.log", "a", encoding="utf-8") as _f:
+            _f.write(_json.dumps({
+                "sessionId": "f3e2af", "runId": "post-fix", "hypothesisId": "G1",
+                "location": "compiler.py:_ensure_topology_site_grid",
+                "message": "added topology_site board_cell for preview grid",
+                "data": {"topology_id": topology_id, "variable_count": len(variables)},
+                "timestamp": int(_time.time() * 1000),
+            }) + "\n")
+    except Exception:
+        pass
+    # #endregion
+    return document
+
+
+def _default_visualizer_prefab(prefab_id: str) -> Dict[str, Any]:
+    """Shape-only cell prefab required by topology/entity visualizers."""
+
+    name = str(prefab_id).rsplit(".", 1)[-1].replace("_", " ").title() or "Cell"
+    prefab = {
+        "id": prefab_id,
+        "name": name,
+        "root": {
+            "local_id": "root",
+            "name": name,
+            "active": True,
+            "transform": {
+                "translation": [0.0, 0.0, 0.0],
+                "rotation_euler_deg": [0.0, 0.0, 0.0],
+                "scale": [1.0, 1.0, 1.0],
+            },
+            "components": [{
+                "id": "renderer",
+                "type": "renderer",
+                "enabled": True,
+                "properties": {"geometry": "builtin:cube", "visible": True},
+            }],
+            "children": [],
+        },
+    }
+    _coerce_scene_prefab(prefab)
+    return prefab
+
+
+def _ensure_scene_visualizer_prefabs(scene: Mapping[str, Any]) -> Dict[str, Any]:
+    """Fill missing visualizer prefab declarations so Scene compile can expand sites."""
+
+    document = dict(scene)
+    prefabs = document.get("prefabs")
+    if not isinstance(prefabs, list):
+        prefabs = []
+        document["prefabs"] = prefabs
+    ids = {
+        str(item.get("id"))
+        for item in prefabs
+        if isinstance(item, dict) and item.get("id")
+    }
+    needed: List[str] = []
+    for node in document.get("nodes") or []:
+        if not isinstance(node, dict):
+            continue
+        for component in node.get("components") or []:
+            if not isinstance(component, dict):
+                continue
+            if component.get("type") not in ("topology_visualizer", "rule_entity_visualizer"):
+                continue
+            properties = component.get("properties")
+            if not isinstance(properties, dict):
+                continue
+            prefab_id = properties.get("prefab")
+            if (
+                isinstance(prefab_id, str)
+                and prefab_id.startswith("scene:")
+                and prefab_id not in ids
+                and prefab_id not in needed
+            ):
+                needed.append(prefab_id)
+    for prefab_id in needed:
+        prefabs.append(_default_visualizer_prefab(prefab_id))
+        ids.add(prefab_id)
+    # #region agent log
+    try:
+        import json as _json, time as _time
+        with open("debug-f3e2af.log", "a", encoding="utf-8") as _f:
+            _f.write(_json.dumps({
+                "sessionId": "f3e2af", "runId": "post-fix", "hypothesisId": "A",
+                "location": "compiler.py:_ensure_scene_visualizer_prefabs",
+                "message": "scene visualizer prefab fill",
+                "data": {
+                    "needed": needed,
+                    "prefab_ids": sorted(ids),
+                    "prefab_count": len(prefabs),
+                },
+                "timestamp": int(_time.time() * 1000),
+            }) + "\n")
+    except Exception:
+        pass
+    # #endregion
+    return document
+
+
+_KEYBOARD_CONTROL_ALIASES = {
+    "up": "keyboard.key.arrow_up",
+    "down": "keyboard.key.arrow_down",
+    "left": "keyboard.key.arrow_left",
+    "right": "keyboard.key.arrow_right",
+    "arrowup": "keyboard.key.arrow_up",
+    "arrowdown": "keyboard.key.arrow_down",
+    "arrowleft": "keyboard.key.arrow_left",
+    "arrowright": "keyboard.key.arrow_right",
+    "arrow_up": "keyboard.key.arrow_up",
+    "arrow_down": "keyboard.key.arrow_down",
+    "arrow_left": "keyboard.key.arrow_left",
+    "arrow_right": "keyboard.key.arrow_right",
+    "w": "keyboard.key.w",
+    "a": "keyboard.key.a",
+    "s": "keyboard.key.s",
+    "d": "keyboard.key.d",
+    "space": "keyboard.key.space",
+    "enter": "keyboard.key.enter",
+    "escape": "keyboard.key.escape",
+    "esc": "keyboard.key.escape",
+}
+
+
+def _normalize_keyboard_control(raw: Any) -> Optional[str]:
+    """Map bare/LLM key names onto keyboard.key.* control ids."""
+
+    if not isinstance(raw, str) or not raw.strip():
+        return None
+    text = raw.strip()
+    if text.startswith("keyboard.key.") and len(text) > len("keyboard.key."):
+        return text
+    if text.startswith("keyboard.") and text.count(".") >= 2:
+        return text
+    local = text.lower().replace("-", "_").replace(" ", "")
+    if local.startswith("keyboard.key."):
+        return "keyboard.key.{0}".format(local[len("keyboard.key."):])
+    if local.startswith("key."):
+        return "keyboard.key.{0}".format(local[4:])
+    alias = _KEYBOARD_CONTROL_ALIASES.get(local)
+    if alias:
+        return alias
+    if re.fullmatch(r"[a-z0-9_]+", local):
+        return "keyboard.key.{0}".format(local)
+    return None
+
+
+def _infer_binding_control(binding: Mapping[str, Any]) -> Optional[str]:
+    """Prefer declared input hints / direction tokens over the space stub."""
+
+    for key in ("input", "key", "control"):
+        candidate = _normalize_keyboard_control(binding.get(key))
+        if candidate:
+            return candidate
+    tokens: List[str] = []
+    for field in ("id", "name", "intent", "accessibility_label"):
+        raw = binding.get(field)
+        if not isinstance(raw, str) or not raw:
+            continue
+        local = raw.split(":", 1)[-1].lower().replace("-", "_")
+        tokens.extend(part for part in re.split(r"[._\s]+", local) if part)
+    for token in tokens:
+        alias = _KEYBOARD_CONTROL_ALIASES.get(token)
+        if alias:
+            return alias
+    return None
+
+
+def _ensure_input_distinct_triggers(input_doc: Mapping[str, Any]) -> Dict[str, Any]:
+    """Split overlapping control triggers that would fail Input IR conflict analysis."""
+
+    document = dict(input_doc)
+    bindings = document.get("bindings")
+    if not isinstance(bindings, list):
+        return document
+
+    rewrites: List[Dict[str, str]] = []
+    for binding in bindings:
+        if not isinstance(binding, dict) or binding.get("enabled") is False:
+            continue
+        trigger = binding.get("trigger")
+        if not isinstance(trigger, dict) or trigger.get("kind") != "control":
+            continue
+        control = trigger.get("control")
+        inferred = _infer_binding_control(binding)
+        if inferred and (
+            not isinstance(control, str)
+            or "." not in control
+            or control == "keyboard.key.space"
+        ):
+            if control != inferred:
+                rewrites.append({
+                    "id": str(binding.get("id")),
+                    "from": str(control),
+                    "to": inferred,
+                    "reason": "infer",
+                })
+                trigger["control"] = inferred
+                trigger["device"] = "keyboard"
+
+    used: set = set()
+    for binding in bindings:
+        if not isinstance(binding, dict) or binding.get("enabled") is False:
+            continue
+        trigger = binding.get("trigger")
+        if not isinstance(trigger, dict) or trigger.get("kind") != "control":
+            continue
+        footprint = (
+            str(trigger.get("device") or "keyboard"),
+            str(trigger.get("control") or ""),
+            str(trigger.get("phase") or "press"),
+        )
+        if not footprint[1]:
+            continue
+        if footprint not in used:
+            used.add(footprint)
+            continue
+        inferred = _infer_binding_control(binding)
+        candidates = []
+        if inferred:
+            candidates.append(inferred)
+        candidates.extend(
+            "keyboard.key.{0}".format(name)
+            for name in (
+                "arrow_up", "arrow_down", "arrow_left", "arrow_right",
+                "w", "a", "s", "d", "q", "e", "f", "r",
+            )
+        )
+        replacement = None
+        for control in candidates:
+            candidate = (footprint[0], control, footprint[2])
+            if candidate not in used:
+                replacement = control
+                break
+        if replacement is None:
+            binding["enabled"] = False
+            rewrites.append({
+                "id": str(binding.get("id")),
+                "from": footprint[1],
+                "to": "disabled",
+                "reason": "collision",
+            })
+            continue
+        rewrites.append({
+            "id": str(binding.get("id")),
+            "from": footprint[1],
+            "to": replacement,
+            "reason": "collision",
+        })
+        trigger["control"] = replacement
+        used.add((footprint[0], replacement, footprint[2]))
+
+    # #region agent log
+    try:
+        import json as _json, time as _time
+        with open("debug-f3e2af.log", "a", encoding="utf-8") as _f:
+            _f.write(_json.dumps({
+                "sessionId": "f3e2af", "runId": "post-fix", "hypothesisId": "I1,I2,I3",
+                "location": "compiler.py:_ensure_input_distinct_triggers",
+                "message": "input trigger deconflict",
+                "data": {
+                    "rewrites": rewrites,
+                    "controls": [
+                        {
+                            "id": item.get("id"),
+                            "control": (item.get("trigger") or {}).get("control")
+                            if isinstance(item, dict) else None,
+                            "enabled": item.get("enabled") if isinstance(item, dict) else None,
+                        }
+                        for item in bindings
+                        if isinstance(item, dict)
+                    ],
+                },
+                "timestamp": int(_time.time() * 1000),
+            }) + "\n")
+    except Exception:
+        pass
+    # #endregion
+    return document
+
+
 def deepcopy_report(report: CompileReport) -> CompileReport:
     return CompileReport(
         ok=report.ok,
@@ -736,6 +1650,210 @@ def deepcopy_report(report: CompileReport) -> CompileReport:
     )
 
 
+def load_compile_report_from_bundle(bundle_dir: Path) -> CompileReport:
+    """Rebuild a CompileReport from a sealed Project bundle on disk."""
+
+    from srtp.asset_ir_v2 import load_asset_ir
+    from srtp.input_ir_v2 import load_input_ir
+    from srtp.ir_v2 import load_rule_ir
+    from srtp.project_manifest_v2 import load_project_manifest
+    from srtp.scene_ir_v2 import load_scene_ir
+
+    root = Path(bundle_dir).resolve()
+    manifest_path = root / "project.manifest.json"
+    if not manifest_path.is_file():
+        raise FileNotFoundError("project.manifest.json not found in {0}".format(root))
+    manifest = load_project_manifest(manifest_path)
+    loaders = {
+        "rule_ir": load_rule_ir,
+        "scene_ir": load_scene_ir,
+        "asset_ir": load_asset_ir,
+        "input_ir": load_input_ir,
+    }
+    documents: Dict[str, Dict[str, Any]] = {}
+    ir_dir = root / "ir"
+    candidates = list(root.glob("*.json")) + list(ir_dir.glob("*.json")) if ir_dir.is_dir() else list(root.glob("*.json"))
+    loaded_docs: List[Dict[str, Any]] = []
+    for path in candidates:
+        if path.name in {"project.manifest.json", "report.json", "diagnostics.json", "proposal.json"}:
+            continue
+        if path.name in {"design_intent.json", "spatial_lift_plan.json", "source.manifest.json"}:
+            continue
+        try:
+            loaded_docs.append(json.loads(path.read_text(encoding="utf-8")))
+        except (OSError, json.JSONDecodeError):
+            continue
+
+    for slot, loader in loaders.items():
+        pin = (manifest.get("documents") or {}).get(slot) or {}
+        match = None
+        for item in loaded_docs:
+            if not isinstance(item, Mapping):
+                continue
+            if item.get("document_id") == pin.get("document_id") and item.get("content_hash") == pin.get("content_hash"):
+                match = dict(item)
+                break
+        if match is None:
+            # Fall back to conventional filenames under ir/.
+            conventional = {
+                "rule_ir": "game.rule-ir.json",
+                "scene_ir": "game.scene-ir.json",
+                "asset_ir": "game.asset-ir.json",
+                "input_ir": "game.input-ir.json",
+            }.get(slot)
+            if conventional and (ir_dir / conventional).is_file():
+                match = loader(ir_dir / conventional)
+        if match is None:
+            raise FileNotFoundError(
+                "Bundle missing pinned {0} document ({1})".format(slot, pin.get("document_id"))
+            )
+        documents[slot] = match
+
+    proposal = None
+    proposal_path = root / "proposal.json"
+    if proposal_path.is_file():
+        try:
+            proposal = json.loads(proposal_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            proposal = None
+
+    report_meta: Dict[str, Any] = {}
+    report_path = root / "report.json"
+    if report_path.is_file():
+        try:
+            report_meta = json.loads(report_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            report_meta = {}
+
+    return CompileReport(
+        ok=True,
+        stage=str(report_meta.get("stage") or "source_four_ir"),
+        job_id=str(report_meta.get("job_id") or "job:bundle"),
+        project_id=str(manifest.get("project_id") or report_meta.get("project_id") or "project:bundle"),
+        source_package_hash=str(report_meta.get("source_package_hash") or ""),
+        proposal=proposal if isinstance(proposal, dict) else None,
+        documents=documents,
+        manifest=manifest,
+        diagnostics=[],
+        provider=str(report_meta.get("provider") or ""),
+        model=str(report_meta.get("model") or ""),
+        attempts=int(report_meta.get("attempts") or 0),
+        output_dir=str(root),
+        compile_ready=is_project_manifest_compile_ready(manifest),
+        unresolved_summary=list(manifest.get("unresolved") or [])[:50],
+    )
+
+
+def _write_source_manifest_sidecar(target_root: Path, source_manifest: Mapping[str, Any]) -> None:
+    """Write source.manifest.json beside the target for open_project_bundle pins."""
+
+    path = Path(target_root) / "source.manifest.json"
+    path.write_text(
+        json.dumps(source_manifest, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+
+def _debug_log(
+    location: str, message: str, data: Mapping[str, Any], hypothesis_id: str,
+    *, run_id: str = "pre-fix",
+) -> None:
+    # #region agent log
+    try:
+        with open("debug-f3e2af.log", "a", encoding="utf-8") as _f:
+            _f.write(json.dumps({
+                "sessionId": "f3e2af",
+                "runId": run_id,
+                "hypothesisId": hypothesis_id,
+                "location": location,
+                "message": message,
+                "data": dict(data),
+                "timestamp": int(time.time() * 1000),
+            }) + "\n")
+    except OSError:
+        pass
+    # #endregion
+
+
+_ACCEPTED_PROPOSAL_VERSION_ALIASES = frozenset({
+    "2.0",
+    "llm-proposal/2.0",
+    "cubeengine.srtp/llm-proposal/2.0",
+    LLM_PROPOSAL_VERSION,
+})
+
+
+def _coerce_proposal_version(proposal: Dict[str, Any]) -> None:
+    raw = proposal.get("proposal_version")
+    if raw == LLM_PROPOSAL_VERSION:
+        return
+    legacy = proposal.get("llm_proposal_version")
+    candidates: List[str] = []
+    if isinstance(raw, str):
+        candidates.append(raw.strip())
+    if isinstance(legacy, str):
+        candidates.append(legacy.strip())
+    if any(item in _ACCEPTED_PROPOSAL_VERSION_ALIASES for item in candidates):
+        proposal["proposal_version"] = LLM_PROPOSAL_VERSION
+
+
+def _lift_patch_entries(
+    proposal: Dict[str, Any],
+    base_pins: Mapping[str, Mapping[str, Any]],
+    *,
+    source_root: Optional[Path] = None,
+) -> None:
+    entries = proposal.get("patch_entries")
+    if not isinstance(entries, list) or not entries:
+        return
+    patches = proposal.get("patches")
+    if isinstance(patches, Mapping) and any(
+        isinstance(patches.get(key), list) and patches.get(key)
+        for key in _IR_KEYS
+    ):
+        return
+
+    target_aliases = {
+        "rule_ir": "rule_ir",
+        "scene_ir": "scene_ir",
+        "asset_ir": "asset_ir",
+        "input_ir": "input_ir",
+        "rule": "rule_ir",
+        "scene": "scene_ir",
+        "asset": "asset_ir",
+        "input": "input_ir",
+    }
+    bucket_ops: Dict[str, List[Dict[str, Any]]] = {key: [] for key in _IR_KEYS}
+    for entry in entries:
+        if not isinstance(entry, Mapping):
+            continue
+        target_raw = str(
+            entry.get("target_doc") or entry.get("ir_target") or entry.get("target") or "",
+        ).strip()
+        ir_key = target_aliases.get(target_raw, target_raw if target_raw in _IR_KEYS else "")
+        if ir_key not in bucket_ops:
+            continue
+        op_name = entry.get("op")
+        path = entry.get("path")
+        if not isinstance(op_name, str) or not isinstance(path, str):
+            continue
+        operation: Dict[str, Any] = {"op": op_name, "path": path}
+        if "value" in entry:
+            operation["value"] = entry.get("value")
+        bucket_ops[ir_key].append(operation)
+
+    proposal["patches"] = {key: [] for key in _IR_KEYS}
+    entry_evidence = _default_patch_evidence(source_root=source_root)
+    for ir_key, ops in bucket_ops.items():
+        if not ops:
+            continue
+        pin = base_pins.get(ir_key) if isinstance(base_pins, Mapping) else None
+        pin = pin if isinstance(pin, Mapping) else {}
+        envelope = _wrap_ops_as_patch_entry(ops, pin)
+        envelope["evidence"] = list(entry_evidence)
+        proposal["patches"][ir_key] = [envelope]
+
+
 def _normalize_source_proposal(
     proposal: Dict[str, Any],
     *,
@@ -744,6 +1862,24 @@ def _normalize_source_proposal(
     base_pins: Mapping[str, Mapping[str, Any]],
     source_root: Optional[Path] = None,
 ) -> Dict[str, Any]:
+    # #region agent log
+    _debug_log(
+        "compiler.py:_normalize_source_proposal:entry",
+        "raw LLM proposal contract",
+        {
+            "proposal_version": proposal.get("proposal_version"),
+            "llm_proposal_version": proposal.get("llm_proposal_version"),
+            "has_patches_object": isinstance(proposal.get("patches"), Mapping),
+            "patch_entries_count": (
+                len(proposal.get("patch_entries"))
+                if isinstance(proposal.get("patch_entries"), list) else 0
+            ),
+        },
+        "H1,H2,H3",
+    )
+    # #endregion
+    _coerce_proposal_version(proposal)
+    _lift_patch_entries(proposal, base_pins, source_root=source_root)
     proposal.setdefault("proposal_version", LLM_PROPOSAL_VERSION)
     proposal.setdefault("proposal_id", "proposal:{0}".format(uuid.uuid4().hex[:12]))
     proposal.setdefault("job_id", job_id)
@@ -764,15 +1900,127 @@ def _normalize_source_proposal(
     ):
         proposal.setdefault(key, [])
     proposal["patches"] = _coerce_patches_object(proposal.get("patches"))
+    _lift_legacy_ir_patch_fields(proposal, base_pins)
     patches = proposal["patches"]
     for key, entries in list(patches.items()):
         if isinstance(entries, list):
+            pin = base_pins.get(key) if isinstance(base_pins, Mapping) else None
             patches[key] = [
-                _normalize_patch_entry(item, ir_key=key, source_root=source_root)
+                _normalize_patch_entry(
+                    item, ir_key=key, source_root=source_root, pin=pin,
+                )
                 for item in entries
             ]
     proposal["unresolved"] = _coerce_unresolved_list(proposal.get("unresolved"))
+    # #region agent log
+    _debug_log(
+        "compiler.py:_normalize_source_proposal:exit",
+        "normalized proposal contract",
+        {
+            "proposal_version": proposal.get("proposal_version"),
+            "patch_counts": {
+                key: len(patches.get(key) or []) if isinstance(patches.get(key), list) else 0
+                for key in _IR_KEYS
+            },
+            "contract_errors": validate_llm_proposal(proposal)[:5],
+        },
+        "H1,H3,H4",
+    )
+    # #endregion
     return proposal
+
+
+_LEGACY_IR_PATCH_KEYS = {
+    "rule_ir": "rule_ir_patch",
+    "scene_ir": "scene_ir_patch",
+    "asset_ir": "asset_ir_patch",
+    "input_ir": "input_ir_patch",
+}
+
+
+def _is_rfc6902_operation(item: Any) -> bool:
+    return (
+        isinstance(item, dict)
+        and "op" in item
+        and "path" in item
+        and not isinstance(item.get("operations"), list)
+    )
+
+
+def _default_patch_evidence(
+    *, source_root: Optional[Path] = None,
+) -> List[Dict[str, Any]]:
+    from .evidence import file_sha256 as _file_sha256
+
+    path = _default_source_evidence_path(source_root)
+    entry: Dict[str, Any] = {
+        "evidence_id": "ev:llm.inline",
+        "path": path,
+        "kind": "static",
+        "supports": "/",
+        "confidence": 0.5,
+    }
+    if source_root is not None:
+        candidate = source_root / Path(path)
+        if candidate.is_file():
+            entry["file_sha256"] = _file_sha256(candidate)
+            entry["span"] = {"line_start": 1, "line_end": 1}
+    return [entry]
+
+
+def _default_source_evidence_path(source_root: Optional[Path] = None) -> str:
+    if source_root is not None and source_root.is_dir():
+        for candidate in sorted(source_root.iterdir()):
+            if candidate.suffix == ".py" and candidate.name != "__init__.py":
+                try:
+                    return candidate.relative_to(source_root).as_posix()
+                except ValueError:
+                    return candidate.name
+    return "source.py"
+
+
+def _wrap_ops_as_patch_entry(
+    ops: Sequence[Mapping[str, Any]], pin: Mapping[str, Any],
+) -> Dict[str, Any]:
+    return {
+        "document_id": pin.get("document_id"),
+        "base_revision": pin.get("revision", 0),
+        "base_content_hash": pin.get("content_hash", ""),
+        "operations": [dict(item) for item in ops],
+        "evidence": [],
+        "assumptions": [],
+        "unresolved": [],
+    }
+
+
+def _lift_legacy_ir_patch_fields(
+    proposal: Dict[str, Any], base_pins: Mapping[str, Mapping[str, Any]],
+) -> None:
+    """Accept LLM aliases and inline RFC6902 op lists into patch envelopes."""
+
+    patches = proposal.get("patches")
+    if not isinstance(patches, dict):
+        patches = {key: [] for key in _IR_KEYS}
+        proposal["patches"] = patches
+    for ir_key, legacy_key in _LEGACY_IR_PATCH_KEYS.items():
+        pin = base_pins.get(ir_key) if isinstance(base_pins, Mapping) else None
+        pin = pin if isinstance(pin, Mapping) else {}
+        existing = patches.get(ir_key)
+        # LLM often writes ops directly into patches.rule_ir[] instead of envelopes.
+        if isinstance(existing, list) and existing and all(_is_rfc6902_operation(item) for item in existing):
+            patches[ir_key] = [_wrap_ops_as_patch_entry(existing, pin)]
+            continue
+        if isinstance(existing, list) and existing:
+            continue
+        legacy = proposal.get(legacy_key)
+        if not isinstance(legacy, list) or not legacy:
+            continue
+        if all(isinstance(item, dict) and isinstance(item.get("operations"), list) for item in legacy):
+            patches[ir_key] = [dict(item) for item in legacy]
+            continue
+        if not all(_is_rfc6902_operation(item) for item in legacy):
+            continue
+        patches[ir_key] = [_wrap_ops_as_patch_entry(legacy, pin)]
 
 
 def _coerce_patches_object(value: Any) -> Dict[str, List[Any]]:
@@ -805,20 +2053,35 @@ def _coerce_patches_object(value: Any) -> Dict[str, List[Any]]:
 
 def _normalize_patch_entry(
     item: Any, ir_key: str = "", source_root: Optional[Path] = None,
+    *,
+    pin: Optional[Mapping[str, Any]] = None,
 ) -> Any:
     if not isinstance(item, dict):
         return item
+    pin = pin if isinstance(pin, Mapping) else {}
+    if not isinstance(item.get("document_id"), str) or not item.get("document_id"):
+        if isinstance(pin.get("document_id"), str) and pin.get("document_id"):
+            item["document_id"] = pin["document_id"]
+    if not isinstance(item.get("base_revision"), int) or isinstance(item.get("base_revision"), bool):
+        revision = pin.get("revision", 0)
+        item["base_revision"] = revision if isinstance(revision, int) and not isinstance(revision, bool) else 0
+    if not isinstance(item.get("base_content_hash"), str) or not item.get("base_content_hash"):
+        if isinstance(pin.get("content_hash"), str) and pin.get("content_hash"):
+            item["base_content_hash"] = pin["content_hash"]
     item["unresolved"] = _coerce_unresolved_list(item.get("unresolved"))
     item["evidence"] = _coerce_evidence_list(item.get("evidence"))
+    # Do not invent fake llm_proposal citations; missing evidence fails validation.
     if not isinstance(item.get("assumptions"), list):
         item["assumptions"] = []
     operations = item.get("operations")
-    if ir_key == "rule_ir" and isinstance(operations, list):
+    if not isinstance(operations, list):
+        return item
+    if ir_key == "rule_ir":
         for operation in operations:
             if isinstance(operation, dict) and "value" in operation:
                 _coerce_rule_ir_value(operation["value"])
                 _coerce_rule_ir_operation(operation)
-    elif ir_key == "scene_ir" and isinstance(operations, list):
+    elif ir_key == "scene_ir":
         for gap in _coerce_scene_ir_operations(operations):
             item["unresolved"].append({
                 "path": "/bindings",
@@ -826,30 +2089,644 @@ def _normalize_patch_entry(
                 "required": False,
                 "owner": "llm",
             })
-    elif ir_key == "asset_ir" and isinstance(operations, list):
-        _coerce_asset_ir_operations(operations, source_root)
+    elif ir_key == "asset_ir":
+        for gap in _coerce_asset_ir_operations(operations, source_root):
+            item["unresolved"].append({
+                "path": "/assets",
+                "reason": "Asset entry dropped, {0}.".format(gap),
+                "required": False,
+                "owner": "llm",
+            })
+    elif ir_key == "input_ir":
+        _coerce_input_ir_operations(operations)
+    _ensure_unresolved_cleared(operations, ir_key)
     return item
+
+
+def _ensure_unresolved_cleared(operations: List[Any], ir_key: str) -> None:
+    """When bootstrap gaps are filled, append /unresolved → [] if LLM forgot."""
+
+    if any(
+        isinstance(op, Mapping) and str(op.get("path") or "") == "/unresolved"
+        for op in operations
+    ):
+        return
+
+    def has_nonempty(path: str) -> bool:
+        for operation in operations:
+            if not isinstance(operation, Mapping):
+                continue
+            if str(operation.get("path") or "") != path:
+                continue
+            value = operation.get("value")
+            if isinstance(value, list) and value:
+                return True
+            if isinstance(value, dict) and value:
+                return True
+        return False
+
+    clear = False
+    if ir_key == "rule_ir":
+        clear = has_nonempty("/topologies") and (
+            has_nonempty("/actions") or has_nonempty("/systems")
+        )
+    elif ir_key == "scene_ir":
+        clear = has_nonempty("/nodes")
+    elif ir_key == "asset_ir":
+        clear = has_nonempty("/assets") or has_nonempty("/derivations")
+    elif ir_key == "input_ir":
+        clear = (
+            has_nonempty("/contexts")
+            and has_nonempty("/intents")
+            and has_nonempty("/bindings")
+        )
+    if clear:
+        operations.append({"op": "replace", "path": "/unresolved", "value": []})
+
+
+def _ensure_required_keys(
+    value: Dict[str, Any], keys: Sequence[str], defaults: Mapping[str, Any],
+) -> None:
+    """Guarantee validator-required keys exist; never invent missing semantics beyond defaults."""
+
+    for key in keys:
+        if key not in value:
+            value[key] = defaults[key] if key in defaults else None
+
+
+def _name_from_id(value: Mapping[str, Any], fallback: str = "Item") -> str:
+    identifier = value.get("id")
+    if isinstance(identifier, str) and identifier:
+        local = identifier.split(":", 1)[-1]
+        tail = local.rsplit(".", 1)[-1] if local else fallback
+        return tail.replace("_", " ").replace("-", " ").title() or fallback
+    return fallback
 
 
 def _coerce_asset_ir_operations(
     operations: List[Any], source_root: Optional[Path],
-) -> None:
-    coerced: List[Dict[str, Any]] = []
+) -> List[str]:
+    """Coerce asset ops; return human-readable gaps for dropped incomplete entries."""
+
+    dropped_gaps: List[str] = []
     for operation in operations:
         if not isinstance(operation, dict):
             continue
-        if not str(operation.get("path") or "").startswith("/assets"):
-            continue
-        for value in _operation_items(operation.get("value")):
-            if isinstance(value, dict):
-                coerced.append(_coerce_asset_item(value, source_root))
+        path = str(operation.get("path") or "")
+        if path.startswith("/assets"):
+            kept: List[Dict[str, Any]] = []
+            for value in _operation_items(operation.get("value")):
+                if not isinstance(value, dict):
+                    continue
+                summary = _coerce_asset_item(value, source_root)
+                if summary.get("source_resolved"):
+                    kept.append(value)
+                else:
+                    identifier = str(value.get("id") or "asset:unknown")
+                    relative = summary.get("relative") or ""
+                    reason = (
+                        "{0}: source path {1} has no measurable content hash".format(
+                            identifier, relative,
+                        )
+                        if relative
+                        else "{0}: asset source path/hash unresolved".format(identifier)
+                    )
+                    dropped_gaps.append(reason)
+            if isinstance(operation.get("value"), list):
+                operation["value"] = kept
+            elif isinstance(operation.get("value"), dict) and kept:
+                operation["value"] = kept[0]
+            elif isinstance(operation.get("value"), dict) and not kept:
+                operation["value"] = {}
+        elif path.startswith("/derivations"):
+            for value in _operation_items(operation.get("value")):
+                if isinstance(value, dict):
+                    _coerce_asset_derivation(value)
+        elif path.startswith("/roles"):
+            roles: List[Dict[str, Any]] = []
+            for value in _operation_items(operation.get("value")):
+                if not isinstance(value, dict):
+                    continue
+                if _coerce_asset_role(value):
+                    roles.append(value)
+                else:
+                    dropped_gaps.append(
+                        "{0}: role missing resource reference".format(
+                            value.get("id") or "asset:role",
+                        )
+                    )
+            if isinstance(operation.get("value"), list):
+                operation["value"] = roles
+            elif isinstance(operation.get("value"), dict):
+                operation["value"] = roles[0] if roles else {}
+        elif path.startswith("/presentation_mappings"):
+            mappings: List[Dict[str, Any]] = []
+            for value in _operation_items(operation.get("value")):
+                if not isinstance(value, dict):
+                    continue
+                if _coerce_presentation_mapping(value):
+                    mappings.append(value)
+                else:
+                    dropped_gaps.append(
+                        "{0}: presentation mapping incomplete".format(
+                            value.get("id") or "asset:mapping",
+                        )
+                    )
+            if isinstance(operation.get("value"), list):
+                operation["value"] = mappings
+            elif isinstance(operation.get("value"), dict):
+                operation["value"] = mappings[0] if mappings else {}
+    return dropped_gaps
 
-    # #region agent log
-    _agent_dbg("K", "compiler.py:_coerce_asset_ir_operations", "asset shapes after coerce", {
-        "root": str(source_root) if source_root else "",
-        "assets": coerced[:6],
-    })
-    # #endregion
+
+def _coerce_asset_derivation(value: Dict[str, Any]) -> None:
+    identifier = str(value.get("id") or "")
+    local = identifier[len("asset:"):] if identifier.startswith("asset:") else identifier
+    value["id"] = "asset:{0}".format(slugify(local, fallback="derivation"))
+    if not isinstance(value.get("name"), str) or not value.get("name"):
+        value["name"] = local or "Derivation"
+    kind = str(value.get("kind") or "model").strip().lower()
+    if kind not in _ASSET_KINDS:
+        kind = "model"
+    value["kind"] = kind
+    if not isinstance(value.get("media_type"), str) or not _ASSET_MEDIA_TYPE.fullmatch(str(value.get("media_type"))):
+        value["media_type"] = "application/vnd.cubeengine.presentation+json"
+    strategy = str(value.get("strategy") or "procedural_mesh").strip().lower()
+    value["strategy"] = strategy
+    if not isinstance(value.get("inputs"), list):
+        value["inputs"] = []
+    if strategy == "procedural_mesh":
+        value["inputs"] = []
+    if not isinstance(value.get("settings"), Mapping):
+        value["settings"] = (
+            {"primitive": "cube", "dimensions": [1.0, 1.0, 1.0]}
+            if strategy == "procedural_mesh" else {}
+        )
+    expected = value.get("expected_content_hash")
+    if not isinstance(expected, str) or (expected and not re.fullmatch(r"[0-9a-f]{64}", expected)):
+        value["expected_content_hash"] = ""
+    value["license_policy"] = "inherit"
+
+
+def _coerce_asset_role(value: Dict[str, Any]) -> bool:
+    """Return False when the role cannot be made valid without inventing a resource."""
+
+    identifier = str(value.get("id") or "")
+    local = identifier[len("asset:"):] if identifier.startswith("asset:") else identifier
+    value["id"] = "asset:{0}".format(slugify(local, fallback="role"))
+    if not isinstance(value.get("name"), str) or not value.get("name"):
+        value["name"] = local or "Role"
+    if not isinstance(value.get("semantic"), str) or not value.get("semantic"):
+        value["semantic"] = "board.cell"
+    if not isinstance(value.get("usage"), str) or not value.get("usage"):
+        value["usage"] = "world_mesh"
+    if not isinstance(value.get("required"), bool):
+        value["required"] = True
+    resource = value.get("resource")
+    if not isinstance(resource, str) or not resource.strip():
+        return False
+    if not resource.startswith("asset:"):
+        value["resource"] = "asset:{0}".format(slugify(resource, fallback="resource"))
+    return True
+
+
+def _coerce_presentation_mapping(value: Dict[str, Any]) -> bool:
+    """Keep only mappings that already name roles/resources; fill mechanical fields."""
+
+    source_role = value.get("source_role")
+    target = value.get("target_resource")
+    if not isinstance(source_role, str) or not source_role.strip():
+        return False
+    if not isinstance(target, str) or not target.strip():
+        return False
+    identifier = str(value.get("id") or "")
+    local = identifier[len("asset:"):] if identifier.startswith("asset:") else identifier
+    value["id"] = "asset:{0}".format(slugify(local, fallback="mapping"))
+    if not isinstance(value.get("name"), str) or not value.get("name"):
+        value["name"] = _name_from_id(value, "Mapping")
+    if not source_role.startswith("asset:"):
+        value["source_role"] = "asset:{0}".format(slugify(source_role, fallback="role"))
+    if not target.startswith("asset:"):
+        value["target_resource"] = "asset:{0}".format(slugify(target, fallback="resource"))
+    strategy = value.get("strategy")
+    if strategy not in (
+        "billboard", "extrusion", "cube_face_projection",
+        "mesh_substitution", "procedural_mesh", "custom_renderer",
+    ):
+        value["strategy"] = "procedural_mesh"
+    if value.get("fidelity") not in ("source_exact", "source_derived", "designer_substitution"):
+        value["fidelity"] = "source_derived"
+    if not isinstance(value.get("settings"), Mapping):
+        value["settings"] = {}
+    return True
+
+
+def _stable_input_id(value: Any, noun: str) -> str:
+    raw = str(value or "").strip().lower()
+    if raw.startswith("input:"):
+        raw = raw[len("input:"):]
+    raw = raw.replace(":", ".")
+    local = slugify(raw, fallback=noun)
+    if noun == "action" and not local.startswith("action."):
+        local = "action.{0}".format(local)
+    elif noun == "context" and not local.startswith("context."):
+        local = "context.{0}".format(local)
+    elif noun == "binding" and not local.startswith("binding."):
+        local = "binding.{0}".format(local)
+    return "input:{0}".format(local)
+
+
+def _default_input_processing() -> Dict[str, Any]:
+    return {
+        "dead_zone": 0,
+        "sensitivity_numerator": 1,
+        "sensitivity_denominator": 1,
+        "invert": False,
+        "clamp_min": -32768,
+        "clamp_max": 32767,
+    }
+
+
+def _coerce_input_ir_operations(operations: List[Any]) -> None:
+    context_ids: List[str] = []
+    intent_ids: List[str] = []
+    for operation in operations:
+        if not isinstance(operation, dict):
+            continue
+        path = str(operation.get("path") or "")
+        if path.startswith("/contexts"):
+            for value in _operation_items(operation.get("value")):
+                if isinstance(value, dict):
+                    _coerce_input_context(value)
+                    if isinstance(value.get("id"), str):
+                        context_ids.append(str(value["id"]))
+        elif path.startswith("/intents"):
+            for value in _operation_items(operation.get("value")):
+                if isinstance(value, dict):
+                    _coerce_input_intent(value)
+                    if isinstance(value.get("id"), str):
+                        intent_ids.append(str(value["id"]))
+    binding_items: List[Dict[str, Any]] = []
+    for operation in operations:
+        if not isinstance(operation, dict):
+            continue
+        if str(operation.get("path") or "").startswith("/bindings"):
+            for value in _operation_items(operation.get("value")):
+                if isinstance(value, dict):
+                    binding_items.append(value)
+    _prefill_binding_intents(binding_items, intent_ids)
+    for operation in operations:
+        if not isinstance(operation, dict):
+            continue
+        path = str(operation.get("path") or "")
+        if path.startswith("/bindings"):
+            for value in _operation_items(operation.get("value")):
+                if isinstance(value, dict):
+                    _coerce_input_binding(value, context_ids=context_ids, intent_ids=intent_ids)
+        elif path == "/dependencies" and isinstance(operation.get("value"), dict):
+            deps = operation["value"]
+            if not isinstance(deps.get("extensions"), list):
+                deps["extensions"] = []
+            pin = deps.get("rule_ir")
+            if isinstance(pin, Mapping):
+                pin = dict(pin)
+                if pin.get("content_hash") in (None, ""):
+                    pin["content_hash"] = "$pin:rule_ir"
+                deps["rule_ir"] = pin
+    # P0-2: do not silently demote required intents (no semantic autofill).
+
+
+def _prefill_binding_intents(
+    bindings: Sequence[Dict[str, Any]], intent_ids: Sequence[str],
+) -> None:
+    """Link bindings that omitted intent: prefer 1:1 index, else name/id token match."""
+
+    if not bindings or not intent_ids:
+        return
+    missing = [
+        item for item in bindings
+        if not (isinstance(item.get("intent"), str) and str(item.get("intent")).strip())
+    ]
+    if not missing:
+        return
+    if len(missing) == len(bindings) == len(intent_ids):
+        for binding, intent_id in zip(bindings, intent_ids):
+            binding["intent"] = intent_id
+        return
+    for binding in missing:
+        matched = _match_intent_id_for_binding(binding, intent_ids)
+        if matched:
+            binding["intent"] = matched
+
+
+def _match_intent_id_for_binding(
+    binding: Mapping[str, Any], intent_ids: Sequence[str],
+) -> Optional[str]:
+    local = str(binding.get("id") or "").split(":")[-1].lower().replace("_", ".")
+    name = str(binding.get("name") or "").lower().replace("_", ".")
+    tail = local.rsplit(".", 1)[-1]
+    tokens = {part for part in (tail, name, local) if part}
+    hits: List[str] = []
+    for intent_id in intent_ids:
+        ilocal = str(intent_id).split(":")[-1].lower().replace("_", ".")
+        for token in tokens:
+            if token and (ilocal == token or ilocal.endswith("." + token) or token in ilocal.split(".")):
+                hits.append(str(intent_id))
+                break
+    unique = list(dict.fromkeys(hits))
+    if len(unique) == 1:
+        return unique[0]
+    return None
+
+
+def _soft_unrequire_unbound_intents(operations: List[Any]) -> None:
+    """No-op retained for imports; required intents must not be demoted (P0-2)."""
+
+    del operations
+
+
+def _coerce_input_context(value: Dict[str, Any]) -> None:
+    value["id"] = _stable_input_id(value.get("id"), "context")
+    if not isinstance(value.get("name"), str) or not value.get("name"):
+        value["name"] = "Play"
+    if not isinstance(value.get("priority"), int) or isinstance(value.get("priority"), bool):
+        value["priority"] = 100
+    if not isinstance(value.get("enabled_by_default"), bool):
+        value["enabled_by_default"] = True
+    if value.get("focus") not in ("global", "viewport", "ui", "text_entry"):
+        value["focus"] = "viewport"
+    if value.get("consume_policy") not in ("binding", "first_match", "all_events"):
+        value["consume_policy"] = "first_match"
+    group = value.get("exclusive_group")
+    if group is None or not isinstance(group, str) or not _SCENE_LOCAL_ID.fullmatch(group):
+        value["exclusive_group"] = "runtime_mode"
+    _ensure_required_keys(
+        value,
+        ("id", "name", "priority", "enabled_by_default", "focus", "consume_policy", "exclusive_group"),
+        {
+            "id": "input:context.play",
+            "name": "Play",
+            "priority": 100,
+            "enabled_by_default": True,
+            "focus": "viewport",
+            "consume_policy": "first_match",
+            "exclusive_group": "runtime_mode",
+        },
+    )
+
+
+def _coerce_input_intent(value: Dict[str, Any]) -> None:
+    value["id"] = _stable_input_id(value.get("id"), "action")
+    if not isinstance(value.get("name"), str) or not value.get("name"):
+        value["name"] = str(value["id"]).split(":", 1)[-1]
+    if value.get("value_type") not in ("digital", "scalar", "vector2", "pointer", "text"):
+        value["value_type"] = "digital"
+    if not isinstance(value.get("required"), bool):
+        value["required"] = True
+    target = value.get("target")
+    if not isinstance(target, dict):
+        value["target"] = {"kind": "semantic"}
+        return
+    kind = target.get("kind")
+    if kind == "rule_action":
+        action = target.get("action")
+        if isinstance(action, str) and action and not action.startswith("rule:"):
+            target["action"] = "rule:{0}".format(slugify(action, fallback="action"))
+        if not isinstance(target.get("parameters"), Mapping):
+            target["parameters"] = {}
+    else:
+        value["target"] = {"kind": "semantic"}
+
+
+def _coerce_input_binding(
+    value: Dict[str, Any],
+    *,
+    context_ids: Optional[Sequence[str]] = None,
+    intent_ids: Optional[Sequence[str]] = None,
+) -> None:
+    value["id"] = _stable_input_id(value.get("id"), "binding")
+    if not isinstance(value.get("name"), str) or not value.get("name"):
+        value["name"] = _name_from_id(value, "Binding")
+    context = value.get("context")
+    if isinstance(context, str) and context.strip():
+        if not context.startswith("input:"):
+            value["context"] = _stable_input_id(context, "context")
+    else:
+        ids = list(context_ids or [])
+        if len(ids) == 1:
+            value["context"] = ids[0]
+        elif ids:
+            play = next((item for item in ids if item.endswith(".play")), None)
+            value["context"] = play or ids[0]
+        else:
+            value["context"] = "input:context.play"
+    intent = value.get("intent")
+    if isinstance(intent, str) and intent.strip():
+        # Always normalize through the same id rules as intents; a bare
+        # ``input:intent.*`` must become ``input:action.intent.*``.
+        value["intent"] = _stable_input_id(intent, "action")
+    else:
+        ids = list(intent_ids or [])
+        if len(ids) == 1:
+            value["intent"] = ids[0]
+        else:
+            matched = _match_intent_id_for_binding(value, ids)
+            if matched:
+                value["intent"] = matched
+    ids = list(intent_ids or [])
+    if ids and isinstance(value.get("intent"), str) and value.get("intent") not in ids:
+        matched = _match_intent_id_for_binding(value, ids)
+        if matched:
+            value["intent"] = matched
+    if not isinstance(value.get("priority"), int) or isinstance(value.get("priority"), bool):
+        value["priority"] = 100
+    for key in ("enabled", "consume", "rebindable"):
+        if not isinstance(value.get(key), bool):
+            value[key] = True
+    if value.get("slot") not in ("primary", "secondary", "accessibility"):
+        value["slot"] = "primary"
+    if not isinstance(value.get("accessibility_label"), str):
+        value["accessibility_label"] = value.get("name") or "Action"
+    trigger = value.get("trigger")
+    inferred_control = _infer_binding_control(value)
+    if not isinstance(trigger, dict):
+        value["trigger"] = {
+            "kind": "control",
+            "device": "keyboard",
+            "control": inferred_control or "keyboard.key.space",
+            "phase": "press",
+            "modifiers": [],
+            "modifier_policy": "exact",
+        }
+    else:
+        _coerce_input_trigger(trigger)
+        if (
+            trigger.get("kind") == "control"
+            and inferred_control
+            and (
+                not isinstance(trigger.get("control"), str)
+                or "." not in str(trigger.get("control"))
+                or trigger.get("control") == "keyboard.key.space"
+            )
+        ):
+            trigger["control"] = inferred_control
+            trigger["device"] = "keyboard"
+    processing = value.get("processing")
+    if not isinstance(processing, dict):
+        value["processing"] = _default_input_processing()
+    else:
+        defaults = _default_input_processing()
+        for key, default in defaults.items():
+            if key not in processing:
+                processing[key] = default
+    required = (
+        "id", "name", "context", "priority", "enabled", "consume",
+        "rebindable", "slot", "accessibility_label", "trigger", "processing",
+    )
+    defaults = {
+        "id": "input:binding.action",
+        "name": "Binding",
+        "context": "input:context.play",
+        "priority": 100,
+        "enabled": True,
+        "consume": True,
+        "rebindable": True,
+        "slot": "primary",
+        "accessibility_label": "Action",
+        "trigger": {
+            "kind": "control",
+            "device": "keyboard",
+            "control": "keyboard.key.space",
+            "phase": "press",
+            "modifiers": [],
+            "modifier_policy": "exact",
+        },
+        "processing": _default_input_processing(),
+    }
+    if isinstance(value.get("intent"), str) and value.get("intent"):
+        required = required + ("intent",)
+        defaults["intent"] = value["intent"]
+    _ensure_required_keys(value, required, defaults)
+
+
+def _control_ref(device: str = "keyboard", control: str = "keyboard.key.space") -> Dict[str, str]:
+    return {"device": device, "control": control}
+
+
+def _coerce_input_trigger(trigger: Dict[str, Any]) -> None:
+    kind = trigger.get("kind")
+    if kind not in ("control", "chord", "axis_composite", "vector2_composite"):
+        trigger["kind"] = "control"
+        kind = "control"
+    if kind == "control":
+        if trigger.get("device") not in ("keyboard", "mouse", "touch", "gamepad"):
+            trigger["device"] = "keyboard"
+        control = trigger.get("control")
+        normalized = _normalize_keyboard_control(control)
+        if normalized:
+            trigger["control"] = normalized
+            control = normalized
+        if not isinstance(control, str) or "." not in control:
+            device = trigger["device"]
+            # #region agent log
+            try:
+                import json as _json, time as _time
+                with open("debug-f3e2af.log", "a", encoding="utf-8") as _f:
+                    _f.write(_json.dumps({
+                        "sessionId": "f3e2af", "runId": "pre-fix", "hypothesisId": "I2,I4",
+                        "location": "compiler.py:_coerce_input_trigger",
+                        "message": "control fallback to space/primary",
+                        "data": {
+                            "raw_control": control,
+                            "device": device,
+                            "kind": kind,
+                        },
+                        "timestamp": int(_time.time() * 1000),
+                    }) + "\n")
+            except Exception:
+                pass
+            # #endregion
+            trigger["control"] = (
+                "{0}.key.space".format(device)
+                if device == "keyboard"
+                else "{0}.button.primary".format(device)
+            )
+        if trigger.get("phase") not in ("press", "release", "repeat", "value", "hold"):
+            trigger["phase"] = "press"
+        if not isinstance(trigger.get("modifiers"), list):
+            trigger["modifiers"] = []
+        if trigger.get("modifier_policy") not in ("exact", "at_least"):
+            trigger["modifier_policy"] = "exact"
+    elif kind == "chord":
+        controls = trigger.get("controls")
+        if not isinstance(controls, list) or len(controls) < 2:
+            trigger["controls"] = [
+                _control_ref("keyboard", "keyboard.key.ctrl"),
+                _control_ref("keyboard", "keyboard.key.c"),
+            ]
+        else:
+            coerced = []
+            for item in controls:
+                if isinstance(item, dict):
+                    device = item.get("device") if item.get("device") in (
+                        "keyboard", "mouse", "touch", "gamepad", "gesture",
+                    ) else "keyboard"
+                    control = item.get("control")
+                    if not isinstance(control, str) or "." not in control:
+                        control = "keyboard.key.space"
+                    coerced.append(_control_ref(str(device), str(control)))
+            if len(coerced) < 2:
+                coerced = [
+                    _control_ref("keyboard", "keyboard.key.ctrl"),
+                    _control_ref("keyboard", "keyboard.key.c"),
+                ]
+            trigger["controls"] = coerced
+        chord_trigger = trigger.get("trigger")
+        if not isinstance(chord_trigger, dict):
+            trigger["trigger"] = dict(trigger["controls"][0])
+        else:
+            device = chord_trigger.get("device") if chord_trigger.get("device") in (
+                "keyboard", "mouse", "touch", "gamepad", "gesture",
+            ) else "keyboard"
+            control = chord_trigger.get("control")
+            if not isinstance(control, str) or "." not in control:
+                control = trigger["controls"][0]["control"]
+            trigger["trigger"] = _control_ref(str(device), str(control))
+        if trigger.get("phase") not in ("press", "release", "repeat", "hold"):
+            trigger["phase"] = "press"
+        if not isinstance(trigger.get("modifiers"), list):
+            trigger["modifiers"] = []
+        if trigger.get("modifier_policy") not in ("exact", "at_least"):
+            trigger["modifier_policy"] = "exact"
+    elif kind == "axis_composite":
+        for axis, key in (("negative", "arrow_left"), ("positive", "arrow_right")):
+            ref = trigger.get(axis)
+            if not isinstance(ref, dict):
+                trigger[axis] = _control_ref("keyboard", "keyboard.key.{0}".format(key))
+            else:
+                device = ref.get("device") if ref.get("device") in (
+                    "keyboard", "mouse", "touch", "gamepad", "gesture",
+                ) else "keyboard"
+                control = ref.get("control")
+                if not isinstance(control, str) or "." not in control:
+                    control = "keyboard.key.{0}".format(key)
+                trigger[axis] = _control_ref(str(device), str(control))
+        if not isinstance(trigger.get("phases"), list) or not trigger.get("phases"):
+            trigger["phases"] = ["press", "release", "repeat"]
+        if not isinstance(trigger.get("scale"), int) or isinstance(trigger.get("scale"), bool):
+            trigger["scale"] = 32767
+    elif kind == "vector2_composite":
+        for axis, key in (
+            ("up", "arrow_up"), ("down", "arrow_down"),
+            ("left", "arrow_left"), ("right", "arrow_right"),
+        ):
+            ref = trigger.get(axis)
+            if not isinstance(ref, dict):
+                trigger[axis] = _control_ref("keyboard", "keyboard.key.{0}".format(key))
+        if not isinstance(trigger.get("phases"), list) or not trigger.get("phases"):
+            trigger["phases"] = ["press", "release", "repeat"]
+        if not isinstance(trigger.get("scale"), int) or isinstance(trigger.get("scale"), bool):
+            trigger["scale"] = 32767
 
 
 def _coerce_asset_item(
@@ -884,8 +2761,20 @@ def _coerce_asset_item(
         value["metadata"] = {}
 
     source = _coerce_asset_source(value.get("source"), relative, source_root)
-    if source is not None:
+    if source is not None and source.get("content_hash"):
         value["source"] = source
+    elif source is not None and relative:
+        # Path known but bytes not measured — keep uri-only only if hash already present.
+        existing = value.get("source") if isinstance(value.get("source"), Mapping) else {}
+        if isinstance(existing.get("content_hash"), str) and re.fullmatch(r"[0-9a-f]{64}", existing["content_hash"]):
+            value["source"] = source
+            value["source"]["content_hash"] = existing["content_hash"]
+            if isinstance(existing.get("byte_size"), int) and not isinstance(existing.get("byte_size"), bool):
+                value["source"]["byte_size"] = existing["byte_size"]
+        else:
+            value.pop("source", None)
+    else:
+        value.pop("source", None)
     return {
         "id": value.get("id"),
         "kind": value.get("kind"),
@@ -1045,15 +2934,9 @@ def _coerce_scene_ir_operations(operations: List[Any]) -> List[str]:
             if isinstance(identifier, str) and identifier:
                 replacements[identifier] = _stable_scene_id(identifier, noun)
 
-    # #region agent log
-    _agent_dbg("I", "compiler.py:_coerce_scene_ir_operations", "scene ids before coerce", {
-        "replacement_count": len(replacements),
-        "old_ids": sorted(replacements.keys())[:8],
-        "new_ids": sorted(replacements.values())[:8],
-    })
-    # #endregion
 
     node_ids: set = set()
+    component_replacements: Dict[str, str] = {}
     for operation in operations:
         if not isinstance(operation, dict):
             continue
@@ -1063,41 +2946,20 @@ def _coerce_scene_ir_operations(operations: List[Any]) -> List[str]:
             if path.startswith("/layers"):
                 _coerce_scene_layer(value)
             elif path.startswith("/nodes"):
-                _coerce_scene_node(value, replacements)
+                component_replacements.update(_coerce_scene_node(value, replacements))
                 node_ids.add(str(value.get("id")))
+            elif path.startswith("/prefabs"):
+                component_replacements.update(_coerce_scene_prefab(value))
         if path.startswith("/layers"):
             _retarget_bootstrap_layer(operation)
 
+    if component_replacements:
+        for operation in operations:
+            if isinstance(operation, dict):
+                _replace_scene_references(operation.get("value"), component_replacements)
+
     dropped = _filter_scene_bindings(operations, node_ids)
 
-    # #region agent log
-    _agent_dbg("J", "compiler.py:_coerce_scene_ir_operations", "scene shapes after coerce", {
-        "layers": [
-            {
-                "id": value.get("id"),
-                "kind": value.get("kind"),
-                "required": all(key in value for key in ("visible", "pickable", "opacity")),
-            }
-            for operation in operations if isinstance(operation, Mapping)
-            and str(operation.get("path") or "").startswith("/layers")
-            for value in _scene_values(operation)
-        ][:5],
-        "nodes": [
-            {
-                "id": value.get("id"),
-                "layer": value.get("layer"),
-                "required": all(
-                    key in value
-                    for key in ("name", "parent", "active", "layer", "transform", "components")
-                ),
-            }
-            for operation in operations if isinstance(operation, Mapping)
-            and str(operation.get("path") or "").startswith("/nodes")
-            for value in _scene_values(operation)
-        ][:5],
-        "binding_gaps": dropped[:5],
-    })
-    # #endregion
     return dropped
 
 
@@ -1207,11 +3069,6 @@ def _retarget_bootstrap_layer(operation: Dict[str, Any]) -> None:
         return
     operation["op"] = "replace"
     operation["path"] = "/layers/0"
-    # #region agent log
-    _agent_dbg("L", "compiler.py:_retarget_bootstrap_layer", "runtime layer add retargeted", {
-        "path": operation.get("path"),
-    })
-    # #endregion
 
 
 def _coerce_scene_layer(value: Dict[str, Any]) -> None:
@@ -1229,20 +3086,350 @@ def _coerce_scene_layer(value: Dict[str, Any]) -> None:
         value["opacity"] = 1.0
 
 
-def _coerce_scene_node(value: Dict[str, Any], replacements: Mapping[str, str]) -> None:
+def _coerce_scene_local_id(value: Any, fallback: str) -> str:
+    """Component/prefab-local IDs must match _SCENE_LOCAL_ID (no namespace colon)."""
+
+    raw = str(value or "").strip().lower()
+    if not raw:
+        if _SCENE_LOCAL_ID.fullmatch(fallback):
+            return fallback
+        return slugify(fallback, fallback="component")
+    if raw.startswith("scene:"):
+        raw = raw[len("scene:"):]
+    raw = raw.replace(":", ".")
+    for prefix in ("component.", "comp.", "node.", "prefab."):
+        if raw.startswith(prefix):
+            raw = raw[len(prefix):]
+            break
+    if _SCENE_LOCAL_ID.fullmatch(raw):
+        return raw
+    local = slugify(raw, fallback=fallback).replace(":", ".")
+    if not _SCENE_LOCAL_ID.fullmatch(local):
+        local = fallback if _SCENE_LOCAL_ID.fullmatch(fallback) else "component"
+    return local
+
+
+def _coerce_scene_component(component: Dict[str, Any], index: int, seen: set) -> Optional[str]:
+    """Normalize one component; return prior id when it changed (for binding remaps)."""
+
+    kind = str(component.get("type") or "").strip().lower()
+    if kind not in _SCENE_COMPONENT_TYPES:
+        kind = "renderer"
+    component["type"] = kind
+    fallback = _SCENE_COMPONENT_ID_FALLBACK.get(kind, "component_{0}".format(index))
+    old_id = component.get("id") if isinstance(component.get("id"), str) else ""
+    new_id = _coerce_scene_local_id(old_id or fallback, fallback)
+    base = new_id
+    suffix = 2
+    while new_id in seen:
+        new_id = "{0}_{1}".format(base, suffix)
+        suffix += 1
+    seen.add(new_id)
+    component["id"] = new_id
+    if not isinstance(component.get("enabled"), bool):
+        component["enabled"] = True
+    if not isinstance(component.get("properties"), Mapping):
+        component["properties"] = {}
+    # properties may be a Mapping that is not a dict; normalize to dict for mutation.
+    if not isinstance(component["properties"], dict):
+        component["properties"] = dict(component["properties"])
+    if kind == "camera":
+        _coerce_camera_properties(component["properties"])
+    elif kind == "renderer":
+        _coerce_renderer_properties(component["properties"])
+    elif kind == "light":
+        _coerce_light_properties(component["properties"])
+    elif kind == "collider":
+        _coerce_collider_properties(component["properties"])
+    elif kind in ("topology_visualizer", "rule_entity_visualizer"):
+        _coerce_visualizer_properties(component["properties"], kind)
+    _ensure_required_keys(
+        component,
+        ("id", "type", "enabled", "properties"),
+        {"id": new_id, "type": "renderer", "enabled": True, "properties": {}},
+    )
+    if old_id and old_id != new_id:
+        return old_id
+    return None
+
+
+def _coerce_light_properties(properties: Dict[str, Any]) -> None:
+    if properties.get("kind") not in ("directional", "point", "spot", "ambient"):
+        properties["kind"] = "directional"
+    intensity = properties.get("intensity")
+    if (
+        isinstance(intensity, bool)
+        or not isinstance(intensity, (int, float))
+        or not math.isfinite(intensity)
+        or intensity < 0
+    ):
+        properties["intensity"] = 1.0
+    color = properties.get("color")
+    if (
+        not isinstance(color, list)
+        or len(color) not in (3, 4)
+        or any(
+            isinstance(item, bool)
+            or not isinstance(item, (int, float))
+            or not math.isfinite(item)
+            or not 0 <= item <= 1
+            for item in color
+        )
+    ):
+        properties["color"] = [1.0, 1.0, 1.0, 1.0]
+
+
+def _coerce_collider_properties(properties: Dict[str, Any]) -> None:
+    shape = properties.get("shape")
+    if shape not in ("box", "sphere", "capsule", "mesh"):
+        properties["shape"] = "box"
+        shape = "box"
+    if not isinstance(properties.get("is_trigger"), bool):
+        properties["is_trigger"] = False
+    if not isinstance(properties.get("selectable"), bool):
+        properties["selectable"] = True
+    if shape == "box":
+        size = properties.get("size")
+        if (
+            not isinstance(size, list)
+            or len(size) != 3
+            or any(
+                isinstance(item, bool)
+                or not isinstance(item, (int, float))
+                or not math.isfinite(item)
+                or item <= 0
+                for item in size
+            )
+        ):
+            properties["size"] = [1.0, 1.0, 1.0]
+    elif shape == "sphere":
+        radius = properties.get("radius")
+        if (
+            isinstance(radius, bool)
+            or not isinstance(radius, (int, float))
+            or not math.isfinite(radius)
+            or radius <= 0
+        ):
+            properties["radius"] = 0.5
+    elif shape == "capsule":
+        for key, default in (("radius", 0.5), ("height", 1.0)):
+            raw = properties.get(key)
+            if (
+                isinstance(raw, bool)
+                or not isinstance(raw, (int, float))
+                or not math.isfinite(raw)
+                or raw <= 0
+            ):
+                properties[key] = default
+    elif shape == "mesh":
+        mesh = properties.get("mesh")
+        if not isinstance(mesh, str) or not mesh.startswith("asset:"):
+            # Cannot invent an asset mesh; fall back to a valid box collider shape.
+            properties["shape"] = "box"
+            properties["size"] = [1.0, 1.0, 1.0]
+
+
+def _identity_index_to_world() -> List[float]:
+    return [
+        1.0, 0.0, 0.0, 0.0,
+        0.0, 1.0, 0.0, 0.0,
+        0.0, 0.0, 1.0, 0.0,
+        0.0, 0.0, 0.0, 1.0,
+    ]
+
+
+def _coerce_renderer_properties(properties: Dict[str, Any]) -> None:
+    geometry = properties.get("geometry")
+    if not isinstance(geometry, str) or not (
+        geometry.startswith("builtin:") or geometry.startswith("asset:")
+    ):
+        properties["geometry"] = "builtin:cube"
+    if not isinstance(properties.get("visible"), bool):
+        properties["visible"] = True
+    opacity = properties.get("opacity")
+    if opacity is not None and (
+        isinstance(opacity, bool)
+        or not isinstance(opacity, (int, float))
+        or not 0 <= opacity <= 1
+    ):
+        properties["opacity"] = 1.0
+
+
+def _coerce_visualizer_properties(properties: Dict[str, Any], kind: str) -> None:
+    ref_key = "rule_topology" if kind == "topology_visualizer" else "rule_entity_type"
+    reference = properties.get(ref_key)
+    if isinstance(reference, str) and reference and not reference.startswith("rule:"):
+        properties[ref_key] = "rule:{0}".format(slugify(reference, fallback="topology.board"))
+    elif not isinstance(reference, str) or not reference:
+        properties[ref_key] = (
+            "rule:topology.board" if kind == "topology_visualizer" else "rule:entity.default"
+        )
+    prefab = properties.get("prefab")
+    if isinstance(prefab, str) and prefab and not prefab.startswith("scene:"):
+        properties["prefab"] = _stable_scene_id(prefab, "prefab")
+    elif not isinstance(prefab, str) or not prefab:
+        properties["prefab"] = "scene:prefab.cell"
+    matrix = properties.get("index_to_world")
+    if (
+        not isinstance(matrix, list)
+        or len(matrix) != 16
+        or any(
+            isinstance(item, bool) or not isinstance(item, (int, float)) or not math.isfinite(item)
+            for item in matrix
+        )
+    ):
+        properties["index_to_world"] = _identity_index_to_world()
+
+
+def _finite_clip(value: Any) -> bool:
+    return not isinstance(value, bool) and isinstance(value, (int, float)) and math.isfinite(value)
+
+
+def _coerce_camera_properties(properties: Dict[str, Any]) -> None:
+    if properties.get("projection") not in ("perspective", "orthographic"):
+        properties["projection"] = "perspective"
+    near_clip, far_clip = properties.get("near_clip"), properties.get("far_clip")
+    if not _finite_clip(near_clip) or not _finite_clip(far_clip) or near_clip <= 0 or far_clip <= near_clip:
+        properties["near_clip"] = 0.1
+        properties["far_clip"] = 200.0
+    if not isinstance(properties.get("active"), bool):
+        properties["active"] = True
+    if properties["projection"] == "perspective":
+        fov = properties.get("fov")
+        if not _finite_clip(fov) or not 0 < fov < 180:
+            properties["fov"] = 55.0
+    elif properties["projection"] == "orthographic":
+        size = properties.get("orthographic_size")
+        if not _finite_clip(size) or size <= 0:
+            properties["orthographic_size"] = 8.0
+
+
+def _coerce_scene_components(components: Any) -> Dict[str, str]:
+    if not isinstance(components, list):
+        return {}
+    seen: set = set()
+    remaps: Dict[str, str] = {}
+    coerced: List[Dict[str, Any]] = []
+    for index, item in enumerate(components):
+        if not isinstance(item, dict):
+            continue
+        old_id = _coerce_scene_component(item, index, seen)
+        if old_id:
+            remaps[old_id] = str(item["id"])
+        coerced.append(item)
+    components[:] = coerced
+    return remaps
+
+
+def _coerce_scene_prefab(value: Dict[str, Any]) -> Dict[str, str]:
+    value["id"] = _stable_scene_id(value.get("id"), "prefab")
+    if not isinstance(value.get("name"), str) or not value.get("name"):
+        value["name"] = str(value["id"]).split(":", 1)[-1].replace(".", " ").title() or "Prefab"
+
+    root = value.get("root")
+    if not isinstance(root, dict):
+        # LLM often emits a node-shaped prefab: components at top level, no root.
+        root = {}
+        for key in ("local_id", "active", "transform", "components", "children"):
+            if key in value:
+                root[key] = value.pop(key)
+        if isinstance(value.get("name"), str) and value.get("name"):
+            root["name"] = value["name"]
+        value["root"] = root
+
+    remaps = _coerce_prefab_node(root, fallback_local="root", fallback_name=value.get("name") or "Root")
+    _ensure_required_keys(value, ("id", "name", "root"), {"id": "scene:prefab.item", "name": "Prefab", "root": root})
+    return remaps
+
+
+def _coerce_prefab_node(
+    node: Dict[str, Any], *, fallback_local: str, fallback_name: str, seen: Optional[set] = None,
+) -> Dict[str, str]:
+    """Recursively coerce prefab root/children into the required node shape."""
+
+    if seen is None:
+        seen = set()
+    if not isinstance(node.get("local_id"), str) or not _SCENE_LOCAL_ID.fullmatch(str(node.get("local_id"))):
+        node["local_id"] = _coerce_scene_local_id(node.get("local_id"), fallback_local)
+    local = str(node["local_id"])
+    base = local
+    suffix = 2
+    while local in seen:
+        local = "{0}_{1}".format(base, suffix)
+        suffix += 1
+    node["local_id"] = local
+    seen.add(local)
+    if not isinstance(node.get("name"), str) or not node.get("name"):
+        node["name"] = fallback_name
+    if not isinstance(node.get("active"), bool):
+        node["active"] = True
+    node["transform"] = _coerce_scene_transform(node.get("transform"))
+    if not isinstance(node.get("components"), list):
+        node["components"] = []
+    if not isinstance(node.get("children"), list):
+        node["children"] = []
+    remaps = _coerce_scene_components(node["components"])
+    coerced_children: List[Dict[str, Any]] = []
+    for index, child in enumerate(node["children"]):
+        if not isinstance(child, dict):
+            continue
+        remaps.update(
+            _coerce_prefab_node(
+                child,
+                fallback_local="child_{0}".format(index),
+                fallback_name="Child {0}".format(index),
+                seen=seen,
+            )
+        )
+        coerced_children.append(child)
+    node["children"] = coerced_children
+    _ensure_required_keys(
+        node,
+        ("local_id", "name", "active", "transform", "components", "children"),
+        {
+            "local_id": local,
+            "name": fallback_name,
+            "active": True,
+            "transform": _scene_identity_transform(),
+            "components": [],
+            "children": [],
+        },
+    )
+    return remaps
+
+
+def _coerce_scene_node(value: Dict[str, Any], replacements: Mapping[str, str]) -> Dict[str, str]:
     value["id"] = _stable_scene_id(value.get("id"), "node")
     if not isinstance(value.get("name"), str) or not value.get("name"):
-        value["name"] = str(value["id"]).split(":", 1)[-1].replace(".", " ").title()
+        value["name"] = _name_from_id(value, "Node")
     if "parent" not in value:
         value["parent"] = None
     if not isinstance(value.get("active"), bool):
         value["active"] = True
     layer = value.get("layer", value.get("layer_id"))
-    if isinstance(layer, str):
+    if isinstance(layer, str) and layer.strip():
         value["layer"] = replacements.get(layer, _stable_scene_id(layer, "layer"))
+    else:
+        value["layer"] = "scene:layer.runtime"
+    value.pop("layer_id", None)
     value["transform"] = _coerce_scene_transform(value.get("transform"))
     if not isinstance(value.get("components"), list):
         value["components"] = []
+    remaps = _coerce_scene_components(value["components"])
+    _ensure_required_keys(
+        value,
+        ("id", "name", "parent", "active", "layer", "transform", "components"),
+        {
+            "id": "scene:node.item",
+            "name": "Node",
+            "parent": None,
+            "active": True,
+            "layer": "scene:layer.runtime",
+            "transform": _scene_identity_transform(),
+            "components": [],
+        },
+    )
+    return remaps
 
 
 def _coerce_scene_transform(value: Any) -> Dict[str, List[float]]:
@@ -1309,6 +3496,9 @@ def _coerce_rule_ir_value(value: Any) -> None:
         return
     if not isinstance(value, dict):
         return
+    # Expression AST: LLM often emits kind instead of op.
+    if "op" not in value and isinstance(value.get("kind"), str) and value["kind"] in _EXPRESSION_OPS:
+        value["op"] = value.pop("kind")
     identifier = value.get("id")
     if isinstance(identifier, str) and identifier and not identifier.startswith("rule:"):
         value["id"] = "rule:{0}".format(slugify(identifier, fallback="item"))
@@ -1317,23 +3507,8 @@ def _coerce_rule_ir_value(value: Any) -> None:
         mapped = _TOPOLOGY_KINDS.get(kind.strip().lower())
         if mapped:
             value["kind"] = mapped
-    if "anchor" in value and isinstance(value.get("kind"), str):
-        # #region agent log
-        _agent_dbg("A", "compiler.py:_coerce_rule_ir_value", "topology-like object seen", {
-            "kind": value.get("kind"),
-            "anchor": value.get("anchor"),
-            "mapped_kind": value.get("kind"),
-        })
-        # #endregion
     if _is_topology_object(value):
         _coerce_topology_fields(value)
-        # #region agent log
-        _agent_dbg("A", "compiler.py:_coerce_rule_ir_value", "topology after coerce", {
-            "kind": value.get("kind"),
-            "anchor": value.get("anchor"),
-            "axis_count": len(value["axes"]) if isinstance(value.get("axes"), list) else 0,
-        })
-        # #endregion
     for child in value.values():
         if isinstance(child, (dict, list)):
             _coerce_rule_ir_value(child)
@@ -1386,10 +3561,52 @@ def _coerce_topology_fields(value: Dict[str, Any]) -> None:
         axes = _axes_from_dimensions(value.get("dimensions"))
         if axes:
             value["axes"] = axes
+    if isinstance(value.get("axes"), list):
+        value["axes"] = _coerce_topology_axes(value["axes"], value.get("dimensions"))
     if not isinstance(value.get("neighborhoods"), list):
         value["neighborhoods"] = []
     if not isinstance(value.get("name"), str) or not value.get("name"):
-        value["name"] = "Board"
+        value["name"] = _name_from_id(value, "Board")
+
+
+def _coerce_topology_axes(axes: List[Any], dimensions: Any) -> List[Dict[str, Any]]:
+    """Fill axis name/boundary; drop axes without a proven extent."""
+
+    dim_extents: Dict[str, int] = {}
+    if isinstance(dimensions, Mapping):
+        aliases = {
+            "x": ("x", "width", "w", "cols", "columns"),
+            "y": ("y", "height", "h", "rows"),
+            "z": ("z", "depth", "layers"),
+        }
+        for name, keys in aliases.items():
+            for key in keys:
+                raw = dimensions.get(key)
+                if isinstance(raw, int) and not isinstance(raw, bool) and raw > 0:
+                    dim_extents[name] = raw
+                    break
+
+    axis_names = ("x", "y", "z")
+    coerced: List[Dict[str, Any]] = []
+    for index, axis in enumerate(axes):
+        if not isinstance(axis, dict):
+            continue
+        name = axis.get("name")
+        if not isinstance(name, str) or not _SCENE_LOCAL_ID.fullmatch(name):
+            axis["name"] = axis_names[index] if index < len(axis_names) else "axis_{0}".format(index)
+        boundary = axis.get("boundary")
+        if boundary not in ("bounded", "wrap", "reflect", "open"):
+            axis["boundary"] = "bounded"
+        extent = axis.get("extent")
+        if isinstance(extent, bool) or not isinstance(extent, int) or extent <= 0:
+            inferred = dim_extents.get(str(axis["name"]))
+            if inferred is not None:
+                axis["extent"] = inferred
+            else:
+                # Prefer leaving incomplete axes out rather than inventing extents.
+                continue
+        coerced.append(axis)
+    return coerced
 
 
 _TRUE_LITERAL = {"op": "literal", "value": True}
@@ -1417,6 +3634,15 @@ _FLOW_MODELS = {
     "turn": "turn_based",
     "event": "event_driven",
 }
+_TIMING_TRIGGER_PHASES = {
+    "input_driven": "rule:phase.input",
+    "input": "rule:phase.input",
+    "timer": "rule:phase.update",
+    "tick": "rule:phase.update",
+    "update": "rule:phase.update",
+    "outcome": "rule:phase.outcome",
+    "render": "rule:phase.render",
+}
 
 
 def _operation_items(value: Any) -> List[Dict[str, Any]]:
@@ -1440,8 +3666,16 @@ def _coerce_rule_ir_operation(operation: Dict[str, Any]) -> None:
         return
     if root == "events":
         for item in _operation_items(value):
-            if not isinstance(item.get("payload"), list):
+            if not isinstance(item.get("name"), str) or not item.get("name"):
+                item["name"] = _name_from_id(item, "Event")
+            payload = item.get("payload")
+            if not isinstance(payload, list):
                 item["payload"] = []
+            else:
+                item["payload"] = [
+                    _coerce_rule_parameter(param, index)
+                    for index, param in enumerate(payload)
+                ]
         return
     if root == "flow" and len(segments) == 1 and isinstance(value, dict):
         _coerce_flow_object(value)
@@ -1450,9 +3684,126 @@ def _coerce_rule_ir_operation(operation: Dict[str, Any]) -> None:
         for item in _operation_items(value):
             _coerce_action_object(item)
         return
+    if root == "participants":
+        for item in _operation_items(value):
+            _coerce_participant_object(item)
+        return
     if root == "systems":
         for item in _operation_items(value):
             _coerce_system_object(item)
+        return
+    if root == "outcomes":
+        for item in _operation_items(value):
+            _coerce_outcome_object(item)
+        return
+    if root == "queries":
+        for item in _operation_items(value):
+            _coerce_query_object(item)
+        return
+    if root == "parameters":
+        if isinstance(value, list):
+            operation["value"] = [
+                _coerce_rule_parameter(item, index) if isinstance(item, dict) else item
+                for index, item in enumerate(value)
+            ]
+        elif isinstance(value, dict):
+            _coerce_rule_parameter(value, 0)
+
+
+def _coerce_rule_parameter(item: Any, index: int) -> Dict[str, Any]:
+    if not isinstance(item, dict):
+        return {
+            "name": "arg_{0}".format(index),
+            # Type left empty → caller/validator; do not invent core:any semantics.
+            "type": "",
+        }
+    name = item.get("name", item.get("id"))
+    if not isinstance(name, str) or not _SCENE_LOCAL_ID.fullmatch(str(name).replace(":", ".")):
+        local = slugify(str(name or "arg_{0}".format(index)), fallback="arg_{0}".format(index))
+        item["name"] = local.replace(":", ".")
+    else:
+        item["name"] = str(name).replace(":", ".")
+    type_ref = item.get("type")
+    if isinstance(type_ref, str):
+        mapped = _TYPE_ALIASES.get(type_ref.strip().lower())
+        if mapped:
+            item["type"] = mapped
+    # Keep explicit types; do not invent core:any for unknowns.
+    return item
+
+
+def _coerce_outcome_object(value: Dict[str, Any]) -> None:
+    identifier = value.get("id")
+    if isinstance(identifier, str) and identifier and not identifier.startswith("rule:"):
+        value["id"] = "rule:{0}".format(slugify(identifier, fallback="outcome"))
+    elif not isinstance(identifier, str) or not identifier:
+        value["id"] = "rule:outcome.default"
+    if not isinstance(value.get("name"), str) or not value.get("name"):
+        value["name"] = _name_from_id(value, "Outcome")
+    if not isinstance(value.get("priority"), int) or isinstance(value.get("priority"), bool):
+        value["priority"] = 100
+    value["condition"] = _coerce_expression(value.get("condition"), fallback=False)
+    result = value.get("result")
+    if not isinstance(result, dict):
+        value["result"] = {"status": "ongoing", "terminal": False}
+    else:
+        if not isinstance(result.get("status"), str) or not result.get("status"):
+            result["status"] = "ongoing"
+        if not isinstance(result.get("terminal"), bool):
+            result["terminal"] = False
+    _ensure_required_keys(
+        value,
+        ("id", "name", "priority", "condition", "result"),
+        {
+            "id": "rule:outcome.default",
+            "name": "Outcome",
+            "priority": 100,
+            "condition": {"op": "literal", "value": False},
+            "result": {"status": "ongoing", "terminal": False},
+        },
+    )
+
+
+def _coerce_query_object(value: Dict[str, Any]) -> None:
+    identifier = value.get("id")
+    if isinstance(identifier, str) and identifier and not identifier.startswith("rule:"):
+        value["id"] = "rule:{0}".format(slugify(identifier, fallback="query"))
+    elif not isinstance(identifier, str) or not identifier:
+        value["id"] = "rule:query.default"
+    if not isinstance(value.get("name"), str) or not value.get("name"):
+        value["name"] = _name_from_id(value, "Query")
+    params = value.get("parameters")
+    if not isinstance(params, list):
+        value["parameters"] = []
+    else:
+        value["parameters"] = [
+            _coerce_rule_parameter(param, index) for index, param in enumerate(params)
+        ]
+    result_type = value.get("result_type")
+    if isinstance(result_type, str):
+        mapped = _TYPE_ALIASES.get(result_type.strip().lower())
+        if mapped:
+            value["result_type"] = mapped
+    if not isinstance(value.get("result_type"), str) or not value.get("result_type"):
+        # Missing result_type stays missing — do not invent core:any (P0-2).
+        pass
+    if value.get("ordering") not in ("lexicographic", "stable_id", "distance_then_id", "declared"):
+        value["ordering"] = "stable_id"
+    value["expression"] = _coerce_expression(value.get("expression"), fallback=None)
+    defaults = {
+        "id": "rule:query.default",
+        "name": "Query",
+        "parameters": [],
+        "ordering": "stable_id",
+        "expression": {"op": "literal", "value": None},
+    }
+    if isinstance(value.get("result_type"), str) and value.get("result_type"):
+        defaults["result_type"] = value["result_type"]
+    _ensure_required_keys(
+        value,
+        ("id", "name", "parameters", "ordering", "expression"),
+        defaults,
+    )
 
 
 def _coerce_state_operation(segments: Sequence[str], value: Any) -> None:
@@ -1477,19 +3828,7 @@ def _coerce_state_operation(segments: Sequence[str], value: Any) -> None:
 
 
 def _log_state_coercion(variables: Any, entity_types: Any) -> None:
-    # #region agent log
-    _agent_dbg("G", "compiler.py:_coerce_state_operation", "state shapes after coerce", {
-        "initial_ops": [
-            (item.get("initial") or {}).get("op") if isinstance(item, dict) else None
-            for item in (variables or [])[:4]
-        ],
-        "component_types": [
-            [type(component).__name__ for component in (item.get("components") or [])[:4]]
-            for item in (entity_types or [])[:3]
-            if isinstance(item, dict)
-        ],
-    })
-    # #endregion
+    return
 
 
 def _coerce_expression(value: Any, *, fallback: Any = 0) -> Dict[str, Any]:
@@ -1508,28 +3847,28 @@ def _coerce_entity_component(component: Any, index: int) -> Dict[str, Any]:
     if isinstance(component, str) and component.strip():
         return {
             "name": slugify(component, fallback="field_{0}".format(index)).replace(":", "."),
-            "type": "core:any",
+            "type": "core:string",
             "default": {"op": "literal", "value": None},
         }
     if not isinstance(component, dict):
         return {
             "name": "field_{0}".format(index),
-            "type": "core:any",
+            "type": "core:string",
             "default": {"op": "literal", "value": None},
         }
     name = component.get("name", component.get("id", "field_{0}".format(index)))
-    component["name"] = slugify(str(name), fallback="field_{0}".format(index)).replace(":", ".")
+    if not isinstance(name, str) or not name:
+        component["name"] = "field_{0}".format(index)
+    else:
+        component["name"] = slugify(str(name), fallback="field_{0}".format(index)).replace(":", ".")
     type_ref = component.get("type")
     if isinstance(type_ref, str):
         mapped = _TYPE_ALIASES.get(type_ref.strip().lower())
         if mapped:
             component["type"] = mapped
-    if component.get("type") not in {
-        "core:any", "core:bool", "core:int", "core:fixed", "core:string",
-        "core:coord", "core:entity_id", "core:participant_id", "core:action_id",
-    }:
-        component["type"] = "core:any"
-    component["default"] = _coerce_expression(component.get("default"), fallback=None)
+    # Do not invent core:any for unknown/missing types (P0-2).
+    if not isinstance(component.get("default"), dict):
+        component["default"] = {"op": "literal", "value": None}
     return component
 
 
@@ -1574,61 +3913,169 @@ def _coerce_entity_type(item: Dict[str, Any]) -> None:
     ]
 
 
+def _coerce_flow_phase_id(raw: str) -> str:
+    cleaned = raw.strip()
+    if cleaned.startswith("rule:"):
+        return cleaned
+    slug = slugify(cleaned.replace("rule:", ""), fallback="phase")
+    if slug.startswith("phase."):
+        return "rule:{0}".format(slug)
+    return "rule:phase.{0}".format(slug)
+
+
+def _coerce_flow_phase_item(item: Any, index: int) -> Optional[Dict[str, Any]]:
+    order = 100 + index * 100
+    if isinstance(item, dict):
+        identifier = item.get("id")
+        if not isinstance(identifier, str) or not identifier:
+            local = item.get("name") or item.get("phase") or "phase_{0}".format(index)
+            item["id"] = _coerce_flow_phase_id(str(local))
+        elif not identifier.startswith("rule:"):
+            item["id"] = _coerce_flow_phase_id(identifier)
+        if not isinstance(item.get("order"), int) or isinstance(item.get("order"), bool):
+            item["order"] = order
+        return item
+    if isinstance(item, str) and item.strip():
+        return {"id": _coerce_flow_phase_id(item), "order": order}
+    return None
+
+
 def _coerce_flow_object(value: Dict[str, Any]) -> None:
+    """Normalize known flow aliases only — do not invent model or tick rate."""
+
+    if not isinstance(value.get("turn_order"), list):
+        value["turn_order"] = []
+
+    tick_hz_hint: Optional[int] = None
+    raw_tick = value.get("tick_rate")
+    if isinstance(raw_tick, (int, float)) and not isinstance(raw_tick, bool) and raw_tick > 0:
+        tick_hz_hint = max(1, int(round(float(raw_tick))))
+        value.pop("tick_rate", None)
+
     raw_model = value.get("model", value.get("temporal_model"))
     if isinstance(raw_model, str):
         mapped = _FLOW_MODELS.get(raw_model.strip().lower(), raw_model.strip().lower())
         if mapped in {"turn_based", "simultaneous", "event_driven", "fixed_tick", "real_time", "hybrid"}:
             value["model"] = mapped
-    if value.get("model") not in {"turn_based", "simultaneous", "event_driven", "fixed_tick", "real_time", "hybrid"}:
-        value["model"] = "fixed_tick" if value.get("tick_ms") or value.get("tick_hz") else "event_driven"
-    if not isinstance(value.get("phases"), list) or not value.get("phases"):
-        value["phases"] = [
-            {"id": "rule:phase.input", "order": 100},
-            {"id": "rule:phase.update", "order": 200},
-            {"id": "rule:phase.outcome", "order": 300},
-        ]
-    if value.get("initial_phase") not in {
-        item.get("id") for item in value["phases"] if isinstance(item, dict)
+
+    phases = value.get("phases")
+    if isinstance(phases, list) and phases:
+        coerced_phases: List[Dict[str, Any]] = []
+        for index, item in enumerate(phases):
+            coerced = _coerce_flow_phase_item(item, index)
+            if coerced is not None:
+                coerced_phases.append(coerced)
+        if coerced_phases:
+            value["phases"] = coerced_phases
+            declared = {item["id"] for item in coerced_phases}
+            initial = value.get("initial_phase")
+            if not isinstance(initial, str) or initial not in declared:
+                value["initial_phase"] = coerced_phases[0]["id"]
+            elif not initial.startswith("rule:"):
+                value["initial_phase"] = _coerce_flow_phase_id(initial)
+
+    if not isinstance(value.get("scheduler"), dict):
+        value["scheduler"] = {}
+    scheduler = value["scheduler"]
+
+    if tick_hz_hint is not None:
+        scheduler["tick_hz"] = tick_hz_hint
+
+    if scheduler.get("ordering") not in (None, "phase_priority_id"):
+        pass
+    elif "ordering" in scheduler or value.get("model") in {
+        "turn_based", "simultaneous", "event_driven", "fixed_tick", "real_time", "hybrid",
     }:
-        value["initial_phase"] = "rule:phase.input"
-    scheduler = value.get("scheduler")
-    if not isinstance(scheduler, dict):
-        scheduler = {}
-        value["scheduler"] = scheduler
-    if scheduler.get("ordering") != "phase_priority_id":
-        scheduler["ordering"] = "phase_priority_id"
+        scheduler.setdefault("ordering", "phase_priority_id")
+
+    # Derive tick_hz from explicit tick_ms only — never invent Hz without LLM hint.
     if value.get("model") == "fixed_tick":
-        scheduler.setdefault("clock", "fixed_tick")
         tick_hz = scheduler.get("tick_hz")
-        if not isinstance(tick_hz, int) or isinstance(tick_hz, bool) or tick_hz <= 0:
+        if isinstance(tick_hz, (int, float)) and not isinstance(tick_hz, bool) and tick_hz > 0:
+            scheduler["tick_hz"] = max(1, int(round(float(tick_hz))))
+        elif not isinstance(tick_hz, int) or isinstance(tick_hz, bool) or tick_hz <= 0:
             tick_ms = value.get("tick_ms")
             if isinstance(tick_ms, int) and not isinstance(tick_ms, bool) and tick_ms > 0:
                 scheduler["tick_hz"] = max(1, int(round(1000.0 / tick_ms)))
-            else:
-                scheduler["tick_hz"] = 8
-    else:
+        scheduler.setdefault("clock", "fixed_tick")
+    elif value.get("model") in {
+        "turn_based", "simultaneous", "event_driven", "real_time", "hybrid",
+    }:
         scheduler.setdefault("clock", "event_queue")
 
 
+def _coerce_action_timing(timing: Dict[str, Any], *, default_phase: str = "rule:phase.input") -> None:
+    phase = timing.get("phase")
+    if isinstance(phase, str) and phase.strip():
+        if not phase.startswith("rule:"):
+            timing["phase"] = _coerce_flow_phase_id(phase)
+        timing.pop("trigger", None)
+        return
+    trigger = timing.get("trigger")
+    if isinstance(trigger, str) and trigger.strip():
+        mapped = _TIMING_TRIGGER_PHASES.get(trigger.strip().lower(), default_phase)
+        timing["phase"] = mapped
+        timing.pop("trigger", None)
+
+
 def _coerce_action_object(value: Dict[str, Any]) -> None:
-    if not isinstance(value.get("parameters"), list):
+    if not isinstance(value.get("name"), str) or not value.get("name"):
+        value["name"] = _name_from_id(value, "Action")
+    params = value.get("parameters")
+    if not isinstance(params, list):
         value["parameters"] = []
+    else:
+        value["parameters"] = [
+            _coerce_rule_parameter(param, index) for index, param in enumerate(params)
+        ]
     if not isinstance(value.get("effects"), list):
         value["effects"] = []
-    value["actor"] = _coerce_expression(value.get("actor"), fallback="player")
-    value["precondition"] = _coerce_expression(value.get("precondition"), fallback=True)
+    preconditions = value.get("preconditions")
+    if isinstance(preconditions, list):
+        value.pop("preconditions", None)
+    coerced_actor = _coerce_actor_expression(value.get("actor"))
+    if coerced_actor is not None:
+        value["actor"] = coerced_actor
+    elif "actor" in value and value.get("actor") in (None, "", {}):
+        value.pop("actor", None)
+    if value.get("precondition") not in (None, "", {}):
+        value["precondition"] = _coerce_expression(value.get("precondition"), fallback=True)
+    else:
+        value.pop("precondition", None)
+        # Rule IR schema requires precondition; structural shell only (not semantic guessing).
+        value["precondition"] = {"op": "literal", "value": True}
     timing = value.get("timing")
-    if not isinstance(timing, dict) or not isinstance(timing.get("phase"), str):
-        value["timing"] = {"phase": "rule:phase.update"}
+    if isinstance(timing, dict):
+        _coerce_action_timing(timing)
+    elif isinstance(timing, str) and timing.strip():
+        value["timing"] = {"phase": _coerce_flow_phase_id(timing)}
     encoding = value.get("encoding")
     if not isinstance(encoding, dict) or encoding.get("kind") not in (
         "none", "finite_catalogue", "parameter_product", "runtime_enumerated",
     ):
+        if encoding is None or encoding == {}:
+            value["encoding"] = {"kind": "none"}
+    # Shape keys only — never invent actor / precondition / effects semantics.
+    if "id" not in value:
+        value["id"] = "rule:action.default"
+    if "name" not in value:
+        value["name"] = "Action"
+    if "parameters" not in value:
+        value["parameters"] = []
+    if "effects" not in value:
+        value["effects"] = []
+    if "encoding" not in value:
         value["encoding"] = {"kind": "none"}
+    if isinstance(value.get("timing"), dict) and value["timing"].get("phase"):
+        pass
+    elif "timing" not in value:
+        pass  # leave missing; validator / unresolved handle it
+
 
 
 def _coerce_system_object(value: Dict[str, Any]) -> None:
+    if not isinstance(value.get("name"), str) or not value.get("name"):
+        value["name"] = _name_from_id(value, "System")
     if not isinstance(value.get("phase"), str):
         value["phase"] = "rule:phase.update"
     if not isinstance(value.get("priority"), int) or isinstance(value.get("priority"), bool):
@@ -1641,6 +4088,19 @@ def _coerce_system_object(value: Dict[str, Any]) -> None:
     value["condition"] = _coerce_expression(value.get("condition"), fallback=True)
     if not isinstance(value.get("effects"), list):
         value["effects"] = []
+    _ensure_required_keys(
+        value,
+        ("id", "name", "phase", "priority", "trigger", "condition", "effects"),
+        {
+            "id": "rule:system.default",
+            "name": "System",
+            "phase": "rule:phase.update",
+            "priority": 100,
+            "trigger": {"kind": "tick", "every": 1, "offset": 0},
+            "condition": {"op": "literal", "value": True},
+            "effects": [],
+        },
+    )
 
 
 def _coerce_unresolved_list(value: Any) -> List[Any]:

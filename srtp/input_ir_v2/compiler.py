@@ -450,6 +450,46 @@ def compile_input_ir(
     blocking = [item for item in conflicts if item.severity == "error"]
     if blocking:
         first = blocking[0]
+        # #region agent log
+        try:
+            import time as _time
+            _by_id = {item.id: item for item in bindings}
+            _a = _by_id.get(first.first_binding)
+            _b = _by_id.get(first.second_binding)
+            with open("debug-f3e2af.log", "a", encoding="utf-8") as _f:
+                _f.write(json.dumps({
+                    "sessionId": "f3e2af", "runId": "pre-fix", "hypothesisId": "I1,I2,I3",
+                    "location": "input_ir_v2/compiler.py:blocking_conflict",
+                    "message": "input conflict blocking compile",
+                    "data": {
+                        "first": first.first_binding,
+                        "second": first.second_binding,
+                        "reason": first.reason,
+                        "first_trigger": dict(_a.trigger) if _a else None,
+                        "second_trigger": dict(_b.trigger) if _b else None,
+                        "first_priority": _a.priority if _a else None,
+                        "second_priority": _b.priority if _b else None,
+                        "first_consume": _a.consume if _a else None,
+                        "second_consume": _b.consume if _b else None,
+                        "first_context": _a.context_id if _a else None,
+                        "second_context": _b.context_id if _b else None,
+                        "all_controls": [
+                            {
+                                "id": item.id,
+                                "intent": item.intent_id,
+                                "control": item.trigger.get("control"),
+                                "kind": item.trigger.get("kind"),
+                                "phase": item.trigger.get("phase"),
+                                "priority": item.priority,
+                            }
+                            for item in bindings
+                        ],
+                    },
+                    "timestamp": int(_time.time() * 1000),
+                }) + "\n")
+        except Exception:
+            pass
+        # #endregion
         raise InputCompileError(
             "unresolved input conflict between {0} and {1}: {2}".format(
                 first.first_binding, first.second_binding, first.reason,

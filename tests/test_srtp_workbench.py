@@ -41,6 +41,48 @@ class FakeDpg:
     def set_value(self, tag, value):
         self.values[tag] = value
 
+    def does_item_exist(self, tag):
+        return tag in self.values
+
+    def configure_item(self, tag, **kwargs):
+        self.values.setdefault(tag, None)
+
+    def delete_item(self, *args, **kwargs):
+        return None
+
+    def group(self, **kwargs):
+        return self
+
+    def child_window(self, **kwargs):
+        return self
+
+    def add_text(self, *args, **kwargs):
+        return None
+
+    def add_button(self, *args, **kwargs):
+        return None
+
+    def add_input_text(self, *args, **kwargs):
+        return None
+
+    def add_combo(self, *args, **kwargs):
+        return None
+
+    def bind_item_theme(self, *args, **kwargs):
+        return None
+
+    def add_spacer(self, *args, **kwargs):
+        return None
+
+    def add_separator(self, *args, **kwargs):
+        return None
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        return False
+
 
 class FakeRunner:
     def __init__(self):
@@ -156,6 +198,68 @@ class SrtpWorkbenchTests(unittest.TestCase):
 
         self.assertIsNone(controller.core_controller)
         self.assertEqual(dpg.values["srtp_preview_mode"], "Source 2D")
+
+    def test_project_session_arrow_key_dispatches_input_ir(self):
+        from srtp.reference_games.pygame_snake.snake_playable_fixture import (
+            write_snake_playable_artifacts,
+        )
+
+        root = Path(__file__).resolve().parents[1]
+        out = root / "artifacts" / "snake_playable_workbench_test"
+        write_snake_playable_artifacts(out)
+        dpg = FakeDpg()
+        dpg.mvKey_Up = 1001
+        dpg.mvKey_Down = 1002
+        dpg.mvKey_Left = 1003
+        dpg.mvKey_Right = 1004
+        dpg.mvKey_R = 1005
+        controller = SrtpWorkbench(dpg)
+        controller.load_selected_reference()
+        controller.open_project_manifest(out / "project.manifest.json")
+        self.assertEqual(dpg.values["srtp_preview_mode"], "Project Session")
+        before = controller.core_controller.snapshot().revision
+        controller.handle_core_key(app_data=dpg.mvKey_Right)
+        after = controller.core_controller.snapshot().revision
+        self.assertEqual(after, before + 1)
+        self.assertTrue(controller.core_last_result.get("accepted"))
+
+    def test_attach_blocked_until_designer_approves_llm_manifest(self):
+        from srtp.project_manifest_v2 import (
+            is_project_manifest_compile_ready,
+            seal_project_manifest,
+        )
+        from srtp.reference_games.pygame_snake.snake_playable_fixture import (
+            write_snake_playable_artifacts,
+        )
+        import json
+
+        root = Path(__file__).resolve().parents[1]
+        out = root / "artifacts" / "llm_approval_workbench_test"
+        fixture_dir = out / "fixture"
+        write_snake_playable_artifacts(fixture_dir)
+        manifest_path = fixture_dir / "project.manifest.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest["unresolved"] = [{
+            "path": "/provenance/llm",
+            "reason": "LLM proposal has not been designer-approved.",
+            "required": True,
+            "owner": "designer",
+        }]
+        manifest = seal_project_manifest(manifest)
+        manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+        self.assertFalse(is_project_manifest_compile_ready(manifest))
+
+        dpg = FakeDpg()
+        controller = SrtpWorkbench(dpg)
+        controller.load_selected_reference()
+        controller.open_project_manifest(manifest_path)
+        self.assertIn("Attach blocked", dpg.values.get("srtp_status", ""))
+
+        controller._pending_llm_manifest = manifest_path
+        controller.approve_pending_llm_manifest()
+        self.assertEqual(dpg.values["srtp_preview_mode"], "Project Session")
+        approved = json.loads(manifest_path.read_text(encoding="utf-8"))
+        self.assertTrue(is_project_manifest_compile_ready(approved))
 
 
 if __name__ == "__main__":

@@ -207,6 +207,31 @@ def compile_project_manifest(
     expected_asset_pin = {
         "document_id": asset_document["document_id"], "content_hash": hashes["asset_ir"],
     }
+    # #region agent log
+    try:
+        import json as _json, time as _time
+        _scene_deps = scene_document.get("dependencies") if isinstance(scene_document.get("dependencies"), Mapping) else {}
+        _input_deps = input_document.get("dependencies") if isinstance(input_document.get("dependencies"), Mapping) else {}
+        with open("debug-f3e2af.log", "a", encoding="utf-8") as _f:
+            _f.write(_json.dumps({
+                "sessionId": "f3e2af", "runId": "pre-fix", "hypothesisId": "A,B,C",
+                "location": "project_manifest_v2/compiler.py:cross_pins",
+                "message": "cross-IR dependency pin check",
+                "data": {
+                    "expected_rule_pin": expected_rule_pin,
+                    "expected_asset_pin": expected_asset_pin,
+                    "scene_rule_ir": _scene_deps.get("rule_ir"),
+                    "scene_asset_ir": _scene_deps.get("asset_ir"),
+                    "input_rule_ir": _input_deps.get("rule_ir"),
+                    "scene_rule_match": _scene_deps.get("rule_ir") == expected_rule_pin,
+                    "scene_asset_match": _scene_deps.get("asset_ir") == expected_asset_pin,
+                    "input_rule_match": _input_deps.get("rule_ir") == expected_rule_pin,
+                },
+                "timestamp": int(_time.time() * 1000),
+            }) + "\n")
+    except Exception:
+        pass
+    # #endregion
     if scene_document.get("dependencies", {}).get("rule_ir") != expected_rule_pin:
         raise ProjectCompileError("Scene IR does not pin the manifest Rule IR")
     if scene_document.get("dependencies", {}).get("asset_ir") != expected_asset_pin:

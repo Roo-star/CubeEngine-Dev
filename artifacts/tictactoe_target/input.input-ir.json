@@ -1,0 +1,109 @@
+{
+  "ir_version": "cubeengine.input-ir/2.0-alpha.1",
+  "document_id": "input:game.tictactoe_2d",
+  "revision": 2,
+  "content_hash": "c402b5fa9df83a704314afb789ef7cc3ebe36eaa07fc72d585526d4332b9c93f",
+  "metadata": {
+    "title": "tictactoe_2d input seed",
+    "description": "",
+    "source_project_hash": "05ace7156afda5dc84b98f80342ee2c5e4f43e0d1fe0e12ae42205b5adec7c7f"
+  },
+  "dependencies": {
+    "rule_ir": {
+      "document_id": "rule:game.tictactoe_2d",
+      "content_hash": "355ab402454ebc6e47befaa4e521c15147b85ff38e2f538f5749e0fb21809576"
+    },
+    "extensions": []
+  },
+  "contexts": [
+    {
+      "id": "input:context.play",
+      "name": "Play",
+      "priority": 100,
+      "enabled_by_default": true,
+      "focus": "viewport",
+      "consume_policy": "first_match",
+      "exclusive_group": "runtime_mode"
+    }
+  ],
+  "intents": [
+    {
+      "id": "input:action.place",
+      "name": "Place",
+      "value_type": "digital",
+      "required": true,
+      "target": {
+        "kind": "rule_action",
+        "action": "rule:action.place",
+        "parameters": {
+          "target": {
+            "source": "event_data",
+            "key": "rule_coordinate",
+            "value_type": "core:coord"
+          }
+        }
+      }
+    }
+  ],
+  "bindings": [
+    {
+      "id": "input:binding.place_mouse",
+      "name": "Place with Mouse",
+      "context": "input:context.play",
+      "intent": "input:action.place",
+      "priority": 100,
+      "enabled": true,
+      "consume": true,
+      "rebindable": true,
+      "slot": "primary",
+      "accessibility_label": "Place",
+      "trigger": {
+        "kind": "control",
+        "device": "mouse",
+        "control": "mouse.button.primary",
+        "phase": "press",
+        "modifiers": [],
+        "modifier_policy": "exact"
+      },
+      "processing": {
+        "dead_zone": 0,
+        "sensitivity_numerator": 1,
+        "sensitivity_denominator": 1,
+        "invert": false,
+        "clamp_min": -32768,
+        "clamp_max": 32767
+      }
+    }
+  ],
+  "provenance": {
+    "patch_history": [
+      {
+        "base_revision": 0,
+        "base_content_hash": "28a4b413bb03c9ad1d9c255745a5491de1a900434181ea2097fbce468a542a81",
+        "evidence": [
+          {
+            "evidence_id": "ev:sha256:3c61fde069f7c222b26e0865d311cca4acc0d2000397ce8d95c9c5d94319f9b8",
+            "source_file_hash": "5e641469943dc3d7b639868e442f9d2a8e706e0f8fb1b67cb312bf19755078ca",
+            "path": "srtp/examples/tictactoe_2d.py",
+            "kind": "source_file"
+          }
+        ],
+        "assumptions": [],
+        "operation_count": 5
+      },
+      {
+        "base_revision": 1,
+        "base_content_hash": "4de6557fe814ee4a80bc3cb061c626d76318133dcd8cddf678b8837662195abd",
+        "evidence": [
+          {
+            "author": "engine",
+            "method": "pin_relink"
+          }
+        ],
+        "assumptions": [],
+        "operation_count": 1
+      }
+    ]
+  },
+  "unresolved": []
+}

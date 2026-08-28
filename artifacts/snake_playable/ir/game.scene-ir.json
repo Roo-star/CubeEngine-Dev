@@ -1,0 +1,185 @@
+{
+  "ir_version": "cubeengine.scene-ir/2.0-alpha.1",
+  "document_id": "scene:game.snake_step_playable",
+  "revision": 0,
+  "content_hash": "18704bafe5ec612c4e8948b48ac5c01e604f9e5e335f47440d1c80e54bd46c76",
+  "metadata": {
+    "title": "Step Snake Scene",
+    "description": "",
+    "source_project_hash": ""
+  },
+  "dependencies": {
+    "rule_ir": {
+      "document_id": "rule:game.snake_step_playable",
+      "content_hash": "a293f7081066df095a0e96b14a066be617a6bce772fe51161174f8ff4ec7006b"
+    },
+    "asset_ir": {
+      "document_id": "asset:game.snake_step_playable",
+      "content_hash": "b5e46447f8b0019b3428f0f48bffee566c81ddc7c1aed38abc7a0c32da58b022"
+    },
+    "extensions": []
+  },
+  "layers": [
+    {
+      "id": "scene:layer.runtime",
+      "name": "Runtime",
+      "kind": "runtime",
+      "visible": true,
+      "pickable": true,
+      "opacity": 1.0
+    }
+  ],
+  "prefabs": [
+    {
+      "id": "scene:prefab.cell",
+      "name": "Cell",
+      "root": {
+        "local_id": "root",
+        "name": "Cell",
+        "active": true,
+        "transform": {
+          "translation": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "rotation_euler_deg": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "scale": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "components": [
+          {
+            "id": "renderer",
+            "type": "renderer",
+            "enabled": true,
+            "properties": {
+              "geometry": "asset:model.cell_cube_snake_step_playable",
+              "visible": true,
+              "opacity": 1.0,
+              "variant": "empty"
+            }
+          },
+          {
+            "id": "collider",
+            "type": "collider",
+            "enabled": true,
+            "properties": {
+              "shape": "box",
+              "size": [
+                1.0,
+                1.0,
+                1.0
+              ],
+              "is_trigger": false,
+              "selectable": true
+            }
+          }
+        ],
+        "children": []
+      }
+    }
+  ],
+  "nodes": [
+    {
+      "id": "scene:node.board",
+      "name": "Board",
+      "parent": null,
+      "active": true,
+      "layer": "scene:layer.runtime",
+      "transform": {
+        "translation": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "rotation_euler_deg": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "components": [
+        {
+          "id": "sites",
+          "type": "topology_visualizer",
+          "enabled": true,
+          "properties": {
+            "rule_topology": "rule:topology.board",
+            "prefab": "scene:prefab.cell",
+            "index_to_world": [
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "bindings": [
+    {
+      "id": "scene:binding.cell_variant",
+      "name": "Cell Variant",
+      "source": {
+        "kind": "state",
+        "scope": "topology_site",
+        "variable": "rule:state.board_cell"
+      },
+      "target": {
+        "selector": "topology_sites",
+        "node": "scene:node.board",
+        "visualizer": "sites",
+        "component": "renderer",
+        "property": "variant"
+      },
+      "transform": {
+        "kind": "map",
+        "cases": [
+          {
+            "equals": 0,
+            "value": "empty"
+          },
+          {
+            "equals": 1,
+            "value": "body"
+          },
+          {
+            "equals": 2,
+            "value": "head"
+          },
+          {
+            "equals": -1,
+            "value": "food"
+          }
+        ]
+      }
+    }
+  ],
+  "provenance": {},
+  "unresolved": []
+}

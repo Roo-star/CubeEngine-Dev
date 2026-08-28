@@ -283,6 +283,42 @@ def compile_scene_ir(
         str(item["id"]): deepcopy(item)
         for item in document.get("prefabs", []) if isinstance(item, Mapping)
     }
+    # #region agent log
+    try:
+        import time as _time
+        _viz_refs = []
+        for _node in document.get("nodes", []) or []:
+            if not isinstance(_node, Mapping):
+                continue
+            for _comp in _node.get("components") or []:
+                if not isinstance(_comp, Mapping):
+                    continue
+                if _comp.get("type") in ("topology_visualizer", "rule_entity_visualizer"):
+                    _props = _comp.get("properties") if isinstance(_comp.get("properties"), Mapping) else {}
+                    _viz_refs.append({
+                        "node": _node.get("id"),
+                        "kind": _comp.get("type"),
+                        "component": _comp.get("id"),
+                        "prefab": _props.get("prefab"),
+                        "in_prefabs": str(_props.get("prefab")) in prefab_documents,
+                    })
+        with open("debug-f3e2af.log", "a", encoding="utf-8") as _f:
+            _f.write(json.dumps({
+                "sessionId": "f3e2af", "runId": "pre-fix", "hypothesisId": "A,B,C,D",
+                "location": "scene_ir_v2/compiler.py:prefab_catalog",
+                "message": "scene prefabs vs visualizer prefab refs",
+                "data": {
+                    "prefab_ids": sorted(prefab_documents.keys()),
+                    "prefab_count": len(prefab_documents),
+                    "raw_prefabs_type": type(document.get("prefabs")).__name__,
+                    "raw_prefabs_len": len(document.get("prefabs") or []) if isinstance(document.get("prefabs"), list) else None,
+                    "visualizers": _viz_refs,
+                },
+                "timestamp": int(_time.time() * 1000),
+            }) + "\n")
+    except Exception:
+        pass
+    # #endregion
     prefabs = tuple(
         CompiledPrefab(identifier, str(item["name"]), item["root"])
         for identifier, item in prefab_documents.items()
@@ -403,6 +439,25 @@ def compile_scene_ir(
                     raise SceneCompileError("topology visualizer supports Rule rank 1 through 3")
                 prefab_id = str(properties["prefab"])
                 if prefab_id not in prefab_documents:
+                    # #region agent log
+                    try:
+                        import time as _time
+                        with open("debug-f3e2af.log", "a", encoding="utf-8") as _f:
+                            _f.write(json.dumps({
+                                "sessionId": "f3e2af", "runId": "pre-fix", "hypothesisId": "A,B,C",
+                                "location": "scene_ir_v2/compiler.py:unknown_topology_prefab",
+                                "message": "topology visualizer missing prefab",
+                                "data": {
+                                    "host": host.identifier,
+                                    "component": component.identifier,
+                                    "prefab_id": prefab_id,
+                                    "known_prefabs": sorted(prefab_documents.keys()),
+                                },
+                                "timestamp": int(_time.time() * 1000),
+                            }) + "\n")
+                    except Exception:
+                        pass
+                    # #endregion
                     raise SceneCompileError("topology visualizer references unknown prefab: {0}".format(prefab_id))
                 index_matrix = tuple(float(item) for item in properties["index_to_world"])
                 topology_sites[key] = {}

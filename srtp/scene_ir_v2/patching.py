@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from copy import deepcopy
-from typing import Any, Dict, Mapping, MutableMapping, MutableSequence, Sequence, Tuple
+from typing import Any, Dict, Mapping, MutableMapping, MutableSequence, Optional, Sequence, Tuple
 
 from .scene_ir import canonical_scene_ir_hash, seal_scene_ir, validate_scene_ir
 
@@ -16,7 +16,13 @@ class SceneIRPatchError(ValueError):
 _PROTECTED_ROOTS = {"ir_version", "document_id", "revision", "content_hash"}
 
 
-def apply_scene_ir_patch(document: Mapping[str, Any], proposal: Mapping[str, Any]) -> Dict[str, Any]:
+def apply_scene_ir_patch(
+    document: Mapping[str, Any],
+    proposal: Mapping[str, Any],
+    *,
+    rule_pin: Optional[Mapping[str, str]] = None,
+    asset_pin: Optional[Mapping[str, str]] = None,
+) -> Dict[str, Any]:
     if not isinstance(document, Mapping) or not isinstance(proposal, Mapping):
         raise SceneIRPatchError("document and patch proposal must be objects")
     _validate_base(document, proposal)
@@ -55,6 +61,15 @@ def apply_scene_ir_patch(document: Mapping[str, Any], proposal: Mapping[str, Any
     })
     staged["revision"] = int(document["revision"]) + 1
     staged["content_hash"] = ""
+    if isinstance(staged.get("dependencies"), Mapping):
+        deps = dict(staged["dependencies"])
+        if not isinstance(deps.get("extensions"), list):
+            deps["extensions"] = []
+        if rule_pin is not None and deps.get("rule_ir") is None:
+            deps["rule_ir"] = dict(rule_pin)
+        if asset_pin is not None and deps.get("asset_ir") is None:
+            deps["asset_ir"] = dict(asset_pin)
+        staged["dependencies"] = deps
     errors = [item for item in validate_scene_ir(staged) if item.severity == "error"]
     if errors:
         first = errors[0]

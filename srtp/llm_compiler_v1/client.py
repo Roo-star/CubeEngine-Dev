@@ -5,9 +5,7 @@ from __future__ import annotations
 import json
 import os
 import re
-import time
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional, Sequence
 
 from .env import load_compiler_env, provider_api_keys
@@ -16,43 +14,12 @@ from .env import load_compiler_env, provider_api_keys
 # proposals often need longer than 30s on free-tier Gemini.
 DEFAULT_HTTP_TIMEOUT_S = 120.0
 # Large four-IR proposals need headroom; pair with raised HTTP timeout.
-DEFAULT_MAX_TOKENS = 8192
+DEFAULT_MAX_TOKENS = 12288
 DEFAULT_CHAT_RETRIES = 2
 _TRANSIENT_MARKERS = (
     "disconnected", "timed out", "timeout", "connection reset",
     "remote protocol", "server disconnected", "temporarily unavailable",
 )
-
-
-def _agent_dbg(hypothesis_id: str, location: str, message: str, data: Optional[Dict[str, Any]] = None) -> None:
-    # #region agent log
-    try:
-        payload = {
-            "sessionId": "0f1247",
-            "runId": "anchor-key-rotate",
-            "hypothesisId": hypothesis_id,
-            "location": location,
-            "message": message,
-            "data": data or {},
-            "timestamp": int(time.time() * 1000),
-        }
-        with (Path(__file__).resolve().parents[2] / "debug-0f1247.log").open("a", encoding="utf-8") as handle:
-            handle.write(json.dumps(payload, ensure_ascii=False) + "\n")
-    except Exception:
-        pass
-    # #endregion
-
-
-def _provider_key_state(client: Any) -> List[Dict[str, Any]]:
-    states: List[Dict[str, Any]] = []
-    for provider in getattr(client, "providers", []) or []:
-        keys = getattr(provider, "api_keys", None) or []
-        states.append({
-            "name": str(getattr(provider, "name", "unknown")),
-            "n_keys": len(keys),
-            "index": getattr(provider, "current_key_index", None),
-        })
-    return states
 
 
 def _is_transient_provider_error(error: BaseException) -> bool:
@@ -220,36 +187,13 @@ class FreeFlowLLMClient:
             last_error: Optional[Exception] = None
             response = None
             for attempt in range(retries + 1):
-                # #region agent log
-                _agent_dbg("C", "client.py:chat_json", "provider key state before chat", {
-                    "attempt": attempt + 1,
-                    "retries": retries,
-                    "providers": _provider_key_state(self._client),
-                })
-                # #endregion
                 try:
                     response = self._client.chat(**kwargs)
                     last_error = None
-                    # #region agent log
-                    _agent_dbg("C", "client.py:chat_json", "provider key state after chat ok", {
-                        "attempt": attempt + 1,
-                        "providers": _provider_key_state(self._client),
-                    })
-                    # #endregion
                     break
                 except Exception as error:  # noqa: BLE001 - provider surface varies
                     last_error = error
                     transient = _is_transient_provider_error(error)
-                    # #region agent log
-                    _agent_dbg("D", "client.py:chat_json", "provider chat error", {
-                        "attempt": attempt + 1,
-                        "retries": retries,
-                        "transient": transient,
-                        "error_type": type(error).__name__,
-                        "error_text": str(error)[:240],
-                        "providers": _provider_key_state(self._client),
-                    })
-                    # #endregion
                     if transient and attempt < retries:
                         continue
                     raise LLMClientError("FreeFlow LLM request failed: {0}".format(error)) from error

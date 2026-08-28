@@ -1538,6 +1538,25 @@ def _type_check_document(runtime: RuleRuntime) -> None:
         environment.update({str(item["name"]): str(item["type"]) for item in action.get("parameters", [])})
         actor_type = evaluator.infer_type(action["actor"], environment)
         if actor_type not in ("core:participant_id", "core:any"):
+            # #region agent log
+            try:
+                import json as _json, time as _time
+                with open("debug-f3e2af.log", "a", encoding="utf-8") as _f:
+                    _f.write(_json.dumps({
+                        "sessionId": "f3e2af", "runId": "pre-fix", "hypothesisId": "D",
+                        "location": "runtime.py:_type_check_document",
+                        "message": "action actor type-check failed",
+                        "data": {
+                            "action_id": action.get("id"),
+                            "actor": action.get("actor"),
+                            "inferred": actor_type,
+                            "participant_count": len(runtime.document.get("participants") or []),
+                        },
+                        "timestamp": int(_time.time() * 1000),
+                    }) + "\n")
+            except Exception:
+                pass
+            # #endregion
             raise RuleRuntimeError("action actor must type-check as core:participant_id")
         result = evaluator.infer_type(action["precondition"], environment)
         if result != "core:bool":
@@ -1722,6 +1741,17 @@ def _core_functions(runtime: RuleRuntime) -> Dict[str, FunctionSpec]:
         coordinate = tuple(args[1])
         return bool(topology_contains((_topology_for_grid(state(context), str(args[0])), coordinate), context) and array[coordinate] == args[2])
 
+    def grid_get(args: Tuple[Any, ...], context: EvaluationContext):
+        array = grid(args, context)
+        coordinate = tuple(args[1])
+        shape = array.shape
+        if len(coordinate) != len(shape) or any(
+            isinstance(item, bool) or not isinstance(item, int) or item < 0 or item >= shape[index]
+            for index, item in enumerate(coordinate)
+        ):
+            raise ExpressionError("core:grid.get coordinate is outside the grid")
+        return array[coordinate]
+
     def none_equal(args: Tuple[Any, ...], context: EvaluationContext):
         return not any(value == args[1] for value in grid(args, context).flat)
 
@@ -1819,6 +1849,7 @@ def _core_functions(runtime: RuleRuntime) -> Dict[str, FunctionSpec]:
         "core:topology.connected": FunctionSpec("core:topology.connected", topology_connected, "core:bool", ("core:string", "core:any", "core:bool")),
         "core:topology.shortest_path": FunctionSpec("core:topology.shortest_path", topology_shortest_path, "core:any", ("core:string", "core:coord", "core:coord", "core:any", "core:bool")),
         "core:grid.equals": FunctionSpec("core:grid.equals", grid_equals, "core:bool", ("core:string", "core:coord", "core:any")),
+        "core:grid.get": FunctionSpec("core:grid.get", grid_get, "core:any", ("core:string", "core:coord")),
         "core:grid.none_equal": FunctionSpec("core:grid.none_equal", none_equal, "core:bool", ("core:string", "core:any")),
         "core:grid.count_state_at_least": FunctionSpec("core:grid.count_state_at_least", count_at_least, "core:bool", ("core:string", "core:any", "core:int")),
         "core:grid.count_equal": FunctionSpec("core:grid.count_equal", count_equal, "core:int", ("core:string", "core:any")),

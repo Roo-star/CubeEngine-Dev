@@ -1,0 +1,191 @@
+{
+  "ir_version": "cubeengine.input-ir/2.0-alpha.1",
+  "document_id": "input:game.snake_step_playable",
+  "revision": 0,
+  "content_hash": "0dd5cc302206fcefdbc6bc19b612691bc994a0c65bccfbabdc89ce71c1cfb9be",
+  "metadata": {
+    "title": "Step Snake Input",
+    "description": "",
+    "source_project_hash": ""
+  },
+  "dependencies": {
+    "rule_ir": {
+      "document_id": "rule:game.snake_step_playable",
+      "content_hash": "a293f7081066df095a0e96b14a066be617a6bce772fe51161174f8ff4ec7006b"
+    },
+    "extensions": []
+  },
+  "contexts": [
+    {
+      "id": "input:context.play",
+      "name": "Play",
+      "priority": 100,
+      "enabled_by_default": true,
+      "focus": "viewport",
+      "consume_policy": "first_match",
+      "exclusive_group": "runtime_mode"
+    }
+  ],
+  "intents": [
+    {
+      "id": "input:action.intent.move.up",
+      "name": "Move Up",
+      "value_type": "digital",
+      "required": true,
+      "target": {
+        "kind": "rule_action",
+        "action": "rule:action.move_up",
+        "parameters": {}
+      }
+    },
+    {
+      "id": "input:action.intent.move.down",
+      "name": "Move Down",
+      "value_type": "digital",
+      "required": true,
+      "target": {
+        "kind": "rule_action",
+        "action": "rule:action.move_down",
+        "parameters": {}
+      }
+    },
+    {
+      "id": "input:action.intent.move.left",
+      "name": "Move Left",
+      "value_type": "digital",
+      "required": true,
+      "target": {
+        "kind": "rule_action",
+        "action": "rule:action.move_left",
+        "parameters": {}
+      }
+    },
+    {
+      "id": "input:action.intent.move.right",
+      "name": "Move Right",
+      "value_type": "digital",
+      "required": true,
+      "target": {
+        "kind": "rule_action",
+        "action": "rule:action.move_right",
+        "parameters": {}
+      }
+    }
+  ],
+  "bindings": [
+    {
+      "id": "input:binding.up",
+      "name": "Up",
+      "context": "input:context.play",
+      "intent": "input:action.intent.move.up",
+      "priority": 100,
+      "enabled": true,
+      "consume": true,
+      "rebindable": true,
+      "slot": "primary",
+      "accessibility_label": "Up",
+      "trigger": {
+        "kind": "control",
+        "device": "keyboard",
+        "control": "keyboard.key.arrow_up",
+        "phase": "press",
+        "modifiers": [],
+        "modifier_policy": "exact"
+      },
+      "processing": {
+        "dead_zone": 0,
+        "sensitivity_numerator": 1,
+        "sensitivity_denominator": 1,
+        "invert": false,
+        "clamp_min": -32768,
+        "clamp_max": 32767
+      }
+    },
+    {
+      "id": "input:binding.down",
+      "name": "Down",
+      "context": "input:context.play",
+      "intent": "input:action.intent.move.down",
+      "priority": 100,
+      "enabled": true,
+      "consume": true,
+      "rebindable": true,
+      "slot": "primary",
+      "accessibility_label": "Down",
+      "trigger": {
+        "kind": "control",
+        "device": "keyboard",
+        "control": "keyboard.key.arrow_down",
+        "phase": "press",
+        "modifiers": [],
+        "modifier_policy": "exact"
+      },
+      "processing": {
+        "dead_zone": 0,
+        "sensitivity_numerator": 1,
+        "sensitivity_denominator": 1,
+        "invert": false,
+        "clamp_min": -32768,
+        "clamp_max": 32767
+      }
+    },
+    {
+      "id": "input:binding.left",
+      "name": "Left",
+      "context": "input:context.play",
+      "intent": "input:action.intent.move.left",
+      "priority": 100,
+      "enabled": true,
+      "consume": true,
+      "rebindable": true,
+      "slot": "primary",
+      "accessibility_label": "Left",
+      "trigger": {
+        "kind": "control",
+        "device": "keyboard",
+        "control": "keyboard.key.arrow_left",
+        "phase": "press",
+        "modifiers": [],
+        "modifier_policy": "exact"
+      },
+      "processing": {
+        "dead_zone": 0,
+        "sensitivity_numerator": 1,
+        "sensitivity_denominator": 1,
+        "invert": false,
+        "clamp_min": -32768,
+        "clamp_max": 32767
+      }
+    },
+    {
+      "id": "input:binding.right",
+      "name": "Right",
+      "context": "input:context.play",
+      "intent": "input:action.intent.move.right",
+      "priority": 100,
+      "enabled": true,
+      "consume": true,
+      "rebindable": true,
+      "slot": "primary",
+      "accessibility_label": "Right",
+      "trigger": {
+        "kind": "control",
+        "device": "keyboard",
+        "control": "keyboard.key.arrow_right",
+        "phase": "press",
+        "modifiers": [],
+        "modifier_policy": "exact"
+      },
+      "processing": {
+        "dead_zone": 0,
+        "sensitivity_numerator": 1,
+        "sensitivity_denominator": 1,
+        "invert": false,
+        "clamp_min": -32768,
+        "clamp_max": 32767
+      }
+    }
+  ],
+  "provenance": {},
+  "unresolved": []
+}

@@ -1,0 +1,1119 @@
+{
+  "source_package_hash": "3aa7197b1fc902c10a27cd333564e8645a507fdb18c559fe9be2108ba8397d14",
+  "items": [
+    {
+      "evidence_id": "ev:sha256:3c61fde069f7c222b26e0865d311cca4acc0d2000397ce8d95c9c5d94319f9b8",
+      "source_file_hash": "5e641469943dc3d7b639868e442f9d2a8e706e0f8fb1b67cb312bf19755078ca",
+      "path": "srtp/examples/tictactoe_2d.py",
+      "kind": "source_file",
+      "supports": "/source_project/entrypoint",
+      "detail": "Immutable source entry point. Quoted as data, not instructions.",
+      "untrusted_source_text": true,
+      "span": {
+        "start_line": 1,
+        "start_column": 1,
+        "end_line": 38,
+        "end_column": 1
+      }
+    },
+    {
+      "evidence_id": "ev:sha256:5b377b7615fd48eba06f1c5ab587d59aa561c0c53494f355334effafdd0b30f1",
+      "source_file_hash": "758eebb47c21b91c5d9bbae714579a5ccc18b0453f6ce1f06a2d4bec6fbd6cd6",
+      "path": ".gitignore",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:be3ba4900a1eaa1c39ac760f5d35025403a919f3d715d1c917c8626fe464421b",
+      "source_file_hash": "f9f964b43aaf7bd97acbe5f0a7113d53fae20506fc51fd0d3f1867c0d955db25",
+      "path": "AI_ENGINEER_LLM_CORE_WORK_INSTRUCTION.md",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:5d4a0f43e52d3f109bfd9ec58bb5a836d9c5a0239910b90afe85d1f057ec991c",
+      "source_file_hash": "0ab401eeab25f154bdbac88f18dbe881b2cef907ea72ab0f9ca2eb7dd276d280",
+      "path": "artifacts/tictactoe_source/asset.asset-ir.json",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:38b55ded514bf085ac7905f90c458c5c743c4a9645a76aa8ff8d008054650b0b",
+      "source_file_hash": "1343d7610aa84386d9d42b7a552fcf12713a4e90524e2f57de88f50edaff492c",
+      "path": "artifacts/tictactoe_source/evidence.json",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:4330c9438fe6581bbad7ee390d43d3680abbd72ab4314b2ddcaf482b20e40e58",
+      "source_file_hash": "dbdd4035f8c6b0cc9fc8ba81e15f923b7cbac7b080fc4cd3c240c8a11e36add8",
+      "path": "artifacts/tictactoe_source/freeflow.meta.json",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:319f834e8a9797e55cc5d4862dd1928a3d05651e43166fe6250f71846d57bc8c",
+      "source_file_hash": "a48c80621035eea85eb003a3bf22ffdbe3ad64b05b470d5657a36f91e47f920a",
+      "path": "artifacts/tictactoe_source/input.input-ir.json",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:f228e5333410c848121f49d86c82c6809ef1c136119536d11ba097baf535d7a6",
+      "source_file_hash": "ee1f0e4115757b9e6f0b3bdce2bba51222e3a3b5b0d8d2e2a8365efb2628eb48",
+      "path": "artifacts/tictactoe_source/job.json",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:bc95aacb0a4b8721dc5ef1a30a92eeabf6081bad7705196dde67c752c00513be",
+      "source_file_hash": "a53e8fc2c668d1cde2eb864480c878d3a19c25d8ff1ec6f35233c716bf331d0b",
+      "path": "artifacts/tictactoe_source/project.manifest.json",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:36d049be9a7f6a697150bd3dea163d09b76fa3b72ff507cbcd519b9fed541552",
+      "source_file_hash": "51459c1e72b065f96a25bc44ae21dbe61c8f035027c2af76d2c2bcbbe622948b",
+      "path": "artifacts/tictactoe_source/proposal.json",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:eb121977e4ba0dacfe1fb51cc67df49683740a917f99f3ed077a2f20fad48979",
+      "source_file_hash": "4272621de06b9dea244ae765edd4eb069158574d06df5fff90b95398d29b159d",
+      "path": "artifacts/tictactoe_source/rule.rule-ir.json",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:78ebe1b8fcb93035542f865fa30dcb5f09ca7ccad052770d49b26a0c7a3ea06f",
+      "source_file_hash": "8c9f6ae3c3dc7c174afa33be6f8a9f9aeced872d09c9d3b69f9ec5bd20b4fb79",
+      "path": "artifacts/tictactoe_source/scene.scene-ir.json",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:9276a51c92b2aee45b1e79310f476ba9278d85f4f7c98112e1975fbf2630cdfb",
+      "source_file_hash": "0ab401eeab25f154bdbac88f18dbe881b2cef907ea72ab0f9ca2eb7dd276d280",
+      "path": "artifacts/tictactoe_target/asset.asset-ir.json",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:f8090c3184b039dd2146b993acaf485ee78992a19aad4a461c37a5f3ced08773",
+      "source_file_hash": "8e29187510c79bb32c3f8e48ad974197d21cd229a9d74d1cdb896aae481e4669",
+      "path": "artifacts/tictactoe_target/design_intent.json",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:1e4f67a1bd38cc30af2846f9ac914e5f9e82359d67413b288e89937ded9ae3cb",
+      "source_file_hash": "1343d7610aa84386d9d42b7a552fcf12713a4e90524e2f57de88f50edaff492c",
+      "path": "artifacts/tictactoe_target/evidence.json",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:036d134698bda2126a5f7a2883793b389d21e875b4467ee9b1c6f9cc8d37794c",
+      "source_file_hash": "d366bad95e9f2dd719063c6b2376d6a9ca4a30a2145f79c3be158f4499cd09bf",
+      "path": "artifacts/tictactoe_target/freeflow.meta.json",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:9f6c62b83ec9f4dd19047a5f4254639ff39a8b7b28fb45feffe39e6e8ae685ef",
+      "source_file_hash": "ed3eb9cce6034cc7418eb1f3668b752825c47a2def79e96c61c5a91e54b3ee51",
+      "path": "artifacts/tictactoe_target/input.input-ir.json",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:d3d85891d1fef1aeb706f85ad9ff671317256606f75479990557a3380f779328",
+      "source_file_hash": "3a2e37f8c09d510a4001b4deba0ca3eef37054a32b2ed491027d3c10b420b295",
+      "path": "artifacts/tictactoe_target/job.json",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:f871761e44a78acfc8ab8c6b898dc9d507a17596178fecbedb932d31fdb9f321",
+      "source_file_hash": "8600f9bea66c5e1b615913cfc62e3c24833f28ae90398b6bffd8752acac0323f",
+      "path": "artifacts/tictactoe_target/project.manifest.json",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:736ade199e08ed525c74726f1cf41dac3f2c14ba4831c533063654470d2ae6b8",
+      "source_file_hash": "0dae4fb48a9e64dda6a7d45de32f6899851f44f68ef6a77ddfdd3ebc3f44df68",
+      "path": "artifacts/tictactoe_target/proposal.json",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:3f530aa76186e54e28b232fe502338aafd912147a2ab4cd1dd3de6671f4467aa",
+      "source_file_hash": "eb5b3be481741419e12f878be29b2c269997cafe10184da6fdcdc649bc6a7081",
+      "path": "artifacts/tictactoe_target/rule.rule-ir.json",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:283d3c762cca4d382e6902284a50e6f083aae1fcda303bb74e66f3819910fec4",
+      "source_file_hash": "7e2a6b8437aff9afc0a2eed24f3e62ff478a88a705abe77ead9a35098616769b",
+      "path": "artifacts/tictactoe_target/scene.scene-ir.json",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:3b17c4218befe9848a0185bc7716db5db6704d9bbdcbe1ee104e3f36bfe01073",
+      "source_file_hash": "a53e8fc2c668d1cde2eb864480c878d3a19c25d8ff1ec6f35233c716bf331d0b",
+      "path": "artifacts/tictactoe_target/source.manifest.json",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:eb24fb60d102da853f33c8500c996c7af0ea6f71e37844ccaa43d675afb84b97",
+      "source_file_hash": "1c79f30ad80adcffe761c65af263546b9760374e74180a2bfdb0a0854342b4e3",
+      "path": "best.pth.tar",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:fe1244d5c4a330086a444312600576cb2b48ff5d8ba5d83c89a0cab00c32d6d9",
+      "source_file_hash": "d530dc0db4c281c316366592d4ed675ba57965acefe3ff2cf3fd8a5d11fb4ab8",
+      "path": "checkpoints/checkpoint_13.pth.tar",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:ddc1793655385f5f6160b3395d28b57473964b67f42aadd1e1b3e9e981ad7c0d",
+      "source_file_hash": "798404dbf5c465daebdc37868f58d045af524813fa2360731b37375e17114039",
+      "path": "checkpoints/debug-d98ade.log",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:78d05ce82761f56cf34ca600ea22aaee5ed561beadeb295ecd0152c85dbb0534",
+      "source_file_hash": "0142ca4660437919426ae5dd377e19643a03d2a1dbff83440613f890f3a6d098",
+      "path": "crash_log.txt",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:13b5ff21db4a6ca07bc5a6718bd00bf977dbb502ab016ee42df2d37a913777ab",
+      "source_file_hash": "ccb22a9f85dec8503be357dbe1a002151a9130a6dde3db63df506ebbf33a5144",
+      "path": "debug-19c584.log",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:4e49c347de163a25d67bf0a26b3cf0acccbf69a7e9b860dff9658acefd6c3881",
+      "source_file_hash": "05e27cea3f51d8f8c07342f2781b89015c80efb9c3a2a5781f1c096d7edb83da",
+      "path": "debug-d98ade.log",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:faa94d984bb4b9d56cb788c93792b92174125e4164dbbf7e0396a38fe1346dbc",
+      "source_file_hash": "586ef4a1022be144c7511de791cd98c73aa42132b759b2742b6f42a12856bc05",
+      "path": "debug_verify_changes.py",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:a10593d44f038d93cb3ec5ed99e1cb798893832f7bad37d9d09766c2dd235e75",
+      "source_file_hash": "d0c5ff75a5013d7225746fc4bbe93fed483943a8f45ad3bea5b7b78a03708ea3",
+      "path": "docs/adr/001-rule-schema-and-safe-ingestion.md",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:b833b1c15f24d913a7298c67a9cbad1cce3e6932172ecdd2403580c0d72a01d2",
+      "source_file_hash": "7f5d8abac3a254eb99564f2263c60b0574ac0b6ed87aab324653b6fe58f659bf",
+      "path": "docs/adr/002-fidelity-first-source-game-ingestion.md",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:a133bb5157fecfdc24f4ab201bc6019d929e7d077e0c268cae4685d404ea7642",
+      "source_file_hash": "b08cb8f6f6d09222fb4925e09544169513b8d45cb6db369717388eab6a977917",
+      "path": "docs/AI_ENGINEER_LLM_CORE_WORK_INSTRUCTION.md",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:4944c27a89011bee11272aca3d26e9f3c2517b8ae38e56adfcf10f771be63460",
+      "source_file_hash": "683153b325b1bb4b46899c6b95278f302f66a6fc25c46fe9c9ed0b417978723d",
+      "path": "docs/ALPHAZERO_NINE_API_ADAPTER.md",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:b37084cde43a598df5c02f65a9c324da70b5c9dc3e9bb6b1d223900152b54f54",
+      "source_file_hash": "8cb94fb921a69ba8b13b55f78ef9f7d5db2360f2b5a341299b1416ce0934bb0f",
+      "path": "docs/ASSET_IR_V2_COMPILER.md",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:aaa256db97280af6729c175f1950d1705d5069e0c6de2bfde83bae1542c4382e",
+      "source_file_hash": "a78f9205bb5d9b50eb1672e6c109566cdb07a2e7078dac68187151b9a61e6517",
+      "path": "docs/CUBEENGINE_IR_V2_CONTRACT.md",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:a04fbf55fbe2f9e4cbaaca7ac2b06d80145086f938b54cb047a95b79c86b802f",
+      "source_file_hash": "9fb7827fc0b2923b709ed5421b32a8222b346e91020efa5ba96e523398a5d702",
+      "path": "docs/DETERMINISTIC_RANDOM_SERVICE.md",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:e1ee2e958358d68b6c1f6680a9d4f5b79be1606686a21e4ced91af48abdacf99",
+      "source_file_hash": "96ec27fcdc41f4dd108d0d014403f1e07a24cf3b0853369bc98e14d89424f737",
+      "path": "docs/EVENT_TIME_RUNTIME.md",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:e50f737c2d857d3ac13fe5be6960953a53a3eb4685826946561db361683240f5",
+      "source_file_hash": "fced30ca57159aabcc6d4145f349e0f8a09b310ed0a0e1c4091fdd99c49aa29c",
+      "path": "docs/EXTENSION_ADAPTER_SDK.md",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:b2feb3001efaab4137861ec4021adec9ee3ded27063454dd2c2f4bd05265586d",
+      "source_file_hash": "7a7aefe1a155e36df1e926116046f1dc835b174097a5a708ab1561c5ac5d761b",
+      "path": "docs/INPUT_IR_V2_COMPILER.md",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:28da62ec67ec3779aca5e60ddcb04e838699071a04aee3ca1434447b49c4eadb",
+      "source_file_hash": "4254c434990325a12002d46d2739528a22845829b41d53daccd3d6af6ff78ed3",
+      "path": "docs/IR_V2_ACCEPTANCE_WORKBENCH.md",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:83a608387b999163b5aec50d4fd8b80d5a70aed08fd197e604f1a347c0d80c75",
+      "source_file_hash": "a703df4859b7ade082a3be65a906e4132e557df01a1402a1e104eb36bce51165",
+      "path": "docs/LLM_SOURCE_TO_IR_COMPILER_FRAMEWORK.md",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:085b3ab093e06bd2f80be73d497f79cd29d915a693f4a9794152aa63c6ba6b42",
+      "source_file_hash": "39628557f972484505f98e1c0b13b708d9609ed31108474649e00cb3ef09959d",
+      "path": "docs/MVP_V1_INTEGRATION_AUDIT_AND_2_WEEK_PLAN.md",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:1d39d81ca1f01b0f68a8b979f2cabafde415a6e8070ea6b016963c74949777a2",
+      "source_file_hash": "78cbe8b3f6081f114223f37ef902633d3e19472bf2321ca42a636edd4cab98af",
+      "path": "docs/NON_LLM_CORE_COMPLETION_REPORT.md",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:c0a86cae4b1b489e442631acc07361fb32ef538dbcefe7faaa960b5f43d54389",
+      "source_file_hash": "9a54f6d4f38526d355248224a884379913b31d9519ccdba7b661ade9d3061392",
+      "path": "docs/NON_LLM_CORE_ROADMAP.md",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:9f74f269aa04b9f6aeb940f1ed62f6ed741457927dfba315b7dd346ba80a9553",
+      "source_file_hash": "419f579b4d5f9d4886e344c2c72d078529d2b8be8774181a7ac6b498ef8a7e4e",
+      "path": "docs/PROJECT_MANIFEST_V2.md",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:505266fb7a1588824200eb044d808eaa8eea50562a98af680d5b975cb16d14ec",
+      "source_file_hash": "c2e8b1095d096a8d7aea7ff80721ba2c9f4d1632ee709960339e999637e205a2",
+      "path": "docs/RULE_IR_V2_IMPLEMENTATION.md",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:6926a5d991c754acd66355e9f8ee1c0ec90e5c151a397a1a46146274dc176566",
+      "source_file_hash": "0342bdd5625d589fa78b7f161df3cefb73f0f27c7f6c72128f4e4637a553586c",
+      "path": "docs/SCENE_IR_V2_COMPILER.md",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:131e88f2fe15bee7bdb049bcda2814666eed9e17846b19dbad73ae1c5121ddf1",
+      "source_file_hash": "f730a29f516ae28ec7349dbb27b2c019e96bb660b2051e9a7aa25b1281412964",
+      "path": "docs/SRTP_EDITOR_SCENE_WORKBENCH.md",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:2cb45bb7e2715d71f8f98e3e8cb3370eca211c9b238abcc653d1c52e1dabb834",
+      "source_file_hash": "c17d19db3b71019aedccd408a927a2b7bcd5ce336d155a7bb4f3402b02e5ec37",
+      "path": "docs/SRTP_ENGINE_ARCHITECTURE_V2.md",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:6a8a2e710cfe54f88c7ca2abaa09c59505856fe7d20c928aaed5a266757fa340",
+      "source_file_hash": "ca0644f42731e14171ba1beeddf198e0d1be002ea60eb7eebad7a10a3e31bd32",
+      "path": "docs/SRTP_LLM_ENGINEERING_HANDOFF.md",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:88ea594a7a921b7d5d38051d2b54ff6450ddf981c8bafced6ba337cb9c351481",
+      "source_file_hash": "85a3397335d3788bf2e581fd382100437369dd69ce66317a7da4609ecf6f19d2",
+      "path": "docs/SRTP_LLM_EVALUATION_PLAN.md",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:ed73ebfb6fc5014cd9c94260f69797d703a29d87463d7bf82fd6f192ebdeaef5",
+      "source_file_hash": "269eb9eff1270a1f384bd1a4f66494e20c683fae76947669f7799d2538c545ba",
+      "path": "docs/WHY_CUBEENGINE_NEEDS_A_NON_LLM_CORE.md",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:d2b427bb85850ecef8f3a239afb6cf6e8c9f9c9ca0c16432a573443fa3af6fd3",
+      "source_file_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "path": "freeflow.ipynb",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:9883b95515dff84a2fddea4115c0d7bbed89ce708d68af67c0ced1cd1c507707",
+      "source_file_hash": "c24e2f7f99bb283b92410cfc60842e62c93c8756927f85e6737280f4c81abe2a",
+      "path": "init.py",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:034db9f63df6dbd822ec086711374ec237792a08a48b1a10a6804dd8daeb1c10",
+      "source_file_hash": "d5e286ecb9addf4a94216d5986dfa572cd45c2ddcd913f62d2b96a3c8cf20bd7",
+      "path": "LLM 是否應該負責轉換？.txt",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:ac689af882283fe0c84b30ba434c2315d1c8d30a89802adc057d3acfe7d50923",
+      "source_file_hash": "af20da3c758a9f52895ed3a568ffa9743175fceca25107901c1ba9f64fa5bcda",
+      "path": "LLM_SOURCE_TO_IR_COMPILER_FRAMEWORK.md",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:6f9de8c936101dbba48998cee0e620cdb76c6328baadeca4f4fa2e137264dc96",
+      "source_file_hash": "6e03f5f47549c8869f1ac68e9b84cb030e788087dba2d0deba9ebf459dc558c9",
+      "path": "NON_LLM_CORE_COMPLETION_REPORT.md",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:54b33ffd2640a6431d21e70776ead2cfaa53774224044c2de730f37538559650",
+      "source_file_hash": "89c8410dbd7f7c5c8b385d29aaa4dae4d566414b39753cfb8603e9e72dab2e15",
+      "path": "Panda3D-1.10/index-c9e3c7.boo",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:767cbeb59094e0f60e568b7945a11ec909943764fcf33707c548074f0785354e",
+      "source_file_hash": "9bfe1234d311881bea065dfa0496ff53940e98b7fd802a100bacf4fc394211fd",
+      "path": "Panda3D-1.10/index_name.txt",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:05146c9b49be8d22ae84bede6adecf02076e9a4f63471700c4b490d4e075ca86",
+      "source_file_hash": "9ef0b548c7d804547b54066ca53d77a72d6de2ea674f7889a8c562f38e45ef09",
+      "path": "play_debug.py",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:c6efd62763bf93fef3936370e98680b25d34fe2290c8f9a2ccfc0e19554d6f1f",
+      "source_file_hash": "3d8c5c72cef2c6299dcda335b84c96bd99a0f33da9c269e2ae07ceba8bba9bb3",
+      "path": "rare_pattern_module.py",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:8f745a362ea66f788f65bf2089d0565316a94a085fb811aa7931fae711644989",
+      "source_file_hash": "92dc257ed354ba638b21573b58242854fdf95d716a19378a038e6d38af6376e6",
+      "path": "Run CubeEngine Workbench.bat",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:ca6e998a2c368ebe4edd7d66010a14e4975a7bde05caa4a09351f3d1e3cb7888",
+      "source_file_hash": "312776bb58bb67269553c5af7192f78ed3170acbc40db8ac55ceed112b88daff",
+      "path": "Run IR v2 Acceptance Workbench.bat",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:4ef3164c0033911a368213c309ee53407407c4a4b3a900f78ee3a8b8210ddf95",
+      "source_file_hash": "4747a461ffca1e5197930f5bcb3c1a36164f5b5a2c6f6f5a8049d609fde9a0f1",
+      "path": "srtp/__init__.py",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:49b316d63f49ee6a040499628b382e1d48771cb6f622ce3bda3d555ec796e8c1",
+      "source_file_hash": "fc080d95bd7c446d7ce6c9574c6e4b2b45d5dfcb1b1d2f3e6166d99bea5d0639",
+      "path": "srtp/alphazero_v1/__init__.py",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:2d46aae40e1525a632778fe9074733874444cedbee50f035b264faf30c841454",
+      "source_file_hash": "68734d14918ce5c225be1551ffba7576b2697ba9983c6005f719943d74dfea5f",
+      "path": "srtp/alphazero_v1/alphazero-adapter-capabilities.json",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:f3da1e414f885f6574b09e24ebb84020a8527ef6a524e9ef7f30bc936f637b52",
+      "source_file_hash": "503b6767e826be00c4ce1d7c3fa577b3cefbab8e5eac14dabb23c5a143174b1a",
+      "path": "srtp/alphazero_v1/alphazero-adapter-v1.schema.json",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:b3da68438e70f1b3c51f7b0fd4ad97ecec05f1b47f51d20200026fbbd26df4bc",
+      "source_file_hash": "c2ee803aefab17fa19c3bbdd226faa636c8138fd9db2ae1012ccb3addb265c2b",
+      "path": "srtp/alphazero_v1/compiler.py",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:100d5675c0b88bfba4dee0ec5ea4fee2ed32b29434930032840cc0ad80c799c0",
+      "source_file_hash": "6fa7ce2a024a3562f8ef9ae4d52e1c52c58cf8d9ee3ed20ce1c699ee2d5c4eed",
+      "path": "srtp/alphazero_v1/conformance.py",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:663e0804433effaf4f6b31cb066d1a96b936b285220b2879cb8d97fc6da18277",
+      "source_file_hash": "358db97069fd03add07af03485858b489b0464a0fa40abd6f5ea6524e1c6db1f",
+      "path": "srtp/alphazero_v1/manifest.py",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:ed7aeae57d2deca4c2795a47f4efcc6311478e6f4f6b2007a197f3b28d903a8a",
+      "source_file_hash": "8828e24781d1be9681614f5f25a9541cb216964cdac95da233a55469d1c432b1",
+      "path": "srtp/asset_ir_v2/__init__.py",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:56817988f1b9c0adbf5c864ff8116fdd54291ba7b32e3680e10b674973af0359",
+      "source_file_hash": "d78ad5e37416fc5f4e1f2824bca4dbcabf1b246461e6ff705bcafa5a599de5f0",
+      "path": "srtp/asset_ir_v2/asset-compiler-capabilities.json",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:aac1c95b853cc1226532112bc2f4cb24bd77631fd69a51783eb2bbcb8076fb28",
+      "source_file_hash": "21310ea85a538435c3067d802edaba2c0bc21a8158658ebae4f21ee11ae50024",
+      "path": "srtp/asset_ir_v2/asset-ir-patch.schema.json",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:60dac6014a67a8a993bf4fa319351554472dae14f90ad3333e5de05479eb97a1",
+      "source_file_hash": "9e0496b9a573001912836eb455eac07c46ccd4c0c79281edadf944a521d7e7f2",
+      "path": "srtp/asset_ir_v2/asset-ir-v2.schema.json",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:0943904af57836acf2270ff4ceb7b36f83b31f785e1957d367bdabf490a2db74",
+      "source_file_hash": "b28b2f47d0b3dd88fd0a0f078d4927a8fbc7c099c6b38df8848470fce2bdabae",
+      "path": "srtp/asset_ir_v2/asset_ir.py",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:798a85f95a6097b85c1b19fa7d4773b6009b1a8082dd430525f4604bbaac467b",
+      "source_file_hash": "df955ce96fe5d2a8e796aa8dde9a9085176af6fc15d534458a901a95df0548fd",
+      "path": "srtp/asset_ir_v2/compiler.py",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:16bf5486dcf679fa98bc6469d9f8ae751e9df0b20b6646a2f4dda39785c3598f",
+      "source_file_hash": "2f8df5c0c7f94c1441beaa9af2582f2a0ede46aed1d06c405d9f5d1169697356",
+      "path": "srtp/asset_ir_v2/conformance.py",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:ae16e9534a6e5a817c8060e70c3d8221024cb82e58e01d7de1d1b3c4d48ed222",
+      "source_file_hash": "94526535c7f90b1efc06f20ac340e05549b64fb360595bdf70df973dc437f3fb",
+      "path": "srtp/asset_ir_v2/patching.py",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:357a1383d9a3faf9f5c1aa1ac045afdb3ba5377858c6f8d9e2197220f625d6cc",
+      "source_file_hash": "cc55b59fae8ea6d6fae2e8fe5c4ef72fc0f5af0d51eb4a22ecdf845f94aef01f",
+      "path": "srtp/examples/alphazero_v1/othello_2d.alphazero.json",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:a80d3ccf5923952e085f22b115ee9d2c5ee18014d956694bb32af0f00daa71e3",
+      "source_file_hash": "48cba4f2ea54496c74bb7e7545af163275130bae099d39d3952375b128a8130e",
+      "path": "srtp/examples/alphazero_v1/tictactoe_3d.alphazero.json",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:c6c21786e3afeaadf8070e57f8e60e5c4f40c98f6c0e8c1603c13c8d9913e605",
+      "source_file_hash": "d3b3dd842d8eeaa65aa424b9aeee6fe2dab21e3d4ae12770042ca3fe315b9986",
+      "path": "srtp/examples/asset_ir_v2/minesweeper_tiles.asset-ir.json",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:5ad2d7cae855eb1065411a8c7e14943673bb98e5cee79599909eb1febff535cb",
+      "source_file_hash": "5f963e57709b3df62329727955319c8092c53ff0877d6ea5560b7b3a622de9b8",
+      "path": "srtp/examples/extensions/parity/adapter.py",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:28ef75e620f1954de7ba75e43735372032dead5373bfa8de2670a43fa8671cc5",
+      "source_file_hash": "0aeecc2daf46665f6a649d6681e1a87fc600a5b8d5e7e06e04d934be97032f2e",
+      "path": "srtp/examples/extensions/parity/extension.json",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:c90dfda0aaffa2b8d43b8577ecc70787f7d0de639a6c9541a757614e3dec69b8",
+      "source_file_hash": "1dec8490e65e3ab0ea0f49662347a7f73c945add94928725f873ae8f3c047b63",
+      "path": "srtp/examples/input_ir_v2/placement_3d.input-ir.json",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:5b8bf2bda1d868d774fa23e4e8828cacbf2a47d08fdf705511ac2fe4f3a56114",
+      "source_file_hash": "32f7e29fcf1e93e51465effcbbdabeeeb3f7372f988fec9a99461a05aa3e9159",
+      "path": "srtp/examples/intersection_selection_5x5.json",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:0189ffb16231e5b1509d6d28f95343467a5912800264e848e2ef11a8f5fb4989",
+      "source_file_hash": "8049d1dc3a6498c23123ad9dce502fb4ea7df8bf5532197dc76e82e987ea4823",
+      "path": "srtp/examples/placement_line_3x3.json",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:b19bb9afc11750574a130b8ae705fe44cb789af4635833973b7417923704ca60",
+      "source_file_hash": "89931db627f1711ba4ec3022b6b0afd4299a8c3e022db11d689081df3b2b7be8",
+      "path": "srtp/examples/README.md",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:22b2682227b843a13281036fabf84f7cf05c50407d13b79b009b14954a02c077",
+      "source_file_hash": "12e6e7522d699dcf75870143200766d242037fa828718b3670a30c2454b14e74",
+      "path": "srtp/examples/rule_ir_v2/othello_2d.rule-ir.json",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:e70456c1103c83c393db7387c5eaa5a6f27236b535376e95f93dfc807c57b479",
+      "source_file_hash": "04984c3fb61c897f4d430fcc7cb40ada671060eed01056fd60d948b14db7ed77",
+      "path": "srtp/examples/rule_ir_v2/placement_3d.rule-ir.json",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:9ff56c32f87119ba0981373146f4b48db7aef852d6e678b0867246a7f58f2196",
+      "source_file_hash": "a512686ae4d16bddef3d8478c03f4d9dbfd5fbd760bb914a69f2230ad53fea50",
+      "path": "srtp/examples/rule_ir_v2/tictactoe_3d.rule-ir.json",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:7d978c96fe11659c514a83fbf9fae0b642fdbe61ec7be89bdee6437e586e2f30",
+      "source_file_hash": "a43ad2c7f5202a6cf1ff0ae272cc834e68555738643aae3a0ba4a01257027279",
+      "path": "srtp/examples/scene_ir_v2/othello_board.scene-ir.json",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:c32db421def3d4b5ebe56200cf663aafafd7a5509f1ee359fb6d67b77c2ee648",
+      "source_file_hash": "4acf9e66a742f0d252363e285d5cbda4278e66989e9b1a41aec171b048df2456",
+      "path": "srtp/examples/tetris_like_partial.py",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:1e28c13415acccb8bd8de771422eced0bc4b33943f30c272a4329bf27ab7f97a",
+      "source_file_hash": "5e641469943dc3d7b639868e442f9d2a8e706e0f8fb1b67cb312bf19755078ca",
+      "path": "srtp/examples/tictactoe_2d.py",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:64d95bf35c579ce25fca6099893d3487490af9b7419c855474361d914b88aea8",
+      "source_file_hash": "1a53b06df349b9bba3233168d04572cc4c433350c734f412ef9b70b54ba24472",
+      "path": "srtp/extension_sdk/__init__.py",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:ba182c35b80b99ca4ae5cb64d1a6e1635c3f25dd63121c9216402f9094aa7c54",
+      "source_file_hash": "efca31f608f2251382007a0cdbae58c295693617b268bde811934c7282917f23",
+      "path": "srtp/extension_sdk/conformance.py",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:23058e4eed8a392e4279e7a9d57adab4407ab0c44acdb08ab08d34524e5bce8a",
+      "source_file_hash": "44e7074f4a6a22f7b3ea7dc99bcd52846499130e6c5f42f24d3830a38f915289",
+      "path": "srtp/extension_sdk/contracts.py",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:ae293c8b6af4587e413468560a5006fd1b061fc3b66e88acaf5c92c86ea93470",
+      "source_file_hash": "08f55596b938eeb6f5f00fd557292c39b497e9c6add9f89a5f9b1db6020bc7b6",
+      "path": "srtp/extension_sdk/extension-manifest-v1.schema.json",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:ef43e38b2f9369a8caf8828da3b0830ba1e4676736f9be5069adbf86d3033084",
+      "source_file_hash": "a3813be38d4478c1c82d8b269fa79a9227ec0049e9f14367a3e7a8a78dbfaa8b",
+      "path": "srtp/extension_sdk/extension-sdk-capabilities.json",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:6fa2ea2cd0327f18d91ca77e984f45f1bddc335853c6f49592660d06386a14ad",
+      "source_file_hash": "e74820aec438b2d41d100a6163048972235fadcb771111bd79a0377d82825b5c",
+      "path": "srtp/extension_sdk/windows_job.py",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:c3bfa3dd0d4fdf1418d9dff1b20dd0628f95367ced7346d2f377e744c5d3199d",
+      "source_file_hash": "ef5f74db41dee2d7052670013c4b1e1e6ef006a1532e831f9ae3884b4dbcb7f1",
+      "path": "srtp/extractors/__init__.py",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:7d7dd3a6c86b4019393f3f13cf4a491a1b9d34ce6e340a44b2d69ea6f2d646f2",
+      "source_file_hash": "14fdc3206244ed1e05ac1ffe2888d36ecce484bb7fd2b04ce21c2d0e7e6407b8",
+      "path": "srtp/freeflow_llm/__init__.py",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:2e7ab430de4ffba243804337c8f7f248677bfd8649c244d25694ce6e1c9a0546",
+      "source_file_hash": "f33a1ef8b3020cc046431ee0e120e81e6a3b90290b5518ac9746230711bc4ddb",
+      "path": "srtp/reference_games/pygame_minesweeper/minesweeper/__init__.py",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:d95de660f739d4421212d565a3fe0095c8b9c3bb8ce6f3f322abe35a530a4397",
+      "source_file_hash": "83a94df0e40990c25db1f2cb6416e4c726b116cf0b7d7fedce9eca8cbd8e2a0b",
+      "path": "srtp/reference_games/pygame_minesweeper/minesweeper/core/__init__.py",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:98ed4d440db6339a3f7252826ee814f2ea89fcddf7f55b8f71bbda6431ab27af",
+      "source_file_hash": "624b60c58c9d8bfb6ff1886c2fd605d2adeb6ea4da576068201b6c6958ce93f4",
+      "path": "srtp/reference_games/pygame_snake/highscore.txt",
+      "kind": "source_file",
+      "supports": "/source_project/inventory/files",
+      "detail": "",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:04abf2c6af9494145615fa3b1e42a5ac43a61a5151591eb1d948fbcc35da9cd4",
+      "source_file_hash": "5e641469943dc3d7b639868e442f9d2a8e706e0f8fb1b67cb312bf19755078ca",
+      "path": "C:\\repos\\CubeEngine-Dev\\srtp\\examples\\tictactoe_2d.py",
+      "kind": "python_static",
+      "supports": "space.dimensions.x",
+      "detail": "named width/height/depth constants",
+      "untrusted_source_text": true,
+      "confidence": 0.98
+    },
+    {
+      "evidence_id": "ev:sha256:1ee9ccaf0edf7c816e3e4d1ca2bc32a6e4106451440c3149f76111907c98815b",
+      "source_file_hash": "5e641469943dc3d7b639868e442f9d2a8e706e0f8fb1b67cb312bf19755078ca",
+      "path": "srtp/examples/tetris_like_partial.py",
+      "kind": "project_static",
+      "supports": "space.dimensions.x",
+      "detail": "nested logical board construction",
+      "untrusted_source_text": true,
+      "span": {
+        "start_line": 11,
+        "start_column": 1,
+        "end_line": 11,
+        "end_column": 1
+      },
+      "confidence": 0.98
+    },
+    {
+      "evidence_id": "ev:sha256:9d4bc1f460bdda4a576b50a8816010bca289a2a764e20f6a009d01b9fb0e0085",
+      "source_file_hash": "5e641469943dc3d7b639868e442f9d2a8e706e0f8fb1b67cb312bf19755078ca",
+      "path": "C:\\repos\\CubeEngine-Dev\\srtp\\examples\\tictactoe_2d.py",
+      "kind": "python_static",
+      "supports": "space.dimensions.y",
+      "detail": "named width/height/depth constants",
+      "untrusted_source_text": true,
+      "confidence": 0.98
+    },
+    {
+      "evidence_id": "ev:sha256:36a4310fbd44ae1b0bebc3fc06a9e80999c29c41aa7b3d4d32867e4a9a47b6df",
+      "source_file_hash": "5e641469943dc3d7b639868e442f9d2a8e706e0f8fb1b67cb312bf19755078ca",
+      "path": "srtp/examples/tetris_like_partial.py",
+      "kind": "project_static",
+      "supports": "space.dimensions.y",
+      "detail": "nested logical board construction",
+      "untrusted_source_text": true,
+      "span": {
+        "start_line": 11,
+        "start_column": 1,
+        "end_line": 11,
+        "end_column": 1
+      },
+      "confidence": 0.98
+    },
+    {
+      "evidence_id": "ev:sha256:0208f7c4c946bad836885c1d7b3bbf4412f3391c5d8a88406fd56de817e7cf6e",
+      "source_file_hash": "5e641469943dc3d7b639868e442f9d2a8e706e0f8fb1b67cb312bf19755078ca",
+      "path": "C:\\repos\\CubeEngine-Dev\\srtp\\examples\\tictactoe_2d.py",
+      "kind": "python_static",
+      "supports": "space.dimensions.z",
+      "detail": "named width/height/depth constants",
+      "untrusted_source_text": true,
+      "confidence": 0.98
+    },
+    {
+      "evidence_id": "ev:sha256:a94348f69df135f878d0019f4931fce28ea69a657259942ac4544c67510b57cb",
+      "source_file_hash": "5e641469943dc3d7b639868e442f9d2a8e706e0f8fb1b67cb312bf19755078ca",
+      "path": "C:\\repos\\CubeEngine-Dev\\srtp\\examples\\tictactoe_2d.py",
+      "kind": "python_static",
+      "supports": "participants",
+      "detail": "player constants/API",
+      "untrusted_source_text": true,
+      "span": {
+        "start_line": 10,
+        "start_column": 1,
+        "end_line": 10,
+        "end_column": 1
+      },
+      "confidence": 0.72
+    },
+    {
+      "evidence_id": "ev:sha256:5486de424d036c0060e6f3a6ef6b37c3807a9ad1dde331161ab0df6325d9ad0f",
+      "source_file_hash": "5e641469943dc3d7b639868e442f9d2a8e706e0f8fb1b67cb312bf19755078ca",
+      "path": "C:\\repos\\CubeEngine-Dev\\srtp\\examples\\tictactoe_2d.py",
+      "kind": "python_function_signatures",
+      "supports": "actions",
+      "detail": "set_cell,is_valid_move",
+      "untrusted_source_text": true,
+      "confidence": 0.78
+    },
+    {
+      "evidence_id": "ev:sha256:7b2a35e3676f14fe2ea988c8cf89615e97c7480bfc5654af3df9d53472608731",
+      "source_file_hash": "5e641469943dc3d7b639868e442f9d2a8e706e0f8fb1b67cb312bf19755078ca",
+      "path": "C:\\repos\\CubeEngine-Dev\\srtp\\examples\\tictactoe_2d.py",
+      "kind": "python_function_signatures",
+      "supports": "outcomes",
+      "detail": "check_winner, is_full",
+      "untrusted_source_text": true,
+      "confidence": 0.7
+    },
+    {
+      "evidence_id": "ev:sha256:7b8ed6dde45da7cc429f6ddf50035f101a41adeb52296413362acf18215a7434",
+      "source_file_hash": "5e641469943dc3d7b639868e442f9d2a8e706e0f8fb1b67cb312bf19755078ca",
+      "path": "C:\\repos\\CubeEngine-Dev\\srtp\\examples\\tictactoe_2d.py",
+      "kind": "python_static",
+      "supports": "flow.model",
+      "detail": "move/state-transition API",
+      "untrusted_source_text": true,
+      "confidence": 0.82
+    },
+    {
+      "evidence_id": "ev:sha256:7a4c0a08e407e99e1a9f663d6d6aeda0211fe4077f8bc36ef0a47f7dc22afe28",
+      "source_file_hash": "5e641469943dc3d7b639868e442f9d2a8e706e0f8fb1b67cb312bf19755078ca",
+      "path": "C:\\repos\\CubeEngine-Dev\\srtp\\examples\\tictactoe_2d.py",
+      "kind": "python_constant",
+      "supports": "space.coordinate_anchor",
+      "detail": "cell_center",
+      "untrusted_source_text": true,
+      "confidence": 0.98
+    },
+    {
+      "evidence_id": "ev:sha256:1915242b79bfec38aa1d9602aa9f2a459f3906f98a13986fa6c5cb104211caed",
+      "source_file_hash": "5e641469943dc3d7b639868e442f9d2a8e706e0f8fb1b67cb312bf19755078ca",
+      "path": "srtp/examples/tictactoe_2d.py",
+      "kind": "diagnostic",
+      "supports": "runtime.dependencies",
+      "detail": "The original game cannot run until its dependencies are available.",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:65c83c498911e963e3fa3cfe9cdae3d5e3288c435d825aa971b2d38874ed46f4",
+      "source_file_hash": "5e641469943dc3d7b639868e442f9d2a8e706e0f8fb1b67cb312bf19755078ca",
+      "path": "srtp/examples/tictactoe_2d.py",
+      "kind": "diagnostic",
+      "supports": "analysis_coverage",
+      "detail": "Function 1 has not proven every required rule category.",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:eb92fd084b62ff8618ef6eed43ae21bab72ea5838d977d230ff8ce068be9738c",
+      "source_file_hash": "5e641469943dc3d7b639868e442f9d2a8e706e0f8fb1b67cb312bf19755078ca",
+      "path": "srtp/examples/tictactoe_2d.py",
+      "kind": "diagnostic",
+      "supports": "transformation",
+      "detail": "The original 2D game is available, but a faithful 3D reconstruction has not yet been compiled.",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:528c48294e001874e2956ddfa49a5d2e5a650293cb216ee8e5e669a8ee1a719d",
+      "source_file_hash": "5e641469943dc3d7b639868e442f9d2a8e706e0f8fb1b67cb312bf19755078ca",
+      "path": "srtp/examples/tictactoe_2d.py",
+      "kind": "partial_rule_schema",
+      "supports": "/static_analysis/partial_schema",
+      "detail": "Function 1 partial Rule Schema v1. Unknown fields remain unresolved.",
+      "untrusted_source_text": true
+    },
+    {
+      "evidence_id": "ev:sha256:1c3a6cc1ba1ac9267f7be1879ffa17e102006206c93b506d4d130a7435645ebc",
+      "source_file_hash": "5e641469943dc3d7b639868e442f9d2a8e706e0f8fb1b67cb312bf19755078ca",
+      "path": "srtp/examples/tictactoe_2d.py",
+      "kind": "constant",
+      "supports": "/topologies/0/axes",
+      "detail": "{\"x\": 10, \"y\": 20, \"z\": 1}",
+      "untrusted_source_text": true
+    }
+  ]
+}

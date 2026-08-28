@@ -1,0 +1,62 @@
+{
+  "ir_version": "cubeengine.asset-ir/2.0-alpha.1",
+  "document_id": "asset:game.tictactoe_2d",
+  "revision": 1,
+  "content_hash": "480b6638f19dfe9cba5e93d08f150d0ae4987fe4e0c332c4af4dab8aa10126cd",
+  "metadata": {
+    "title": "tictactoe_2d asset seed",
+    "description": "",
+    "source_project_hash": "05ace7156afda5dc84b98f80342ee2c5e4f43e0d1fe0e12ae42205b5adec7c7f"
+  },
+  "assets": [],
+  "derivations": [
+    {
+      "id": "asset:model.cell_cube_tictactoe_2d",
+      "name": "Cell Cube",
+      "kind": "model",
+      "media_type": "application/vnd.cubeengine.presentation+json",
+      "strategy": "procedural_mesh",
+      "inputs": [],
+      "settings": {
+        "primitive": "cube",
+        "dimensions": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    }
+  ],
+  "roles": [
+    {
+      "id": "asset:role.board_cell_tictactoe_2d",
+      "name": "Board Cell",
+      "semantic": "board.cell",
+      "resource": "asset:model.cell_cube_tictactoe_2d",
+      "usage": "world_mesh",
+      "required": true
+    }
+  ],
+  "presentation_mappings": [],
+  "provenance": {
+    "patch_history": [
+      {
+        "base_revision": 0,
+        "base_content_hash": "78271d64fb60e8d6baf064984adc285f678b5eecc0bfae0afd808dafa380a7cb",
+        "evidence": [
+          {
+            "evidence_id": "ev:sha256:3c61fde069f7c222b26e0865d311cca4acc0d2000397ce8d95c9c5d94319f9b8",
+            "source_file_hash": "5e641469943dc3d7b639868e442f9d2a8e706e0f8fb1b67cb312bf19755078ca",
+            "path": "srtp/examples/tictactoe_2d.py",
+            "kind": "source_file"
+          }
+        ],
+        "assumptions": [],
+        "operation_count": 3
+      }
+    ]
+  },
+  "unresolved": []
+}

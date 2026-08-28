@@ -1,0 +1,46 @@
+{
+  "record_version": "cubeengine.srtp/llm-job-record/1.0",
+  "job_id": "job:5c5c562aec0f425f",
+  "status": "failed",
+  "stage": "unresolved",
+  "source_package_hash": "5c5c562aec0f425f0243e948e1f8b5aba88c04804f9ad8882f078749e8576c94",
+  "runtime": {
+    "backend_id": "fixture",
+    "prompt_template_version": "cubeengine.freeflow-llm/prompt/1.0",
+    "weight_hash": "",
+    "tokenizer_hash": "",
+    "model_path": "srtp/freeflow_llm/fixture_runtime.py"
+  },
+  "events": [
+    {
+      "stage": "intake",
+      "message": "Imported source package 2048-pygame.",
+      "error": false
+    },
+    {
+      "stage": "evidence_indexed",
+      "message": "Indexed 17 evidence items.",
+      "error": false
+    },
+    {
+      "stage": "unresolved",
+      "message": "Proposal left required unresolved items.",
+      "error": true
+    }
+  ],
+  "errors": [
+    {
+      "stage": "unresolved",
+      "message": "Proposal left required unresolved items.",
+      "error": true
+    }
+  ],
+  "unresolved": [
+    {
+      "path": "/actions",
+      "reason": "2048 merge/slide mechanics have no reviewed FreeFlow-LLM fixture yet. The fixture backend only emits sealed proposals for tic-tac-toe; use a reviewed IR fixture or a local HuggingFace model, do not invent merge rules.",
+      "required": true,
+      "owner": "llm"
+    }
+  ]
+}

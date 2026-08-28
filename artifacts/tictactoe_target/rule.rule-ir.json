@@ -1,0 +1,476 @@
+{
+  "ir_version": "cubeengine.rule-ir/2.0-alpha.1",
+  "document_id": "rule:game.tictactoe_2d",
+  "revision": 2,
+  "content_hash": "355ab402454ebc6e47befaa4e521c15147b85ff38e2f538f5749e0fb21809576",
+  "metadata": {
+    "title": "3D Tic-Tac-Toe Target Contract",
+    "description": "Deterministic two-player 3x3x3 placement rules used to prove generic 3D AlphaZero compilation.",
+    "source_project_hash": "3aa7197b1fc902c10a27cd333564e8645a507fdb18c559fe9be2108ba8397d14",
+    "determinism": "deterministic"
+  },
+  "dependencies": {
+    "scene_ir": null,
+    "asset_ir": null,
+    "input_ir": null,
+    "extensions": []
+  },
+  "parameters": [],
+  "types": [
+    {
+      "id": "rule:type.cell_state",
+      "name": "Cell State",
+      "kind": "enum",
+      "values": {
+        "negative": -1,
+        "empty": 0,
+        "positive": 1
+      }
+    }
+  ],
+  "participants": [
+    {
+      "id": "rule:participant.positive",
+      "name": "Positive",
+      "kind": "human_or_agent"
+    },
+    {
+      "id": "rule:participant.negative",
+      "name": "Negative",
+      "kind": "human_or_agent"
+    }
+  ],
+  "topologies": [
+    {
+      "id": "rule:topology.board",
+      "name": "3D Board",
+      "kind": "rect_grid",
+      "anchor": "cell",
+      "axes": [
+        {
+          "name": "x",
+          "extent": 3,
+          "boundary": "bounded"
+        },
+        {
+          "name": "y",
+          "extent": 3,
+          "boundary": "bounded"
+        },
+        {
+          "name": "z",
+          "extent": 3,
+          "boundary": "bounded"
+        }
+      ],
+      "neighborhoods": []
+    }
+  ],
+  "state": {
+    "variables": [
+      {
+        "id": "rule:state.board_cell",
+        "name": "Board Cell",
+        "type": "rule:type.cell_state",
+        "scope": "topology_site",
+        "topology": "rule:topology.board",
+        "initial": {
+          "op": "literal",
+          "value": 0
+        }
+      }
+    ],
+    "entity_types": [
+      {
+        "id": "rule:entity.positive_mark",
+        "name": "Positive Mark",
+        "components": [
+          {
+            "name": "legacy_state_value",
+            "type": "core:int",
+            "default": {
+              "op": "literal",
+              "value": 1
+            }
+          }
+        ],
+        "legacy": {
+          "owner": "rule:participant.positive",
+          "state_value": 1
+        }
+      },
+      {
+        "id": "rule:entity.negative_mark",
+        "name": "Negative Mark",
+        "components": [
+          {
+            "name": "legacy_state_value",
+            "type": "core:int",
+            "default": {
+              "op": "literal",
+              "value": -1
+            }
+          }
+        ],
+        "legacy": {
+          "owner": "rule:participant.negative",
+          "state_value": -1
+        }
+      }
+    ],
+    "initial_effects": [],
+    "information_model": "perfect"
+  },
+  "queries": [],
+  "events": [],
+  "actions": [
+    {
+      "id": "rule:action.place",
+      "name": "Place Mark",
+      "actor": {
+        "op": "ref",
+        "path": "flow.current_actor"
+      },
+      "parameters": [
+        {
+          "name": "target",
+          "type": "core:coord",
+          "domain": {
+            "op": "call",
+            "function": "core:topology.sites",
+            "args": [
+              {
+                "op": "literal",
+                "value": "rule:topology.board"
+              }
+            ]
+          }
+        }
+      ],
+      "precondition": {
+        "op": "call",
+        "function": "core:grid.equals",
+        "args": [
+          {
+            "op": "literal",
+            "value": "rule:state.board_cell"
+          },
+          {
+            "op": "param",
+            "name": "target"
+          },
+          {
+            "op": "literal",
+            "value": 0
+          }
+        ]
+      },
+      "effects": [
+        {
+          "op": "grid.set",
+          "state": "rule:state.board_cell",
+          "topology": "rule:topology.board",
+          "coordinate": {
+            "op": "param",
+            "name": "target"
+          },
+          "value": {
+            "op": "call",
+            "function": "core:participant.state",
+            "args": [
+              {
+                "op": "ref",
+                "path": "flow.current_actor"
+              }
+            ]
+          }
+        }
+      ],
+      "timing": {
+        "phase": "rule:phase.input"
+      },
+      "encoding": {
+        "kind": "parameter_product",
+        "parameters": [
+          "target"
+        ],
+        "ordering": "lexicographic"
+      }
+    }
+  ],
+  "systems": [],
+  "flow": {
+    "model": "turn_based",
+    "phases": [
+      {
+        "id": "rule:phase.input",
+        "order": 100
+      },
+      {
+        "id": "rule:phase.outcome",
+        "order": 200
+      }
+    ],
+    "initial_phase": "rule:phase.input",
+    "scheduler": {
+      "clock": "turn",
+      "tick_hz": null,
+      "ordering": "phase_priority_id"
+    },
+    "turn_order": [
+      "rule:participant.positive",
+      "rule:participant.negative"
+    ]
+  },
+  "random_streams": [],
+  "goals": [
+    {
+      "id": "rule:goal.line_three",
+      "name": "Form a length-three spatial line"
+    }
+  ],
+  "outcomes": [
+    {
+      "id": "rule:outcome.positive_win",
+      "name": "Positive Wins",
+      "priority": 100,
+      "condition": {
+        "op": "call",
+        "function": "core:grid.has_line",
+        "args": [
+          {
+            "op": "literal",
+            "value": "rule:state.board_cell"
+          },
+          {
+            "op": "literal",
+            "value": 1
+          },
+          {
+            "op": "literal",
+            "value": 3
+          }
+        ]
+      },
+      "result": {
+        "status": "win",
+        "terminal": true,
+        "winners": [
+          {
+            "op": "literal",
+            "value": "rule:participant.positive"
+          }
+        ],
+        "losers": [
+          {
+            "op": "literal",
+            "value": "rule:participant.negative"
+          }
+        ]
+      }
+    },
+    {
+      "id": "rule:outcome.negative_win",
+      "name": "Negative Wins",
+      "priority": 100,
+      "condition": {
+        "op": "call",
+        "function": "core:grid.has_line",
+        "args": [
+          {
+            "op": "literal",
+            "value": "rule:state.board_cell"
+          },
+          {
+            "op": "literal",
+            "value": -1
+          },
+          {
+            "op": "literal",
+            "value": 3
+          }
+        ]
+      },
+      "result": {
+        "status": "win",
+        "terminal": true,
+        "winners": [
+          {
+            "op": "literal",
+            "value": "rule:participant.negative"
+          }
+        ],
+        "losers": [
+          {
+            "op": "literal",
+            "value": "rule:participant.positive"
+          }
+        ]
+      }
+    },
+    {
+      "id": "rule:outcome.draw",
+      "name": "Draw",
+      "priority": 10,
+      "condition": {
+        "op": "call",
+        "function": "core:grid.none_equal",
+        "args": [
+          {
+            "op": "literal",
+            "value": "rule:state.board_cell"
+          },
+          {
+            "op": "literal",
+            "value": 0
+          }
+        ]
+      },
+      "result": {
+        "status": "draw",
+        "terminal": true
+      }
+    }
+  ],
+  "modes": [
+    {
+      "id": "rule:mode.default",
+      "name": "Default",
+      "overrides": []
+    }
+  ],
+  "invariants": [
+    {
+      "id": "rule:invariant.cell_domain",
+      "name": "Cell values remain in the declared enum",
+      "condition": {
+        "op": "call",
+        "function": "core:grid.values_in_type",
+        "args": [
+          {
+            "op": "literal",
+            "value": "rule:state.board_cell"
+          },
+          {
+            "op": "literal",
+            "value": "rule:type.cell_state"
+          }
+        ]
+      },
+      "severity": "error"
+    }
+  ],
+  "extensions": {},
+  "provenance": {
+    "space.dimensions.x": [
+      {
+        "method": "python_static",
+        "source": "C:\\repos\\CubeEngine-Dev\\srtp\\examples\\tictactoe_2d.py",
+        "confidence": 0.98,
+        "detail": "named width/height/depth constants"
+      },
+      {
+        "method": "project_static",
+        "source": "srtp/examples/tetris_like_partial.py",
+        "confidence": 0.98,
+        "detail": "nested logical board construction",
+        "line": 11
+      }
+    ],
+    "space.dimensions.y": [
+      {
+        "method": "python_static",
+        "source": "C:\\repos\\CubeEngine-Dev\\srtp\\examples\\tictactoe_2d.py",
+        "confidence": 0.98,
+        "detail": "named width/height/depth constants"
+      },
+      {
+        "method": "project_static",
+        "source": "srtp/examples/tetris_like_partial.py",
+        "confidence": 0.98,
+        "detail": "nested logical board construction",
+        "line": 11
+      }
+    ],
+    "space.dimensions.z": [
+      {
+        "method": "python_static",
+        "source": "C:\\repos\\CubeEngine-Dev\\srtp\\examples\\tictactoe_2d.py",
+        "confidence": 0.98,
+        "detail": "named width/height/depth constants"
+      }
+    ],
+    "participants": [
+      {
+        "method": "python_static",
+        "source": "C:\\repos\\CubeEngine-Dev\\srtp\\examples\\tictactoe_2d.py",
+        "confidence": 0.72,
+        "detail": "player constants/API",
+        "line": 10
+      }
+    ],
+    "actions": [
+      {
+        "method": "python_function_signatures",
+        "source": "C:\\repos\\CubeEngine-Dev\\srtp\\examples\\tictactoe_2d.py",
+        "confidence": 0.78,
+        "detail": "set_cell,is_valid_move"
+      }
+    ],
+    "outcomes": [
+      {
+        "method": "python_function_signatures",
+        "source": "C:\\repos\\CubeEngine-Dev\\srtp\\examples\\tictactoe_2d.py",
+        "confidence": 0.7,
+        "detail": "check_winner, is_full"
+      }
+    ],
+    "flow.model": [
+      {
+        "method": "python_static",
+        "source": "C:\\repos\\CubeEngine-Dev\\srtp\\examples\\tictactoe_2d.py",
+        "confidence": 0.82,
+        "detail": "move/state-transition API"
+      }
+    ],
+    "space.coordinate_anchor": [
+      {
+        "method": "python_constant",
+        "source": "C:\\repos\\CubeEngine-Dev\\srtp\\examples\\tictactoe_2d.py",
+        "confidence": 0.98,
+        "detail": "cell_center"
+      }
+    ],
+    "patch_history": [
+      {
+        "base_revision": 0,
+        "base_content_hash": "6924b0cb88313e696dccf428d163309593dce7c5a021ec8a0a794c970d8bae0b",
+        "evidence": [
+          {
+            "evidence_id": "ev:sha256:3c61fde069f7c222b26e0865d311cca4acc0d2000397ce8d95c9c5d94319f9b8",
+            "source_file_hash": "5e641469943dc3d7b639868e442f9d2a8e706e0f8fb1b67cb312bf19755078ca",
+            "path": "srtp/examples/tictactoe_2d.py",
+            "kind": "source_file"
+          }
+        ],
+        "assumptions": [],
+        "operation_count": 17
+      },
+      {
+        "base_revision": 1,
+        "base_content_hash": "35396b33288bc37ad017d4ab92e73e46543adca0927dab8d402c924296854b18",
+        "evidence": [
+          {
+            "evidence_id": "ev:sha256:3c61fde069f7c222b26e0865d311cca4acc0d2000397ce8d95c9c5d94319f9b8",
+            "source_file_hash": "5e641469943dc3d7b639868e442f9d2a8e706e0f8fb1b67cb312bf19755078ca",
+            "path": "srtp/examples/tictactoe_2d.py",
+            "kind": "source_file"
+          }
+        ],
+        "assumptions": [],
+        "operation_count": 17
+      }
+    ]
+  },
+  "unresolved": []
+}

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any, Dict, List, Mapping, MutableMapping, Optional, Tuple
 
 from srtp.asset_ir_v2 import AssetIRPatchError, apply_asset_ir_patch, validate_asset_ir
@@ -12,6 +13,7 @@ from srtp.ir_v2 import RuleIRPatchError, apply_rule_ir_patch, validate_rule_ir
 from srtp.scene_ir_v2 import SceneIRPatchError, apply_scene_ir_patch, validate_scene_ir
 
 from .contracts import validate_llm_proposal
+from .evidence import validate_evidence_citations
 
 _IR_KEYS = ("rule_ir", "scene_ir", "asset_ir", "input_ir")
 _APPLIERS = {
@@ -29,6 +31,18 @@ _VALIDATORS = {
 _PATCH_ERRORS = (
     RuleIRPatchError, SceneIRPatchError, AssetIRPatchError, InputIRPatchError, ValueError,
 )
+
+
+def _ir_document_pin(document: Optional[Mapping[str, Any]]) -> Optional[Dict[str, str]]:
+    if not isinstance(document, Mapping):
+        return None
+    document_id = document.get("document_id")
+    content_hash = document.get("content_hash")
+    if not isinstance(document_id, str) or not document_id:
+        return None
+    if not isinstance(content_hash, str) or not content_hash:
+        return None
+    return {"document_id": document_id, "content_hash": content_hash}
 
 
 @dataclass
@@ -57,6 +71,8 @@ def validate_and_apply_proposal(
     *,
     require_design_intent: bool = False,
     source_package_hash: Optional[str] = None,
+    evidence_pack: Optional[Mapping[str, Any]] = None,
+    source_root: Optional[Path] = None,
 ) -> ValidationReport:
     diagnostics = validate_llm_proposal(
         proposal, require_design_intent=require_design_intent,
@@ -80,6 +96,13 @@ def validate_and_apply_proposal(
         if pin.get("content_hash") != current.get("content_hash"):
             diagnostics.append("{0} base content_hash mismatch".format(key))
 
+    if evidence_pack is not None:
+        diagnostics.extend(
+            validate_evidence_citations(
+                proposal, evidence_pack, source_root=source_root,
+            )
+        )
+
     if diagnostics:
         return ValidationReport(ok=False, diagnostics=diagnostics, proposal=dict(proposal))
 
@@ -91,9 +114,21 @@ def validate_and_apply_proposal(
         entries = patches.get(key) if isinstance(patches, Mapping) else None
         if not isinstance(entries, list):
             continue
+        rule_pin = _ir_document_pin(working.get("rule_ir"))
+        asset_pin = _ir_document_pin(working.get("asset_ir"))
         for index, entry in enumerate(entries):
             try:
-                working[key] = _APPLIERS[key](working[key], entry)
+                if key == "scene_ir":
+                    working[key] = apply_scene_ir_patch(
+                        working[key], entry,
+                        rule_pin=rule_pin, asset_pin=asset_pin,
+                    )
+                elif key == "input_ir":
+                    working[key] = apply_input_ir_patch(
+                        working[key], entry, rule_pin=rule_pin,
+                    )
+                else:
+                    working[key] = _APPLIERS[key](working[key], entry)
             except _PATCH_ERRORS as error:
                 diagnostics.append("{0} patch[{1}]: {2}".format(key, index, error))
                 return ValidationReport(

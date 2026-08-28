@@ -1,0 +1,40 @@
+{
+  "manifest_version": "cubeengine.project-manifest/2.0-alpha.2",
+  "project_id": "project:game.snake_step_playable",
+  "revision": 0,
+  "content_hash": "9de5ddec0f81e8452b3afdc129caa442c5b28d3eea258dc02b6f484d8293440d",
+  "metadata": {
+    "title": "Step Snake Playable",
+    "description": "Arrow keys advance one cell per press. Reviewed fixture / dev harness (provenance=fixture; not an LLM evidence product)."
+  },
+  "variant": "source",
+  "source_manifest": null,
+  "documents": {
+    "rule_ir": {
+      "document_id": "rule:game.snake_step_playable",
+      "ir_version": "cubeengine.rule-ir/2.0-alpha.1",
+      "content_hash": "a293f7081066df095a0e96b14a066be617a6bce772fe51161174f8ff4ec7006b"
+    },
+    "scene_ir": {
+      "document_id": "scene:game.snake_step_playable",
+      "ir_version": "cubeengine.scene-ir/2.0-alpha.1",
+      "content_hash": "18704bafe5ec612c4e8948b48ac5c01e604f9e5e335f47440d1c80e54bd46c76"
+    },
+    "asset_ir": {
+      "document_id": "asset:game.snake_step_playable",
+      "ir_version": "cubeengine.asset-ir/2.0-alpha.1",
+      "content_hash": "b5e46447f8b0019b3428f0f48bffee566c81ddc7c1aed38abc7a0c32da58b022"
+    },
+    "input_ir": {
+      "document_id": "input:game.snake_step_playable",
+      "ir_version": "cubeengine.input-ir/2.0-alpha.1",
+      "content_hash": "0dd5cc302206fcefdbc6bc19b612691bc994a0c65bccfbabdc89ce71c1cfb9be"
+    }
+  },
+  "extensions": [],
+  "provenance": {
+    "kind": "fixture",
+    "source": "snake_playable_fixture"
+  },
+  "unresolved": []
+}

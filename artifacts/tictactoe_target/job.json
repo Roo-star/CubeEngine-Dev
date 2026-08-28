@@ -1,0 +1,33 @@
+{
+  "record_version": "cubeengine.srtp/llm-job-record/1.0",
+  "job_id": "job:lift:011c868ac13219fe",
+  "status": "passed",
+  "stage": "project_compiled",
+  "source_package_hash": "3aa7197b1fc902c10a27cd333564e8645a507fdb18c559fe9be2108ba8397d14",
+  "runtime": {
+    "backend_id": "fixture",
+    "prompt_template_version": "cubeengine.freeflow-llm/prompt/1.0",
+    "weight_hash": "",
+    "tokenizer_hash": "",
+    "model_path": "srtp/freeflow_llm/fixture_runtime.py"
+  },
+  "events": [
+    {
+      "stage": "design_intent_proposed",
+      "message": "Compiled Design Intent from user text.",
+      "error": false
+    },
+    {
+      "stage": "schema_validated",
+      "message": "Proposal applied on attempt 1.",
+      "error": false
+    },
+    {
+      "stage": "project_compiled",
+      "message": "Sealed target Project Manifest.",
+      "error": false
+    }
+  ],
+  "errors": [],
+  "unresolved": []
+}
