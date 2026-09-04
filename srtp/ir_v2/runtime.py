@@ -1538,25 +1538,6 @@ def _type_check_document(runtime: RuleRuntime) -> None:
         environment.update({str(item["name"]): str(item["type"]) for item in action.get("parameters", [])})
         actor_type = evaluator.infer_type(action["actor"], environment)
         if actor_type not in ("core:participant_id", "core:any"):
-            # #region agent log
-            try:
-                import json as _json, time as _time
-                with open("debug-f3e2af.log", "a", encoding="utf-8") as _f:
-                    _f.write(_json.dumps({
-                        "sessionId": "f3e2af", "runId": "pre-fix", "hypothesisId": "D",
-                        "location": "runtime.py:_type_check_document",
-                        "message": "action actor type-check failed",
-                        "data": {
-                            "action_id": action.get("id"),
-                            "actor": action.get("actor"),
-                            "inferred": actor_type,
-                            "participant_count": len(runtime.document.get("participants") or []),
-                        },
-                        "timestamp": int(_time.time() * 1000),
-                    }) + "\n")
-            except Exception:
-                pass
-            # #endregion
             raise RuleRuntimeError("action actor must type-check as core:participant_id")
         result = evaluator.infer_type(action["precondition"], environment)
         if result != "core:bool":

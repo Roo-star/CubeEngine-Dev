@@ -325,24 +325,6 @@ def _import_source_asset(
     try:
         resolved = candidate.resolve(strict=True)
     except OSError as exc:
-        # #region agent log
-        try:
-            import json as _json, time as _time
-            with open("debug-f3e2af.log", "a", encoding="utf-8") as _f:
-                _f.write(_json.dumps({
-                    "sessionId": "f3e2af", "runId": "post-fix", "hypothesisId": "E",
-                    "location": "asset_ir_v2/compiler.py:_import_source_asset",
-                    "message": "asset source missing",
-                    "data": {
-                        "uri": source.get("uri"),
-                        "root": str(root),
-                        "candidate": str(candidate),
-                    },
-                    "timestamp": int(_time.time() * 1000),
-                }) + "\n")
-        except Exception:
-            pass
-        # #endregion
         raise AssetCompileError("source asset does not exist: {0}".format(source["uri"])) from exc
     if not _is_relative_to(resolved, root) or not resolved.is_file():
         raise AssetCompileError("source asset escapes project root or is not a file: {0}".format(source["uri"]))

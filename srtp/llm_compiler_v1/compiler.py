@@ -340,6 +340,39 @@ class SourceToIRCompiler:
                 continue
             provider = result.provider
             model = result.model
+            # #region agent log
+            try:
+                _raw = result.parsed if isinstance(result.parsed, Mapping) else {}
+                _patches = _raw.get("patches") if isinstance(_raw.get("patches"), Mapping) else {}
+                _summary = {}
+                for _k in _IR_KEYS:
+                    _entries = _patches.get(_k) if isinstance(_patches.get(_k), list) else []
+                    _env = 0
+                    _nested = 0
+                    if _entries and isinstance(_entries[0], Mapping):
+                        _ev = _entries[0].get("evidence")
+                        _env = len(_ev) if isinstance(_ev, list) else 0
+                        for _op in (_entries[0].get("operations") or []):
+                            if isinstance(_op, Mapping) and isinstance(_op.get("evidence"), list):
+                                _nested += len(_op.get("evidence") or [])
+                    _summary[_k] = {"envelope": _env, "nested_op_evidence": _nested}
+                with open("debug-f3e2af.log", "a", encoding="utf-8") as _f:
+                    _f.write(json.dumps({
+                        "sessionId": "f3e2af", "runId": "pre-fix", "hypothesisId": "H1,H2,H3",
+                        "location": "compiler.py:_compile_source_stage:raw_llm",
+                        "message": "raw LLM proposal evidence shape",
+                        "data": {
+                            "attempt": attempts,
+                            "has_patch_entries": isinstance(_raw.get("patch_entries"), list),
+                            "patch_entries_count": len(_raw.get("patch_entries") or []) if isinstance(_raw.get("patch_entries"), list) else 0,
+                            "top_evidence_ids": _raw.get("evidence_ids"),
+                            "per_ir": _summary,
+                        },
+                        "timestamp": int(time.time() * 1000),
+                    }) + "\n")
+            except Exception:
+                pass
+            # #endregion
             proposal = _normalize_source_proposal(
                 dict(result.parsed),
                 job_id=job_id,
@@ -374,26 +407,6 @@ class SourceToIRCompiler:
                         "title": getattr(package, "title", None),
                     },
                 )
-                # #region agent log
-                try:
-                    import json as _json, time as _time
-                    _scene_deps = (documents.get("scene_ir") or {}).get("dependencies") or {}
-                    _input_deps = (documents.get("input_ir") or {}).get("dependencies") or {}
-                    with open("debug-f3e2af.log", "a", encoding="utf-8") as _f:
-                        _f.write(_json.dumps({
-                            "sessionId": "f3e2af", "runId": "post-fix", "hypothesisId": "A,B,C",
-                            "location": "compiler.py:_compile_source_stage:pinned",
-                            "message": "cross-IR pins after successful apply",
-                            "data": {
-                                "scene_rule_ir": _scene_deps.get("rule_ir"),
-                                "scene_asset_ir": _scene_deps.get("asset_ir"),
-                                "input_rule_ir": _input_deps.get("rule_ir"),
-                            },
-                            "timestamp": int(_time.time() * 1000),
-                        }) + "\n")
-                except Exception:
-                    pass
-                # #endregion
                 proposal = applied.proposal
                 diagnostics = []
                 ok = True
@@ -1200,24 +1213,6 @@ def _validate_playable_session(documents: Mapping[str, Mapping[str, Any]]) -> No
         target = intent_targets.get(str(binding.get("intent")))
         if isinstance(target, Mapping) and target.get("kind") == "rule_action":
             enabled_rule_bindings += 1
-    # #region agent log
-    try:
-        import json as _json, time as _time
-        with open("debug-f3e2af.log", "a", encoding="utf-8") as _f:
-            _f.write(_json.dumps({
-                "sessionId": "f3e2af", "runId": "post-fix", "hypothesisId": "PLAY",
-                "location": "compiler.py:_validate_playable_session",
-                "message": "playability check",
-                "data": {
-                    "has_effects": has_effects,
-                    "has_site": has_site,
-                    "enabled_rule_bindings": enabled_rule_bindings,
-                },
-                "timestamp": int(_time.time() * 1000),
-            }) + "\n")
-    except Exception:
-        pass
-    # #endregion
 
 
 def _coerce_actor_expression(value: Any) -> Any:
@@ -1344,20 +1339,6 @@ def _ensure_topology_site_grid(rule: Mapping[str, Any]) -> Dict[str, Any]:
         "topology": topology_id,
         "initial": {"op": "literal", "value": 0},
     })
-    # #region agent log
-    try:
-        import json as _json, time as _time
-        with open("debug-f3e2af.log", "a", encoding="utf-8") as _f:
-            _f.write(_json.dumps({
-                "sessionId": "f3e2af", "runId": "post-fix", "hypothesisId": "G1",
-                "location": "compiler.py:_ensure_topology_site_grid",
-                "message": "added topology_site board_cell for preview grid",
-                "data": {"topology_id": topology_id, "variable_count": len(variables)},
-                "timestamp": int(_time.time() * 1000),
-            }) + "\n")
-    except Exception:
-        pass
-    # #endregion
     return document
 
 
@@ -1426,24 +1407,6 @@ def _ensure_scene_visualizer_prefabs(scene: Mapping[str, Any]) -> Dict[str, Any]
     for prefab_id in needed:
         prefabs.append(_default_visualizer_prefab(prefab_id))
         ids.add(prefab_id)
-    # #region agent log
-    try:
-        import json as _json, time as _time
-        with open("debug-f3e2af.log", "a", encoding="utf-8") as _f:
-            _f.write(_json.dumps({
-                "sessionId": "f3e2af", "runId": "post-fix", "hypothesisId": "A",
-                "location": "compiler.py:_ensure_scene_visualizer_prefabs",
-                "message": "scene visualizer prefab fill",
-                "data": {
-                    "needed": needed,
-                    "prefab_ids": sorted(ids),
-                    "prefab_count": len(prefabs),
-                },
-                "timestamp": int(_time.time() * 1000),
-            }) + "\n")
-    except Exception:
-        pass
-    # #endregion
     return document
 
 
@@ -1599,32 +1562,6 @@ def _ensure_input_distinct_triggers(input_doc: Mapping[str, Any]) -> Dict[str, A
         trigger["control"] = replacement
         used.add((footprint[0], replacement, footprint[2]))
 
-    # #region agent log
-    try:
-        import json as _json, time as _time
-        with open("debug-f3e2af.log", "a", encoding="utf-8") as _f:
-            _f.write(_json.dumps({
-                "sessionId": "f3e2af", "runId": "post-fix", "hypothesisId": "I1,I2,I3",
-                "location": "compiler.py:_ensure_input_distinct_triggers",
-                "message": "input trigger deconflict",
-                "data": {
-                    "rewrites": rewrites,
-                    "controls": [
-                        {
-                            "id": item.get("id"),
-                            "control": (item.get("trigger") or {}).get("control")
-                            if isinstance(item, dict) else None,
-                            "enabled": item.get("enabled") if isinstance(item, dict) else None,
-                        }
-                        for item in bindings
-                        if isinstance(item, dict)
-                    ],
-                },
-                "timestamp": int(_time.time() * 1000),
-            }) + "\n")
-    except Exception:
-        pass
-    # #endregion
     return document
 
 
@@ -1754,33 +1691,61 @@ def _write_source_manifest_sidecar(target_root: Path, source_manifest: Mapping[s
     )
 
 
-def _debug_log(
-    location: str, message: str, data: Mapping[str, Any], hypothesis_id: str,
-    *, run_id: str = "pre-fix",
-) -> None:
-    # #region agent log
-    try:
-        with open("debug-f3e2af.log", "a", encoding="utf-8") as _f:
-            _f.write(json.dumps({
-                "sessionId": "f3e2af",
-                "runId": run_id,
-                "hypothesisId": hypothesis_id,
-                "location": location,
-                "message": message,
-                "data": dict(data),
-                "timestamp": int(time.time() * 1000),
-            }) + "\n")
-    except OSError:
-        pass
-    # #endregion
-
-
 _ACCEPTED_PROPOSAL_VERSION_ALIASES = frozenset({
     "2.0",
     "llm-proposal/2.0",
     "cubeengine.srtp/llm-proposal/2.0",
     LLM_PROPOSAL_VERSION,
 })
+
+# Bootstrap gap descriptors — release only when the matching path is filled.
+_BOOTSTRAP_UNRESOLVED_GAPS: Dict[str, List[Dict[str, Any]]] = {
+    "rule_ir": [
+        {
+            "path": "/topologies",
+            "reason": "No source topology has been supplied.",
+            "required": True,
+            "owner": "importer_or_llm",
+            "filled_by": ("/topologies",),
+        },
+        {
+            "path": "/actions",
+            "reason": "No player/system action or event system has been supplied.",
+            "required": True,
+            "owner": "importer_or_llm",
+            "filled_by": ("/actions", "/systems"),
+        },
+    ],
+    "scene_ir": [
+        {
+            "path": "/nodes",
+            "reason": "No source scene hierarchy has been supplied.",
+            "required": True,
+            "owner": "importer_or_llm",
+            "filled_by": ("/nodes",),
+        },
+    ],
+    "asset_ir": [
+        {
+            "path": "/assets",
+            "reason": "No source asset inventory has been supplied.",
+            "required": True,
+            "owner": "importer",
+            "filled_by": ("/assets", "/derivations"),
+        },
+    ],
+    "input_ir": [
+        {
+            "path": "/bindings",
+            "reason": "No source or designer input bindings have been supplied.",
+            "required": True,
+            "owner": "importer",
+            # Bindings alone are the bootstrap gap; contexts/intents should
+            # accompany them for playability but do not invent a clear-all.
+            "filled_by": ("/bindings",),
+        },
+    ],
+}
 
 
 def _coerce_proposal_version(proposal: Dict[str, Any]) -> None:
@@ -1803,6 +1768,9 @@ def _lift_patch_entries(
     *,
     source_root: Optional[Path] = None,
 ) -> None:
+    """Lift flat patch_entries into patches.*; never invent evidence."""
+
+    del source_root  # retained for call-site compatibility; never invent file cites
     entries = proposal.get("patch_entries")
     if not isinstance(entries, list) or not entries:
         return
@@ -1824,6 +1792,7 @@ def _lift_patch_entries(
         "input": "input_ir",
     }
     bucket_ops: Dict[str, List[Dict[str, Any]]] = {key: [] for key in _IR_KEYS}
+    bucket_evidence: Dict[str, List[Dict[str, Any]]] = {key: [] for key in _IR_KEYS}
     for entry in entries:
         if not isinstance(entry, Mapping):
             continue
@@ -1841,16 +1810,22 @@ def _lift_patch_entries(
         if "value" in entry:
             operation["value"] = entry.get("value")
         bucket_ops[ir_key].append(operation)
+        # Only accept real evidence objects already on the entry — never invent.
+        raw_evidence = entry.get("evidence")
+        if isinstance(raw_evidence, list):
+            for item in raw_evidence:
+                if isinstance(item, Mapping) and item.get("evidence_id") and item.get("path"):
+                    bucket_evidence[ir_key].append(dict(item))
 
     proposal["patches"] = {key: [] for key in _IR_KEYS}
-    entry_evidence = _default_patch_evidence(source_root=source_root)
     for ir_key, ops in bucket_ops.items():
         if not ops:
             continue
         pin = base_pins.get(ir_key) if isinstance(base_pins, Mapping) else None
         pin = pin if isinstance(pin, Mapping) else {}
         envelope = _wrap_ops_as_patch_entry(ops, pin)
-        envelope["evidence"] = list(entry_evidence)
+        # Empty evidence fails validation intentionally when LLM omitted it.
+        envelope["evidence"] = list(bucket_evidence[ir_key])
         proposal["patches"][ir_key] = [envelope]
 
 
@@ -1862,22 +1837,6 @@ def _normalize_source_proposal(
     base_pins: Mapping[str, Mapping[str, Any]],
     source_root: Optional[Path] = None,
 ) -> Dict[str, Any]:
-    # #region agent log
-    _debug_log(
-        "compiler.py:_normalize_source_proposal:entry",
-        "raw LLM proposal contract",
-        {
-            "proposal_version": proposal.get("proposal_version"),
-            "llm_proposal_version": proposal.get("llm_proposal_version"),
-            "has_patches_object": isinstance(proposal.get("patches"), Mapping),
-            "patch_entries_count": (
-                len(proposal.get("patch_entries"))
-                if isinstance(proposal.get("patch_entries"), list) else 0
-            ),
-        },
-        "H1,H2,H3",
-    )
-    # #endregion
     _coerce_proposal_version(proposal)
     _lift_patch_entries(proposal, base_pins, source_root=source_root)
     proposal.setdefault("proposal_version", LLM_PROPOSAL_VERSION)
@@ -1912,21 +1871,6 @@ def _normalize_source_proposal(
                 for item in entries
             ]
     proposal["unresolved"] = _coerce_unresolved_list(proposal.get("unresolved"))
-    # #region agent log
-    _debug_log(
-        "compiler.py:_normalize_source_proposal:exit",
-        "normalized proposal contract",
-        {
-            "proposal_version": proposal.get("proposal_version"),
-            "patch_counts": {
-                key: len(patches.get(key) or []) if isinstance(patches.get(key), list) else 0
-                for key in _IR_KEYS
-            },
-            "contract_errors": validate_llm_proposal(proposal)[:5],
-        },
-        "H1,H3,H4",
-    )
-    # #endregion
     return proposal
 
 
@@ -1945,38 +1889,6 @@ def _is_rfc6902_operation(item: Any) -> bool:
         and "path" in item
         and not isinstance(item.get("operations"), list)
     )
-
-
-def _default_patch_evidence(
-    *, source_root: Optional[Path] = None,
-) -> List[Dict[str, Any]]:
-    from .evidence import file_sha256 as _file_sha256
-
-    path = _default_source_evidence_path(source_root)
-    entry: Dict[str, Any] = {
-        "evidence_id": "ev:llm.inline",
-        "path": path,
-        "kind": "static",
-        "supports": "/",
-        "confidence": 0.5,
-    }
-    if source_root is not None:
-        candidate = source_root / Path(path)
-        if candidate.is_file():
-            entry["file_sha256"] = _file_sha256(candidate)
-            entry["span"] = {"line_start": 1, "line_end": 1}
-    return [entry]
-
-
-def _default_source_evidence_path(source_root: Optional[Path] = None) -> str:
-    if source_root is not None and source_root.is_dir():
-        for candidate in sorted(source_root.iterdir()):
-            if candidate.suffix == ".py" and candidate.name != "__init__.py":
-                try:
-                    return candidate.relative_to(source_root).as_posix()
-                except ValueError:
-                    return candidate.name
-    return "source.py"
 
 
 def _wrap_ops_as_patch_entry(
@@ -2069,6 +1981,35 @@ def _normalize_patch_entry(
         if isinstance(pin.get("content_hash"), str) and pin.get("content_hash"):
             item["base_content_hash"] = pin["content_hash"]
     item["unresolved"] = _coerce_unresolved_list(item.get("unresolved"))
+    # #region agent log
+    try:
+        _ops_pre = item.get("operations") if isinstance(item.get("operations"), list) else []
+        _nested = []
+        for _op in _ops_pre:
+            if isinstance(_op, dict) and isinstance(_op.get("evidence"), list) and _op.get("evidence"):
+                _nested.extend([
+                    {"path": _op.get("path"), "evidence_id": (e or {}).get("evidence_id"), "ev_path": (e or {}).get("path")}
+                    for e in _op["evidence"] if isinstance(e, Mapping)
+                ])
+        with open("debug-f3e2af.log", "a", encoding="utf-8") as _f:
+            _f.write(json.dumps({
+                "sessionId": "f3e2af", "runId": "pre-fix", "hypothesisId": "H1,H3,H5",
+                "location": "compiler.py:_normalize_patch_entry:before_coerce",
+                "message": "patch evidence locations before coerce",
+                "data": {
+                    "ir_key": ir_key,
+                    "envelope_evidence_len": len(item.get("evidence") or []) if isinstance(item.get("evidence"), list) else None,
+                    "envelope_evidence_type": type(item.get("evidence")).__name__,
+                    "evidence_ids_key": item.get("evidence_ids"),
+                    "ops_count": len(_ops_pre),
+                    "nested_op_evidence": _nested[:8],
+                    "alt_keys": [k for k in item.keys() if "evid" in str(k).lower()],
+                },
+                "timestamp": int(time.time() * 1000),
+            }) + "\n")
+    except Exception:
+        pass
+    # #endregion
     item["evidence"] = _coerce_evidence_list(item.get("evidence"))
     # Do not invent fake llm_proposal citations; missing evidence fails validation.
     if not isinstance(item.get("assumptions"), list):
@@ -2100,16 +2041,44 @@ def _normalize_patch_entry(
     elif ir_key == "input_ir":
         _coerce_input_ir_operations(operations)
     _ensure_unresolved_cleared(operations, ir_key)
+    # #region agent log
+    try:
+        with open("debug-f3e2af.log", "a", encoding="utf-8") as _f:
+            _f.write(json.dumps({
+                "sessionId": "f3e2af", "runId": "pre-fix", "hypothesisId": "H1,H4",
+                "location": "compiler.py:_normalize_patch_entry:exit",
+                "message": "patch envelope evidence after normalize",
+                "data": {
+                    "ir_key": ir_key,
+                    "envelope_evidence_len": len(item.get("evidence") or []) if isinstance(item.get("evidence"), list) else None,
+                    "envelope_ids": [
+                        e.get("evidence_id") for e in (item.get("evidence") or [])
+                        if isinstance(e, Mapping)
+                    ][:6],
+                },
+                "timestamp": int(time.time() * 1000),
+            }) + "\n")
+    except Exception:
+        pass
+    # #endregion
     return item
 
 
 def _ensure_unresolved_cleared(operations: List[Any], ir_key: str) -> None:
-    """When bootstrap gaps are filled, append /unresolved → [] if LLM forgot."""
+    """Release only bootstrap gap paths that this patch actually filled.
+
+    Never wipe the whole ``/unresolved`` array just because one major field
+    is nonempty. If the LLM already patched ``/unresolved``, leave it alone.
+    """
 
     if any(
         isinstance(op, Mapping) and str(op.get("path") or "") == "/unresolved"
         for op in operations
     ):
+        return
+
+    gaps = _BOOTSTRAP_UNRESOLVED_GAPS.get(ir_key) or []
+    if not gaps:
         return
 
     def has_nonempty(path: str) -> bool:
@@ -2125,23 +2094,25 @@ def _ensure_unresolved_cleared(operations: List[Any], ir_key: str) -> None:
                 return True
         return False
 
-    clear = False
-    if ir_key == "rule_ir":
-        clear = has_nonempty("/topologies") and (
-            has_nonempty("/actions") or has_nonempty("/systems")
-        )
-    elif ir_key == "scene_ir":
-        clear = has_nonempty("/nodes")
-    elif ir_key == "asset_ir":
-        clear = has_nonempty("/assets") or has_nonempty("/derivations")
-    elif ir_key == "input_ir":
-        clear = (
-            has_nonempty("/contexts")
-            and has_nonempty("/intents")
-            and has_nonempty("/bindings")
-        )
-    if clear:
-        operations.append({"op": "replace", "path": "/unresolved", "value": []})
+    remaining: List[Dict[str, Any]] = []
+    released_any = False
+    for gap in gaps:
+        fillers = gap.get("filled_by") or (gap.get("path"),)
+        filled = any(has_nonempty(str(path)) for path in fillers)
+        if filled:
+            released_any = True
+            continue
+        remaining.append({
+            "path": gap["path"],
+            "reason": gap["reason"],
+            "required": bool(gap.get("required", True)),
+            "owner": gap.get("owner") or "importer_or_llm",
+        })
+
+    if not released_any:
+        # Nothing filled — keep the sealed bootstrap unresolved as-is.
+        return
+    operations.append({"op": "replace", "path": "/unresolved", "value": remaining})
 
 
 def _ensure_required_keys(
@@ -2628,24 +2599,6 @@ def _coerce_input_trigger(trigger: Dict[str, Any]) -> None:
             control = normalized
         if not isinstance(control, str) or "." not in control:
             device = trigger["device"]
-            # #region agent log
-            try:
-                import json as _json, time as _time
-                with open("debug-f3e2af.log", "a", encoding="utf-8") as _f:
-                    _f.write(_json.dumps({
-                        "sessionId": "f3e2af", "runId": "pre-fix", "hypothesisId": "I2,I4",
-                        "location": "compiler.py:_coerce_input_trigger",
-                        "message": "control fallback to space/primary",
-                        "data": {
-                            "raw_control": control,
-                            "device": device,
-                            "kind": kind,
-                        },
-                        "timestamp": int(_time.time() * 1000),
-                    }) + "\n")
-            except Exception:
-                pass
-            # #endregion
             trigger["control"] = (
                 "{0}.key.space".format(device)
                 if device == "keyboard"

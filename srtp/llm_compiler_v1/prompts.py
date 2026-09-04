@@ -32,12 +32,13 @@ Schema traps (compiler coerces many; still emit correct shapes when possible):
 - Prefabs: {id,name,root:{local_id,name,active,transform,components,children}}
 - Camera: projection + near_clip/far_clip with 0<near<far + active
 - Asset source = project-relative path string; or /derivations procedural_mesh with empty inputs
-- Input: fill /contexts+/intents+/bindings together; end filled IRs with /unresolved → []
+- Input: fill /contexts+/intents+/bindings together; clear only filled unresolved paths (never wipe the whole list)
 - Input intents with target.kind=rule_action require rule_ir pin — compiler auto-pins from applied Rule IR if omitted
 - Dependencies content_hash may be "$pin:rule_ir" / "$pin:asset_ir"
 - Patch unresolved items are objects {path,reason,required,owner}, never bare strings
 - flow.phases are objects [{id:"rule:phase.input",order:100},…] never string names; timing uses {phase:"rule:phase.input"} not trigger aliases
 - Actions require precondition expression (e.g. {"op":"literal","value":true}) — not preconditions:[]
+- Never invent evidence; cite evidence_pack ids with real source path/span/supports for each patch
 """
 
 SYSTEM_DESIGN_INTENT = """Convert designer text to cubeengine.srtp/design-intent/1.0 JSON only.

@@ -1146,6 +1146,15 @@ class FeedbackAdoptionP0Tests(unittest.TestCase):
         from srtp.llm_compiler_v1.compiler import _normalize_source_proposal
 
         bootstrap = bootstrap_documents(title="Tiny", source_package_hash="f" * 64)
+        evidence = {
+            "evidence_id": "ev:test",
+            "path": "tiny.py",
+            "kind": "static",
+            "supports": "/metadata/description",
+            "confidence": 0.5,
+            "file_sha256": "a" * 64,
+            "span": {"line_start": 1, "line_end": 1},
+        }
         raw = {
             "proposal_version": "2.0",
             "proposal_id": "prop.test",
@@ -1155,7 +1164,7 @@ class FeedbackAdoptionP0Tests(unittest.TestCase):
                     "op": "replace",
                     "path": "/metadata/description",
                     "value": "from patch_entries",
-                    "evidence_ids": ["ev:test"],
+                    "evidence": [evidence],
                 },
             ],
         }
@@ -1171,7 +1180,103 @@ class FeedbackAdoptionP0Tests(unittest.TestCase):
             normalized["patches"]["rule_ir"][0]["operations"][0]["value"],
             "from patch_entries",
         )
+        self.assertEqual(
+            normalized["patches"]["rule_ir"][0]["evidence"][0]["evidence_id"],
+            "ev:test",
+        )
         self.assertEqual(validate_llm_proposal(normalized), [])
+
+    def test_patch_entries_without_evidence_do_not_invent_cites(self):
+        from srtp.llm_compiler_v1.compiler import _normalize_source_proposal
+
+        bootstrap = bootstrap_documents(title="Tiny", source_package_hash="f" * 64)
+        raw = {
+            "proposal_version": "2.0",
+            "proposal_id": "prop.noev",
+            "patch_entries": [
+                {
+                    "target_doc": "rule_ir",
+                    "op": "replace",
+                    "path": "/topologies",
+                    "value": [{
+                        "id": "rule:topology.board",
+                        "kind": "rect_grid",
+                        "anchor": "cell",
+                        "axes": [
+                            {"name": "x", "extent": 10, "boundary": "bounded"},
+                            {"name": "y", "extent": 10, "boundary": "bounded"},
+                        ],
+                        "neighborhoods": [],
+                    }],
+                    "evidence_ids": ["ev:param.source_tick_ms.0"],
+                },
+            ],
+        }
+        normalized = _normalize_source_proposal(
+            raw,
+            job_id="job:noev",
+            source_package_hash="f" * 64,
+            base_pins=bootstrap.base_pins(),
+        )
+        evidence = normalized["patches"]["rule_ir"][0]["evidence"]
+        self.assertEqual(evidence, [])
+        errors = validate_llm_proposal(normalized)
+        self.assertTrue(any("evidence" in item for item in errors))
+
+    def test_unresolved_cleared_path_by_path_not_wholesale(self):
+        from copy import deepcopy
+        from srtp.llm_compiler_v1.compiler import _normalize_patch_entry
+
+        topology_op = {
+            "op": "replace",
+            "path": "/topologies",
+            "value": [{
+                "id": "rule:topology.board",
+                "kind": "rect_grid",
+                "anchor": "cell",
+                "axes": [
+                    {"name": "x", "extent": 10, "boundary": "bounded"},
+                    {"name": "y", "extent": 10, "boundary": "bounded"},
+                ],
+                "neighborhoods": [],
+            }],
+        }
+        entry = _normalize_patch_entry(
+            {"operations": [deepcopy(topology_op)]}, ir_key="rule_ir",
+        )
+        unresolved_ops = [
+            op for op in entry["operations"]
+            if isinstance(op, dict) and op.get("path") == "/unresolved"
+        ]
+        self.assertEqual(len(unresolved_ops), 1)
+        remaining = unresolved_ops[0]["value"]
+        paths = {item["path"] for item in remaining}
+        self.assertNotIn("/topologies", paths)
+        self.assertIn("/actions", paths)
+
+        action_op = {
+            "op": "replace",
+            "path": "/actions",
+            "value": [{
+                "id": "rule:action.move",
+                "name": "Move",
+                "actor": {"op": "literal", "value": "rule:participant.human.player"},
+                "parameters": [],
+                "precondition": {"op": "literal", "value": True},
+                "effects": [{"op": "state.set", "variable": "rule:state.x", "value": {"op": "literal", "value": 1}}],
+                "timing": {"phase": "rule:phase.input"},
+                "encoding": {"kind": "none"},
+            }],
+        }
+        entry_both = _normalize_patch_entry(
+            {"operations": [deepcopy(topology_op), deepcopy(action_op)]},
+            ir_key="rule_ir",
+        )
+        unresolved_ops = [
+            op for op in entry_both["operations"]
+            if isinstance(op, dict) and op.get("path") == "/unresolved"
+        ]
+        self.assertEqual(unresolved_ops[0]["value"], [])
 
     def test_approve_clears_only_llm_blocker_and_reseals(self):
         from srtp.llm_compiler_v1.approval import approve_llm_manifest, approval_status

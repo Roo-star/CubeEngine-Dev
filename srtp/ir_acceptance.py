@@ -274,41 +274,6 @@ class IRAcceptanceController:
             input=documents["input_ir"],
             asset_project_root=Path(asset_project_root).resolve() if asset_project_root else root,
         )
-        # #region agent log
-        try:
-            import time as _time
-            _scene = documents.get("scene_ir") or {}
-            _prefabs = [str(item.get("id")) for item in (_scene.get("prefabs") or []) if isinstance(item, Mapping)]
-            _viz = []
-            for _node in _scene.get("nodes") or []:
-                if not isinstance(_node, Mapping):
-                    continue
-                for _comp in _node.get("components") or []:
-                    if isinstance(_comp, Mapping) and _comp.get("type") in (
-                        "topology_visualizer", "rule_entity_visualizer",
-                    ):
-                        _props = _comp.get("properties") if isinstance(_comp.get("properties"), Mapping) else {}
-                        _viz.append({
-                            "node": _node.get("id"),
-                            "kind": _comp.get("type"),
-                            "prefab": _props.get("prefab"),
-                        })
-            with open("debug-f3e2af.log", "a", encoding="utf-8") as _f:
-                _f.write(json.dumps({
-                    "sessionId": "f3e2af", "runId": "pre-fix", "hypothesisId": "A,B,E",
-                    "location": "ir_acceptance.py:open_project_bundle",
-                    "message": "bundle scene prefab contract before compile",
-                    "data": {
-                        "root": str(root),
-                        "asset_project_root": str(artifacts.asset_project_root),
-                        "prefab_ids": _prefabs,
-                        "visualizers": _viz,
-                    },
-                    "timestamp": int(_time.time() * 1000),
-                }) + "\n")
-        except Exception:
-            pass
-        # #endregion
         if "loaded" in self.sessions:
             self.sessions.pop("loaded").close()
         self.projects["loaded"] = artifacts
