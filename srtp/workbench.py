@@ -212,6 +212,14 @@ class SrtpWorkbench:
         try:
             result = self.core_controller.click(tuple(user_data or ()))
             self.core_last_result = result.to_mapping()
+            # #region agent log
+            try:
+                import json as _json, time as _time
+                with open(r"C:\repo\CubeEngine-Dev\debug-3d9e82.log", "a", encoding="utf-8") as _f:
+                    _f.write(_json.dumps({"sessionId": "3d9e82", "runId": "pre-fix", "hypothesisId": "H1", "location": "workbench.py:click_core_cell", "message": "cell click result", "data": {"coord": list(user_data or ()), "accepted": result.accepted, "code": result.code, "message": result.message, "project": getattr(self.core_controller, "active_key", None), "label": (self.core_controller.labels.get(self.core_controller.active_key) if self.core_controller else None)}, "timestamp": int(_time.time() * 1000)}) + "\n")
+            except Exception:
+                pass
+            # #endregion
             self._render_core_scene()
             self._message(result.message, error=not result.accepted)
         except (IRAcceptanceError, ValueError) as error:
@@ -220,14 +228,40 @@ class SrtpWorkbench:
     def handle_core_key(self, sender=None, app_data=None, user_data=None) -> None:
         """Map Dear PyGui key presses to Input IR physical keyboard events."""
 
-        if self._preview_mode() != "Project Session":
+        preview = self._preview_mode()
+        has_project = bool(self.core_controller and self.core_controller.has_active_project)
+        if preview != "Project Session":
+            # #region agent log
+            try:
+                import json as _json, time as _time
+                with open(r"C:\repo\CubeEngine-Dev\debug-3d9e82.log", "a", encoding="utf-8") as _f:
+                    _f.write(_json.dumps({"sessionId": "3d9e82", "runId": "pre-fix", "hypothesisId": "H2", "location": "workbench.py:handle_core_key", "message": "early return wrong preview mode", "data": {"preview": preview, "app_data": app_data}, "timestamp": int(_time.time() * 1000)}) + "\n")
+            except Exception:
+                pass
+            # #endregion
             return
         if self.core_controller is None or not self.core_controller.has_active_project:
+            # #region agent log
+            try:
+                import json as _json, time as _time
+                with open(r"C:\repo\CubeEngine-Dev\debug-3d9e82.log", "a", encoding="utf-8") as _f:
+                    _f.write(_json.dumps({"sessionId": "3d9e82", "runId": "pre-fix", "hypothesisId": "H2", "location": "workbench.py:handle_core_key", "message": "early return no project", "data": {"has_project": has_project, "app_data": app_data}, "timestamp": int(_time.time() * 1000)}) + "\n")
+            except Exception:
+                pass
+            # #endregion
             return
         key = app_data
         try:
             key = int(key)
         except (TypeError, ValueError):
+            # #region agent log
+            try:
+                import json as _json, time as _time
+                with open(r"C:\repo\CubeEngine-Dev\debug-3d9e82.log", "a", encoding="utf-8") as _f:
+                    _f.write(_json.dumps({"sessionId": "3d9e82", "runId": "pre-fix", "hypothesisId": "H2", "location": "workbench.py:handle_core_key", "message": "early return non-int key", "data": {"app_data": repr(app_data)}, "timestamp": int(_time.time() * 1000)}) + "\n")
+            except Exception:
+                pass
+            # #endregion
             return
         mapping = {
             getattr(self.dpg, "mvKey_Up", -1): "keyboard.key.arrow_up",
@@ -236,6 +270,14 @@ class SrtpWorkbench:
             getattr(self.dpg, "mvKey_Right", -4): "keyboard.key.arrow_right",
         }
         control = mapping.get(key)
+        # #region agent log
+        try:
+            import json as _json, time as _time
+            with open(r"C:\repo\CubeEngine-Dev\debug-3d9e82.log", "a", encoding="utf-8") as _f:
+                _f.write(_json.dumps({"sessionId": "3d9e82", "runId": "pre-fix", "hypothesisId": "H2", "location": "workbench.py:handle_core_key", "message": "key press seen", "data": {"key": key, "control": control, "map_keys": {str(k): v for k, v in mapping.items()}, "mvKey_Up": getattr(self.dpg, "mvKey_Up", None), "mvKey_Right": getattr(self.dpg, "mvKey_Right", None)}, "timestamp": int(_time.time() * 1000)}) + "\n")
+        except Exception:
+            pass
+        # #endregion
         if control is None:
             # R resets the Project Session.
             if key == getattr(self.dpg, "mvKey_R", None):
@@ -253,10 +295,36 @@ class SrtpWorkbench:
         try:
             result = self.core_controller.dispatch_physical(event)
             self.core_last_result = result.to_mapping()
+            # #region agent log
+            try:
+                import json as _json, time as _time
+                with open(r"C:\repo\CubeEngine-Dev\debug-3d9e82.log", "a", encoding="utf-8") as _f:
+                    _f.write(_json.dumps({"sessionId": "3d9e82", "runId": "post-fix", "hypothesisId": "H3", "location": "workbench.py:handle_core_key", "message": "arrow dispatch result", "data": {"control": control, "accepted": result.accepted, "code": result.code, "message": result.message, "transitions": result.transition_count, "label": self.core_controller.labels.get(selected)}, "timestamp": int(_time.time() * 1000)}) + "\n")
+            except Exception:
+                pass
+            # #endregion
             self._render_core_scene()
             self._message(result.message, error=not result.accepted)
         except (IRAcceptanceError, ValueError) as error:
+            # #region agent log
+            try:
+                import json as _json, time as _time
+                with open(r"C:\repo\CubeEngine-Dev\debug-3d9e82.log", "a", encoding="utf-8") as _f:
+                    _f.write(_json.dumps({"sessionId": "3d9e82", "runId": "post-fix", "hypothesisId": "H3", "location": "workbench.py:handle_core_key", "message": "arrow dispatch exception", "data": {"control": control, "error": str(error)}, "timestamp": int(_time.time() * 1000)}) + "\n")
+            except Exception:
+                pass
+            # #endregion
             self._message(str(error), error=True)
+        except Exception as error:  # noqa: BLE001 — surface Rule Runtime failures in console
+            # #region agent log
+            try:
+                import json as _json, time as _time
+                with open(r"C:\repo\CubeEngine-Dev\debug-3d9e82.log", "a", encoding="utf-8") as _f:
+                    _f.write(_json.dumps({"sessionId": "3d9e82", "runId": "post-fix", "hypothesisId": "H3", "location": "workbench.py:handle_core_key", "message": "arrow dispatch unexpected", "data": {"control": control, "error_type": type(error).__name__, "error": str(error)}, "timestamp": int(_time.time() * 1000)}) + "\n")
+            except Exception:
+                pass
+            # #endregion
+            self._message("Input handling failed: {0}: {1}".format(type(error).__name__, error), error=True)
 
     def reset_core(self, sender=None, app_data=None, user_data=None) -> None:
         if self.core_controller is None:

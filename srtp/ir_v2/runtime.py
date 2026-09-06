@@ -401,7 +401,14 @@ class RuleTransaction:
                 })
             return
         if operation in ("state.set", "state.increment"):
-            target = self.evaluate(command["target"])
+            if "target" in command:
+                target_expr = command["target"]
+            elif isinstance(command.get("variable"), str) and command["variable"].strip():
+                # Legacy / LLM shorthand: variable id instead of target expression.
+                target_expr = {"op": "literal", "value": command["variable"].strip()}
+            else:
+                raise RuleRuntimeError("state.set/state.increment requires target")
+            target = self.evaluate(target_expr)
             scope_key = self.evaluate(command["scope"]) if "scope" in command else None
             value = self.evaluate(command["value"])
             if operation == "state.increment":

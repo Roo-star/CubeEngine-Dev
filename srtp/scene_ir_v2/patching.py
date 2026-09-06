@@ -61,6 +61,15 @@ def apply_scene_ir_patch(
     })
     staged["revision"] = int(document["revision"]) + 1
     staged["content_hash"] = ""
+    # LLM patches sometimes replace /dependencies with a non-object; restore
+    # the sealed base shape before pin merge and validation.
+    if not isinstance(staged.get("dependencies"), Mapping):
+        base_deps = document.get("dependencies")
+        staged["dependencies"] = (
+            deepcopy(dict(base_deps))
+            if isinstance(base_deps, Mapping)
+            else {"rule_ir": None, "asset_ir": None, "extensions": []}
+        )
     if isinstance(staged.get("dependencies"), Mapping):
         deps = dict(staged["dependencies"])
         if not isinstance(deps.get("extensions"), list):

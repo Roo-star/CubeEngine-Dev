@@ -148,6 +148,19 @@ class ContractTests(unittest.TestCase):
             "target_base": None,
         }
         self.assertEqual(validate_design_intent(intent), [])
+        from srtp.llm_compiler_v1.contracts import normalize_design_intent
+        coerced = normalize_design_intent({
+            **intent,
+            "operation": "EXTEND_TOPOLOGY",
+            "scope": "topology",
+            "target_base": "main",
+            "requires_confirmation": "false",
+        })
+        self.assertEqual(coerced["operation"], "transform")
+        self.assertEqual(coerced["scope"], ["rule"])
+        self.assertIsNone(coerced["target_base"])
+        self.assertIs(coerced["requires_confirmation"], False)
+        self.assertEqual(validate_design_intent(coerced), [])
         plan = {
             "plan_version": SPATIAL_LIFT_VERSION,
             "plan_id": "lift:1",
@@ -189,6 +202,9 @@ class ClientTests(unittest.TestCase):
         self.assertEqual(parse_api_keys('["k1","k2"]'), ["k1", "k2"])
         self.assertEqual(parse_api_keys("k1,k2"), ["k1", "k2"])
         self.assertEqual(parse_api_keys("k1"), ["k1"])
+        # Python-style .env mistake: single-quoted list literal.
+        self.assertEqual(parse_api_keys("['k1', 'k2']"), ["k1", "k2"])
+        self.assertEqual(parse_api_keys("'k1'"), ["k1"])
 
     def test_load_compiler_env_reads_dotenv(self):
         previous = os.environ.get("GEMINI_API_KEY")
@@ -974,7 +990,11 @@ class ValidationAndCompilerTests(unittest.TestCase):
         self.assertEqual(coerced[1]["path"], "/space/x")
 
     def test_list_patches_are_coerced_to_object(self):
-        from srtp.llm_compiler_v1.compiler import _coerce_patches_object
+        from srtp.llm_compiler_v1.compiler import (
+            _coerce_patches_object,
+            _normalize_proposal_patches,
+        )
+        from srtp.llm_compiler_v1.contracts import validate_llm_proposal
 
         patches = _coerce_patches_object([
             {"document_id": "rule:game.x", "operations": [{"op": "replace", "path": "/metadata/title", "value": "x"}]},
@@ -983,6 +1003,38 @@ class ValidationAndCompilerTests(unittest.TestCase):
         self.assertEqual(len(patches["rule_ir"]), 1)
         self.assertEqual(len(patches["scene_ir"]), 1)
         self.assertEqual(patches["asset_ir"], [])
+
+        lift_shaped = {
+            "proposal_version": "cubeengine.srtp/llm-proposal/2.0",
+            "proposal_id": "proposal:test",
+            "job_id": "job:test",
+            "stage": "spatial_lift",
+            "source_package_hash": "a" * 64,
+            "design_intent": None,
+            "base_documents": {
+                "rule_ir": {"document_id": "rule:game.x", "revision": 0, "content_hash": "b" * 64},
+                "scene_ir": {"document_id": "scene:game.x", "revision": 0, "content_hash": "c" * 64},
+                "asset_ir": {"document_id": "asset:game.x", "revision": 0, "content_hash": "d" * 64},
+                "input_ir": {"document_id": "input:game.x", "revision": 0, "content_hash": "e" * 64},
+            },
+            "patches": [
+                {
+                    "target_document": "rule_ir",
+                    "document_id": "rule:game.x",
+                    "changes": [{"op": "replace", "path": "/metadata/title", "value": "lifted"}],
+                },
+            ],
+            "evidence_citations": ["ev:test"],
+            "claims": [], "tests": [], "extension_proposals": [], "spatial_lift_options": [],
+            "assumptions": [], "unresolved": [], "clarification_questions": [],
+        }
+        _normalize_proposal_patches(lift_shaped, lift_shaped["base_documents"])
+        self.assertIsInstance(lift_shaped["patches"], dict)
+        self.assertEqual(len(lift_shaped["patches"]["rule_ir"]), 1)
+        entry = lift_shaped["patches"]["rule_ir"][0]
+        self.assertEqual(entry["operations"][0]["value"], "lifted")
+        self.assertTrue(entry["evidence"])
+        self.assertEqual(validate_llm_proposal(lift_shaped), [])
 
     def test_compiler_fails_closed_after_max_repairs(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -1132,6 +1184,11 @@ class FeedbackAdoptionP0Tests(unittest.TestCase):
         _coerce_action_object(action)
         self.assertEqual(action["timing"]["phase"], "rule:phase.input")
         self.assertNotIn("trigger", action["timing"])
+        self.assertEqual(
+            action["effects"][0]["target"],
+            {"op": "literal", "value": "rule:state.direction"},
+        )
+        self.assertNotIn("variable", action["effects"][0])
 
         normalized_flow = _normalize_patch_entry(
             {

@@ -29,6 +29,7 @@ from .contracts import (
     DESIGN_INTENT_VERSION,
     LLM_PROPOSAL_VERSION,
     SPATIAL_LIFT_VERSION,
+    normalize_design_intent,
     validate_design_intent,
     validate_llm_proposal,
     validate_spatial_lift_plan,
@@ -340,45 +341,13 @@ class SourceToIRCompiler:
                 continue
             provider = result.provider
             model = result.model
-            # #region agent log
-            try:
-                _raw = result.parsed if isinstance(result.parsed, Mapping) else {}
-                _patches = _raw.get("patches") if isinstance(_raw.get("patches"), Mapping) else {}
-                _summary = {}
-                for _k in _IR_KEYS:
-                    _entries = _patches.get(_k) if isinstance(_patches.get(_k), list) else []
-                    _env = 0
-                    _nested = 0
-                    if _entries and isinstance(_entries[0], Mapping):
-                        _ev = _entries[0].get("evidence")
-                        _env = len(_ev) if isinstance(_ev, list) else 0
-                        for _op in (_entries[0].get("operations") or []):
-                            if isinstance(_op, Mapping) and isinstance(_op.get("evidence"), list):
-                                _nested += len(_op.get("evidence") or [])
-                    _summary[_k] = {"envelope": _env, "nested_op_evidence": _nested}
-                with open("debug-f3e2af.log", "a", encoding="utf-8") as _f:
-                    _f.write(json.dumps({
-                        "sessionId": "f3e2af", "runId": "pre-fix", "hypothesisId": "H1,H2,H3",
-                        "location": "compiler.py:_compile_source_stage:raw_llm",
-                        "message": "raw LLM proposal evidence shape",
-                        "data": {
-                            "attempt": attempts,
-                            "has_patch_entries": isinstance(_raw.get("patch_entries"), list),
-                            "patch_entries_count": len(_raw.get("patch_entries") or []) if isinstance(_raw.get("patch_entries"), list) else 0,
-                            "top_evidence_ids": _raw.get("evidence_ids"),
-                            "per_ir": _summary,
-                        },
-                        "timestamp": int(time.time() * 1000),
-                    }) + "\n")
-            except Exception:
-                pass
-            # #endregion
             proposal = _normalize_source_proposal(
                 dict(result.parsed),
                 job_id=job_id,
                 source_package_hash=bootstrap.source_package_hash,
                 base_pins=base_pins,
                 source_root=Path(package.root),
+                evidence_pack=evidence,
             )
             applied = validate_and_apply_proposal(
                 proposal,
@@ -561,6 +530,7 @@ class SourceToIRCompiler:
         design_intent.setdefault("requires_confirmation", True)
         design_intent.setdefault("status", "proposed")
         design_intent.setdefault("target_base", None)
+        design_intent = normalize_design_intent(design_intent)
 
         intent_errors = validate_design_intent(design_intent)
         if intent_errors:
@@ -638,12 +608,13 @@ class SourceToIRCompiler:
         payload = dict(lift_result.parsed)
         plan = payload.get("plan") if isinstance(payload.get("plan"), Mapping) else payload
         proposal = payload.get("proposal") if isinstance(payload.get("proposal"), Mapping) else None
-        if proposal is None and payload.get("proposal_version") == LLM_PROPOSAL_VERSION:
+        if proposal is None and _looks_like_proposal_version(payload.get("proposal_version")):
             proposal = payload
             plan = payload.get("spatial_lift_plan") or payload.get("plan") or {}
 
         plan = dict(plan) if isinstance(plan, Mapping) else {}
         plan.setdefault("plan_version", SPATIAL_LIFT_VERSION)
+        _coerce_plan_version(plan)
         plan.setdefault("plan_id", "lift:{0}".format(uuid.uuid4().hex[:12]))
         plan.setdefault("source_manifest_hash", source_hash)
         plan.setdefault("design_intent_id", design_intent.get("intent_id"))
@@ -673,6 +644,7 @@ class SourceToIRCompiler:
 
         proposal = dict(proposal)
         proposal.setdefault("proposal_version", LLM_PROPOSAL_VERSION)
+        _coerce_proposal_version(proposal)
         proposal.setdefault("proposal_id", "proposal:{0}".format(uuid.uuid4().hex[:12]))
         proposal.setdefault("job_id", source_report.job_id)
         proposal.setdefault("stage", "spatial_lift")
@@ -694,6 +666,12 @@ class SourceToIRCompiler:
         proposal.setdefault("patches", {
             "rule_ir": [], "scene_ir": [], "asset_ir": [], "input_ir": [],
         })
+        _normalize_proposal_patches(
+            proposal, base_pins,
+            source_root=Path(package.root),
+            evidence_pack=evidence,
+        )
+        proposal["unresolved"] = _coerce_unresolved_list(proposal.get("unresolved"))
 
         contract_errors = validate_llm_proposal(proposal, require_design_intent=True)
         if contract_errors:
@@ -1698,6 +1676,13 @@ _ACCEPTED_PROPOSAL_VERSION_ALIASES = frozenset({
     LLM_PROPOSAL_VERSION,
 })
 
+_ACCEPTED_PLAN_VERSION_ALIASES = frozenset({
+    "1.0",
+    "spatial-lift-plan/1.0",
+    "cubeengine.srtp/spatial-lift-plan/1.0",
+    SPATIAL_LIFT_VERSION,
+})
+
 # Bootstrap gap descriptors — release only when the matching path is filled.
 _BOOTSTRAP_UNRESOLVED_GAPS: Dict[str, List[Dict[str, Any]]] = {
     "rule_ir": [
@@ -1760,6 +1745,20 @@ def _coerce_proposal_version(proposal: Dict[str, Any]) -> None:
         candidates.append(legacy.strip())
     if any(item in _ACCEPTED_PROPOSAL_VERSION_ALIASES for item in candidates):
         proposal["proposal_version"] = LLM_PROPOSAL_VERSION
+
+
+def _coerce_plan_version(plan: Dict[str, Any]) -> None:
+    raw = plan.get("plan_version")
+    if raw == SPATIAL_LIFT_VERSION:
+        return
+    if isinstance(raw, str) and raw.strip() in _ACCEPTED_PLAN_VERSION_ALIASES:
+        plan["plan_version"] = SPATIAL_LIFT_VERSION
+    elif raw in (None, ""):
+        plan["plan_version"] = SPATIAL_LIFT_VERSION
+
+
+def _looks_like_proposal_version(value: Any) -> bool:
+    return isinstance(value, str) and value.strip() in _ACCEPTED_PROPOSAL_VERSION_ALIASES
 
 
 def _lift_patch_entries(
@@ -1836,9 +1835,9 @@ def _normalize_source_proposal(
     source_package_hash: str,
     base_pins: Mapping[str, Mapping[str, Any]],
     source_root: Optional[Path] = None,
+    evidence_pack: Optional[Mapping[str, Any]] = None,
 ) -> Dict[str, Any]:
     _coerce_proposal_version(proposal)
-    _lift_patch_entries(proposal, base_pins, source_root=source_root)
     proposal.setdefault("proposal_version", LLM_PROPOSAL_VERSION)
     proposal.setdefault("proposal_id", "proposal:{0}".format(uuid.uuid4().hex[:12]))
     proposal.setdefault("job_id", job_id)
@@ -1858,18 +1857,9 @@ def _normalize_source_proposal(
         "assumptions", "unresolved", "clarification_questions",
     ):
         proposal.setdefault(key, [])
-    proposal["patches"] = _coerce_patches_object(proposal.get("patches"))
-    _lift_legacy_ir_patch_fields(proposal, base_pins)
-    patches = proposal["patches"]
-    for key, entries in list(patches.items()):
-        if isinstance(entries, list):
-            pin = base_pins.get(key) if isinstance(base_pins, Mapping) else None
-            patches[key] = [
-                _normalize_patch_entry(
-                    item, ir_key=key, source_root=source_root, pin=pin,
-                )
-                for item in entries
-            ]
+    _normalize_proposal_patches(
+        proposal, base_pins, source_root=source_root, evidence_pack=evidence_pack,
+    )
     proposal["unresolved"] = _coerce_unresolved_list(proposal.get("unresolved"))
     return proposal
 
@@ -1944,29 +1934,113 @@ def _coerce_patches_object(value: Any) -> Dict[str, List[Any]]:
         return buckets
     if not isinstance(value, list):
         return buckets
+    target_aliases = {
+        "rule_ir": "rule_ir", "scene_ir": "scene_ir",
+        "asset_ir": "asset_ir", "input_ir": "input_ir",
+        "rule": "rule_ir", "scene": "scene_ir",
+        "asset": "asset_ir", "input": "input_ir",
+    }
     for item in value:
         if not isinstance(item, Mapping):
             continue
-        slot = str(item.get("ir") or item.get("kind") or item.get("target") or "")
+        slot_raw = str(
+            item.get("ir")
+            or item.get("kind")
+            or item.get("target")
+            or item.get("target_document")
+            or item.get("ir_target")
+            or item.get("target_doc")
+            or "",
+        ).strip()
+        slot = target_aliases.get(slot_raw, slot_raw if slot_raw in buckets else "")
         if slot in buckets:
-            buckets[slot].append(item)
+            buckets[slot].append(dict(item))
             continue
         document_id = str(item.get("document_id") or "")
         if document_id.startswith("rule:"):
-            buckets["rule_ir"].append(item)
+            buckets["rule_ir"].append(dict(item))
         elif document_id.startswith("scene:"):
-            buckets["scene_ir"].append(item)
+            buckets["scene_ir"].append(dict(item))
         elif document_id.startswith("asset:"):
-            buckets["asset_ir"].append(item)
+            buckets["asset_ir"].append(dict(item))
         elif document_id.startswith("input:"):
-            buckets["input_ir"].append(item)
+            buckets["input_ir"].append(dict(item))
     return buckets
+
+
+def _promote_changes_to_operations(item: Dict[str, Any]) -> None:
+    """Accept LLM alias ``changes`` for RFC 6902 ``operations``."""
+
+    operations = item.get("operations")
+    if isinstance(operations, list) and operations:
+        return
+    changes = item.get("changes")
+    if isinstance(changes, list) and changes:
+        item["operations"] = [dict(op) if isinstance(op, Mapping) else op for op in changes]
+
+
+def _normalize_proposal_patches(
+    proposal: Dict[str, Any],
+    base_pins: Mapping[str, Mapping[str, Any]],
+    *,
+    source_root: Optional[Path] = None,
+    evidence_pack: Optional[Mapping[str, Any]] = None,
+) -> None:
+    """Shared Source/Lift patch bucket + envelope normalization."""
+
+    _lift_patch_entries(proposal, base_pins, source_root=source_root)
+    proposal["patches"] = _coerce_patches_object(proposal.get("patches"))
+    _lift_legacy_ir_patch_fields(proposal, base_pins)
+
+    top_evidence = proposal.get("evidence")
+    if not isinstance(top_evidence, list) or not top_evidence:
+        citations = proposal.get("evidence_citations")
+        if isinstance(citations, list) and citations:
+            top_evidence = citations
+        else:
+            top_evidence = []
+
+
+    patches = proposal["patches"]
+    shared_evidence: List[Any] = []
+    for key in _IR_KEYS:
+        entries = patches.get(key)
+        if not isinstance(entries, list):
+            patches[key] = []
+            continue
+        pin = base_pins.get(key) if isinstance(base_pins, Mapping) else None
+        normalized: List[Any] = []
+        for item in entries:
+            if not isinstance(item, dict):
+                continue
+            _promote_changes_to_operations(item)
+            operations = item.get("operations")
+            if not isinstance(operations, list) or not operations:
+                # Empty envelopes fail the proposal contract; drop rather than invent ops.
+                continue
+            if (not isinstance(item.get("evidence"), list) or not item.get("evidence")) and top_evidence:
+                item["evidence"] = list(top_evidence)
+            entry = _normalize_patch_entry(
+                item, ir_key=key, source_root=source_root, pin=pin,
+                evidence_pack=evidence_pack,
+            )
+            evidence_list = entry.get("evidence") if isinstance(entry, dict) else None
+            if isinstance(evidence_list, list) and evidence_list:
+                if not shared_evidence:
+                    shared_evidence = [dict(x) if isinstance(x, Mapping) else x for x in evidence_list]
+            elif isinstance(entry, dict) and shared_evidence:
+                # LLM often omits scene/asset evidence while citing the same source on rule/input.
+                entry["evidence"] = [dict(x) if isinstance(x, Mapping) else x for x in shared_evidence]
+            normalized.append(entry)
+        patches[key] = normalized
+
 
 
 def _normalize_patch_entry(
     item: Any, ir_key: str = "", source_root: Optional[Path] = None,
     *,
     pin: Optional[Mapping[str, Any]] = None,
+    evidence_pack: Optional[Mapping[str, Any]] = None,
 ) -> Any:
     if not isinstance(item, dict):
         return item
@@ -1981,36 +2055,9 @@ def _normalize_patch_entry(
         if isinstance(pin.get("content_hash"), str) and pin.get("content_hash"):
             item["base_content_hash"] = pin["content_hash"]
     item["unresolved"] = _coerce_unresolved_list(item.get("unresolved"))
-    # #region agent log
-    try:
-        _ops_pre = item.get("operations") if isinstance(item.get("operations"), list) else []
-        _nested = []
-        for _op in _ops_pre:
-            if isinstance(_op, dict) and isinstance(_op.get("evidence"), list) and _op.get("evidence"):
-                _nested.extend([
-                    {"path": _op.get("path"), "evidence_id": (e or {}).get("evidence_id"), "ev_path": (e or {}).get("path")}
-                    for e in _op["evidence"] if isinstance(e, Mapping)
-                ])
-        with open("debug-f3e2af.log", "a", encoding="utf-8") as _f:
-            _f.write(json.dumps({
-                "sessionId": "f3e2af", "runId": "pre-fix", "hypothesisId": "H1,H3,H5",
-                "location": "compiler.py:_normalize_patch_entry:before_coerce",
-                "message": "patch evidence locations before coerce",
-                "data": {
-                    "ir_key": ir_key,
-                    "envelope_evidence_len": len(item.get("evidence") or []) if isinstance(item.get("evidence"), list) else None,
-                    "envelope_evidence_type": type(item.get("evidence")).__name__,
-                    "evidence_ids_key": item.get("evidence_ids"),
-                    "ops_count": len(_ops_pre),
-                    "nested_op_evidence": _nested[:8],
-                    "alt_keys": [k for k in item.keys() if "evid" in str(k).lower()],
-                },
-                "timestamp": int(time.time() * 1000),
-            }) + "\n")
-    except Exception:
-        pass
-    # #endregion
-    item["evidence"] = _coerce_evidence_list(item.get("evidence"))
+    item["evidence"] = _coerce_evidence_list(
+        item.get("evidence"), evidence_pack=evidence_pack,
+    )
     # Do not invent fake llm_proposal citations; missing evidence fails validation.
     if not isinstance(item.get("assumptions"), list):
         item["assumptions"] = []
@@ -2018,10 +2065,15 @@ def _normalize_patch_entry(
     if not isinstance(operations, list):
         return item
     if ir_key == "rule_ir":
+        survivors: List[Any] = []
         for operation in operations:
             if isinstance(operation, dict) and "value" in operation:
                 _coerce_rule_ir_value(operation["value"])
                 _coerce_rule_ir_operation(operation)
+            if isinstance(operation, dict) and _keep_rule_operation(operation):
+                survivors.append(operation)
+        operations[:] = survivors
+        item["operations"] = survivors
     elif ir_key == "scene_ir":
         for gap in _coerce_scene_ir_operations(operations):
             item["unresolved"].append({
@@ -2041,26 +2093,6 @@ def _normalize_patch_entry(
     elif ir_key == "input_ir":
         _coerce_input_ir_operations(operations)
     _ensure_unresolved_cleared(operations, ir_key)
-    # #region agent log
-    try:
-        with open("debug-f3e2af.log", "a", encoding="utf-8") as _f:
-            _f.write(json.dumps({
-                "sessionId": "f3e2af", "runId": "pre-fix", "hypothesisId": "H1,H4",
-                "location": "compiler.py:_normalize_patch_entry:exit",
-                "message": "patch envelope evidence after normalize",
-                "data": {
-                    "ir_key": ir_key,
-                    "envelope_evidence_len": len(item.get("evidence") or []) if isinstance(item.get("evidence"), list) else None,
-                    "envelope_ids": [
-                        e.get("evidence_id") for e in (item.get("evidence") or [])
-                        if isinstance(e, Mapping)
-                    ][:6],
-                },
-                "timestamp": int(time.time() * 1000),
-            }) + "\n")
-    except Exception:
-        pass
-    # #endregion
     return item
 
 
@@ -2912,8 +2944,46 @@ def _coerce_scene_ir_operations(operations: List[Any]) -> List[str]:
                 _replace_scene_references(operation.get("value"), component_replacements)
 
     dropped = _filter_scene_bindings(operations, node_ids)
+    _coerce_scene_dependency_operations(operations)
 
     return dropped
+
+
+def _coerce_scene_dependency_operations(operations: List[Any]) -> None:
+    """Keep Scene /dependencies as an object; drop invalid whole-field writes.
+
+    The compiler pins rule/asset hashes after apply. LLM often replaces
+    ``/dependencies`` with a list or scalar, which fails Scene IR validation.
+    """
+
+    survivors: List[Any] = []
+    for operation in operations:
+        if not isinstance(operation, dict):
+            survivors.append(operation)
+            continue
+        path = str(operation.get("path") or "")
+        if path != "/dependencies":
+            survivors.append(operation)
+            continue
+        op_name = operation.get("op")
+        if op_name == "remove":
+            continue
+        value = operation.get("value")
+        if not isinstance(value, dict):
+            continue
+        deps = value
+        if not isinstance(deps.get("extensions"), list):
+            deps["extensions"] = []
+        for pin_key in ("rule_ir", "asset_ir"):
+            pin = deps.get(pin_key)
+            if isinstance(pin, Mapping):
+                pin = dict(pin)
+                if pin.get("content_hash") in (None, ""):
+                    pin["content_hash"] = "$pin:{0}".format(pin_key)
+                deps[pin_key] = pin
+        operation["value"] = deps
+        survivors.append(operation)
+    operations[:] = survivors
 
 
 def _filter_scene_bindings(operations: List[Any], node_ids: set) -> List[str]:
@@ -3608,10 +3678,89 @@ def _operation_items(value: Any) -> List[Dict[str, Any]]:
     return []
 
 
+_RULE_EFFECT_OPS = frozenset({
+    "state.set", "state.increment", "grid.set", "grid.toggle", "entity.spawn",
+    "entity.despawn", "entity.set", "event.emit", "event.schedule",
+    "event.cancel", "phase.set", "random.sample", "random.draw", "foreach", "assert",
+})
+_EFFECT_OP_ALIASES = {
+    "update_direction": "state.set",
+    "set_direction": "state.set",
+    "set_direction_3d": "state.set",
+    "change_direction": "state.set",
+}
+
+
+def _is_effect_target_expression(value: Any) -> bool:
+    return isinstance(value, Mapping) and isinstance(value.get("op"), str) and bool(value.get("op"))
+
+
+def _coerce_effect_object(value: Dict[str, Any]) -> None:
+    """Normalize a single Rule IR effect; strip action-shaped fields LLMs invent."""
+
+    # Rule Runtime requires state.set target as an expression. Keep a valid one
+    # before stripping action-shaped noise (actions also have a "target" field).
+    preserved_target = value.get("target") if _is_effect_target_expression(value.get("target")) else None
+    variable = value.get("variable")
+    if not (isinstance(variable, str) and variable.strip()):
+        variable = None
+
+    raw_op = str(value.get("op") or "").strip()
+    mapped = _EFFECT_OP_ALIASES.get(raw_op) or _EFFECT_OP_ALIASES.get(raw_op.lower())
+    if mapped:
+        value["op"] = mapped
+        if variable is None:
+            variable = "rule:state.snake_dir"
+        if "value" not in value:
+            value["value"] = {
+                "op": "literal",
+                "value": value.get("axis") or value.get("direction") or 0,
+            }
+    for noise in (
+        "name", "parameters", "effects", "precondition", "preconditions",
+        "encoding", "id", "actor", "verb", "timing", "executable",
+        "allow_z_layer", "axis", "direction",
+    ):
+        value.pop(noise, None)
+    # Drop action-shaped targets such as {"kind": "source_defined"}.
+    if "target" in value and not _is_effect_target_expression(value.get("target")):
+        value.pop("target", None)
+    if preserved_target is not None:
+        value["target"] = dict(preserved_target)
+        value.pop("variable", None)
+    elif isinstance(variable, str) and variable.strip():
+        value["target"] = {"op": "literal", "value": variable.strip()}
+        value.pop("variable", None)
+    elif isinstance(value.get("target"), str) and value["target"].strip():
+        value["target"] = {"op": "literal", "value": value["target"].strip()}
+        value.pop("variable", None)
+    else:
+        value.pop("variable", None)
+
+
+def _keep_rule_operation(operation: Mapping[str, Any]) -> bool:
+    path = str(operation.get("path") or "")
+    parts = [part for part in path.split("/") if part]
+    if len(parts) >= 3 and parts[0] == "actions" and parts[2] == "effects":
+        value = operation.get("value")
+        if isinstance(value, Mapping):
+            op_name = str(value.get("op") or "")
+            if op_name not in _RULE_EFFECT_OPS:
+                return False
+    return True
+
+
 def _coerce_rule_ir_operation(operation: Dict[str, Any]) -> None:
-    segments = [part for part in str(operation.get("path") or "").split("/") if part]
+    path = str(operation.get("path") or "")
+    segments = [part for part in path.split("/") if part]
     if not segments:
         return
+    if segments[0] == "space":
+        _rewrite_legacy_space_operation(operation, segments)
+        path = str(operation.get("path") or "")
+        segments = [part for part in path.split("/") if part]
+        if not segments:
+            return
     value = operation.get("value")
     root = segments[0]
     if root == "state":
@@ -3634,6 +3783,11 @@ def _coerce_rule_ir_operation(operation: Dict[str, Any]) -> None:
         _coerce_flow_object(value)
         return
     if root == "actions":
+        # /actions/N/effects/... patches an effect object, not a whole action.
+        if len(segments) >= 3 and segments[2] == "effects":
+            if isinstance(value, dict):
+                _coerce_effect_object(value)
+            return
         for item in _operation_items(value):
             _coerce_action_object(item)
         return
@@ -3661,6 +3815,61 @@ def _coerce_rule_ir_operation(operation: Dict[str, Any]) -> None:
             ]
         elif isinstance(value, dict):
             _coerce_rule_parameter(value, 0)
+
+
+def _rewrite_legacy_space_operation(operation: Dict[str, Any], segments: List[str]) -> None:
+    """Map LLM ``/space/...`` fantasy paths onto Rule IR ``/topologies`` axes."""
+
+    before = {
+        "op": operation.get("op"),
+        "path": operation.get("path"),
+        "value_type": type(operation.get("value")).__name__,
+    }
+    # /space/dimensions/z → add Z axis on first topology
+    if segments == ["space", "dimensions", "z"]:
+        extent = operation.get("value")
+        if isinstance(extent, bool) or not isinstance(extent, int):
+            try:
+                extent = int(extent)  # type: ignore[arg-type]
+            except (TypeError, ValueError):
+                extent = 3
+        operation["op"] = "add"
+        operation["path"] = "/topologies/0/axes/-"
+        operation["value"] = {
+            "name": "z",
+            "extent": max(1, int(extent)),
+            "boundary": "bounded",
+        }
+    elif segments == ["space", "dimensions"] and isinstance(operation.get("value"), Mapping):
+        dims = dict(operation["value"])
+        axes = []
+        for name in ("x", "y", "z"):
+            if name not in dims:
+                continue
+            try:
+                extent = int(dims[name])
+            except (TypeError, ValueError):
+                continue
+            axes.append({"name": name, "extent": max(1, extent), "boundary": "bounded"})
+        if axes:
+            operation["op"] = "replace"
+            operation["path"] = "/topologies/0/axes"
+            operation["value"] = axes
+    elif segments == ["space", "coordinate_anchor"]:
+        anchor = operation.get("value")
+        if isinstance(anchor, str) and anchor.strip():
+            operation["op"] = "replace"
+            operation["path"] = "/topologies/0/anchor"
+            operation["value"] = "cell" if anchor.strip().lower() in {"center", "origin"} else anchor.strip()
+        else:
+            operation["op"] = "test"
+            operation["path"] = "/topologies/0/id"
+            operation["value"] = operation.get("value")
+    elif segments[:2] == ["space", "adjacency"]:
+        # Drop unsupported adjacency fantasy ops by no-op test on topology id.
+        operation["op"] = "test"
+        operation["path"] = "/topologies/0/kind"
+        operation["value"] = "rect_grid"
 
 
 def _coerce_rule_parameter(item: Any, index: int) -> Dict[str, Any]:
@@ -3983,6 +4192,10 @@ def _coerce_action_object(value: Dict[str, Any]) -> None:
         ]
     if not isinstance(value.get("effects"), list):
         value["effects"] = []
+    else:
+        for effect in value["effects"]:
+            if isinstance(effect, dict):
+                _coerce_effect_object(effect)
     preconditions = value.get("preconditions")
     if isinstance(preconditions, list):
         value.pop("preconditions", None)
@@ -4086,26 +4299,99 @@ def _coerce_unresolved_list(value: Any) -> List[Any]:
     return coerced
 
 
-def _coerce_evidence_list(value: Any) -> List[Any]:
+def _evidence_pack_catalog(evidence_pack: Optional[Mapping[str, Any]]) -> Dict[str, Mapping[str, Any]]:
+    if not isinstance(evidence_pack, Mapping):
+        return {}
+    catalog = evidence_pack.get("evidence_by_id")
+    if isinstance(catalog, Mapping):
+        return {
+            str(key): value for key, value in catalog.items()
+            if isinstance(value, Mapping)
+        }
+    result: Dict[str, Mapping[str, Any]] = {}
+    for item in evidence_pack.get("evidence") or []:
+        if isinstance(item, Mapping) and item.get("evidence_id"):
+            result[str(item["evidence_id"])] = item
+    return result
+
+
+def _citation_from_pack(
+    evidence_id: str,
+    catalog: Mapping[str, Mapping[str, Any]],
+    *,
+    fallback_index: int,
+) -> Dict[str, Any]:
+    known = catalog.get(evidence_id)
+    if isinstance(known, Mapping):
+        entry = {
+            "evidence_id": evidence_id,
+            "path": str(known.get("path") or known.get("file") or ""),
+            "kind": str(known.get("kind") or "static"),
+            "supports": known.get("supports") or "/",
+            "confidence": known.get("confidence", 0.5),
+        }
+        if known.get("file_sha256"):
+            entry["file_sha256"] = known["file_sha256"]
+        if isinstance(known.get("span"), Mapping):
+            entry["span"] = dict(known["span"])
+        return entry
+    return {
+        "evidence_id": evidence_id or "ev:llm.{0}".format(fallback_index),
+        "path": "source",
+        "kind": "static",
+        "supports": "/",
+        "confidence": 0.5,
+    }
+
+
+def _coerce_evidence_list(
+    value: Any,
+    *,
+    evidence_pack: Optional[Mapping[str, Any]] = None,
+) -> List[Any]:
+    # LLMs often emit a single evidence object or bare pack ids (ev:…).
+    if isinstance(value, Mapping):
+        value = [dict(value)]
     if not isinstance(value, list):
         return []
+    catalog = _evidence_pack_catalog(evidence_pack)
     coerced: List[Any] = []
     for index, item in enumerate(value):
         if isinstance(item, str) and item.strip():
-            coerced.append({
-                "evidence_id": "ev:llm.{0}".format(index),
-                "path": item,
-                "kind": "static",
-                "supports": "/",
-                "confidence": 0.5,
-            })
+            token = item.strip()
+            if token.startswith("ev:"):
+                coerced.append(_citation_from_pack(token, catalog, fallback_index=index))
+            else:
+                # Relative source path string — keep as path, mint a local id.
+                coerced.append({
+                    "evidence_id": "ev:llm.{0}".format(index),
+                    "path": token,
+                    "kind": "static",
+                    "supports": "/",
+                    "confidence": 0.5,
+                })
             continue
         if isinstance(item, Mapping):
             entry = dict(item)
-            if not entry.get("evidence_id"):
+            evidence_id = str(entry.get("evidence_id") or "").strip()
+            path = str(entry.get("path") or entry.get("file") or "").strip()
+            # Common LLM mistake: put pack id in path, or omit id.
+            if path.startswith("ev:") and (not evidence_id or evidence_id.startswith("ev:llm.")):
+                evidence_id = path
+                path = ""
+            if evidence_id.startswith("ev:") and evidence_id in catalog:
+                packed = _citation_from_pack(evidence_id, catalog, fallback_index=index)
+                # Prefer pack path/hash; keep LLM supports if present.
+                if entry.get("supports"):
+                    packed["supports"] = entry["supports"]
+                coerced.append(packed)
+                continue
+            if not evidence_id:
                 entry["evidence_id"] = "ev:llm.{0}".format(index)
-            if not entry.get("path"):
+            if not path:
                 entry["path"] = str(entry.get("file") or "source")
+            else:
+                entry["path"] = path
             if not entry.get("kind"):
                 entry["kind"] = "static"
             if "confidence" not in entry:

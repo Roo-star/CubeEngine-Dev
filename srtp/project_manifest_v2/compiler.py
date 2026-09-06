@@ -153,6 +153,14 @@ class ProjectSession:
                 action, expected_revision=self.rule_runtime.state.revision,
             ))
         scene_delta = self.scene_projection.synchronize(self.rule_runtime.state)
+        # #region agent log
+        try:
+            import json as _json, time as _time
+            with open(r"C:\repo\CubeEngine-Dev\debug-3d9e82.log", "a", encoding="utf-8") as _f:
+                _f.write(_json.dumps({"sessionId": "3d9e82", "runId": "pre-fix", "hypothesisId": "H4", "location": "compiler.py:ProjectSession.handle_input", "message": "handle_input dispatch", "data": {"device": getattr(event, "device", None), "control": getattr(event, "control", None), "phase": getattr(event, "phase", None), "focus": focus, "intent_count": len(dispatch.intents), "intent_ids": [getattr(i, "intent_id", None) for i in dispatch.intents], "action_ids": [getattr(getattr(i, "rule_action_request", None), "action_id", None) for i in dispatch.intents], "rejection_codes": [r.code for r in rejections], "rejection_msgs": [r.message for r in rejections], "transition_count": len(transitions), "consumed": dispatch.consumed}, "timestamp": int(_time.time() * 1000)}) + "\n")
+        except Exception:
+            pass
+        # #endregion
         return ProjectInputResult(
             dispatch, tuple(transitions), tuple(rejections), scene_delta,
         )

@@ -35,6 +35,8 @@ Schema traps (compiler coerces many; still emit correct shapes when possible):
 - Input: fill /contexts+/intents+/bindings together; clear only filled unresolved paths (never wipe the whole list)
 - Input intents with target.kind=rule_action require rule_ir pin — compiler auto-pins from applied Rule IR if omitted
 - Dependencies content_hash may be "$pin:rule_ir" / "$pin:asset_ir"
+- Scene/Input /dependencies must be an OBJECT {rule_ir,asset_ir,extensions:[]} — never an array/string; omit the field if unsure (compiler pins)
+- Patch evidence must be an ARRAY of objects (one is enough), never a bare evidence object
 - Patch unresolved items are objects {path,reason,required,owner}, never bare strings
 - flow.phases are objects [{id:"rule:phase.input",order:100},…] never string names; timing uses {phase:"rule:phase.input"} not trigger aliases
 - Actions require precondition expression (e.g. {"op":"literal","value":true}) — not preconditions:[]
@@ -46,6 +48,11 @@ Keep source facts immutable. Mark ambiguity in unresolved/conflicts. No invented
 Required: intent_version,intent_id,conversation_id,turn_id,project_id,source_manifest_hash,
 original_text,language,operation,scope,preserve,changes,constraints,resolved_references,
 assumptions,conflicts,unresolved,requires_confirmation,status,target_base.
+Hard field shapes:
+- operation: one of create|transform|revise|explain|compare|undo|resolve (use transform for 3D/Z lifts)
+- scope: non-empty ARRAY of rule|scene|asset|input — never a bare string like "topology"
+- target_base: null unless pinning an existing target object (never "main" or other strings)
+- preserve/changes/constraints/…: arrays (strings or objects inside are fine)
 """
 
 SYSTEM_SPATIAL_LIFT = """Output one JSON object {plan, proposal}.
@@ -53,6 +60,9 @@ plan = spatial-lift-plan/1.0; proposal = llm-proposal/2.0 with compact target pa
 Preserve source X/Y legality. Make Z consequences explicit (topology axis, neighborhood, input).
 Target actions must keep non-empty effects; wire input intents to rule_action.
 Keep proposal small — truncation fails the job. Never invent evidence.
+patches MUST be an OBJECT keyed by rule_ir|scene_ir|asset_ir|input_ir (never a top-level array).
+Each IR value is an array of patch envelopes: {document_id,base_revision,base_content_hash,operations,evidence,assumptions,unresolved}.
+Use operations (RFC6902), not changes/target_document aliases when possible.
 """
 
 
@@ -85,9 +95,9 @@ def source_to_ir_messages(
         },
         "patch_roots": {
             "rule_ir": ["/topologies", "/actions", "/state", "/flow", "/participants", "/types", "/events", "/systems", "/goals", "/outcomes", "/unresolved"],
-            "scene_ir": ["/nodes", "/prefabs", "/bindings", "/dependencies", "/unresolved"],
+            "scene_ir": ["/nodes", "/prefabs", "/bindings", "/unresolved"],
             "asset_ir": ["/assets", "/derivations", "/roles", "/unresolved"],
-            "input_ir": ["/contexts", "/intents", "/bindings", "/dependencies", "/unresolved"],
+            "input_ir": ["/contexts", "/intents", "/bindings", "/unresolved"],
         },
         "minimal_shapes": {
             "topology": {"id": "rule:topology.board", "kind": "rect_grid", "anchor": "cell", "axes": [{"name": "x", "extent": 10, "boundary": "bounded"}, {"name": "y", "extent": 10, "boundary": "bounded"}], "neighborhoods": []},
@@ -122,7 +132,8 @@ def source_to_ir_messages(
         else:
             user_payload["instruction"] = (
                 "Previous proposal failed validation. Return a repaired compact llm-proposal/2.0 "
-                "fixing every repair_diagnostics item. Keep action effects non-empty when evidence supports play."
+                "fixing every repair_diagnostics item. Keep non-empty patches for all four IRs — "
+                "never clear patches to []. Keep action effects non-empty when evidence supports play."
             )
     else:
         user_payload["instruction"] = (

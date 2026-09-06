@@ -90,6 +90,107 @@ def validate_llm_proposal(
     return errors
 
 
+_DESIGN_INTENT_OPERATIONS = (
+    "create", "transform", "revise", "explain", "compare", "undo", "resolve",
+)
+_DESIGN_INTENT_OPERATION_ALIASES = {
+    "extend": "transform",
+    "extend_topology": "transform",
+    "extendtopology": "transform",
+    "spatial_lift": "transform",
+    "spatiallift": "transform",
+    "lift": "transform",
+    "3d": "transform",
+    "add": "transform",
+    "modify": "revise",
+    "update": "revise",
+    "change": "revise",
+    "fix": "revise",
+    "new": "create",
+}
+_DESIGN_INTENT_SCOPE_ALIASES = {
+    "rule": "rule",
+    "rules": "rule",
+    "rule_ir": "rule",
+    "topology": "rule",
+    "mechanics": "rule",
+    "scene": "scene",
+    "scene_ir": "scene",
+    "presentation": "scene",
+    "asset": "asset",
+    "assets": "asset",
+    "asset_ir": "asset",
+    "input": "input",
+    "inputs": "input",
+    "input_ir": "input",
+    "controls": "input",
+}
+_DEFAULT_DESIGN_INTENT_SCOPE = ["rule", "scene", "asset", "input"]
+
+
+def normalize_design_intent(value: Mapping[str, Any]) -> Dict[str, Any]:
+    """Coerce common LLM Design Intent shape mistakes before validation."""
+
+    intent = dict(value)
+    operation = intent.get("operation")
+    if isinstance(operation, str):
+        token = operation.strip().lower().replace("-", "_").replace(" ", "_")
+        compact = token.replace("_", "")
+        mapped = _DESIGN_INTENT_OPERATION_ALIASES.get(token) or _DESIGN_INTENT_OPERATION_ALIASES.get(compact)
+        if mapped:
+            intent["operation"] = mapped
+        elif token in _DESIGN_INTENT_OPERATIONS:
+            intent["operation"] = token
+        else:
+            intent["operation"] = "transform"
+
+    scope = intent.get("scope")
+    if isinstance(scope, str) and scope.strip():
+        scope = [part.strip() for part in scope.replace(";", ",").split(",") if part.strip()]
+    if not isinstance(scope, list):
+        scope = []
+    normalized_scope: List[str] = []
+    for item in scope:
+        if not isinstance(item, str):
+            continue
+        token = item.strip().lower().replace("-", "_")
+        mapped = _DESIGN_INTENT_SCOPE_ALIASES.get(token) or _DESIGN_INTENT_SCOPE_ALIASES.get(
+            token.replace("_", ""),
+        )
+        if mapped and mapped not in normalized_scope:
+            normalized_scope.append(mapped)
+    intent["scope"] = normalized_scope or list(_DEFAULT_DESIGN_INTENT_SCOPE)
+
+    for key in (
+        "preserve", "changes", "constraints", "resolved_references",
+        "assumptions", "conflicts", "unresolved",
+    ):
+        current = intent.get(key)
+        if current is None:
+            intent[key] = []
+        elif not isinstance(current, list):
+            intent[key] = [current]
+
+    confirmation = intent.get("requires_confirmation")
+    if isinstance(confirmation, str):
+        lowered = confirmation.strip().lower()
+        if lowered in {"true", "yes", "1"}:
+            intent["requires_confirmation"] = True
+        elif lowered in {"false", "no", "0"}:
+            intent["requires_confirmation"] = False
+    elif not isinstance(confirmation, bool):
+        intent["requires_confirmation"] = True
+
+    target_base = intent.get("target_base")
+    if target_base is not None and not isinstance(target_base, Mapping):
+        # LLMs often emit "main" / "" / []; Spatial Lift starts from Source pins.
+        intent["target_base"] = None
+
+    if not _nonempty_str(intent.get("status")):
+        intent["status"] = "proposed"
+    return intent
+
+
 def validate_design_intent(value: Mapping[str, Any]) -> List[str]:
     errors: List[str] = []
     if not isinstance(value, Mapping):
@@ -100,9 +201,7 @@ def validate_design_intent(value: Mapping[str, Any]) -> List[str]:
                 "source_manifest_hash", "original_text", "language", "operation", "status"):
         if not _nonempty_str(value.get(key)):
             errors.append("{0} is required".format(key))
-    if value.get("operation") not in (
-        "create", "transform", "revise", "explain", "compare", "undo", "resolve",
-    ):
+    if value.get("operation") not in _DESIGN_INTENT_OPERATIONS:
         errors.append("operation must be a known Design Intent operation")
     if not isinstance(value.get("scope"), list) or not value.get("scope"):
         errors.append("scope must be a non-empty array")

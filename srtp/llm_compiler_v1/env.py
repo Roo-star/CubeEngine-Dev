@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+import ast
 import json
 import os
 from pathlib import Path
-from typing import List, Optional
+from typing import Any, List, Optional
 
 _PROVIDER_ENV = {
     "gemini": "GEMINI_API_KEY",
@@ -23,8 +24,20 @@ def default_dotenv_path() -> Path:
     return repo_root() / ".env"
 
 
+def _clean_api_key(value: Any) -> str:
+    text = str(value).strip()
+    if len(text) >= 2 and text[0] == text[-1] and text[0] in {"'", '"'}:
+        text = text[1:-1].strip()
+    return text
+
+
 def parse_api_keys(value: Optional[str]) -> List[str]:
-    """Parse a single key, comma-separated keys, or a JSON array string."""
+    """Parse a single key, comma-separated keys, JSON array, or Python list literal.
+
+    ``.env`` must use JSON double quotes for arrays. Python-style
+    ``['k1', 'k2']`` is accepted as a compatibility fallback so FreeFlow does
+    not send mangled keys (leading ``['``) to the provider.
+    """
 
     if value is None:
         return []
@@ -32,15 +45,26 @@ def parse_api_keys(value: Optional[str]) -> List[str]:
     if not text:
         return []
     if text.startswith("[") and text.endswith("]"):
+        parsed: Any = None
         try:
             parsed = json.loads(text)
         except json.JSONDecodeError:
-            parsed = None
+            try:
+                parsed = ast.literal_eval(text)
+            except (SyntaxError, ValueError):
+                parsed = None
         if isinstance(parsed, list):
-            return [str(item).strip() for item in parsed if str(item).strip()]
+            return [
+                key for key in (_clean_api_key(item) for item in parsed)
+                if key
+            ]
     if "," in text:
-        return [part.strip() for part in text.split(",") if part.strip()]
-    return [text]
+        return [
+            key for key in (_clean_api_key(part) for part in text.split(","))
+            if key
+        ]
+    key = _clean_api_key(text)
+    return [key] if key else []
 
 
 def provider_api_keys(provider: str) -> List[str]:
