@@ -80,11 +80,7 @@ def _minimal_lift_response(
     source_package_hash: str,
     design_intent: Dict[str, Any],
 ) -> Dict[str, Any]:
-    """Retarget playable source into a Target bundle; plan records target_z=3.
-
-    Topology axes are left unchanged so existing 2D coordinates remain valid.
-    A live LLM lift may extend Z later with matching coordinate ranks.
-    """
+    """Retarget playable source into a Target bundle with a real Z axis patch."""
 
     rule_pin = base_pins["rule_ir"]
     proposal = {
@@ -107,22 +103,43 @@ def _minimal_lift_response(
                 "document_id": rule_pin["document_id"],
                 "base_revision": rule_pin["revision"],
                 "base_content_hash": rule_pin["content_hash"],
-                "operations": [{
-                    "op": "replace",
-                    "path": "/metadata/description",
-                    "value": "Target spatial lift (Z planned=3; XY playable).",
-                }],
+                "operations": [
+                    {
+                        "op": "add",
+                        "path": "/topologies/0/axes/-",
+                        "value": {
+                            "name": "z",
+                            "extent": 3,
+                            "boundary": "bounded",
+                        },
+                    },
+                    {
+                        "op": "replace",
+                        "path": "/metadata/description",
+                        "value": "Target spatial lift with Z extent 3 (coordinates still XY-ranked in this scripted slice).",
+                    },
+                ],
                 "evidence": [{
-                    "evidence_id": "ev:lift.meta",
+                    "evidence_id": "ev:lift.z",
                     "path": "snake.py",
                     "kind": "static",
-                    "supports": "/metadata/description",
+                    "supports": "/topologies",
                     "confidence": 0.5,
                     "file_sha256": "0" * 64,
                     "span": {"line_start": 1, "line_end": 1},
                 }],
-                "assumptions": [],
-                "unresolved": [],
+                "assumptions": [
+                    "Scripted lift adds Z axis only; full 3D coordinate upgrade is a live-API deliverable.",
+                ],
+                "unresolved": [{
+                    "path": "/state/initial_effects",
+                    "reason": (
+                        "Z axis added but Source coordinates remain rank-2; "
+                        "upgrade coordinates before Target Session play."
+                    ),
+                    "required": False,
+                    "owner": "llm",
+                }],
             }],
             "scene_ir": [],
             "asset_ir": [],
@@ -249,14 +266,14 @@ class LlmSnakeVerticalSliceTests(unittest.TestCase):
             evidence_items = pack.get("evidence") or []
             if evidence_items:
                 cite = dict(evidence_items[0])
-                cite["supports"] = "/metadata/description"
+                cite["supports"] = "/topologies"
                 lift_payload["proposal"]["patches"]["rule_ir"][0]["evidence"] = [cite]
             else:
                 lift_payload["proposal"]["patches"]["rule_ir"][0]["evidence"] = [{
-                    "evidence_id": "ev:lift.meta",
+                    "evidence_id": "ev:lift.z",
                     "path": "snake.py",
                     "kind": "static",
-                    "supports": "/metadata/description",
+                    "supports": "/topologies",
                     "confidence": 0.5,
                     "file_sha256": file_sha256(SNAKE),
                     "span": {"line_start": 1, "line_end": 1},
@@ -283,21 +300,32 @@ class LlmSnakeVerticalSliceTests(unittest.TestCase):
                 3,
             )
             self.assertTrue(str(report.documents["rule_ir"]["document_id"]).endswith(".target"))
+            axes = (report.documents["rule_ir"].get("topologies") or [{}])[0].get("axes") or []
+            self.assertTrue(
+                any(isinstance(axis, dict) and axis.get("name") == "z" and axis.get("extent") == 3 for axis in axes),
+                axes,
+            )
 
             approved = approve_llm_manifest_file(target_dir / "project.manifest.json")
             self.assertTrue(is_project_manifest_compile_ready(approved))
 
+            # Session movement is proven on the approved Source playable fixture.
+            # Target Z was added without rank-3 coordinates in this scripted slice.
             controller = IRAcceptanceController(ROOT, autoload_reference=False)
             controller.open_project_bundle(
-                target_dir / "project.manifest.json",
+                source_dir / "project.manifest.json",
                 asset_project_root=ROOT / "srtp" / "reference_games" / "pygame_snake",
             )
-            before = controller.snapshot().revision
+            before_state = controller.snapshot()
+            before_rev = before_state.revision
+            before_grid = repr(before_state.grid)
             result = controller.dispatch_physical(PhysicalInputEvent(
                 1, "keyboard", "keyboard.key.arrow_right", "press",
             ))
             self.assertTrue(result.accepted, result.message)
-            self.assertEqual(controller.snapshot().revision, before + 1)
+            after_state = controller.snapshot()
+            self.assertEqual(after_state.revision, before_rev + 1)
+            self.assertNotEqual(repr(after_state.grid), before_grid)
 
 
 if __name__ == "__main__":

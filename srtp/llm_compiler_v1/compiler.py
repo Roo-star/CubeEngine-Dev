@@ -120,6 +120,207 @@ def _empty_reconstruction_diagnostic(counts: Mapping[str, int], required: int) -
     )
 
 
+def _uniform_action_field(rule: Mapping[str, Any], field: str) -> Any:
+    """Return a field only when every existing action agrees. Never invent."""
+
+    seen: List[Any] = []
+    for action in rule.get("actions") or []:
+        if not isinstance(action, Mapping):
+            continue
+        value = action.get(field)
+        if value in (None, "", {}):
+            continue
+        seen.append(value)
+    if not seen:
+        return None
+    first = seen[0]
+    if all(item == first for item in seen[1:]):
+        return deepcopy(first)
+    return None
+
+
+def _inherit_action_shells(
+    proposal: Dict[str, Any],
+    documents: Mapping[str, Mapping[str, Any]],
+) -> None:
+    """Copy a uniform sibling actor/timing onto added actions that omitted them.
+
+    Schema requires both. This does not invent effects or a new participant.
+    """
+
+    rule = documents.get("rule_ir") if isinstance(documents, Mapping) else None
+    if not isinstance(rule, Mapping):
+        return
+    actor = _uniform_action_field(rule, "actor")
+    timing = _uniform_action_field(rule, "timing")
+    if actor is None and timing is None:
+        return
+    patches = proposal.get("patches")
+    if not isinstance(patches, Mapping):
+        return
+    for entry in patches.get("rule_ir") or []:
+        if not isinstance(entry, Mapping):
+            continue
+        for operation in entry.get("operations") or []:
+            if not isinstance(operation, dict):
+                continue
+            if not str(operation.get("path") or "").startswith("/actions"):
+                continue
+            for item in _operation_items(operation.get("value")):
+                missing_actor = item.get("actor") in (None, "", {})
+                timing_value = item.get("timing")
+                missing_timing = (
+                    timing_value in (None, "", {})
+                    or (isinstance(timing_value, Mapping) and not timing_value.get("phase"))
+                )
+                if missing_actor and actor is not None:
+                    item["actor"] = deepcopy(actor)
+                if missing_timing and timing is not None:
+                    item["timing"] = deepcopy(timing)
+
+
+def _uniform_intent_shell(input_doc: Mapping[str, Any]) -> Optional[Dict[str, Any]]:
+    """Return the shared intent shape when every existing intent agrees."""
+
+    shells: List[Dict[str, Any]] = []
+    for item in input_doc.get("intents") or []:
+        if not isinstance(item, Mapping):
+            continue
+        target = item.get("target")
+        if not isinstance(target, Mapping) or target.get("kind") != "rule_action":
+            continue
+        shells.append({
+            "value_type": item.get("value_type"),
+            "required": item.get("required"),
+            "parameters": deepcopy(target.get("parameters")) if isinstance(target.get("parameters"), Mapping) else {},
+        })
+    if not shells:
+        return None
+    first = shells[0]
+    if any(item["value_type"] != first["value_type"] or item["required"] != first["required"] for item in shells[1:]):
+        return None
+    return first
+
+
+def _ensure_binding_intents(
+    proposal: Dict[str, Any],
+    documents: Mapping[str, Mapping[str, Any]],
+) -> None:
+    """Add intents that a new binding already names, using its rule_action field.
+
+    Does not invent a control or a rule action. Missing rule_action stays unresolved.
+    """
+
+    input_doc = documents.get("input_ir") if isinstance(documents, Mapping) else None
+    if not isinstance(input_doc, Mapping):
+        return
+    shell = _uniform_intent_shell(input_doc)
+    if shell is None:
+        return
+    known = {
+        str(item.get("id"))
+        for item in (input_doc.get("intents") or [])
+        if isinstance(item, Mapping) and item.get("id")
+    }
+    patches = proposal.get("patches")
+    if not isinstance(patches, Mapping):
+        return
+    for entry in patches.get("input_ir") or []:
+        if not isinstance(entry, dict):
+            continue
+        operations = entry.get("operations")
+        if not isinstance(operations, list):
+            continue
+        for operation in operations:
+            if not isinstance(operation, dict):
+                continue
+            if not str(operation.get("path") or "").startswith("/intents"):
+                continue
+            for item in _operation_items(operation.get("value")):
+                if item.get("id"):
+                    known.add(str(item.get("id")))
+        additions: List[Dict[str, Any]] = []
+        for operation in operations:
+            if not isinstance(operation, dict):
+                continue
+            if not str(operation.get("path") or "").startswith("/bindings"):
+                continue
+            for item in _operation_items(operation.get("value")):
+                intent_id = item.get("intent")
+                if not isinstance(intent_id, str) or not intent_id.strip() or intent_id in known:
+                    continue
+                action = item.get("rule_action")
+                if not isinstance(action, str) or not action.strip():
+                    continue
+                if not action.startswith("rule:"):
+                    action = "rule:action.{0}".format(action.rsplit(".", 1)[-1])
+                name = item.get("name") if isinstance(item.get("name"), str) and item.get("name") else intent_id.rsplit(".", 1)[-1].replace("_", " ").title()
+                additions.append({
+                    "op": "add",
+                    "path": "/intents/-",
+                    "value": {
+                        "id": intent_id,
+                        "name": name,
+                        "value_type": shell["value_type"],
+                        "required": shell["required"] if isinstance(shell["required"], bool) else True,
+                        "target": {
+                            "kind": "rule_action",
+                            "action": action,
+                            "parameters": deepcopy(shell["parameters"]),
+                        },
+                    },
+                })
+                known.add(intent_id)
+        if additions:
+            operations[:0] = additions
+
+
+def _empty_effect_repair_diagnostics(documents: Mapping[str, Mapping[str, Any]]) -> List[str]:
+    """Required gaps where a new action has no effects array to execute."""
+
+    rule = documents.get("rule_ir") if isinstance(documents, Mapping) else None
+    if not isinstance(rule, Mapping):
+        return []
+    messages: List[str] = []
+    for item in rule.get("unresolved") or []:
+        if not isinstance(item, Mapping) or item.get("required") is not True:
+            continue
+        path = str(item.get("path") or "")
+        if path.startswith("/actions/") and path.endswith("/effects"):
+            messages.append("{0}: {1}".format(path, item.get("reason") or "effects are empty"))
+    return messages
+
+
+def _playability_repair_diagnostics(documents: Mapping[str, Mapping[str, Any]]) -> List[str]:
+    """Return repair strings when a declared board still cannot be played.
+
+    Only ``/actions`` and ``/state/initial_effects`` — those appear after a
+    topology_site grid exists but nothing paints or mutates it. Broader gaps
+    (missing bindings, no site var at all) stay on the compile_ready gate so
+    metadata-only applies are not turned into extra LLM retries.
+    """
+
+    rule = documents.get("rule_ir") or {}
+    site_vars = [
+        str(item.get("id"))
+        for item in ((rule.get("state") or {}).get("variables") or [])
+        if isinstance(item, Mapping) and item.get("scope") == "topology_site" and item.get("id")
+    ]
+    if not site_vars:
+        return []
+    messages: List[str] = []
+    for item in rule.get("unresolved") or []:
+        if not isinstance(item, Mapping) or item.get("required") is not True:
+            continue
+        if item.get("owner") != "llm":
+            continue
+        path = str(item.get("path") or "")
+        reason = str(item.get("reason") or "")
+        if path in {"/actions", "/state/initial_effects"}:
+            messages.append("{0}: {1}".format(path, reason))
+    return messages
+
+
 @dataclass
 class CompileReport:
     ok: bool
@@ -349,6 +550,8 @@ class SourceToIRCompiler:
                 source_root=Path(package.root),
                 evidence_pack=evidence,
             )
+            _inherit_action_shells(proposal, bootstrap.documents)
+            _ensure_binding_intents(proposal, bootstrap.documents)
             applied = validate_and_apply_proposal(
                 proposal,
                 bootstrap.documents,
@@ -367,7 +570,7 @@ class SourceToIRCompiler:
                     diagnostics = [_empty_reconstruction_diagnostic(counts, required)]
                     repair = diagnostics
                     continue
-                documents = _pin_cross_ir_dependencies(
+                candidate_docs = _pin_cross_ir_dependencies(
                     applied.documents,
                     source_hints={
                         "adapter_id": getattr(
@@ -376,8 +579,18 @@ class SourceToIRCompiler:
                         "title": getattr(package, "title", None),
                     },
                 )
+                playability = _playability_repair_diagnostics(candidate_docs)
+                # Repair while attempts remain; on the final attempt seal with gaps
+                # so compile_ready=false is visible instead of looping forever.
+                if playability and attempts <= self.max_repairs:
+                    repair = playability
+                    diagnostics = list(playability)
+                    best_proposal = deepcopy(applied.proposal)
+                    best_diagnostics = list(playability)
+                    continue
+                documents = candidate_docs
                 proposal = applied.proposal
-                diagnostics = []
+                diagnostics = list(playability) if playability else []
                 ok = True
                 break
             diagnostics = list(applied.diagnostics)
@@ -412,6 +625,10 @@ class SourceToIRCompiler:
             items = document.get("unresolved") if isinstance(document, Mapping) else None
             if isinstance(items, list):
                 unresolved.extend(items)
+        if isinstance(manifest, Mapping):
+            for item in manifest.get("unresolved") or []:
+                if isinstance(item, Mapping) and item.get("owner") == "designer":
+                    unresolved.append(dict(item))
 
         return CompileReport(
             ok=ok,
@@ -512,6 +729,12 @@ class SourceToIRCompiler:
         provider = intent_result.provider or provider
         model = intent_result.model or model
         design_intent = dict(intent_result.parsed)
+        for key in ("intent_id", "conversation_id", "turn_id"):
+            current = design_intent.get(key)
+            if isinstance(current, (int, float)) and not isinstance(current, bool):
+                continue
+            if not isinstance(current, str) or not current.strip():
+                design_intent.pop(key, None)
         design_intent.setdefault("intent_version", DESIGN_INTENT_VERSION)
         design_intent.setdefault("intent_id", "intent:{0}".format(uuid.uuid4().hex[:12]))
         design_intent.setdefault("conversation_id", "conversation:{0}".format(uuid.uuid4().hex[:12]))
@@ -582,158 +805,191 @@ class SourceToIRCompiler:
             for key, doc in target_docs.items()
         }
 
-        try:
-            lift_result = self.client.chat_json(
-                spatial_lift_messages(
-                    evidence_pack=evidence,
-                    design_intent=design_intent,
-                    base_documents=base_pins,
-                    source_manifest_hash=source_hash,
+        repair_lift: Optional[List[str]] = None
+        lift_attempt = 0
+        report: Optional[CompileReport] = None
+        while lift_attempt <= self.max_repairs:
+            lift_attempt += 1
+            diagnostics = []
+            try:
+                lift_result = self.client.chat_json(
+                    spatial_lift_messages(
+                        evidence_pack=evidence,
+                        design_intent=design_intent,
+                        base_documents=base_pins,
+                        source_manifest_hash=source_hash,
+                        source_ir_excerpt=_source_ir_excerpt_for_lift(source_report.documents),
+                        repair_diagnostics=repair_lift,
+                    )
                 )
+            except LLMClientError as error:
+                report = deepcopy_report(source_report)
+                report.ok = False
+                report.stage = "spatial_lift"
+                report.design_intent = design_intent
+                report.diagnostics = [str(error)]
+                report.provider = provider
+                report.model = model
+                if out_dir is not None:
+                    report.output_dir = str(write_compile_artifacts(out_dir, report))
+                return report
+
+            provider = lift_result.provider or provider
+            model = lift_result.model or model
+            payload = dict(lift_result.parsed)
+            plan = payload.get("plan") if isinstance(payload.get("plan"), Mapping) else payload
+            proposal = payload.get("proposal") if isinstance(payload.get("proposal"), Mapping) else None
+            if proposal is None and _looks_like_proposal_version(payload.get("proposal_version")):
+                proposal = payload
+                plan = payload.get("spatial_lift_plan") or payload.get("plan") or {}
+
+            plan = dict(plan) if isinstance(plan, Mapping) else {}
+            plan.setdefault("plan_version", SPATIAL_LIFT_VERSION)
+            _coerce_plan_version(plan)
+            plan.setdefault("plan_id", "lift:{0}".format(uuid.uuid4().hex[:12]))
+            plan.setdefault("source_manifest_hash", source_hash)
+            plan.setdefault("design_intent_id", design_intent.get("intent_id"))
+            for key in (
+                "topology", "source_xy_policy", "target_z", "neighborhood", "movement",
+                "outcomes", "presentation", "input", "z_equals_one_tests", "z_gt_one_tests",
+                "alternatives", "unresolved",
+            ):
+                plan.setdefault(key, [] if key.endswith("tests") or key in ("alternatives", "unresolved") else {})
+
+            plan_errors = validate_spatial_lift_plan(plan)
+            diagnostics.extend(plan_errors)
+
+            if not isinstance(proposal, Mapping):
+                diagnostics.append("spatial lift response missing llm-proposal/2.0 proposal object")
+                if lift_attempt <= self.max_repairs:
+                    repair_lift = list(diagnostics)
+                    continue
+                report = deepcopy_report(source_report)
+                report.ok = False
+                report.stage = "spatial_lift"
+                report.design_intent = design_intent
+                report.spatial_lift_plan = plan
+                report.diagnostics = diagnostics
+                report.provider = provider
+                report.model = model
+                if out_dir is not None:
+                    report.output_dir = str(write_compile_artifacts(out_dir, report))
+                return report
+
+            proposal = dict(proposal)
+            proposal.setdefault("proposal_version", LLM_PROPOSAL_VERSION)
+            _coerce_proposal_version(proposal)
+            proposal.setdefault("proposal_id", "proposal:{0}".format(uuid.uuid4().hex[:12]))
+            proposal.setdefault("job_id", source_report.job_id)
+            proposal.setdefault("stage", "spatial_lift")
+            proposal.setdefault("source_package_hash", source_report.source_package_hash)
+            proposal["design_intent"] = design_intent
+            proposal.setdefault("base_documents", {
+                key: {
+                    "document_id": pin["document_id"],
+                    "revision": pin["revision"],
+                    "content_hash": pin["content_hash"],
+                }
+                for key, pin in base_pins.items()
+            })
+            for key in (
+                "claims", "tests", "extension_proposals", "spatial_lift_options",
+                "assumptions", "unresolved", "clarification_questions",
+            ):
+                proposal.setdefault(key, [])
+            proposal.setdefault("patches", {
+                "rule_ir": [], "scene_ir": [], "asset_ir": [], "input_ir": [],
+            })
+            _normalize_proposal_patches(
+                proposal, base_pins,
+                source_root=Path(package.root),
+                evidence_pack=evidence,
             )
-        except LLMClientError as error:
-            report = deepcopy_report(source_report)
-            report.ok = False
-            report.stage = "spatial_lift"
-            report.design_intent = design_intent
-            report.diagnostics = [str(error)]
-            report.provider = provider
-            report.model = model
-            if out_dir is not None:
-                report.output_dir = str(write_compile_artifacts(out_dir, report))
-            return report
+            proposal["unresolved"] = _coerce_unresolved_list(proposal.get("unresolved"))
+            _inherit_action_shells(proposal, target_docs)
+            _ensure_binding_intents(proposal, target_docs)
 
-        provider = lift_result.provider or provider
-        model = lift_result.model or model
-        payload = dict(lift_result.parsed)
-        plan = payload.get("plan") if isinstance(payload.get("plan"), Mapping) else payload
-        proposal = payload.get("proposal") if isinstance(payload.get("proposal"), Mapping) else None
-        if proposal is None and _looks_like_proposal_version(payload.get("proposal_version")):
-            proposal = payload
-            plan = payload.get("spatial_lift_plan") or payload.get("plan") or {}
+            contract_errors = validate_llm_proposal(proposal, require_design_intent=True)
+            if contract_errors:
+                diagnostics.extend(contract_errors)
 
-        plan = dict(plan) if isinstance(plan, Mapping) else {}
-        plan.setdefault("plan_version", SPATIAL_LIFT_VERSION)
-        _coerce_plan_version(plan)
-        plan.setdefault("plan_id", "lift:{0}".format(uuid.uuid4().hex[:12]))
-        plan.setdefault("source_manifest_hash", source_hash)
-        plan.setdefault("design_intent_id", design_intent.get("intent_id"))
-        for key in (
-            "topology", "source_xy_policy", "target_z", "neighborhood", "movement",
-            "outcomes", "presentation", "input", "z_equals_one_tests", "z_gt_one_tests",
-            "alternatives", "unresolved",
-        ):
-            plan.setdefault(key, [] if key.endswith("tests") or key in ("alternatives", "unresolved") else {})
+            applied = validate_and_apply_proposal(
+                proposal,
+                target_docs,
+                require_design_intent=True,
+                source_package_hash=source_report.source_package_hash,
+                evidence_pack=evidence,
+                source_root=Path(package.root),
+            )
+            if not applied.ok:
+                diagnostics.extend(applied.diagnostics)
 
-        plan_errors = validate_spatial_lift_plan(plan)
-        diagnostics.extend(plan_errors)
+            ok = not diagnostics and applied.ok
+            documents = applied.documents if applied.ok else target_docs
+            if ok:
+                documents = _pin_cross_ir_dependencies(documents)
+            effect_gaps = _empty_effect_repair_diagnostics(documents) if ok else []
+            if effect_gaps and lift_attempt <= self.max_repairs:
+                repair_lift = effect_gaps
+                continue
+            if effect_gaps:
+                diagnostics = list(effect_gaps)
+                ok = False
+            target_project_id = source_report.project_id.replace(".source", ".target")
+            if not target_project_id.endswith(".target"):
+                target_project_id = source_report.project_id + ".target"
 
-        if not isinstance(proposal, Mapping):
-            diagnostics.append("spatial lift response missing llm-proposal/2.0 proposal object")
-            report = deepcopy_report(source_report)
-            report.ok = False
-            report.stage = "spatial_lift"
-            report.design_intent = design_intent
-            report.spatial_lift_plan = plan
-            report.diagnostics = diagnostics
-            report.provider = provider
-            report.model = model
-            if out_dir is not None:
-                report.output_dir = str(write_compile_artifacts(out_dir, report))
-            return report
+            manifest = None
+            compile_ready = False
+            if ok:
+                manifest = self._build_manifest(
+                    project_id=target_project_id,
+                    title="{0} (target)".format(package.title),
+                    documents=documents,
+                    proposal=proposal,
+                    variant="target",
+                    source_manifest={
+                        "project_id": source_manifest["project_id"],
+                        "content_hash": source_hash,
+                    },
+                )
+                compile_ready = is_project_manifest_compile_ready(manifest)
+            unresolved_summary: List[Any] = []
+            if isinstance(manifest, Mapping):
+                unresolved_summary.extend([
+                    dict(item) for item in (manifest.get("unresolved") or [])
+                    if isinstance(item, Mapping) and item.get("required") is True
+                ])
+            if not unresolved_summary and effect_gaps:
+                unresolved_summary = [{"path": item.split(":", 1)[0], "reason": item, "required": True, "owner": "llm"} for item in effect_gaps]
 
-        proposal = dict(proposal)
-        proposal.setdefault("proposal_version", LLM_PROPOSAL_VERSION)
-        _coerce_proposal_version(proposal)
-        proposal.setdefault("proposal_id", "proposal:{0}".format(uuid.uuid4().hex[:12]))
-        proposal.setdefault("job_id", source_report.job_id)
-        proposal.setdefault("stage", "spatial_lift")
-        proposal.setdefault("source_package_hash", source_report.source_package_hash)
-        proposal["design_intent"] = design_intent
-        proposal.setdefault("base_documents", {
-            key: {
-                "document_id": pin["document_id"],
-                "revision": pin["revision"],
-                "content_hash": pin["content_hash"],
-            }
-            for key, pin in base_pins.items()
-        })
-        for key in (
-            "claims", "tests", "extension_proposals", "spatial_lift_options",
-            "assumptions", "unresolved", "clarification_questions",
-        ):
-            proposal.setdefault(key, [])
-        proposal.setdefault("patches", {
-            "rule_ir": [], "scene_ir": [], "asset_ir": [], "input_ir": [],
-        })
-        _normalize_proposal_patches(
-            proposal, base_pins,
-            source_root=Path(package.root),
-            evidence_pack=evidence,
-        )
-        proposal["unresolved"] = _coerce_unresolved_list(proposal.get("unresolved"))
-
-        contract_errors = validate_llm_proposal(proposal, require_design_intent=True)
-        if contract_errors:
-            diagnostics.extend(contract_errors)
-
-        applied = validate_and_apply_proposal(
-            proposal,
-            target_docs,
-            require_design_intent=True,
-            source_package_hash=source_report.source_package_hash,
-            evidence_pack=evidence,
-            source_root=Path(package.root),
-        )
-        if not applied.ok:
-            diagnostics.extend(applied.diagnostics)
-
-        ok = not diagnostics and applied.ok
-        documents = applied.documents if applied.ok else target_docs
-        if ok:
-            documents = _pin_cross_ir_dependencies(documents)
-        target_project_id = source_report.project_id.replace(".source", ".target")
-        if not target_project_id.endswith(".target"):
-            target_project_id = source_report.project_id + ".target"
-
-        manifest = None
-        compile_ready = False
-        if ok:
-            manifest = self._build_manifest(
+            report = CompileReport(
+                ok=ok,
+                stage="spatial_lift",
+                job_id=source_report.job_id,
                 project_id=target_project_id,
-                title="{0} (target)".format(package.title),
-                documents=documents,
+                source_package_hash=source_report.source_package_hash,
                 proposal=proposal,
-                variant="target",
-                source_manifest={
-                    "project_id": source_manifest["project_id"],
-                    "content_hash": source_hash,
-                },
+                design_intent=design_intent,
+                spatial_lift_plan=plan,
+                documents=documents,
+                manifest=manifest,
+                diagnostics=diagnostics,
+                provider=provider,
+                model=model,
+                attempts=source_report.attempts + lift_attempt,
+                compile_ready=compile_ready,
+                unresolved_summary=unresolved_summary[:50],
             )
-            compile_ready = is_project_manifest_compile_ready(manifest)
+            break
 
-        report = CompileReport(
-            ok=ok,
-            stage="spatial_lift",
-            job_id=source_report.job_id,
-            project_id=target_project_id,
-            source_package_hash=source_report.source_package_hash,
-            proposal=proposal,
-            design_intent=design_intent,
-            spatial_lift_plan=plan,
-            documents=documents,
-            manifest=manifest,
-            diagnostics=diagnostics,
-            provider=provider,
-            model=model,
-            attempts=source_report.attempts + 1,
-            compile_ready=compile_ready,
-            unresolved_summary=list(proposal.get("unresolved") or [])[:50],
-        )
+        if report is None:
+            report = deepcopy_report(source_report)
+            report.ok = False
+            report.stage = "spatial_lift"
+            report.diagnostics = diagnostics or ["spatial lift produced no report"]
         if out_dir is not None:
             target_root = Path(out_dir)
-            # Only the source *manifest* is required beside the target for pins.
-            # Avoid copying full source IR (same document_id would confuse attach).
             write_compile_artifacts(target_root, report)
             _write_source_manifest_sidecar(target_root, source_report.manifest)
             report.output_dir = str(target_root)
@@ -1170,27 +1426,179 @@ def _wire_scene_state_bindings(
 
 
 def _validate_playable_session(documents: Mapping[str, Mapping[str, Any]]) -> None:
-    """Record playability gaps without failing the compile seal path."""
+    """Promote missing board-play semantics to required unresolved (no silent success)."""
 
-    rule = documents.get("rule_ir") or {}
+    rule = documents.get("rule_ir")
+    if not isinstance(rule, dict):
+        return
     input_doc = documents.get("input_ir") or {}
-    has_effects = not _rule_actions_lack_effects(rule)
-    has_site = any(
-        isinstance(item, Mapping) and item.get("scope") == "topology_site"
+
+    unresolved = [
+        dict(item) for item in (rule.get("unresolved") or [])
+        if isinstance(item, Mapping)
+    ]
+    existing = {str(item.get("path")) for item in unresolved}
+
+    def require(path: str, reason: str) -> None:
+        if path in existing:
+            return
+        unresolved.append({
+            "path": path,
+            "reason": reason,
+            "required": True,
+            "owner": "llm",
+        })
+        existing.add(path)
+
+    site_vars = [
+        str(item.get("id"))
         for item in ((rule.get("state") or {}).get("variables") or [])
-    )
-    enabled_rule_bindings = 0
+        if isinstance(item, Mapping) and item.get("scope") == "topology_site" and item.get("id")
+    ]
+    if not site_vars:
+        require(
+            "/state/variables",
+            "No topology_site grid state; Project Session cannot show a board.",
+        )
+
+    mutates_grid = False
+    for action in rule.get("actions") or []:
+        if not isinstance(action, Mapping):
+            continue
+        for effect in action.get("effects") or []:
+            if not isinstance(effect, Mapping):
+                continue
+            if effect.get("op") == "grid.set" and effect.get("state") in site_vars:
+                mutates_grid = True
+                break
+            if effect.get("op") == "foreach":
+                for nested in effect.get("effects") or []:
+                    if (
+                        isinstance(nested, Mapping)
+                        and nested.get("op") == "grid.set"
+                        and nested.get("state") in site_vars
+                    ):
+                        mutates_grid = True
+                        break
+        if mutates_grid:
+            break
+    if site_vars and not mutates_grid:
+        require(
+            "/actions",
+            "No action mutates a topology_site grid (grid.set); Session keys will not move pieces.",
+        )
+
+    initial = (rule.get("state") or {}).get("initial_effects") or []
+    has_placement = False
+    for effect in initial:
+        if not isinstance(effect, Mapping):
+            continue
+        if effect.get("op") == "grid.set" and effect.get("state") in site_vars:
+            value = effect.get("value")
+            if isinstance(value, Mapping) and value.get("op") == "literal":
+                if value.get("value") not in (None, 0, False):
+                    has_placement = True
+                    break
+            else:
+                has_placement = True
+                break
+    if site_vars and not has_placement:
+        require(
+            "/state/initial_effects",
+            "No non-empty initial board placement; Session grid starts blank.",
+        )
+
     intent_targets = {
         str(item.get("id")): item.get("target")
         for item in (input_doc.get("intents") or [])
         if isinstance(item, Mapping) and item.get("id")
     }
+    enabled_rule_bindings = 0
+    distinct_actions = set()
     for binding in input_doc.get("bindings") or []:
         if not isinstance(binding, Mapping) or binding.get("enabled") is False:
             continue
         target = intent_targets.get(str(binding.get("intent")))
         if isinstance(target, Mapping) and target.get("kind") == "rule_action":
             enabled_rule_bindings += 1
+            action_id = target.get("action")
+            if action_id:
+                distinct_actions.add(str(action_id))
+    if enabled_rule_bindings == 0:
+        require(
+            "/bindings",
+            "No enabled Input binding targets a rule_action; Session keys will not resolve.",
+        )
+    elif len(distinct_actions) == 1 and enabled_rule_bindings > 1:
+        require(
+            "/intents",
+            "Multiple directional bindings share one rule_action without distinct parameters; "
+            "movement will not differ by key.",
+        )
+
+    rule["unresolved"] = unresolved
+
+
+def _source_ir_excerpt_for_lift(documents: Mapping[str, Mapping[str, Any]]) -> Dict[str, Any]:
+    """Compact Source IR slices so Spatial Lift can patch real rules, not only hashes."""
+
+    rule = documents.get("rule_ir") or {}
+    input_doc = documents.get("input_ir") or {}
+    topologies = []
+    for item in rule.get("topologies") or []:
+        if not isinstance(item, Mapping):
+            continue
+        topologies.append({
+            "id": item.get("id"),
+            "kind": item.get("kind"),
+            "axes": item.get("axes"),
+        })
+    actions = []
+    for item in rule.get("actions") or []:
+        if not isinstance(item, Mapping):
+            continue
+        actions.append({
+            "id": item.get("id"),
+            "name": item.get("name"),
+            "effect_ops": [
+                effect.get("op")
+                for effect in (item.get("effects") or [])
+                if isinstance(effect, Mapping)
+            ][:8],
+        })
+    variables = []
+    for item in ((rule.get("state") or {}).get("variables") or []):
+        if not isinstance(item, Mapping):
+            continue
+        variables.append({
+            "id": item.get("id"),
+            "scope": item.get("scope"),
+            "topology": item.get("topology"),
+        })
+    bindings = []
+    for item in input_doc.get("bindings") or []:
+        if not isinstance(item, Mapping):
+            continue
+        trigger = item.get("trigger") if isinstance(item.get("trigger"), Mapping) else {}
+        bindings.append({
+            "id": item.get("id"),
+            "intent": item.get("intent"),
+            "control": trigger.get("control"),
+        })
+    return {
+        "rule_ir": {
+            "document_id": rule.get("document_id"),
+            "topologies": topologies[:4],
+            "variables": variables[:24],
+            "actions": actions[:24],
+            "initial_effects_count": len((rule.get("state") or {}).get("initial_effects") or []),
+        },
+        "input_ir": {
+            "document_id": input_doc.get("document_id"),
+            "bindings": bindings[:24],
+            "intent_count": len(input_doc.get("intents") or []),
+        },
+    }
 
 
 def _coerce_actor_expression(value: Any) -> Any:
@@ -1238,6 +1646,77 @@ def _coerce_participant_object(value: Dict[str, Any]) -> None:
             value["kind"] = "human"
 
 
+def _topology_rank(rule: Mapping[str, Any]) -> int:
+    topologies = rule.get("topologies") or []
+    if not isinstance(topologies, list) or not topologies:
+        return 0
+    first = topologies[0]
+    if not isinstance(first, Mapping):
+        return 0
+    axes = first.get("axes")
+    if not isinstance(axes, list):
+        return 0
+    return len(axes)
+
+
+def _pad_literal_coordinate(value: Any, rank: int) -> Any:
+    if rank <= 0 or not isinstance(value, Mapping) or value.get("op") != "literal":
+        return value
+    coords = value.get("value")
+    if not isinstance(coords, list) or not coords:
+        return value
+    if any(isinstance(item, bool) or not isinstance(item, int) for item in coords):
+        return value
+    if len(coords) >= rank:
+        return value
+    padded = list(coords) + [0] * (rank - len(coords))
+    result = dict(value)
+    result["value"] = padded
+    return result
+
+
+def _upgrade_coordinates_to_topology_rank(rule: Mapping[str, Any]) -> Dict[str, Any]:
+    """Pad literal coordinates when topology grew (e.g. XY→XYZ). Never invent new sites."""
+
+    document = dict(rule)
+    rank = _topology_rank(document)
+    if rank <= 0:
+        return document
+
+    def upgrade_effect(effect: Any) -> Any:
+        if not isinstance(effect, dict):
+            return effect
+        result = dict(effect)
+        if "coordinate" in result:
+            result["coordinate"] = _pad_literal_coordinate(result.get("coordinate"), rank)
+        if result.get("op") == "foreach" and isinstance(result.get("effects"), list):
+            result["effects"] = [upgrade_effect(item) for item in result["effects"]]
+        return result
+
+    state = document.get("state")
+    if isinstance(state, dict):
+        state = dict(state)
+        initial = state.get("initial_effects")
+        if isinstance(initial, list):
+            state["initial_effects"] = [upgrade_effect(item) for item in initial]
+        document["state"] = state
+
+    actions = document.get("actions")
+    if isinstance(actions, list):
+        upgraded_actions = []
+        for action in actions:
+            if not isinstance(action, dict):
+                upgraded_actions.append(action)
+                continue
+            item = dict(action)
+            if isinstance(item.get("effects"), list):
+                item["effects"] = [upgrade_effect(effect) for effect in item["effects"]]
+            upgraded_actions.append(item)
+        document["actions"] = upgraded_actions
+
+    return document
+
+
 def _ensure_rule_session_contract(rule: Mapping[str, Any]) -> Dict[str, Any]:
     """Normalize participant/actor ID shapes; do not invent missing participants."""
 
@@ -1273,6 +1752,7 @@ def _ensure_rule_session_contract(rule: Mapping[str, Any]) -> Dict[str, Any]:
                 })
                 ids.add(pid)
     document = _ensure_topology_site_grid(document)
+    document = _upgrade_coordinates_to_topology_rank(document)
     return document
 
 
@@ -1672,6 +2152,7 @@ def _write_source_manifest_sidecar(target_root: Path, source_manifest: Mapping[s
 _ACCEPTED_PROPOSAL_VERSION_ALIASES = frozenset({
     "2.0",
     "llm-proposal/2.0",
+    "cubeengine.llm-proposal/2.0",
     "cubeengine.srtp/llm-proposal/2.0",
     LLM_PROPOSAL_VERSION,
 })
@@ -1884,12 +2365,22 @@ def _is_rfc6902_operation(item: Any) -> bool:
 def _wrap_ops_as_patch_entry(
     ops: Sequence[Mapping[str, Any]], pin: Mapping[str, Any],
 ) -> Dict[str, Any]:
+    evidence: List[Any] = []
+    operations: List[Dict[str, Any]] = []
+    for item in ops:
+        entry = dict(item)
+        raw_evidence = entry.pop("evidence", None)
+        if isinstance(raw_evidence, list):
+            evidence.extend(cite for cite in raw_evidence if isinstance(cite, Mapping))
+        elif isinstance(raw_evidence, Mapping):
+            evidence.append(dict(raw_evidence))
+        operations.append(entry)
     return {
         "document_id": pin.get("document_id"),
         "base_revision": pin.get("revision", 0),
         "base_content_hash": pin.get("content_hash", ""),
-        "operations": [dict(item) for item in ops],
-        "evidence": [],
+        "operations": operations,
+        "evidence": evidence,
         "assumptions": [],
         "unresolved": [],
     }
@@ -1925,6 +2416,41 @@ def _lift_legacy_ir_patch_fields(
         patches[ir_key] = [_wrap_ops_as_patch_entry(legacy, pin)]
 
 
+def _patch_slot_from_item(item: Mapping[str, Any]) -> str:
+    """Map an LLM patch envelope onto rule/scene/asset/input."""
+
+    aliases = {
+        "rule_ir": "rule_ir", "scene_ir": "scene_ir",
+        "asset_ir": "asset_ir", "input_ir": "input_ir",
+        "rule": "rule_ir", "scene": "scene_ir",
+        "asset": "asset_ir", "input": "input_ir",
+    }
+    slot_raw = str(
+        item.get("ir")
+        or item.get("kind")
+        or item.get("target")
+        or item.get("target_document")
+        or item.get("target_document_id")
+        or item.get("ir_target")
+        or item.get("target_doc")
+        or item.get("document_id")
+        or "",
+    ).strip()
+    slot = aliases.get(slot_raw, slot_raw if slot_raw in _IR_KEYS else "")
+    if slot:
+        return slot
+    lowered = slot_raw.lower()
+    if lowered.startswith("rule:") or ".rule" in lowered:
+        return "rule_ir"
+    if lowered.startswith("scene:"):
+        return "scene_ir"
+    if lowered.startswith("asset:"):
+        return "asset_ir"
+    if lowered.startswith("input:"):
+        return "input_ir"
+    return ""
+
+
 def _coerce_patches_object(value: Any) -> Dict[str, List[Any]]:
     buckets: Dict[str, List[Any]] = {key: [] for key in _IR_KEYS}
     if isinstance(value, Mapping):
@@ -1934,49 +2460,26 @@ def _coerce_patches_object(value: Any) -> Dict[str, List[Any]]:
         return buckets
     if not isinstance(value, list):
         return buckets
-    target_aliases = {
-        "rule_ir": "rule_ir", "scene_ir": "scene_ir",
-        "asset_ir": "asset_ir", "input_ir": "input_ir",
-        "rule": "rule_ir", "scene": "scene_ir",
-        "asset": "asset_ir", "input": "input_ir",
-    }
     for item in value:
         if not isinstance(item, Mapping):
             continue
-        slot_raw = str(
-            item.get("ir")
-            or item.get("kind")
-            or item.get("target")
-            or item.get("target_document")
-            or item.get("ir_target")
-            or item.get("target_doc")
-            or "",
-        ).strip()
-        slot = target_aliases.get(slot_raw, slot_raw if slot_raw in buckets else "")
-        if slot in buckets:
+        slot = _patch_slot_from_item(item)
+        if slot:
             buckets[slot].append(dict(item))
-            continue
-        document_id = str(item.get("document_id") or "")
-        if document_id.startswith("rule:"):
-            buckets["rule_ir"].append(dict(item))
-        elif document_id.startswith("scene:"):
-            buckets["scene_ir"].append(dict(item))
-        elif document_id.startswith("asset:"):
-            buckets["asset_ir"].append(dict(item))
-        elif document_id.startswith("input:"):
-            buckets["input_ir"].append(dict(item))
     return buckets
 
 
 def _promote_changes_to_operations(item: Dict[str, Any]) -> None:
-    """Accept LLM alias ``changes`` for RFC 6902 ``operations``."""
+    """Accept LLM aliases ``changes`` / ``ops`` for RFC 6902 ``operations``."""
 
     operations = item.get("operations")
     if isinstance(operations, list) and operations:
         return
-    changes = item.get("changes")
-    if isinstance(changes, list) and changes:
-        item["operations"] = [dict(op) if isinstance(op, Mapping) else op for op in changes]
+    for alias in ("changes", "ops"):
+        changes = item.get(alias)
+        if isinstance(changes, list) and changes:
+            item["operations"] = [dict(op) if isinstance(op, Mapping) else op for op in changes]
+            return
 
 
 def _normalize_proposal_patches(
@@ -2002,7 +2505,6 @@ def _normalize_proposal_patches(
 
 
     patches = proposal["patches"]
-    shared_evidence: List[Any] = []
     for key in _IR_KEYS:
         entries = patches.get(key)
         if not isinstance(entries, list):
@@ -2024,13 +2526,8 @@ def _normalize_proposal_patches(
                 item, ir_key=key, source_root=source_root, pin=pin,
                 evidence_pack=evidence_pack,
             )
-            evidence_list = entry.get("evidence") if isinstance(entry, dict) else None
-            if isinstance(evidence_list, list) and evidence_list:
-                if not shared_evidence:
-                    shared_evidence = [dict(x) if isinstance(x, Mapping) else x for x in evidence_list]
-            elif isinstance(entry, dict) and shared_evidence:
-                # LLM often omits scene/asset evidence while citing the same source on rule/input.
-                entry["evidence"] = [dict(x) if isinstance(x, Mapping) else x for x in shared_evidence]
+            # Do not copy evidence across IR patches. Missing per-patch evidence
+            # must fail validation rather than borrowing unrelated citations.
             normalized.append(entry)
         patches[key] = normalized
 
@@ -2066,14 +2563,38 @@ def _normalize_patch_entry(
         return item
     if ir_key == "rule_ir":
         survivors: List[Any] = []
+        if not isinstance(item.get("unresolved"), list):
+            item["unresolved"] = []
         for operation in operations:
-            if isinstance(operation, dict) and "value" in operation:
-                _coerce_rule_ir_value(operation["value"])
+            if isinstance(operation, dict):
+                if "value" in operation:
+                    _coerce_rule_ir_value(operation["value"])
                 _coerce_rule_ir_operation(operation)
+            reject = operation.get("_llm_reject") if isinstance(operation, dict) else None
+            if isinstance(reject, Mapping):
+                item["unresolved"].append({
+                    "path": str(reject.get("path") or "/"),
+                    "reason": str(reject.get("reason") or "Unsupported rule patch."),
+                    "required": bool(reject.get("required", True)),
+                    "owner": str(reject.get("owner") or "llm"),
+                })
+                continue
             if isinstance(operation, dict) and _keep_rule_operation(operation):
                 survivors.append(operation)
+        if not survivors and item["unresolved"]:
+            # Keep the envelope contractually non-empty while recording rejects.
+            pin_id = ""
+            if isinstance(pin, Mapping):
+                pin_id = str(pin.get("document_id") or "")
+            survivors.append({
+                "op": "test",
+                "path": "/document_id",
+                "value": pin_id or "rule:rejected",
+            })
+        # Keep a single authoritative list: mutate in place so later
+        # _ensure_unresolved_cleared appends land on item["operations"].
         operations[:] = survivors
-        item["operations"] = survivors
+        item["operations"] = operations
     elif ir_key == "scene_ir":
         for gap in _coerce_scene_ir_operations(operations):
             item["unresolved"].append({
@@ -2092,7 +2613,7 @@ def _normalize_patch_entry(
             })
     elif ir_key == "input_ir":
         _coerce_input_ir_operations(operations)
-    _ensure_unresolved_cleared(operations, ir_key)
+    _ensure_unresolved_cleared(item["operations"], ir_key)
     return item
 
 
@@ -3698,6 +4219,24 @@ def _is_effect_target_expression(value: Any) -> bool:
 def _coerce_effect_object(value: Dict[str, Any]) -> None:
     """Normalize a single Rule IR effect; strip action-shaped fields LLMs invent."""
 
+    raw_op = str(value.get("op") or "").strip()
+    # foreach.effects is a required nested effect list — never strip it as noise.
+    if raw_op == "foreach":
+        nested = value.get("effects")
+        if isinstance(nested, list):
+            for item in nested:
+                if isinstance(item, dict):
+                    _coerce_effect_object(item)
+        for noise in (
+            "name", "parameters", "precondition", "preconditions",
+            "encoding", "id", "actor", "verb", "timing", "executable",
+            "allow_z_layer", "axis", "direction", "variable",
+        ):
+            value.pop(noise, None)
+        if "target" in value and not _is_effect_target_expression(value.get("target")):
+            value.pop("target", None)
+        return
+
     # Rule Runtime requires state.set target as an expression. Keep a valid one
     # before stripping action-shaped noise (actions also have a "target" field).
     preserved_target = value.get("target") if _is_effect_target_expression(value.get("target")) else None
@@ -3705,12 +4244,20 @@ def _coerce_effect_object(value: Dict[str, Any]) -> None:
     if not (isinstance(variable, str) and variable.strip()):
         variable = None
 
-    raw_op = str(value.get("op") or "").strip()
     mapped = _EFFECT_OP_ALIASES.get(raw_op) or _EFFECT_OP_ALIASES.get(raw_op.lower())
     if mapped:
         value["op"] = mapped
-        if variable is None:
-            variable = "rule:state.snake_dir"
+        # Do not invent game-specific state ids (e.g. snake_dir). Alias without an
+        # explicit target/variable is incomplete and must be dropped upstream.
+        if (
+            variable is None
+            and preserved_target is None
+            and not (isinstance(value.get("target"), str) and str(value.get("target")).strip())
+        ):
+            value["_llm_reject_effect"] = (
+                "Effect alias {0!r} requires an explicit variable or target expression.".format(raw_op)
+            )
+            return
         if "value" not in value:
             value["value"] = {
                 "op": "literal",
@@ -3738,14 +4285,31 @@ def _coerce_effect_object(value: Dict[str, Any]) -> None:
         value.pop("variable", None)
 
 
+def _effect_path_is_expression_field(parts: Sequence[str]) -> bool:
+    """True for /actions/N/effects/M/<field...> (not the effect object itself)."""
+
+    if len(parts) < 5:
+        return False
+    if parts[0] != "actions" or parts[2] != "effects":
+        return False
+    # /actions/0/effects/0/value  or  /actions/0/effects/0/target/op
+    index = parts[3]
+    return index.isdigit() or index == "-"
+
+
 def _keep_rule_operation(operation: Mapping[str, Any]) -> bool:
+    if operation.get("_llm_reject"):
+        return False
     path = str(operation.get("path") or "")
     parts = [part for part in path.split("/") if part]
     if len(parts) >= 3 and parts[0] == "actions" and parts[2] == "effects":
+        # Expression / field patches under an effect index must be preserved.
+        if _effect_path_is_expression_field(parts):
+            return True
         value = operation.get("value")
         if isinstance(value, Mapping):
             op_name = str(value.get("op") or "")
-            if op_name not in _RULE_EFFECT_OPS:
+            if op_name and op_name not in _RULE_EFFECT_OPS:
                 return False
     return True
 
@@ -3759,7 +4323,7 @@ def _coerce_rule_ir_operation(operation: Dict[str, Any]) -> None:
         _rewrite_legacy_space_operation(operation, segments)
         path = str(operation.get("path") or "")
         segments = [part for part in path.split("/") if part]
-        if not segments:
+        if not segments or operation.get("_llm_reject"):
             return
     value = operation.get("value")
     root = segments[0]
@@ -3783,10 +4347,17 @@ def _coerce_rule_ir_operation(operation: Dict[str, Any]) -> None:
         _coerce_flow_object(value)
         return
     if root == "actions":
-        # /actions/N/effects/... patches an effect object, not a whole action.
+        # Full effect object: /actions/N/effects, /actions/N/effects/M, /actions/N/effects/-
+        # Expression fields: /actions/N/effects/M/value — leave untouched.
         if len(segments) >= 3 and segments[2] == "effects":
+            if _effect_path_is_expression_field(segments):
+                return
             if isinstance(value, dict):
                 _coerce_effect_object(value)
+            elif isinstance(value, list):
+                for item in value:
+                    if isinstance(item, dict):
+                        _coerce_effect_object(item)
             return
         for item in _operation_items(value):
             _coerce_action_object(item)
@@ -3818,21 +4389,31 @@ def _coerce_rule_ir_operation(operation: Dict[str, Any]) -> None:
 
 
 def _rewrite_legacy_space_operation(operation: Dict[str, Any], segments: List[str]) -> None:
-    """Map LLM ``/space/...`` fantasy paths onto Rule IR ``/topologies`` axes."""
+    """Map LLM ``/space/...`` fantasy paths onto Rule IR ``/topologies`` axes.
 
-    before = {
-        "op": operation.get("op"),
-        "path": operation.get("path"),
-        "value_type": type(operation.get("value")).__name__,
-    }
-    # /space/dimensions/z → add Z axis on first topology
+    Unknown or unsupported values must not be guessed (no default Z=3, no empty
+    adjacency tests). Reject with ``_llm_reject`` for required unresolved.
+    """
+
+    # /space/dimensions/z → add Z axis on first topology when extent is a known int
     if segments == ["space", "dimensions", "z"]:
         extent = operation.get("value")
         if isinstance(extent, bool) or not isinstance(extent, int):
             try:
+                if isinstance(extent, str) and extent.strip().lower() in {"unknown", "tbd", "?", ""}:
+                    raise ValueError("unknown")
                 extent = int(extent)  # type: ignore[arg-type]
             except (TypeError, ValueError):
-                extent = 3
+                operation["_llm_reject"] = {
+                    "path": "/topologies",
+                    "reason": (
+                        "Unknown or non-integer Z extent; require a confirmed Design Intent "
+                        "value before adding a Z axis."
+                    ),
+                    "required": True,
+                    "owner": "llm",
+                }
+                return
         operation["op"] = "add"
         operation["path"] = "/topologies/0/axes/-"
         operation["value"] = {
@@ -3846,10 +4427,25 @@ def _rewrite_legacy_space_operation(operation: Dict[str, Any], segments: List[st
         for name in ("x", "y", "z"):
             if name not in dims:
                 continue
+            raw = dims[name]
+            if isinstance(raw, str) and raw.strip().lower() in {"unknown", "tbd", "?"}:
+                operation["_llm_reject"] = {
+                    "path": "/topologies",
+                    "reason": "Unknown extent for axis {0}; do not invent dimensions.".format(name),
+                    "required": True,
+                    "owner": "llm",
+                }
+                return
             try:
-                extent = int(dims[name])
+                extent = int(raw)
             except (TypeError, ValueError):
-                continue
+                operation["_llm_reject"] = {
+                    "path": "/topologies",
+                    "reason": "Non-integer extent for axis {0}.".format(name),
+                    "required": True,
+                    "owner": "llm",
+                }
+                return
             axes.append({"name": name, "extent": max(1, extent), "boundary": "bounded"})
         if axes:
             operation["op"] = "replace"
@@ -3862,14 +4458,22 @@ def _rewrite_legacy_space_operation(operation: Dict[str, Any], segments: List[st
             operation["path"] = "/topologies/0/anchor"
             operation["value"] = "cell" if anchor.strip().lower() in {"center", "origin"} else anchor.strip()
         else:
-            operation["op"] = "test"
-            operation["path"] = "/topologies/0/id"
-            operation["value"] = operation.get("value")
+            operation["_llm_reject"] = {
+                "path": "/topologies",
+                "reason": "Unsupported or empty coordinate_anchor rewrite.",
+                "required": True,
+                "owner": "llm",
+            }
     elif segments[:2] == ["space", "adjacency"]:
-        # Drop unsupported adjacency fantasy ops by no-op test on topology id.
-        operation["op"] = "test"
-        operation["path"] = "/topologies/0/kind"
-        operation["value"] = "rect_grid"
+        operation["_llm_reject"] = {
+            "path": "/topologies",
+            "reason": (
+                "Unsupported adjacency rewrite ({0!r}); declare neighborhoods explicitly "
+                "or leave a required unresolved gap.".format(operation.get("value"))
+            ),
+            "required": True,
+            "owner": "llm",
+        }
 
 
 def _coerce_rule_parameter(item: Any, index: int) -> Dict[str, Any]:
@@ -4140,6 +4744,28 @@ def _coerce_flow_object(value: Dict[str, Any]) -> None:
         value["scheduler"] = {}
     scheduler = value["scheduler"]
 
+    clock_aliases = {
+        "tick": "fixed_tick",
+        "ticks": "fixed_tick",
+        "fixed": "fixed_tick",
+        "fixed_tick": "fixed_tick",
+        "tick_based": "fixed_tick",
+        "event": "event_queue",
+        "events": "event_queue",
+        "event_queue": "event_queue",
+        "queue": "event_queue",
+        "event_driven": "event_queue",
+        "turn": "turn",
+        "turn_based": "turn",
+        "real_time": "real_time",
+        "realtime": "real_time",
+    }
+    raw_clock = scheduler.get("clock")
+    if isinstance(raw_clock, str):
+        mapped_clock = clock_aliases.get(raw_clock.strip().lower().replace("-", "_").replace(" ", "_"))
+        if mapped_clock:
+            scheduler["clock"] = mapped_clock
+
     if tick_hz_hint is not None:
         scheduler["tick_hz"] = tick_hz_hint
 
@@ -4151,7 +4777,7 @@ def _coerce_flow_object(value: Dict[str, Any]) -> None:
         scheduler.setdefault("ordering", "phase_priority_id")
 
     # Derive tick_hz from explicit tick_ms only — never invent Hz without LLM hint.
-    if value.get("model") == "fixed_tick":
+    if value.get("model") == "fixed_tick" or scheduler.get("clock") == "fixed_tick":
         tick_hz = scheduler.get("tick_hz")
         if isinstance(tick_hz, (int, float)) and not isinstance(tick_hz, bool) and tick_hz > 0:
             scheduler["tick_hz"] = max(1, int(round(float(tick_hz))))
@@ -4193,9 +4819,16 @@ def _coerce_action_object(value: Dict[str, Any]) -> None:
     if not isinstance(value.get("effects"), list):
         value["effects"] = []
     else:
+        kept_effects: List[Any] = []
         for effect in value["effects"]:
             if isinstance(effect, dict):
                 _coerce_effect_object(effect)
+                if effect.get("_llm_reject_effect"):
+                    continue
+                kept_effects.append(effect)
+            else:
+                kept_effects.append(effect)
+        value["effects"] = kept_effects
     preconditions = value.get("preconditions")
     if isinstance(preconditions, list):
         value.pop("preconditions", None)

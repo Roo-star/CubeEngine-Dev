@@ -1173,6 +1173,15 @@ class FeedbackAdoptionP0Tests(unittest.TestCase):
         self.assertEqual(flow["scheduler"]["tick_hz"], 8)
         self.assertEqual(flow["scheduler"]["clock"], "fixed_tick")
 
+        flow_tick_clock = {
+            "model": "tick_based",
+            "phases": ["input", "update"],
+            "scheduler": {"clock": "tick", "tick_hz": 8.0},
+        }
+        _coerce_flow_object(flow_tick_clock)
+        self.assertEqual(flow_tick_clock["scheduler"]["clock"], "fixed_tick")
+        self.assertEqual(flow_tick_clock["scheduler"]["tick_hz"], 8)
+
         action = {
             "id": "rule:action.move_up",
             "name": "Move Up",
@@ -1334,6 +1343,378 @@ class FeedbackAdoptionP0Tests(unittest.TestCase):
             if isinstance(op, dict) and op.get("path") == "/unresolved"
         ]
         self.assertEqual(unresolved_ops[0]["value"], [])
+
+    def test_foreach_effects_preserved_by_coerce(self):
+        from copy import deepcopy
+        from srtp.llm_compiler_v1.compiler import _coerce_effect_object
+
+        effect = {
+            "op": "foreach",
+            "collection": {"op": "literal", "value": [[0, 0], [1, 0]]},
+            "as": "coord",
+            "effects": [{
+                "op": "grid.set",
+                "state": "rule:state.board_cell",
+                "topology": "rule:topology.board",
+                "coordinate": {"op": "var", "name": "coord"},
+                "value": {"op": "literal", "value": 1},
+            }],
+        }
+        before = deepcopy(effect)
+        _coerce_effect_object(effect)
+        self.assertEqual(effect["op"], "foreach")
+        self.assertIsInstance(effect.get("effects"), list)
+        self.assertEqual(len(effect["effects"]), 1)
+        self.assertEqual(effect["effects"][0]["op"], "grid.set")
+        self.assertEqual(effect["collection"], before["collection"])
+
+    def test_effect_expression_subpath_patch_is_kept(self):
+        from copy import deepcopy
+        from srtp.llm_compiler_v1.compiler import _normalize_patch_entry
+
+        entry = _normalize_patch_entry(
+            {
+                "operations": [
+                    {
+                        "op": "replace",
+                        "path": "/metadata/description",
+                        "value": "updated",
+                    },
+                    {
+                        "op": "replace",
+                        "path": "/actions/0/effects/0/value",
+                        "value": {"op": "literal", "value": 2},
+                    },
+                ],
+            },
+            ir_key="rule_ir",
+        )
+        paths = [op.get("path") for op in entry["operations"] if isinstance(op, dict)]
+        self.assertIn("/actions/0/effects/0/value", paths)
+        value_op = next(
+            op for op in entry["operations"]
+            if isinstance(op, dict) and op.get("path") == "/actions/0/effects/0/value"
+        )
+        self.assertEqual(value_op["value"], {"op": "literal", "value": 2})
+
+    def test_missing_scene_evidence_not_borrowed_from_rule(self):
+        from srtp.llm_compiler_v1.bootstrap import bootstrap_documents
+        from srtp.llm_compiler_v1.compiler import _normalize_source_proposal
+        from srtp.llm_compiler_v1.contracts import validate_llm_proposal
+
+        bootstrap = bootstrap_documents(title="Ev", source_package_hash="f" * 64)
+        evidence = [{
+            "evidence_id": "ev:rule.1",
+            "path": "game.py",
+            "kind": "static",
+            "supports": "/rule_ir/actions",
+            "confidence": 0.9,
+            "file_sha256": "a" * 64,
+            "span": {"line_start": 1, "line_end": 1},
+        }]
+        raw = {
+            "proposal_version": "2.0",
+            "proposal_id": "prop.borrow",
+            "job_id": "job:borrow",
+            "stage": "source",
+            "source_package_hash": "f" * 64,
+            "base_documents": bootstrap.base_pins(),
+            "patches": {
+                "rule_ir": [{
+                    "document_id": bootstrap.documents["rule_ir"]["document_id"],
+                    "base_revision": 0,
+                    "base_content_hash": bootstrap.documents["rule_ir"]["content_hash"],
+                    "operations": [{
+                        "op": "replace",
+                        "path": "/metadata/description",
+                        "value": "rule",
+                    }],
+                    "evidence": evidence,
+                    "assumptions": [],
+                    "unresolved": [],
+                }],
+                "scene_ir": [{
+                    "document_id": bootstrap.documents["scene_ir"]["document_id"],
+                    "base_revision": 0,
+                    "base_content_hash": bootstrap.documents["scene_ir"]["content_hash"],
+                    "operations": [{
+                        "op": "replace",
+                        "path": "/metadata/description",
+                        "value": "scene",
+                    }],
+                    "evidence": [],
+                    "assumptions": [],
+                    "unresolved": [],
+                }],
+                "asset_ir": [],
+                "input_ir": [],
+            },
+            "claims": [],
+            "tests": [],
+            "diagnostics": [],
+            "unresolved": [],
+        }
+        normalized = _normalize_source_proposal(
+            raw,
+            job_id="job:borrow",
+            source_package_hash="f" * 64,
+            base_pins=bootstrap.base_pins(),
+        )
+        scene_evidence = normalized["patches"]["scene_ir"][0]["evidence"]
+        self.assertEqual(scene_evidence, [])
+        errors = validate_llm_proposal(normalized)
+        self.assertTrue(any("evidence" in item for item in errors))
+
+    def test_direction_alias_does_not_invent_snake_dir(self):
+        from srtp.llm_compiler_v1.compiler import _coerce_effect_object, _coerce_action_object
+
+        effect = {"op": "update_direction", "direction": 1}
+        _coerce_effect_object(effect)
+        self.assertIn("_llm_reject_effect", effect)
+
+        action = {
+            "id": "rule:action.move",
+            "name": "Move",
+            "effects": [{"op": "change_direction", "direction": "up"}],
+            "timing": {"phase": "rule:phase.input"},
+            "encoding": {"kind": "none"},
+        }
+        _coerce_action_object(action)
+        self.assertEqual(action["effects"], [])
+
+    def test_unknown_z_and_adjacency_rejected_not_guessed(self):
+        from copy import deepcopy
+        from srtp.llm_compiler_v1.compiler import _normalize_patch_entry
+
+        entry = _normalize_patch_entry(
+            {
+                "operations": [
+                    {"op": "replace", "path": "/space/dimensions/z", "value": "unknown"},
+                    {"op": "replace", "path": "/space/adjacency", "value": "26-neighbor"},
+                ],
+            },
+            ir_key="rule_ir",
+            pin={"document_id": "rule:game.test"},
+        )
+        paths = [op.get("path") for op in entry["operations"] if isinstance(op, dict)]
+        self.assertNotIn("/topologies/0/axes/-", paths)
+        self.assertTrue(any(
+            isinstance(item, dict) and "Z extent" in str(item.get("reason", ""))
+            for item in entry["unresolved"]
+        ))
+        self.assertTrue(any(
+            isinstance(item, dict) and "adjacency" in str(item.get("reason", "")).lower()
+            for item in entry["unresolved"]
+        ))
+
+    def test_patches_array_with_ops_alias_is_kept(self):
+        from srtp.llm_compiler_v1.bootstrap import bootstrap_documents
+        from srtp.llm_compiler_v1.compiler import _normalize_source_proposal
+
+        bootstrap = bootstrap_documents(title="Shape", source_package_hash="f" * 64)
+        pins = bootstrap.base_pins()
+        raw = {
+            "proposal_version": "llm-proposal/2.0",
+            "patches": [
+                {
+                    "target_document_id": pins["rule_ir"]["document_id"],
+                    "ops": [{
+                        "op": "replace",
+                        "path": "/metadata/description",
+                        "value": "filled",
+                    }],
+                    "evidence": [{
+                        "evidence_id": "ev:rule.1",
+                        "path": "game.py",
+                        "kind": "static",
+                        "supports": "/metadata/description",
+                        "confidence": 0.8,
+                    }],
+                },
+            ],
+        }
+        normalized = _normalize_source_proposal(
+            raw,
+            job_id="job:shape",
+            source_package_hash="f" * 64,
+            base_pins=pins,
+        )
+        self.assertEqual(len(normalized["patches"]["rule_ir"]), 1)
+        self.assertEqual(
+            normalized["patches"]["rule_ir"][0]["operations"][0]["path"],
+            "/metadata/description",
+        )
+        self.assertTrue(normalized["patches"]["rule_ir"][0]["evidence"])
+        self.assertEqual(normalized["proposal_version"], LLM_PROPOSAL_VERSION)
+
+    def test_unknown_design_intent_operation_not_silently_transform(self):
+        from srtp.llm_compiler_v1.contracts import normalize_design_intent, validate_design_intent
+
+        coerced = normalize_design_intent({
+            "intent_version": DESIGN_INTENT_VERSION,
+            "intent_id": "intent:x",
+            "conversation_id": "c",
+            "turn_id": "t",
+            "project_id": "p",
+            "source_manifest_hash": "a" * 64,
+            "original_text": "do magic",
+            "language": "en",
+            "operation": "MAKE_IT_COOL",
+            "scope": ["not_a_real_scope"],
+            "preserve": [],
+            "changes": [],
+            "constraints": [],
+            "resolved_references": [],
+            "assumptions": [],
+            "conflicts": [],
+            "unresolved": [],
+            "requires_confirmation": False,
+            "status": "proposed",
+            "target_base": None,
+        })
+        self.assertNotEqual(coerced["operation"], "transform")
+        self.assertEqual(coerced["scope"], [])
+        self.assertIs(coerced["requires_confirmation"], True)
+
+    def test_numeric_design_intent_turn_id_is_stringified(self):
+        from srtp.llm_compiler_v1.contracts import normalize_design_intent, validate_design_intent
+
+        coerced = normalize_design_intent({
+            "intent_version": DESIGN_INTENT_VERSION,
+            "intent_id": "intent_extend_z_extent_3",
+            "conversation_id": "conv_001",
+            "turn_id": 1,
+            "project_id": "project:snake.game.with.python.and.pygame.llm.source",
+            "source_manifest_hash": "a" * 64,
+            "original_text": "Preserve XY step-snake; extend topology with Z extent 3.",
+            "language": "en",
+            "operation": "transform",
+            "scope": ["scene", "asset"],
+            "preserve": [],
+            "changes": [],
+            "constraints": [],
+            "resolved_references": [],
+            "assumptions": [],
+            "conflicts": [],
+            "unresolved": [],
+            "requires_confirmation": False,
+            "status": "ready",
+            "target_base": None,
+        })
+        self.assertEqual(coerced["turn_id"], "1")
+        self.assertNotIn("turn_id is required", validate_design_intent(coerced))
+        self.assertEqual(validate_design_intent(coerced), [])
+
+    def test_missing_action_actor_inherits_uniform_sibling(self):
+        from srtp.ir_v2.rule_ir import validate_rule_ir
+        from srtp.llm_compiler_v1.compiler import _inherit_action_shells
+
+        actor = {"op": "literal", "value": "rule:participant.human.player"}
+        timing = {"phase": "rule:phase.input"}
+        sibling = {
+            "id": "rule:action.move_up",
+            "actor": actor,
+            "timing": timing,
+            "effects": [],
+            "parameters": [],
+            "precondition": {"op": "literal", "value": True},
+            "encoding": {"kind": "none"},
+        }
+        added = {"id": "rule:action.move_z_up", "effects": [], "parameters": []}
+        proposal = {"patches": {"rule_ir": [{"operations": [
+            {"op": "add", "path": "/actions/-", "value": added},
+        ]}]}}
+        _inherit_action_shells(proposal, {"rule_ir": {"actions": [sibling, dict(sibling)]}})
+        self.assertEqual(added["actor"], actor)
+        self.assertEqual(added["timing"], timing)
+        document = {
+            "actions": [sibling, added],
+            "flow": {"phases": [{"id": "rule:phase.input"}]},
+        }
+        actor_errors = [
+            item for item in validate_rule_ir(document)
+            if getattr(item, "path", "").endswith("/actor")
+        ]
+        self.assertEqual(actor_errors, [])
+
+    def test_binding_without_intent_gets_intent_from_rule_action(self):
+        from srtp.llm_compiler_v1.compiler import _ensure_binding_intents
+
+        sibling = {
+            "id": "input:action.intent.move.up",
+            "name": "Move Up",
+            "value_type": "digital",
+            "required": True,
+            "target": {"kind": "rule_action", "action": "rule:action.move_up", "parameters": {}},
+        }
+        binding = {
+            "id": "input:binding.z.up",
+            "intent": "input:action.intent.move.z.up",
+            "rule_action": "rule:action.move_z_up",
+            "name": "Up",
+        }
+        proposal = {"patches": {"input_ir": [{"operations": [
+            {"op": "add", "path": "/bindings/-", "value": binding},
+        ]}]}}
+        _ensure_binding_intents(proposal, {"input_ir": {"intents": [sibling]}})
+        ops = proposal["patches"]["input_ir"][0]["operations"]
+        self.assertEqual(ops[0]["path"], "/intents/-")
+        self.assertEqual(ops[0]["value"]["id"], "input:action.intent.move.z.up")
+        self.assertEqual(ops[0]["value"]["target"]["action"], "rule:action.move_z_up")
+
+    def test_approve_names_empty_effect_blockers(self):
+        from srtp.llm_compiler_v1.approval import ApprovalError, approve_llm_manifest
+
+        manifest = {
+            "unresolved": [{
+                "path": "/documents/rule_ir/actions/4/effects",
+                "reason": "Action effects are empty; do not invent game mechanics.",
+                "required": True,
+                "owner": "llm",
+            }],
+        }
+        with self.assertRaises(ApprovalError) as caught:
+            approve_llm_manifest(manifest)
+        self.assertIn("/documents/rule_ir/actions/4/effects", str(caught.exception))
+
+    def test_coordinates_pad_to_topology_rank(self):
+        from srtp.llm_compiler_v1.compiler import _upgrade_coordinates_to_topology_rank
+
+        rule = {
+            "topologies": [{
+                "id": "rule:topology.board",
+                "kind": "rect_grid",
+                "axes": [
+                    {"name": "x", "extent": 20},
+                    {"name": "y", "extent": 20},
+                    {"name": "z", "extent": 3},
+                ],
+            }],
+            "state": {
+                "initial_effects": [{
+                    "op": "grid.set",
+                    "coordinate": {"op": "literal", "value": [10, 10]},
+                    "value": {"op": "literal", "value": 1},
+                }],
+            },
+            "actions": [{
+                "id": "rule:action.move_up",
+                "effects": [{
+                    "op": "grid.set",
+                    "coordinate": {"op": "literal", "value": [10, 11]},
+                    "value": {"op": "literal", "value": 2},
+                }],
+            }],
+        }
+        upgraded = _upgrade_coordinates_to_topology_rank(rule)
+        self.assertEqual(
+            upgraded["state"]["initial_effects"][0]["coordinate"]["value"],
+            [10, 10, 0],
+        )
+        self.assertEqual(
+            upgraded["actions"][0]["effects"][0]["coordinate"]["value"],
+            [10, 11, 0],
+        )
 
     def test_approve_clears_only_llm_blocker_and_reseals(self):
         from srtp.llm_compiler_v1.approval import approve_llm_manifest, approval_status

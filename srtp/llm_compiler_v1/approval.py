@@ -68,8 +68,12 @@ def approve_llm_manifest(
     if status["compile_ready"]:
         return seal_project_manifest(deepcopy(dict(manifest)))
     if status["other_required"]:
+        listed = "; ".join(
+            "{0}: {1}".format(item.get("path"), item.get("reason"))
+            for item in status["other_required"][:8]
+        )
         raise ApprovalError(
-            "Cannot approve while non-approval required unresolved items remain."
+            "Cannot approve while non-approval required unresolved items remain: {0}".format(listed)
         )
     if not status["needs_designer_approval"]:
         raise ApprovalError("Manifest has no designer LLM-approval blocker to clear.")

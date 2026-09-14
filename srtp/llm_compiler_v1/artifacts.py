@@ -48,6 +48,11 @@ def write_compile_artifacts(out_dir: Path, report: "CompileReport") -> Path:
         "compile_ready": report.compile_ready,
     }
     _write_json(root / "diagnostics.json", diagnostics)
+    try:
+        from .acceptance_trace import write_acceptance_trace
+        write_acceptance_trace(root, report=report.to_mapping(), stage=str(report.stage))
+    except Exception:  # noqa: BLE001 — trace is best-effort for acceptance packs
+        pass
     return root
 
 

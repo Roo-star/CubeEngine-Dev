@@ -129,9 +129,17 @@ _DEFAULT_DESIGN_INTENT_SCOPE = ["rule", "scene", "asset", "input"]
 
 
 def normalize_design_intent(value: Mapping[str, Any]) -> Dict[str, Any]:
-    """Coerce common LLM Design Intent shape mistakes before validation."""
+    """Coerce common LLM Design Intent shape mistakes before validation.
+
+    Only whitelist-equivalent aliases are rewritten. Unknown operations / scopes
+    are left for validation to reject and force confirmation — never silently
+    expanded to transform / all four IR scopes.
+    """
 
     intent = dict(value)
+    for key in ("intent_id", "conversation_id", "turn_id"):
+        if key in intent:
+            intent[key] = _stringify_identifier(intent[key])
     operation = intent.get("operation")
     if isinstance(operation, str):
         token = operation.strip().lower().replace("-", "_").replace(" ", "_")
@@ -142,7 +150,9 @@ def normalize_design_intent(value: Mapping[str, Any]) -> Dict[str, Any]:
         elif token in _DESIGN_INTENT_OPERATIONS:
             intent["operation"] = token
         else:
-            intent["operation"] = "transform"
+            # Keep the raw token so validate_design_intent fails clearly.
+            intent["operation"] = token
+            intent["requires_confirmation"] = True
 
     scope = intent.get("scope")
     if isinstance(scope, str) and scope.strip():
@@ -150,8 +160,10 @@ def normalize_design_intent(value: Mapping[str, Any]) -> Dict[str, Any]:
     if not isinstance(scope, list):
         scope = []
     normalized_scope: List[str] = []
+    unknown_scope = False
     for item in scope:
         if not isinstance(item, str):
+            unknown_scope = True
             continue
         token = item.strip().lower().replace("-", "_")
         mapped = _DESIGN_INTENT_SCOPE_ALIASES.get(token) or _DESIGN_INTENT_SCOPE_ALIASES.get(
@@ -159,7 +171,11 @@ def normalize_design_intent(value: Mapping[str, Any]) -> Dict[str, Any]:
         )
         if mapped and mapped not in normalized_scope:
             normalized_scope.append(mapped)
-    intent["scope"] = normalized_scope or list(_DEFAULT_DESIGN_INTENT_SCOPE)
+        elif token:
+            unknown_scope = True
+    intent["scope"] = normalized_scope
+    if not normalized_scope or unknown_scope:
+        intent["requires_confirmation"] = True
 
     for key in (
         "preserve", "changes", "constraints", "resolved_references",
@@ -272,6 +288,18 @@ def _pin_id(base_documents: Any, key: str) -> Optional[str]:
 
 def _nonempty_str(value: Any) -> bool:
     return isinstance(value, str) and bool(value.strip())
+
+
+def _stringify_identifier(value: Any) -> Any:
+    """Keep a model-supplied numeric id; do not invent a replacement token."""
+
+    if isinstance(value, bool) or value is None:
+        return value
+    if isinstance(value, int):
+        return str(value)
+    if isinstance(value, float) and value.is_integer():
+        return str(int(value))
+    return value
 
 
 def empty_proposal_shell(

@@ -76,6 +76,46 @@ class SnakePlayableIRTests(unittest.TestCase):
         self.assertEqual(len(rejected.transitions), 0)
         self.assertTrue(rejected.rejections)
 
+    def test_step_snake_3d_xy_and_z_moves(self):
+        artifacts = build_snake_playable_artifacts(
+            repository_root=ROOT, z_extent=3,
+        )
+        bundle = compile_project_manifest(
+            artifacts.manifest,
+            rule_document=artifacts.rule,
+            scene_document=artifacts.scene,
+            asset_document=artifacts.asset,
+            input_document=artifacts.input,
+            asset_project_root=artifacts.asset_project_root,
+        )
+        session = bundle.create_session()
+        runtime = session.rule_runtime
+        grid = runtime.state.grids["rule:state.board_cell"]
+        self.assertEqual(grid.shape, (20, 20, 3))
+        self.assertEqual(runtime.state.globals["rule:state.head_z"], 0)
+
+        session.handle_input(PhysicalInputEvent(
+            1, "keyboard", "keyboard.key.arrow_right", "press",
+        ))
+        grid = runtime.state.grids["rule:state.board_cell"]
+        self.assertEqual(runtime.state.globals["rule:state.head_x"], 6)
+        self.assertEqual(int(grid[6, 10, 0]), HEAD)
+
+        accepted = session.handle_input(PhysicalInputEvent(
+            2, "keyboard", "keyboard.key.page_up", "press",
+        ))
+        self.assertEqual(len(accepted.transitions), 1)
+        grid = runtime.state.grids["rule:state.board_cell"]
+        self.assertEqual(runtime.state.globals["rule:state.head_z"], 1)
+        self.assertEqual(int(grid[6, 10, 1]), HEAD)
+        self.assertEqual(int(grid[6, 10, 0]), BODY)
+
+        rejected = session.handle_input(PhysicalInputEvent(
+            3, "keyboard", "keyboard.key.page_down", "press",
+        ))
+        self.assertEqual(len(rejected.transitions), 0)
+        self.assertTrue(rejected.rejections)
+
     def test_compiler_does_not_apply_snake_overlay_on_empty_effects(self):
         artifacts = build_snake_playable_artifacts(repository_root=ROOT)
         shell = {

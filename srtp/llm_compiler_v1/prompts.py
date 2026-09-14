@@ -50,6 +50,7 @@ original_text,language,operation,scope,preserve,changes,constraints,resolved_ref
 assumptions,conflicts,unresolved,requires_confirmation,status,target_base.
 Hard field shapes:
 - operation: one of create|transform|revise|explain|compare|undo|resolve (use transform for 3D/Z lifts)
+- intent_id, conversation_id, turn_id must be strings, never JSON numbers
 - scope: non-empty ARRAY of rule|scene|asset|input — never a bare string like "topology"
 - target_base: null unless pinning an existing target object (never "main" or other strings)
 - preserve/changes/constraints/…: arrays (strings or objects inside are fine)
@@ -113,9 +114,10 @@ def source_to_ir_messages(
         },
         "playability_hints": [
             "Input intents for playable actions must use target.kind=rule_action with action=rule:action.*",
-            "Rule actions NEED non-empty effects (grid.set/state.set); empty effects fail playability",
+            "Board/snake games MUST include grid.set effects on rule:state.board_cell that change the board; state.set-only direction flags are NOT enough for Project Session",
+            "Also patch /state/initial_effects with non-empty grid.set placements (head/body/food); empty initial_effects leave a blank Session grid",
             "Never omit actor/precondition/flow when evidence supports them; otherwise required unresolved",
-            "Directional games: keyboard.key.arrow_* bindings; placement games: mouse.button.primary + event_data.rule_coordinate",
+            "Directional games: keyboard.key.arrow_* bindings to DISTINCT move/turn actions; placement games: mouse.button.primary + event_data.rule_coordinate",
             "Do not invent mechanics from the game title; cite evidence_pack.evidence ids",
         ],
     }
@@ -123,11 +125,22 @@ def source_to_ir_messages(
         diagnostics = list(repair_diagnostics)
         user_payload["repair_diagnostics"] = diagnostics
         truncated = any("truncated" in str(item).lower() or "finish_reason=length" in str(item) for item in diagnostics)
+        playability_repair = any(
+            "grid.set" in str(item) or "initial_effects" in str(item) or "topology_site" in str(item)
+            for item in diagnostics
+        )
         if truncated:
             user_payload["instruction"] = (
                 "PRIOR RESPONSE TRUNCATED. Emit a MUCH SMALLER llm-proposal/2.0: "
                 "at most 6 operations per IR, no verbose effects trees, empty claims/tests, "
                 "single evidence object. Prefer unresolved for deep mechanics."
+            )
+        elif playability_repair:
+            user_payload["instruction"] = (
+                "Previous proposal lacked Project Session playability. Repair by patching rule_ir: "
+                "(1) /state/initial_effects with grid.set on rule:state.board_cell for head/body/food, "
+                "(2) at least one player action whose effects include grid.set that moves/updates "
+                "board_cell (not only state.set on a direction flag). Keep four-IR patches non-empty."
             )
         else:
             user_payload["instruction"] = (
@@ -138,8 +151,8 @@ def source_to_ir_messages(
     else:
         user_payload["instruction"] = (
             "Emit one compact llm-proposal/2.0 patching all four base documents from evidence. "
-            "Clear must_clear_when_filled paths. Actions that are playable must include non-empty effects "
-            "and input rule_action bindings. Prefer unresolved over invention."
+            "Clear must_clear_when_filled paths. For board games include initial_effects grid.set "
+            "and action effects that mutate rule:state.board_cell. Prefer unresolved over invention."
         )
     return [
         {"role": "system", "content": SYSTEM_SOURCE_TO_IR},
@@ -175,6 +188,8 @@ def spatial_lift_messages(
     design_intent: Mapping[str, Any],
     base_documents: Mapping[str, Mapping[str, Any]],
     source_manifest_hash: str,
+    source_ir_excerpt: Optional[Mapping[str, Any]] = None,
+    repair_diagnostics: Optional[Sequence[str]] = None,
 ) -> List[Dict[str, str]]:
     payload = {
         "task": "spatial_lift",
@@ -190,14 +205,27 @@ def spatial_lift_messages(
             }
             for key, pin in base_documents.items()
         },
+        "source_ir_excerpt": source_ir_excerpt or {},
         "required_plan_version": "cubeengine.srtp/spatial-lift-plan/1.0",
         "required_proposal_version": "cubeengine.srtp/llm-proposal/2.0",
         "instruction": (
             "Keep plan+proposal compact. Set explicit target_z (>=2 for 3D volume). "
             "Preserve source XY. Extend topology/neighborhood/input for Z when intent requires it. "
-            "Target rule actions must retain non-empty effects."
+            "Use source_ir_excerpt to patch real topologies/actions/bindings — do not only change "
+            "metadata.description. Target rule actions must retain non-empty grid-moving effects. "
+            "When adding a Z axis, upgrade coordinates to matching rank. "
+            "effect_ops/target_state are not effects; each new action needs a non-empty effects array of grid.set objects."
         ),
     }
+    if repair_diagnostics:
+        payload["repair_diagnostics"] = list(repair_diagnostics)
+        payload["instruction"] = (
+            "Previous target could not be designer-approved because new actions have empty effects. "
+            "Return a compact plan+proposal. For every repair_diagnostics path, put a non-empty "
+            "effects array on that action: op grid.set, state rule:state.board_cell, topology "
+            "rule:topology.board, coordinate literal including Z, value literal. "
+            "Do not leave effect_ops as a substitute for effects. Keep the Z axis and existing XY actions."
+        )
     return [
         {"role": "system", "content": SYSTEM_SPATIAL_LIFT},
         {"role": "user", "content": json.dumps(payload, ensure_ascii=False, separators=(",", ":"))},

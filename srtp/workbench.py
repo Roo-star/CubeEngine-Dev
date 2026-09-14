@@ -153,8 +153,9 @@ class SrtpWorkbench:
             if self.core_controller is not None and self.core_controller.has_active_project:
                 self._render_viewport()
                 self._message(
-                    "Project Session is ready. Use arrow keys (and Z bindings if present) in this viewport. "
-                    "Ursina Transformed 3D is a separate adapter demo — not the LLM IR path."
+                    "Project Session is ready. Use arrow keys (PageUp/PageDown for Z if bound) "
+                    "in this viewport. Ursina Transformed 3D is a separate adapter demo — "
+                    "not the LLM IR path."
                 )
             else:
                 self._render_viewport()
@@ -212,14 +213,6 @@ class SrtpWorkbench:
         try:
             result = self.core_controller.click(tuple(user_data or ()))
             self.core_last_result = result.to_mapping()
-            # #region agent log
-            try:
-                import json as _json, time as _time
-                with open(r"C:\repo\CubeEngine-Dev\debug-3d9e82.log", "a", encoding="utf-8") as _f:
-                    _f.write(_json.dumps({"sessionId": "3d9e82", "runId": "pre-fix", "hypothesisId": "H1", "location": "workbench.py:click_core_cell", "message": "cell click result", "data": {"coord": list(user_data or ()), "accepted": result.accepted, "code": result.code, "message": result.message, "project": getattr(self.core_controller, "active_key", None), "label": (self.core_controller.labels.get(self.core_controller.active_key) if self.core_controller else None)}, "timestamp": int(_time.time() * 1000)}) + "\n")
-            except Exception:
-                pass
-            # #endregion
             self._render_core_scene()
             self._message(result.message, error=not result.accepted)
         except (IRAcceptanceError, ValueError) as error:
@@ -228,26 +221,44 @@ class SrtpWorkbench:
     def handle_core_key(self, sender=None, app_data=None, user_data=None) -> None:
         """Map Dear PyGui key presses to Input IR physical keyboard events."""
 
-        preview = self._preview_mode()
-        has_project = bool(self.core_controller and self.core_controller.has_active_project)
-        if preview != "Project Session":
-            # #region agent log
+        # #region agent log
+        def _dbg(hypothesis_id, message, data=None):
             try:
-                import json as _json, time as _time
-                with open(r"C:\repo\CubeEngine-Dev\debug-3d9e82.log", "a", encoding="utf-8") as _f:
-                    _f.write(_json.dumps({"sessionId": "3d9e82", "runId": "pre-fix", "hypothesisId": "H2", "location": "workbench.py:handle_core_key", "message": "early return wrong preview mode", "data": {"preview": preview, "app_data": app_data}, "timestamp": int(_time.time() * 1000)}) + "\n")
+                import json, time
+                from pathlib import Path
+                payload = {
+                    "sessionId": "3d9e82",
+                    "runId": "post-fix",
+                    "hypothesisId": hypothesis_id,
+                    "location": "workbench.py:handle_core_key",
+                    "message": message,
+                    "data": data or {},
+                    "timestamp": int(time.time() * 1000),
+                }
+                Path(__file__).resolve().parents[1].joinpath("debug-3d9e82.log").open(
+                    "a", encoding="utf-8",
+                ).write(json.dumps(payload, ensure_ascii=False) + "\n")
             except Exception:
                 pass
+        # #endregion
+
+        mode = self._preview_mode()
+        has_project = bool(
+            self.core_controller is not None and self.core_controller.has_active_project
+        )
+        if mode != "Project Session":
+            # #region agent log
+            _dbg("H2", "key ignored: not Project Session", {
+                "mode": mode, "app_data": repr(app_data),
+            })
             # #endregion
             return
         if self.core_controller is None or not self.core_controller.has_active_project:
             # #region agent log
-            try:
-                import json as _json, time as _time
-                with open(r"C:\repo\CubeEngine-Dev\debug-3d9e82.log", "a", encoding="utf-8") as _f:
-                    _f.write(_json.dumps({"sessionId": "3d9e82", "runId": "pre-fix", "hypothesisId": "H2", "location": "workbench.py:handle_core_key", "message": "early return no project", "data": {"has_project": has_project, "app_data": app_data}, "timestamp": int(_time.time() * 1000)}) + "\n")
-            except Exception:
-                pass
+            _dbg("H2", "key ignored: no active project", {
+                "has_controller": self.core_controller is not None,
+                "app_data": repr(app_data),
+            })
             # #endregion
             return
         key = app_data
@@ -255,12 +266,7 @@ class SrtpWorkbench:
             key = int(key)
         except (TypeError, ValueError):
             # #region agent log
-            try:
-                import json as _json, time as _time
-                with open(r"C:\repo\CubeEngine-Dev\debug-3d9e82.log", "a", encoding="utf-8") as _f:
-                    _f.write(_json.dumps({"sessionId": "3d9e82", "runId": "pre-fix", "hypothesisId": "H2", "location": "workbench.py:handle_core_key", "message": "early return non-int key", "data": {"app_data": repr(app_data)}, "timestamp": int(_time.time() * 1000)}) + "\n")
-            except Exception:
-                pass
+            _dbg("H1", "key not int", {"app_data": repr(app_data)})
             # #endregion
             return
         mapping = {
@@ -268,17 +274,24 @@ class SrtpWorkbench:
             getattr(self.dpg, "mvKey_Down", -2): "keyboard.key.arrow_down",
             getattr(self.dpg, "mvKey_Left", -3): "keyboard.key.arrow_left",
             getattr(self.dpg, "mvKey_Right", -4): "keyboard.key.arrow_right",
+            # Dear PyGui key-press handler delivers 517/518 for PageUp/PageDown
+            # (between Down=516 and Home=519). mvKey_Prior/Next are Win32 VK 33/34
+            # and do not match the handler payload on this platform.
+            517: "keyboard.key.page_up",
+            518: "keyboard.key.page_down",
+            getattr(self.dpg, "mvKey_Prior", -5): "keyboard.key.page_up",
+            getattr(self.dpg, "mvKey_Next", -6): "keyboard.key.page_down",
         }
         control = mapping.get(key)
-        # #region agent log
-        try:
-            import json as _json, time as _time
-            with open(r"C:\repo\CubeEngine-Dev\debug-3d9e82.log", "a", encoding="utf-8") as _f:
-                _f.write(_json.dumps({"sessionId": "3d9e82", "runId": "pre-fix", "hypothesisId": "H2", "location": "workbench.py:handle_core_key", "message": "key press seen", "data": {"key": key, "control": control, "map_keys": {str(k): v for k, v in mapping.items()}, "mvKey_Up": getattr(self.dpg, "mvKey_Up", None), "mvKey_Right": getattr(self.dpg, "mvKey_Right", None)}, "timestamp": int(_time.time() * 1000)}) + "\n")
-        except Exception:
-            pass
-        # #endregion
         if control is None:
+            # #region agent log
+            _dbg("H1", "unmapped key", {
+                "key": key,
+                "mvKey_Prior": getattr(self.dpg, "mvKey_Prior", None),
+                "mvKey_Next": getattr(self.dpg, "mvKey_Next", None),
+                "mvKey_Up": getattr(self.dpg, "mvKey_Up", None),
+            })
+            # #endregion
             # R resets the Project Session.
             if key == getattr(self.dpg, "mvKey_R", None):
                 self.reset_core()
@@ -292,37 +305,103 @@ class SrtpWorkbench:
             control,
             "press",
         )
+        # #region agent log
+        food_before = None
+        head_before = None
+        try:
+            selected_key = self.core_controller.active_key
+            sess = self.core_controller.sessions.get(selected_key)
+            if sess is not None:
+                gg = sess.rule_runtime.state.globals
+                food_before = {
+                    "x": gg.get("rule:state.food_x"),
+                    "y": gg.get("rule:state.food_y"),
+                    "z": gg.get("rule:state.food_z"),
+                    "score": gg.get("rule:state.score"),
+                }
+                head_before = {
+                    "x": gg.get("rule:state.head_x"),
+                    "y": gg.get("rule:state.head_y"),
+                    "z": gg.get("rule:state.head_z"),
+                }
+        except Exception as err:
+            food_before = {"error": str(err)}
+        _dbg("H3", "dispatching mapped key", {
+            "key": key, "control": control, "food_before": food_before, "head_before": head_before,
+        })
+        # #endregion
         try:
             result = self.core_controller.dispatch_physical(event)
             self.core_last_result = result.to_mapping()
-            # #region agent log
-            try:
-                import json as _json, time as _time
-                with open(r"C:\repo\CubeEngine-Dev\debug-3d9e82.log", "a", encoding="utf-8") as _f:
-                    _f.write(_json.dumps({"sessionId": "3d9e82", "runId": "post-fix", "hypothesisId": "H3", "location": "workbench.py:handle_core_key", "message": "arrow dispatch result", "data": {"control": control, "accepted": result.accepted, "code": result.code, "message": result.message, "transitions": result.transition_count, "label": self.core_controller.labels.get(selected)}, "timestamp": int(_time.time() * 1000)}) + "\n")
-            except Exception:
-                pass
-            # #endregion
             self._render_core_scene()
-            self._message(result.message, error=not result.accepted)
+            message = result.message
+            # #region agent log
+            food_after = None
+            food_cells = None
+            try:
+                selected_key = self.core_controller.active_key
+                sess = self.core_controller.sessions.get(selected_key)
+                if sess is not None:
+                    rt = sess.rule_runtime
+                    gl = rt.state.globals
+                    board = rt.state.grids.get("rule:state.board_cell")
+                    food_after = {
+                        "x": gl.get("rule:state.food_x"),
+                        "y": gl.get("rule:state.food_y"),
+                        "z": gl.get("rule:state.food_z"),
+                        "score": gl.get("rule:state.score"),
+                        "head": [
+                            gl.get("rule:state.head_x"),
+                            gl.get("rule:state.head_y"),
+                            gl.get("rule:state.head_z"),
+                        ],
+                    }
+                    if board is not None:
+                        import numpy as np
+                        coords = list(zip(*np.where(np.asarray(board) == -1)))
+                        food_cells = [tuple(int(c) for c in item) for item in coords[:8]]
+                        fx, fy, fz = food_after["x"], food_after["y"], food_after["z"]
+                        if fz is None:
+                            painted = int(board[fx, fy]) if fx is not None else None
+                        else:
+                            painted = int(board[fx, fy, fz])
+                        food_after["painted_cell"] = painted
+            except Exception as err:
+                food_after = {"error": str(err)}
+            _dbg("H3/H4/H5", "dispatch result", {
+                "control": control,
+                "accepted": bool(result.accepted),
+                "message": message,
+                "food_after": food_after,
+                "food_cells_on_grid": food_cells,
+                "score_before": food_before.get("score") if isinstance(food_before, dict) else None,
+            })
+            # #endregion
+            if result.accepted:
+                before = getattr(self, "_core_last_grid_fingerprint", None)
+                try:
+                    grid = self.core_controller.snapshot().grid
+                    fingerprint = repr(grid)
+                except Exception:  # noqa: BLE001
+                    fingerprint = None
+                if before is not None and fingerprint == before:
+                    message = (
+                        "{0} (board grid unchanged — this Project may be an LLM draft "
+                        "without move effects; try artifacts/snake_playable)".format(message)
+                    )
+                if fingerprint is not None:
+                    self._core_last_grid_fingerprint = fingerprint
+            self._message(message, error=not result.accepted)
         except (IRAcceptanceError, ValueError) as error:
             # #region agent log
-            try:
-                import json as _json, time as _time
-                with open(r"C:\repo\CubeEngine-Dev\debug-3d9e82.log", "a", encoding="utf-8") as _f:
-                    _f.write(_json.dumps({"sessionId": "3d9e82", "runId": "post-fix", "hypothesisId": "H3", "location": "workbench.py:handle_core_key", "message": "arrow dispatch exception", "data": {"control": control, "error": str(error)}, "timestamp": int(_time.time() * 1000)}) + "\n")
-            except Exception:
-                pass
+            _dbg("H3", "dispatch IRAcceptanceError", {"error": str(error), "control": control})
             # #endregion
             self._message(str(error), error=True)
         except Exception as error:  # noqa: BLE001 — surface Rule Runtime failures in console
             # #region agent log
-            try:
-                import json as _json, time as _time
-                with open(r"C:\repo\CubeEngine-Dev\debug-3d9e82.log", "a", encoding="utf-8") as _f:
-                    _f.write(_json.dumps({"sessionId": "3d9e82", "runId": "post-fix", "hypothesisId": "H3", "location": "workbench.py:handle_core_key", "message": "arrow dispatch unexpected", "data": {"control": control, "error_type": type(error).__name__, "error": str(error)}, "timestamp": int(_time.time() * 1000)}) + "\n")
-            except Exception:
-                pass
+            _dbg("H3", "dispatch Exception", {
+                "error": "{0}: {1}".format(type(error).__name__, error), "control": control,
+            })
             # #endregion
             self._message("Input handling failed: {0}: {1}".format(type(error).__name__, error), error=True)
 
@@ -555,17 +634,20 @@ class SrtpWorkbench:
             status = approval_status(report.manifest)
             if status.get("can_approve"):
                 self._message(
-                    "Source draft ready. APPROVE LLM MANIFEST, then RUN SPATIAL LIFT with Design Intent.",
+                    "Source draft ready (LLM draft — not artifacts/snake_playable). "
+                    "APPROVE LLM MANIFEST, then RUN SPATIAL LIFT with Design Intent.",
                 )
                 if self.dpg.does_item_exist("srtp_core_activity"):
                     self.dpg.set_value(
                         "srtp_core_activity",
                         (
-                            "Source four-IR at:\n{0}\n\n"
+                            "LLM Source four-IR draft at:\n{0}\n\n"
+                            "This is not the playable step-snake fixture.\n"
                             "1) APPROVE LLM MANIFEST\n"
                             "2) Enter Design Intent\n"
                             "3) RUN SPATIAL LIFT\n"
-                            "4) Approve Target → Project Session"
+                            "4) Approve Target → Project Session\n"
+                            "For a known-good moving snake, attach artifacts/snake_playable."
                         ).format(report.output_dir or out_dir),
                     )
             elif report.compile_ready:
@@ -646,15 +728,16 @@ class SrtpWorkbench:
             manifest_path = Path(report.output_dir or out_dir) / "project.manifest.json"
             self._pending_llm_manifest = manifest_path
             self._message(
-                "Target draft ready. APPROVE LLM MANIFEST then play in Project Session.",
+                "Target draft ready. APPROVE LLM MANIFEST then open Project Session. "
+                "If Accepted keys do not change the board, attach artifacts/snake_playable.",
             )
             if self.dpg.does_item_exist("srtp_core_activity"):
                 self.dpg.set_value(
                     "srtp_core_activity",
                     (
-                        "Target 3D four-IR at:\n{0}\n\n"
-                        "Approve the Target manifest, then Project Session + PLAY "
-                        "(keyboard in viewport; not Ursina adapter)."
+                        "Target 3D four-IR draft at:\n{0}\n\n"
+                        "Approve the Target manifest, then Project Session + arrow keys.\n"
+                        "LLM draft ≠ playable fixture. Transformed 3D PLAY is Ursina only."
                     ).format(report.output_dir or out_dir),
                 )
         else:
@@ -909,7 +992,8 @@ class SrtpWorkbench:
         self.dpg.set_value(
             "srtp_core_scene_help",
             "Clicks are physical Input IR events for placement games. Arrow keys "
-            "drive directional Input IR bindings (for example Step Snake). "
+            "drive XY Input IR bindings; PageUp/PageDown drive Z when bound "
+            "(for example Step Snake). "
             "Rule Runtime owns legality, state and outcome; Scene IR projects the result.",
         )
         self.dpg.set_value("srtp_core_activity", core.activity_text())
