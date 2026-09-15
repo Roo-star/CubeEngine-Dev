@@ -1,0 +1,233 @@
+{
+  "ir_version": "cubeengine.scene-ir/2.0-alpha.1",
+  "document_id": "scene:game.snake.game.with.python.and.pygame.source",
+  "revision": 1,
+  "content_hash": "a00c81b972c9af97e13ff82bd52b9ef745b43a3cf68c99218ac5b1e62d1a4071",
+  "metadata": {
+    "title": "Snake Game with Python and Pygame",
+    "description": "LLM compiler bootstrap shell. Semantics must be filled by evidence-backed patches.",
+    "source_project_hash": "6bbf008a8c81a818a748c0c6d58bb2457c311dc3efed88f516d073cecfbb756c"
+  },
+  "dependencies": {
+    "rule_ir": {
+      "document_id": "rule:game.snake.game.with.python.and.pygame.source",
+      "content_hash": "edf1ad213ad04fa672c9e036b2b4263e43d260f2fcfd85e8eefdfc9681a358fe"
+    },
+    "asset_ir": {
+      "document_id": "asset:game.snake.game.with.python.and.pygame.source",
+      "content_hash": "98f9a663d7a05f90b74865eeaf3e5121279e03bcaf17a0ebf25d4d62b32a2a06"
+    },
+    "extensions": []
+  },
+  "layers": [
+    {
+      "id": "scene:layer.runtime",
+      "name": "Runtime",
+      "kind": "runtime",
+      "visible": true,
+      "pickable": true,
+      "opacity": 1.0
+    }
+  ],
+  "prefabs": [
+    {
+      "id": "scene:prefab.cell",
+      "name": "Cell",
+      "root": {
+        "local_id": "root",
+        "name": "Cell",
+        "active": true,
+        "transform": {
+          "translation": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "rotation_euler_deg": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "scale": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "components": [
+          {
+            "id": "renderer",
+            "type": "renderer",
+            "enabled": true,
+            "properties": {
+              "geometry": "builtin:cube",
+              "visible": true
+            }
+          }
+        ],
+        "children": []
+      }
+    }
+  ],
+  "nodes": [
+    {
+      "id": "scene:node.board",
+      "name": "Board Grid",
+      "active": true,
+      "transform": {
+        "translation": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "rotation_euler_deg": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "components": [
+        {
+          "id": "sites",
+          "type": "topology_visualizer",
+          "enabled": true,
+          "properties": {
+            "topology": "rule:topology.board",
+            "rule_topology": "rule:topology.board",
+            "prefab": "scene:prefab.cell",
+            "index_to_world": [
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          }
+        }
+      ],
+      "children": [],
+      "parent": null,
+      "layer": "scene:layer.runtime"
+    },
+    {
+      "id": "scene:node.camera",
+      "name": "Main Camera",
+      "active": true,
+      "transform": {
+        "translation": [
+          10.0,
+          10.0,
+          15.0
+        ],
+        "rotation_euler_deg": [
+          -45.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "components": [
+        {
+          "id": "camera",
+          "type": "camera",
+          "enabled": true,
+          "properties": {
+            "projection": "perspective",
+            "near_clip": 0.1,
+            "far_clip": 100.0,
+            "active": true,
+            "fov_deg": 60.0,
+            "fov": 55.0
+          }
+        }
+      ],
+      "children": [],
+      "parent": null,
+      "layer": "scene:layer.runtime"
+    }
+  ],
+  "bindings": [
+    {
+      "id": "scene:binding.cell.variant",
+      "name": "Cell Variant",
+      "source": {
+        "kind": "state",
+        "scope": "topology_site",
+        "variable": "rule:state.board_cell"
+      },
+      "target": {
+        "selector": "topology_sites",
+        "node": "scene:node.board",
+        "visualizer": "sites",
+        "component": "renderer",
+        "property": "variant"
+      },
+      "transform": {
+        "kind": "map",
+        "cases": [
+          {
+            "equals": 0,
+            "value": "empty"
+          },
+          {
+            "equals": 1,
+            "value": "body"
+          },
+          {
+            "equals": 2,
+            "value": "head"
+          },
+          {
+            "equals": -1,
+            "value": "food"
+          }
+        ]
+      }
+    }
+  ],
+  "provenance": {
+    "patch_history": [
+      {
+        "base_revision": 0,
+        "base_content_hash": "a1f0564a545d31b8627986984079d2885587f6ae1d3ca68dec50ee9b06adb26f",
+        "evidence": [
+          {
+            "evidence_id": "ev:asset.font_poetsenone_regular_ttf",
+            "path": "Font/PoetsenOne-Regular.ttf",
+            "kind": "static",
+            "supports": "/scene_ir/nodes",
+            "confidence": 0.7,
+            "file_sha256": "85b9c540b6e59c75c3eea602d9256ec5eb386f49c982d86ced4b7c161aac2a2f",
+            "span": {
+              "byte_start": 0,
+              "byte_end": 64
+            }
+          }
+        ],
+        "assumptions": [],
+        "operation_count": 3
+      }
+    ]
+  },
+  "unresolved": []
+}

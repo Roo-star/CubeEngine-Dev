@@ -1,0 +1,219 @@
+{
+  "ir_version": "cubeengine.input-ir/2.0-alpha.1",
+  "document_id": "input:game.snake.game.with.python.and.pygame.target",
+  "revision": 2,
+  "content_hash": "d54d887f69908a0526d98e01d1948dba72de45c54e2182c4469a87d083bb6fec",
+  "metadata": {
+    "title": "Snake Game with Python and Pygame",
+    "description": "LLM compiler bootstrap shell. Semantics must be filled by evidence-backed patches.",
+    "source_project_hash": "6bbf008a8c81a818a748c0c6d58bb2457c311dc3efed88f516d073cecfbb756c"
+  },
+  "dependencies": {
+    "rule_ir": {
+      "document_id": "rule:game.snake.game.with.python.and.pygame.target",
+      "content_hash": "a17fc4a022426781f8d725a148773ba3dee5737ea2c3fefdd4c9441e452f8dc7"
+    },
+    "extensions": []
+  },
+  "contexts": [
+    {
+      "id": "input:context.play",
+      "name": "Play",
+      "priority": 100,
+      "enabled_by_default": true,
+      "focus": "viewport",
+      "consume_policy": "first_match",
+      "exclusive_group": "runtime_mode"
+    }
+  ],
+  "intents": [
+    {
+      "id": "input:action.intent.change.direction",
+      "name": "Change Direction",
+      "value_type": "digital",
+      "required": true,
+      "target": {
+        "kind": "rule_action",
+        "action": "rule:action.change_direction",
+        "parameters": {}
+      }
+    }
+  ],
+  "bindings": [
+    {
+      "id": "input:binding.up",
+      "name": "Up",
+      "context": "input:context.play",
+      "intent": "input:action.intent.change.direction",
+      "priority": 100,
+      "enabled": true,
+      "consume": true,
+      "rebindable": true,
+      "slot": "primary",
+      "accessibility_label": "Up",
+      "trigger": {
+        "kind": "control",
+        "device": "keyboard",
+        "control": "keyboard.key.arrow_up",
+        "phase": "press",
+        "modifiers": [],
+        "modifier_policy": "exact"
+      },
+      "processing": {
+        "dead_zone": 0,
+        "sensitivity_numerator": 1,
+        "sensitivity_denominator": 1,
+        "invert": false,
+        "clamp_min": -32768,
+        "clamp_max": 32767
+      }
+    },
+    {
+      "id": "input:binding.down",
+      "name": "Down",
+      "context": "input:context.play",
+      "intent": "input:action.intent.change.direction",
+      "priority": 100,
+      "enabled": true,
+      "consume": true,
+      "rebindable": true,
+      "slot": "primary",
+      "accessibility_label": "Down",
+      "trigger": {
+        "kind": "control",
+        "device": "keyboard",
+        "control": "keyboard.key.arrow_down",
+        "phase": "press",
+        "modifiers": [],
+        "modifier_policy": "exact"
+      },
+      "processing": {
+        "dead_zone": 0,
+        "sensitivity_numerator": 1,
+        "sensitivity_denominator": 1,
+        "invert": false,
+        "clamp_min": -32768,
+        "clamp_max": 32767
+      }
+    },
+    {
+      "id": "input:binding.left",
+      "name": "Left",
+      "context": "input:context.play",
+      "intent": "input:action.intent.change.direction",
+      "priority": 100,
+      "enabled": true,
+      "consume": true,
+      "rebindable": true,
+      "slot": "primary",
+      "accessibility_label": "Left",
+      "trigger": {
+        "kind": "control",
+        "device": "keyboard",
+        "control": "keyboard.key.arrow_left",
+        "phase": "press",
+        "modifiers": [],
+        "modifier_policy": "exact"
+      },
+      "processing": {
+        "dead_zone": 0,
+        "sensitivity_numerator": 1,
+        "sensitivity_denominator": 1,
+        "invert": false,
+        "clamp_min": -32768,
+        "clamp_max": 32767
+      }
+    },
+    {
+      "id": "input:binding.right",
+      "name": "Right",
+      "context": "input:context.play",
+      "intent": "input:action.intent.change.direction",
+      "priority": 100,
+      "enabled": true,
+      "consume": true,
+      "rebindable": true,
+      "slot": "primary",
+      "accessibility_label": "Right",
+      "trigger": {
+        "kind": "control",
+        "device": "keyboard",
+        "control": "keyboard.key.arrow_right",
+        "phase": "press",
+        "modifiers": [],
+        "modifier_policy": "exact"
+      },
+      "processing": {
+        "dead_zone": 0,
+        "sensitivity_numerator": 1,
+        "sensitivity_denominator": 1,
+        "invert": false,
+        "clamp_min": -32768,
+        "clamp_max": 32767
+      }
+    }
+  ],
+  "provenance": {
+    "patch_history": [
+      {
+        "base_revision": 0,
+        "base_content_hash": "d409f0cf52ba79eb2a58cbfe40a57ae5fa96560f83d69ba54637437932d99d27",
+        "evidence": [
+          {
+            "evidence_id": "ev:input.0",
+            "path": "snake.py",
+            "file_sha256": "085015d8aaa06f484df9ce0361fa4438981aecd8e1dc14ea0ba3ba744583b7dd",
+            "kind": "static",
+            "span": {
+              "line_start": 288,
+              "line_end": 288
+            },
+            "supports": "/input_ir/bindings",
+            "topic": "direction_input",
+            "confidence": 0.8,
+            "detail": "0"
+          }
+        ],
+        "assumptions": [],
+        "operation_count": 4
+      },
+      {
+        "base_revision": 0,
+        "base_content_hash": "6aedbf60724a70c044330e1301d251b2dbe71b06ec80a3b7125b6790242a0148",
+        "evidence": [
+          {
+            "evidence_id": "ev:input.0",
+            "path": "snake.py",
+            "kind": "static",
+            "supports": "/input_ir/bindings",
+            "confidence": 0.8,
+            "file_sha256": "085015d8aaa06f484df9ce0361fa4438981aecd8e1dc14ea0ba3ba744583b7dd",
+            "span": {
+              "line_start": 288,
+              "line_end": 288
+            }
+          }
+        ],
+        "assumptions": [
+          "Page Up and Page Down control Z-axis direction selection"
+        ],
+        "operation_count": 1
+      }
+    ]
+  },
+  "unresolved": [],
+  "target_3d_bindings": [
+    {
+      "action": "change_direction_z_up",
+      "inputs": [
+        "Page Up"
+      ]
+    },
+    {
+      "action": "change_direction_z_down",
+      "inputs": [
+        "Page Down"
+      ]
+    }
+  ]
+}

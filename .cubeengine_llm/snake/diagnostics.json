@@ -1,0 +1,12 @@
+{
+  "ok": false,
+  "stage": "spatial_lift_blocked",
+  "diagnostics": [
+    "Spatial Lift blocked: source must reach compile_ready after designer approval."
+  ],
+  "unresolved_summary": [],
+  "provider": "gemini",
+  "model": "gemini-3.6-flash",
+  "attempts": 1,
+  "compile_ready": false
+}

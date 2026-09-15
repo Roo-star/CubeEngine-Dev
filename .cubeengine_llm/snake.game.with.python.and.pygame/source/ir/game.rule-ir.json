@@ -1,0 +1,265 @@
+{
+  "ir_version": "cubeengine.rule-ir/2.0-alpha.1",
+  "document_id": "rule:game.snake.game.with.python.and.pygame.source",
+  "revision": 1,
+  "content_hash": "1c1da6817ca2ab7ad8760e3e50fae9861bfed5da4e0aa9e9954d870cde538be8",
+  "metadata": {
+    "title": "Snake Game with Python and Pygame",
+    "description": "LLM compiler bootstrap shell. Semantics must be filled by evidence-backed patches.",
+    "source_project_hash": "6bbf008a8c81a818a748c0c6d58bb2457c311dc3efed88f516d073cecfbb756c",
+    "determinism": "deterministic"
+  },
+  "dependencies": {
+    "scene_ir": null,
+    "asset_ir": null,
+    "input_ir": null,
+    "extensions": []
+  },
+  "parameters": [],
+  "types": [],
+  "participants": [
+    {
+      "id": "rule:participant.human.player",
+      "name": "Player",
+      "kind": "human"
+    }
+  ],
+  "topologies": [
+    {
+      "id": "rule:topology.board",
+      "kind": "rect_grid",
+      "anchor": "cell",
+      "axes": [
+        {
+          "name": "x",
+          "extent": 20,
+          "boundary": "bounded"
+        },
+        {
+          "name": "y",
+          "extent": 20,
+          "boundary": "bounded"
+        }
+      ],
+      "neighborhoods": [],
+      "name": "Board"
+    }
+  ],
+  "state": {
+    "variables": [
+      {
+        "id": "rule:state.board_cell",
+        "name": "Board Cell",
+        "type": "core:int",
+        "scope": "topology_site",
+        "topology": "rule:topology.board",
+        "initial": {
+          "op": "literal",
+          "value": 0
+        }
+      }
+    ],
+    "entity_types": [],
+    "initial_effects": [],
+    "information_model": "perfect"
+  },
+  "queries": [],
+  "events": [],
+  "actions": [
+    {
+      "id": "rule:action.change_direction_up",
+      "name": "Change Direction Up",
+      "actor": {
+        "op": "literal",
+        "value": "rule:participant.human.player"
+      },
+      "verb": "control",
+      "target": {
+        "kind": "source_defined"
+      },
+      "parameters": [],
+      "precondition": {
+        "op": "literal",
+        "value": true
+      },
+      "effects": [
+        {
+          "op": "state.set",
+          "variable": "rule:state.direction",
+          "value": {
+            "op": "literal",
+            "value": "up"
+          }
+        }
+      ],
+      "timing": {
+        "phase": "rule:phase.input"
+      },
+      "encoding": {
+        "kind": "none"
+      }
+    },
+    {
+      "id": "rule:action.change_direction_down",
+      "name": "Change Direction Down",
+      "actor": {
+        "op": "literal",
+        "value": "rule:participant.human.player"
+      },
+      "verb": "control",
+      "target": {
+        "kind": "source_defined"
+      },
+      "parameters": [],
+      "precondition": {
+        "op": "literal",
+        "value": true
+      },
+      "effects": [
+        {
+          "op": "state.set",
+          "variable": "rule:state.direction",
+          "value": {
+            "op": "literal",
+            "value": "down"
+          }
+        }
+      ],
+      "timing": {
+        "phase": "rule:phase.input"
+      },
+      "encoding": {
+        "kind": "none"
+      }
+    },
+    {
+      "id": "rule:action.change_direction_left",
+      "name": "Change Direction Left",
+      "actor": {
+        "op": "literal",
+        "value": "rule:participant.human.player"
+      },
+      "verb": "control",
+      "target": {
+        "kind": "source_defined"
+      },
+      "parameters": [],
+      "precondition": {
+        "op": "literal",
+        "value": true
+      },
+      "effects": [
+        {
+          "op": "state.set",
+          "variable": "rule:state.direction",
+          "value": {
+            "op": "literal",
+            "value": "left"
+          }
+        }
+      ],
+      "timing": {
+        "phase": "rule:phase.input"
+      },
+      "encoding": {
+        "kind": "none"
+      }
+    },
+    {
+      "id": "rule:action.change_direction_right",
+      "name": "Change Direction Right",
+      "actor": {
+        "op": "literal",
+        "value": "rule:participant.human.player"
+      },
+      "verb": "control",
+      "target": {
+        "kind": "source_defined"
+      },
+      "parameters": [],
+      "precondition": {
+        "op": "literal",
+        "value": true
+      },
+      "effects": [
+        {
+          "op": "state.set",
+          "variable": "rule:state.direction",
+          "value": {
+            "op": "literal",
+            "value": "right"
+          }
+        }
+      ],
+      "timing": {
+        "phase": "rule:phase.input"
+      },
+      "encoding": {
+        "kind": "none"
+      }
+    }
+  ],
+  "systems": [],
+  "flow": {
+    "model": "event_driven",
+    "phases": [
+      {
+        "id": "rule:phase.input",
+        "order": 100
+      },
+      {
+        "id": "rule:phase.update",
+        "order": 200
+      },
+      {
+        "id": "rule:phase.outcome",
+        "order": 300
+      }
+    ],
+    "initial_phase": "rule:phase.input",
+    "scheduler": {
+      "clock": "event_queue",
+      "tick_hz": null,
+      "ordering": "phase_priority_id"
+    }
+  },
+  "random_streams": [],
+  "goals": [],
+  "outcomes": [],
+  "modes": [
+    {
+      "id": "rule:mode.default",
+      "name": "Default",
+      "overrides": []
+    }
+  ],
+  "invariants": [],
+  "extensions": {},
+  "provenance": {
+    "patch_history": [
+      {
+        "base_revision": 0,
+        "base_content_hash": "9ba7c8c8637ec5efa2ad84fe8c645c6bcf2595b0ab4f9ca6774f219e34a38d01",
+        "evidence": [
+          {
+            "evidence_id": "ev:param.source_tick_ms.0",
+            "path": "snake.py",
+            "file_sha256": "085015d8aaa06f484df9ce0361fa4438981aecd8e1dc14ea0ba3ba744583b7dd",
+            "kind": "static",
+            "span": {
+              "line_start": 277,
+              "line_end": 277
+            },
+            "supports": "/rule_ir/flow",
+            "topic": "movement",
+            "confidence": 0.8,
+            "detail": "Movement interval (milliseconds)"
+          }
+        ],
+        "assumptions": [],
+        "operation_count": 3
+      }
+    ]
+  },
+  "unresolved": []
+}

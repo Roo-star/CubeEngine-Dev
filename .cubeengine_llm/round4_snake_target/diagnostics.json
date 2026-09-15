@@ -1,0 +1,17 @@
+{
+  "ok": true,
+  "stage": "spatial_lift",
+  "diagnostics": [],
+  "unresolved_summary": [
+    {
+      "path": "/provenance/llm",
+      "reason": "LLM proposal has not been designer-approved.",
+      "required": true,
+      "owner": "designer"
+    }
+  ],
+  "provider": "gemini",
+  "model": "gemini-3.6-flash",
+  "attempts": 2,
+  "compile_ready": false
+}

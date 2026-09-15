@@ -1,0 +1,19 @@
+{
+  "ok": false,
+  "stage": "spatial_lift_blocked",
+  "job_id": "job:92d629151c814161",
+  "project_id": "project:snake.game.with.python.and.pygame.llm.source",
+  "source_package_hash": "6bbf008a8c81a818a748c0c6d58bb2457c311dc3efed88f516d073cecfbb756c",
+  "provider": "gemini",
+  "model": "gemini-3.6-flash",
+  "attempts": 1,
+  "prompt_template_version": "cubeengine.srtp/llm-prompt/2.0",
+  "diagnostics": [
+    "Spatial Lift blocked: source must reach compile_ready after designer approval."
+  ],
+  "compile_ready": false,
+  "output_dir": ".cubeengine_llm\\snake",
+  "unresolved_summary": [],
+  "proposal_id": "prop.snake.001",
+  "manifest_project_id": "project:snake.game.with.python.and.pygame.llm.source"
+}

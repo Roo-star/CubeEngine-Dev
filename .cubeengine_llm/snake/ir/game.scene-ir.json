@@ -1,0 +1,234 @@
+{
+  "ir_version": "cubeengine.scene-ir/2.0-alpha.1",
+  "document_id": "scene:game.snake.game.with.python.and.pygame.source",
+  "revision": 1,
+  "content_hash": "07748b5911ef2388ca155758efba90837db7c2d55a9a4910f9cb8d983db8b7cb",
+  "metadata": {
+    "title": "Snake Game with Python and Pygame",
+    "description": "LLM compiler bootstrap shell. Semantics must be filled by evidence-backed patches.",
+    "source_project_hash": "6bbf008a8c81a818a748c0c6d58bb2457c311dc3efed88f516d073cecfbb756c"
+  },
+  "dependencies": {
+    "rule_ir": {
+      "document_id": "rule:game.snake.game.with.python.and.pygame.source",
+      "content_hash": "0fa7a22469fc25dea2f1d2497d9f7936ffea40cb76c093b67aed4b05eabbd86a"
+    },
+    "asset_ir": {
+      "document_id": "asset:game.snake.game.with.python.and.pygame.source",
+      "content_hash": "c44fe3b1552b42e17294da926bd94eec925592e98499b0507779a1703f77e81c"
+    },
+    "extensions": []
+  },
+  "layers": [
+    {
+      "id": "scene:layer.runtime",
+      "name": "Runtime",
+      "kind": "runtime",
+      "visible": true,
+      "pickable": true,
+      "opacity": 1.0
+    }
+  ],
+  "prefabs": [
+    {
+      "id": "scene:prefab.cell",
+      "name": "Cell",
+      "root": {
+        "local_id": "root",
+        "name": "Cell",
+        "active": true,
+        "transform": {
+          "translation": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "rotation_euler_deg": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "scale": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "components": [
+          {
+            "id": "renderer",
+            "type": "renderer",
+            "enabled": true,
+            "properties": {
+              "geometry": "builtin:cube",
+              "visible": true
+            }
+          }
+        ],
+        "children": []
+      }
+    }
+  ],
+  "nodes": [
+    {
+      "id": "scene:node.board",
+      "name": "Board",
+      "active": true,
+      "transform": {
+        "translation": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "rotation_euler_deg": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "components": [
+        {
+          "id": "sites",
+          "type": "topology_visualizer",
+          "enabled": true,
+          "properties": {
+            "topology": "rule:topology.board",
+            "rule_topology": "rule:topology.board",
+            "prefab": "scene:prefab.cell",
+            "index_to_world": [
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          }
+        }
+      ],
+      "children": [],
+      "parent": null,
+      "layer": "scene:layer.runtime"
+    },
+    {
+      "id": "scene:node.camera",
+      "name": "Main Camera",
+      "active": true,
+      "transform": {
+        "translation": [
+          10.0,
+          10.0,
+          20.0
+        ],
+        "rotation_euler_deg": [
+          -45.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "components": [
+        {
+          "id": "camera",
+          "type": "camera",
+          "enabled": true,
+          "properties": {
+            "projection": "orthographic",
+            "near_clip": 0.1,
+            "far_clip": 1000.0,
+            "active": true,
+            "orthographic_size": 8.0
+          }
+        }
+      ],
+      "children": [],
+      "parent": null,
+      "layer": "scene:layer.runtime"
+    }
+  ],
+  "bindings": [
+    {
+      "id": "scene:binding.cell_variant",
+      "name": "Cell Variant",
+      "source": {
+        "kind": "state",
+        "scope": "topology_site",
+        "variable": "rule:state.board_cell"
+      },
+      "target": {
+        "selector": "topology_sites",
+        "node": "scene:node.board",
+        "visualizer": "sites",
+        "component": "renderer",
+        "property": "variant"
+      },
+      "transform": {
+        "kind": "map",
+        "cases": [
+          {
+            "equals": 0,
+            "value": "empty"
+          },
+          {
+            "equals": 1,
+            "value": "body"
+          },
+          {
+            "equals": 2,
+            "value": "head"
+          },
+          {
+            "equals": -1,
+            "value": "food"
+          }
+        ]
+      }
+    }
+  ],
+  "provenance": {
+    "patch_history": [
+      {
+        "base_revision": 0,
+        "base_content_hash": "a1f0564a545d31b8627986984079d2885587f6ae1d3ca68dec50ee9b06adb26f",
+        "evidence": [
+          {
+            "evidence_id": "ev:param.source_tick_ms.0",
+            "path": "snake.py",
+            "file_sha256": "085015d8aaa06f484df9ce0361fa4438981aecd8e1dc14ea0ba3ba744583b7dd",
+            "kind": "static",
+            "span": {
+              "line_start": 277,
+              "line_end": 277
+            },
+            "supports": "/scene_ir/nodes",
+            "topic": "board_node",
+            "confidence": 0.8,
+            "detail": "board"
+          }
+        ],
+        "assumptions": [],
+        "operation_count": 2
+      }
+    ]
+  },
+  "unresolved": []
+}

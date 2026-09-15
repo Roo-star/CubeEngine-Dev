@@ -1,0 +1,12 @@
+{
+  "commit": "b65d6fc2c4d176d86d29a0a744c549957f5d2d75",
+  "provider": "gemini",
+  "model": "gemini-3.6-flash",
+  "prompt_template_version": "cubeengine.srtp/llm-prompt/2.0",
+  "stage": "source_four_ir",
+  "ok": true,
+  "compile_ready": false,
+  "diagnostics": [],
+  "rate_limit_or_error": null,
+  "output_dir": ".cubeengine_llm\\round4_snake_source"
+}

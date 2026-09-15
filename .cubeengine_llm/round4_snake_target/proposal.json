@@ -1,0 +1,309 @@
+{
+  "proposal_version": "cubeengine.srtp/llm-proposal/2.0",
+  "proposal_id": "prop-001",
+  "intent_id": "intent-001",
+  "patches": {
+    "rule_ir": [
+      {
+        "document_id": "rule:game.snake.game.with.python.and.pygame.target",
+        "base_revision": 0,
+        "base_content_hash": "b13981da8970e451efeb43831cb6444ec6dec63910ac9cf28026fe99f750d3e1",
+        "operations": [
+          {
+            "op": "add",
+            "path": "/topologies/0/axes/2",
+            "value": {
+              "name": "z",
+              "extent": 3,
+              "boundary": "bounded"
+            }
+          },
+          {
+            "op": "add",
+            "path": "/actions/-",
+            "value": {
+              "id": "rule:action.move_z_up",
+              "name": "Move Z Up",
+              "verb": "move",
+              "target_state": "rule:state.board_cell",
+              "effect_ops": [
+                "grid.set"
+              ],
+              "effects": [
+                {
+                  "op": "grid.set",
+                  "vector": [
+                    0,
+                    0,
+                    1
+                  ]
+                }
+              ],
+              "parameters": [],
+              "precondition": {
+                "op": "literal",
+                "value": true
+              },
+              "encoding": {
+                "kind": "none"
+              },
+              "actor": {
+                "op": "literal",
+                "value": "rule:participant.human.player"
+              },
+              "timing": {
+                "phase": "rule:phase.input"
+              }
+            }
+          },
+          {
+            "op": "add",
+            "path": "/actions/-",
+            "value": {
+              "id": "rule:action.move_z_down",
+              "name": "Move Z Down",
+              "verb": "move",
+              "target_state": "rule:state.board_cell",
+              "effect_ops": [
+                "grid.set"
+              ],
+              "effects": [
+                {
+                  "op": "grid.set",
+                  "vector": [
+                    0,
+                    0,
+                    -1
+                  ]
+                }
+              ],
+              "parameters": [],
+              "precondition": {
+                "op": "literal",
+                "value": true
+              },
+              "encoding": {
+                "kind": "none"
+              },
+              "actor": {
+                "op": "literal",
+                "value": "rule:participant.human.player"
+              },
+              "timing": {
+                "phase": "rule:phase.input"
+              }
+            }
+          }
+        ],
+        "evidence": [
+          {
+            "evidence_id": "ev:param.source_tick_ms.0",
+            "path": "snake.py",
+            "kind": "static",
+            "supports": "/rule_ir/flow",
+            "confidence": 0.8,
+            "file_sha256": "085015d8aaa06f484df9ce0361fa4438981aecd8e1dc14ea0ba3ba744583b7dd",
+            "span": {
+              "line_start": 277,
+              "line_end": 277
+            }
+          }
+        ],
+        "assumptions": [],
+        "unresolved": []
+      }
+    ],
+    "scene_ir": [],
+    "asset_ir": [],
+    "input_ir": [
+      {
+        "document_id": "input:game.snake.game.with.python.and.pygame.target",
+        "base_revision": 0,
+        "base_content_hash": "8b848201bf1ab0a27243bf5fcff3b3629fae8e312248e9ec8d1c0ad2a09df63e",
+        "operations": [
+          {
+            "op": "add",
+            "path": "/intents/-",
+            "value": {
+              "id": "input:action.intent.move.z.up",
+              "name": "Up",
+              "value_type": "digital",
+              "required": true,
+              "target": {
+                "kind": "rule_action",
+                "action": "rule:action.move_z_up",
+                "parameters": {}
+              }
+            }
+          },
+          {
+            "op": "add",
+            "path": "/intents/-",
+            "value": {
+              "id": "input:action.intent.move.z.down",
+              "name": "Down",
+              "value_type": "digital",
+              "required": true,
+              "target": {
+                "kind": "rule_action",
+                "action": "rule:action.move_z_down",
+                "parameters": {}
+              }
+            }
+          },
+          {
+            "op": "add",
+            "path": "/bindings/-",
+            "value": {
+              "id": "input:binding.z.up",
+              "intent": "input:action.intent.move.z.up",
+              "rule_action": "rule:action.move_z_up",
+              "control": "keyboard.key.page_up",
+              "name": "Up",
+              "context": "input:context.play",
+              "priority": 100,
+              "enabled": true,
+              "consume": true,
+              "rebindable": true,
+              "slot": "primary",
+              "accessibility_label": "Up",
+              "trigger": {
+                "kind": "control",
+                "device": "keyboard",
+                "control": "keyboard.key.page_up",
+                "phase": "press",
+                "modifiers": [],
+                "modifier_policy": "exact"
+              },
+              "processing": {
+                "dead_zone": 0,
+                "sensitivity_numerator": 1,
+                "sensitivity_denominator": 1,
+                "invert": false,
+                "clamp_min": -32768,
+                "clamp_max": 32767
+              }
+            }
+          },
+          {
+            "op": "add",
+            "path": "/bindings/-",
+            "value": {
+              "id": "input:binding.z.down",
+              "intent": "input:action.intent.move.z.down",
+              "rule_action": "rule:action.move_z_down",
+              "control": "keyboard.key.page_down",
+              "name": "Down",
+              "context": "input:context.play",
+              "priority": 100,
+              "enabled": true,
+              "consume": true,
+              "rebindable": true,
+              "slot": "primary",
+              "accessibility_label": "Down",
+              "trigger": {
+                "kind": "control",
+                "device": "keyboard",
+                "control": "keyboard.key.page_down",
+                "phase": "press",
+                "modifiers": [],
+                "modifier_policy": "exact"
+              },
+              "processing": {
+                "dead_zone": 0,
+                "sensitivity_numerator": 1,
+                "sensitivity_denominator": 1,
+                "invert": false,
+                "clamp_min": -32768,
+                "clamp_max": 32767
+              }
+            }
+          }
+        ],
+        "evidence": [
+          {
+            "evidence_id": "ev:input.0",
+            "path": "snake.py",
+            "kind": "static",
+            "supports": "/input_ir/bindings",
+            "confidence": 0.8,
+            "file_sha256": "085015d8aaa06f484df9ce0361fa4438981aecd8e1dc14ea0ba3ba744583b7dd",
+            "span": {
+              "line_start": 288,
+              "line_end": 288
+            }
+          }
+        ],
+        "assumptions": [],
+        "unresolved": []
+      }
+    ]
+  },
+  "job_id": "job:ee2a5c16b9b649b6",
+  "stage": "spatial_lift",
+  "source_package_hash": "6bbf008a8c81a818a748c0c6d58bb2457c311dc3efed88f516d073cecfbb756c",
+  "design_intent": {
+    "intent_version": "cubeengine.srtp/design-intent/1.0",
+    "intent_id": "intent-001",
+    "conversation_id": "conv-001",
+    "turn_id": "turn-001",
+    "project_id": "project:snake.game.with.python.and.pygame.llm.source",
+    "source_manifest_hash": "781e7f923108307993d997da678f706435347b4114597e3088624cbcb93e809e",
+    "original_text": "Preserve XY step-snake on the existing board_cell grid.set moves. Add Z extent 3. move_z_up and move_z_down must include non-empty grid.set effects on rule:state.board_cell, same shape as the XY move actions.",
+    "language": "en",
+    "operation": "transform",
+    "scope": [
+      "rule"
+    ],
+    "preserve": [
+      "XY step-snake mechanism on existing board_cell grid.set moves"
+    ],
+    "changes": [
+      "Set grid Z extent to 3",
+      "Add move_z_up action with non-empty grid.set effects on rule:state.board_cell matching XY move action shape",
+      "Add move_z_down action with non-empty grid.set effects on rule:state.board_cell matching XY move action shape"
+    ],
+    "constraints": [
+      "move_z_up and move_z_down must include non-empty grid.set effects on rule:state.board_cell",
+      "grid.set effects on Z movement actions must match the schema/shape of existing XY move actions"
+    ],
+    "resolved_references": [
+      "rule:state.board_cell"
+    ],
+    "assumptions": [],
+    "conflicts": [],
+    "unresolved": [],
+    "requires_confirmation": false,
+    "status": "pending",
+    "target_base": null
+  },
+  "base_documents": {
+    "rule_ir": {
+      "document_id": "rule:game.snake.game.with.python.and.pygame.target",
+      "revision": 0,
+      "content_hash": "b13981da8970e451efeb43831cb6444ec6dec63910ac9cf28026fe99f750d3e1"
+    },
+    "scene_ir": {
+      "document_id": "scene:game.snake.game.with.python.and.pygame.target",
+      "revision": 0,
+      "content_hash": "f3b9274a598c594447090ec72a06eaa10a1d98bc0fded9a4ef01efec1fe0fb0a"
+    },
+    "asset_ir": {
+      "document_id": "asset:game.snake.game.with.python.and.pygame.target",
+      "revision": 0,
+      "content_hash": "6652b23c3708480ca6a76c1efbd75fcd890e1823adf3fbfccf955ab6529454b0"
+    },
+    "input_ir": {
+      "document_id": "input:game.snake.game.with.python.and.pygame.target",
+      "revision": 0,
+      "content_hash": "8b848201bf1ab0a27243bf5fcff3b3629fae8e312248e9ec8d1c0ad2a09df63e"
+    }
+  },
+  "claims": [],
+  "tests": [],
+  "extension_proposals": [],
+  "spatial_lift_options": [],
+  "assumptions": [],
+  "unresolved": [],
+  "clarification_questions": []
+}

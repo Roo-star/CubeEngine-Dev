@@ -1,0 +1,45 @@
+{
+  "ir_version": "cubeengine.asset-ir/2.0-alpha.1",
+  "document_id": "asset:game.snake.game.with.python.and.pygame.target",
+  "revision": 0,
+  "content_hash": "d184f06436ddfe382f553a8de26e45a641f9a70a3ee6f72d2ca80271a79c59a1",
+  "metadata": {
+    "title": "Step Snake Cell Asset",
+    "description": "",
+    "source_project_hash": ""
+  },
+  "assets": [],
+  "derivations": [
+    {
+      "id": "asset:model.cell_cube_game_snake_game_with_python_and_pygame_target",
+      "name": "Cell Cube",
+      "kind": "model",
+      "media_type": "application/vnd.cubeengine.presentation+json",
+      "strategy": "procedural_mesh",
+      "inputs": [],
+      "settings": {
+        "primitive": "cube",
+        "dimensions": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    }
+  ],
+  "roles": [
+    {
+      "id": "asset:role.board_cell_game_snake_game_with_python_and_pygame_target",
+      "name": "Board Cell",
+      "semantic": "board.cell",
+      "resource": "asset:model.cell_cube_game_snake_game_with_python_and_pygame_target",
+      "usage": "world_mesh",
+      "required": true
+    }
+  ],
+  "presentation_mappings": [],
+  "provenance": {},
+  "unresolved": []
+}

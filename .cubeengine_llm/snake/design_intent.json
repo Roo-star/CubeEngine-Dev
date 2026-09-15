@@ -1,0 +1,34 @@
+{
+  "intent_version": "cubeengine.srtp/design-intent/1.0",
+  "intent_id": "intent:draft:404d718d8620",
+  "conversation_id": "conversation:4bd0252c2134",
+  "turn_id": "turn:8d22c2c1514d",
+  "project_id": "project:snake.game.with.python.and.pygame.llm.source",
+  "source_manifest_hash": "667a17445e81f0ab57f198e5fea03c6d93bb8c0a35c427cbfe18c9f57801a785",
+  "original_text": "Preserve XY step-snake; extend topology with Z extent 3.",
+  "language": "en",
+  "operation": "transform",
+  "scope": [
+    "rule",
+    "scene",
+    "asset",
+    "input"
+  ],
+  "preserve": [],
+  "changes": [],
+  "constraints": [],
+  "resolved_references": [],
+  "assumptions": [],
+  "conflicts": [],
+  "unresolved": [
+    {
+      "path": "/spatial_lift",
+      "reason": "Source Project must be compile_ready and designer-approved before Spatial Lift.",
+      "required": true,
+      "owner": "designer"
+    }
+  ],
+  "requires_confirmation": true,
+  "status": "draft_blocked",
+  "target_base": null
+}

@@ -1,0 +1,89 @@
+{
+  "ir_version": "cubeengine.asset-ir/2.0-alpha.1",
+  "document_id": "asset:game.snake.game.with.python.and.pygame.target",
+  "revision": 0,
+  "content_hash": "167088e45b2eea1eb3bf99a53bad936ab0f986dc7b88b6420a6b8ee4223c3c20",
+  "metadata": {
+    "title": "Snake Game with Python and Pygame",
+    "description": "LLM compiler bootstrap shell. Semantics must be filled by evidence-backed patches.",
+    "source_project_hash": "6bbf008a8c81a818a748c0c6d58bb2457c311dc3efed88f516d073cecfbb756c"
+  },
+  "assets": [
+    {
+      "id": "asset:font.poetsenone",
+      "name": "PoetsenOne Font",
+      "kind": "font",
+      "source": {
+        "uri": "project://Font/PoetsenOne-Regular.ttf",
+        "content_hash": "85b9c540b6e59c75c3eea602d9256ec5eb386f49c982d86ced4b7c161aac2a2f",
+        "byte_size": 172456
+      },
+      "media_type": "font/ttf",
+      "license": {
+        "spdx_id": "NOASSERTION",
+        "attribution": "",
+        "source_uri": null,
+        "redistribution": "unknown"
+      },
+      "importer": {
+        "capability": "cubeengine.raw-file",
+        "version": "1.0",
+        "settings": {}
+      },
+      "metadata": {}
+    },
+    {
+      "id": "asset:image.apple",
+      "name": "Apple Image",
+      "kind": "image",
+      "source": {
+        "uri": "project://Graphics/apple.png",
+        "content_hash": "9fef533da2d37741de43e78bec068f87752fcfde21e782daf5eb7b7ebe968ade",
+        "byte_size": 632
+      },
+      "media_type": "image/png",
+      "license": {
+        "spdx_id": "NOASSERTION",
+        "attribution": "",
+        "source_uri": null,
+        "redistribution": "unknown"
+      },
+      "importer": {
+        "capability": "cubeengine.image",
+        "version": "1.0",
+        "settings": {}
+      },
+      "metadata": {}
+    }
+  ],
+  "derivations": [],
+  "roles": [],
+  "presentation_mappings": [],
+  "provenance": {
+    "patch_history": [
+      {
+        "base_revision": 0,
+        "base_content_hash": "3db9e5c9530bc2a03c2b597cd35c31d49371b99d9d3054d9f13675a6e60870b0",
+        "evidence": [
+          {
+            "evidence_id": "ev:asset.font_poetsenone_regular_ttf",
+            "path": "Font/PoetsenOne-Regular.ttf",
+            "file_sha256": "85b9c540b6e59c75c3eea602d9256ec5eb386f49c982d86ced4b7c161aac2a2f",
+            "kind": "static",
+            "span": {
+              "byte_start": 0,
+              "byte_end": 64
+            },
+            "supports": "/asset_ir/assets",
+            "topic": "asset_load",
+            "confidence": 0.7,
+            "detail": "Font/PoetsenOne-Regular.ttf"
+          }
+        ],
+        "assumptions": [],
+        "operation_count": 2
+      }
+    ]
+  },
+  "unresolved": []
+}

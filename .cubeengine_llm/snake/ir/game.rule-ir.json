@@ -1,0 +1,222 @@
+{
+  "ir_version": "cubeengine.rule-ir/2.0-alpha.1",
+  "document_id": "rule:game.snake.game.with.python.and.pygame.source",
+  "revision": 1,
+  "content_hash": "0fa7a22469fc25dea2f1d2497d9f7936ffea40cb76c093b67aed4b05eabbd86a",
+  "metadata": {
+    "title": "Snake Game with Python and Pygame",
+    "description": "LLM compiler bootstrap shell. Semantics must be filled by evidence-backed patches.",
+    "source_project_hash": "6bbf008a8c81a818a748c0c6d58bb2457c311dc3efed88f516d073cecfbb756c",
+    "determinism": "deterministic"
+  },
+  "dependencies": {
+    "scene_ir": null,
+    "asset_ir": null,
+    "input_ir": null,
+    "extensions": []
+  },
+  "parameters": [],
+  "types": [],
+  "participants": [
+    {
+      "id": "rule:participant.human.player",
+      "name": "Player",
+      "kind": "human"
+    },
+    {
+      "id": "rule:participant.system",
+      "name": "System",
+      "kind": "human"
+    }
+  ],
+  "topologies": [
+    {
+      "id": "rule:topology.board",
+      "kind": "rect_grid",
+      "anchor": "cell",
+      "axes": [
+        {
+          "name": "x",
+          "extent": 20,
+          "boundary": "bounded"
+        },
+        {
+          "name": "y",
+          "extent": 20,
+          "boundary": "bounded"
+        }
+      ],
+      "neighborhoods": [],
+      "name": "Board"
+    }
+  ],
+  "state": {
+    "variables": [
+      {
+        "id": "rule:state.board_cell",
+        "name": "Board Cell",
+        "type": "core:int",
+        "scope": "topology_site",
+        "topology": "rule:topology.board",
+        "initial": {
+          "op": "literal",
+          "value": 0
+        }
+      }
+    ],
+    "entity_types": [],
+    "initial_effects": [],
+    "information_model": "perfect"
+  },
+  "queries": [],
+  "events": [],
+  "actions": [
+    {
+      "id": "rule:action.change_direction",
+      "name": "Change direction",
+      "actor": {
+        "op": "literal",
+        "value": "rule:participant.human.player"
+      },
+      "verb": "control",
+      "target": {
+        "kind": "source_defined"
+      },
+      "parameters": [],
+      "preconditions": {
+        "op": "literal",
+        "value": true
+      },
+      "effects": [
+        {
+          "op": "state.set",
+          "variable": "rule:state.snake_dir",
+          "value": {
+            "op": "literal",
+            "value": 1
+          }
+        }
+      ],
+      "timing": {
+        "phase": "rule:phase.input"
+      },
+      "executable": true,
+      "precondition": {
+        "op": "literal",
+        "value": true
+      },
+      "encoding": {
+        "kind": "none"
+      }
+    },
+    {
+      "id": "rule:action.advance",
+      "name": "Advance moving body",
+      "actor": {
+        "op": "literal",
+        "value": "rule:participant.system"
+      },
+      "verb": "move",
+      "target": {
+        "kind": "source_defined"
+      },
+      "parameters": [],
+      "preconditions": {
+        "op": "literal",
+        "value": true
+      },
+      "effects": [
+        {
+          "op": "grid.set",
+          "state": "rule:state.board_cell",
+          "topology": "rule:topology.board",
+          "coordinate": {
+            "op": "literal",
+            "value": [
+              0,
+              0
+            ]
+          },
+          "value": {
+            "op": "literal",
+            "value": 1
+          }
+        }
+      ],
+      "timing": {
+        "phase": "rule:phase.update"
+      },
+      "executable": true,
+      "precondition": {
+        "op": "literal",
+        "value": true
+      },
+      "encoding": {
+        "kind": "none"
+      }
+    }
+  ],
+  "systems": [],
+  "flow": {
+    "model": "event_driven",
+    "phases": [
+      {
+        "id": "rule:phase.input",
+        "order": 100
+      },
+      {
+        "id": "rule:phase.update",
+        "order": 200
+      },
+      {
+        "id": "rule:phase.outcome",
+        "order": 300
+      }
+    ],
+    "initial_phase": "rule:phase.input",
+    "scheduler": {
+      "clock": "event_queue",
+      "tick_hz": null,
+      "ordering": "phase_priority_id"
+    }
+  },
+  "random_streams": [],
+  "goals": [],
+  "outcomes": [],
+  "modes": [
+    {
+      "id": "rule:mode.default",
+      "name": "Default",
+      "overrides": []
+    }
+  ],
+  "invariants": [],
+  "extensions": {},
+  "provenance": {
+    "patch_history": [
+      {
+        "base_revision": 0,
+        "base_content_hash": "9ba7c8c8637ec5efa2ad84fe8c645c6bcf2595b0ab4f9ca6774f219e34a38d01",
+        "evidence": [
+          {
+            "evidence_id": "ev:param.source_tick_ms.0",
+            "path": "snake.py",
+            "file_sha256": "085015d8aaa06f484df9ce0361fa4438981aecd8e1dc14ea0ba3ba744583b7dd",
+            "kind": "static",
+            "span": {
+              "line_start": 277,
+              "line_end": 277
+            },
+            "supports": "/rule_ir/flow",
+            "topic": "movement",
+            "confidence": 0.8,
+            "detail": "Movement interval (milliseconds)"
+          }
+        ],
+        "assumptions": [],
+        "operation_count": 3
+      }
+    ]
+  },
+  "unresolved": []
+}

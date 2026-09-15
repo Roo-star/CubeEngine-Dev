@@ -1,0 +1,10 @@
+{
+  "ok": true,
+  "stage": "source_four_ir",
+  "diagnostics": [],
+  "unresolved_summary": [],
+  "provider": "gemini",
+  "model": "gemini-3.6-flash",
+  "attempts": 3,
+  "compile_ready": false
+}
