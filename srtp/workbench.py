@@ -600,6 +600,7 @@ class SrtpWorkbench:
         repo_root = PACKAGE_DIR.parent
         out_dir = repo_root / ".cubeengine_llm" / slugify(self.package.title) / "source"
         self._pending_llm_source_dir = out_dir
+        self._pending_llm_manifest = None
         self._message("Running LLM Source→four-IR (no Spatial Lift yet)…")
         try:
             report = SourceToIRCompiler().compile(
@@ -701,6 +702,7 @@ class SrtpWorkbench:
         repo_root = PACKAGE_DIR.parent
         out_dir = repo_root / ".cubeengine_llm" / slugify(self.package.title) / "target"
         self._message("Running Spatial Lift from approved Source…")
+        self._pending_llm_manifest = None
         try:
             report = SourceToIRCompiler().compile_spatial_lift(
                 self.package,

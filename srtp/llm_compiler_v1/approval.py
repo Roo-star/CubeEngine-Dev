@@ -106,6 +106,9 @@ def approve_llm_manifest_file(
     designer_id: str = "designer",
     write: bool = True,
 ) -> Dict[str, Any]:
+    # Verify the pinned files before changing approval state on disk.
+    from .compiler import load_compile_report_from_bundle
+    load_compile_report_from_bundle(Path(path).parent, manifest_path=Path(path))
     manifest = load_project_manifest(Path(path))
     approved = approve_llm_manifest(manifest, designer_id=designer_id)
     if write:

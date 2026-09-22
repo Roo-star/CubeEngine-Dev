@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import time
 from dataclasses import dataclass
 from typing import Any, Dict, List, Mapping, Optional, Sequence
 
@@ -19,6 +20,7 @@ DEFAULT_CHAT_RETRIES = 2
 _TRANSIENT_MARKERS = (
     "disconnected", "timed out", "timeout", "connection reset",
     "remote protocol", "server disconnected", "temporarily unavailable",
+    "high demand", "overloaded", "service unavailable", "503 unavailable",
 )
 
 
@@ -31,7 +33,7 @@ def _resolve_chat_retries() -> int:
     raw = os.environ.get("CUBEENGINE_LLM_CHAT_RETRIES")
     if raw:
         try:
-            return max(0, int(raw))
+            return min(5, max(0, int(raw)))
         except ValueError:
             pass
     return DEFAULT_CHAT_RETRIES
@@ -40,6 +42,10 @@ def _resolve_chat_retries() -> int:
 
 class LLMClientError(RuntimeError):
     """Raised when the model transport or JSON payload fails closed."""
+
+
+class LLMTransportError(LLMClientError):
+    """Provider requests failed; do not treat this as a proposal to repair."""
 
 
 @dataclass(frozen=True)
@@ -195,10 +201,11 @@ class FreeFlowLLMClient:
                     last_error = error
                     transient = _is_transient_provider_error(error)
                     if transient and attempt < retries:
+                        time.sleep(min(30.0, 2.0 ** (attempt + 1)))
                         continue
-                    raise LLMClientError("FreeFlow LLM request failed: {0}".format(error)) from error
+                    raise LLMTransportError("FreeFlow LLM request failed: {0}".format(error)) from error
             if response is None:
-                raise LLMClientError("FreeFlow LLM request failed: {0}".format(last_error))
+                raise LLMTransportError("FreeFlow LLM request failed: {0}".format(last_error))
             content = _response_content(response)
             provider = str(getattr(response, "provider", "") or "unknown")
             model = str(getattr(response, "model", self.model or "") or "default")

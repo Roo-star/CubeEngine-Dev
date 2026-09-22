@@ -24,7 +24,7 @@ from srtp.source_importer import SourceGameImporter
 
 from .artifacts import write_compile_artifacts
 from .bootstrap import BootstrapDocuments, bootstrap_documents, document_pin, slugify
-from .client import FreeFlowLLMClient, LLMClientError
+from .client import FreeFlowLLMClient, LLMClientError, LLMTransportError
 from .contracts import (
     DESIGN_INTENT_VERSION,
     LLM_PROPOSAL_VERSION,
@@ -469,6 +469,7 @@ class SourceToIRCompiler:
         if not source_report.compile_ready or source_report.manifest is None:
             report = deepcopy_report(source_report)
             report.ok = False
+            report.compile_ready = False
             report.stage = "spatial_lift_blocked"
             report.diagnostics = [
                 "Spatial Lift blocked: source bundle is not compile_ready "
@@ -538,6 +539,8 @@ class SourceToIRCompiler:
                 result = self.client.chat_json(messages)
             except LLMClientError as error:
                 diagnostics = [str(error)]
+                if isinstance(error, LLMTransportError):
+                    break
                 repair = diagnostics
                 continue
             provider = result.provider
@@ -699,6 +702,7 @@ class SourceToIRCompiler:
             }
             report = deepcopy_report(source_report)
             report.ok = False
+            report.compile_ready = False
             report.stage = "spatial_lift_blocked"
             report.design_intent = draft_intent
             report.diagnostics = [
@@ -720,6 +724,7 @@ class SourceToIRCompiler:
         except LLMClientError as error:
             report = deepcopy_report(source_report)
             report.ok = False
+            report.compile_ready = False
             report.stage = "design_intent"
             report.diagnostics = [str(error)]
             if out_dir is not None:
@@ -759,6 +764,7 @@ class SourceToIRCompiler:
         if intent_errors:
             report = deepcopy_report(source_report)
             report.ok = False
+            report.compile_ready = False
             report.stage = "design_intent"
             report.design_intent = design_intent
             report.diagnostics = intent_errors
@@ -825,6 +831,7 @@ class SourceToIRCompiler:
             except LLMClientError as error:
                 report = deepcopy_report(source_report)
                 report.ok = False
+                report.compile_ready = False
                 report.stage = "spatial_lift"
                 report.design_intent = design_intent
                 report.diagnostics = [str(error)]
@@ -866,6 +873,7 @@ class SourceToIRCompiler:
                     continue
                 report = deepcopy_report(source_report)
                 report.ok = False
+                report.compile_ready = False
                 report.stage = "spatial_lift"
                 report.design_intent = design_intent
                 report.spatial_lift_plan = plan
@@ -986,13 +994,13 @@ class SourceToIRCompiler:
         if report is None:
             report = deepcopy_report(source_report)
             report.ok = False
+            report.compile_ready = False
             report.stage = "spatial_lift"
             report.diagnostics = diagnostics or ["spatial lift produced no report"]
         if out_dir is not None:
-            target_root = Path(out_dir)
-            write_compile_artifacts(target_root, report)
-            _write_source_manifest_sidecar(target_root, source_report.manifest)
-            report.output_dir = str(target_root)
+            report.output_dir = str(write_compile_artifacts(
+                Path(out_dir), report, source_manifest=source_report.manifest,
+            ))
         return report
 
     def _build_manifest(
@@ -2045,7 +2053,9 @@ def deepcopy_report(report: CompileReport) -> CompileReport:
     )
 
 
-def load_compile_report_from_bundle(bundle_dir: Path) -> CompileReport:
+def load_compile_report_from_bundle(
+    bundle_dir: Path, *, manifest_path: Optional[Path] = None,
+) -> CompileReport:
     """Rebuild a CompileReport from a sealed Project bundle on disk."""
 
     from srtp.asset_ir_v2 import load_asset_ir
@@ -2055,7 +2065,7 @@ def load_compile_report_from_bundle(bundle_dir: Path) -> CompileReport:
     from srtp.scene_ir_v2 import load_scene_ir
 
     root = Path(bundle_dir).resolve()
-    manifest_path = root / "project.manifest.json"
+    manifest_path = Path(manifest_path) if manifest_path is not None else root / "project.manifest.json"
     if not manifest_path.is_file():
         raise FileNotFoundError("project.manifest.json not found in {0}".format(root))
     manifest = load_project_manifest(manifest_path)
@@ -2068,41 +2078,38 @@ def load_compile_report_from_bundle(bundle_dir: Path) -> CompileReport:
     documents: Dict[str, Dict[str, Any]] = {}
     ir_dir = root / "ir"
     candidates = list(root.glob("*.json")) + list(ir_dir.glob("*.json")) if ir_dir.is_dir() else list(root.glob("*.json"))
-    loaded_docs: List[Dict[str, Any]] = []
+    loaded_docs = []
     for path in candidates:
         if path.name in {"project.manifest.json", "report.json", "diagnostics.json", "proposal.json"}:
             continue
         if path.name in {"design_intent.json", "spatial_lift_plan.json", "source.manifest.json"}:
             continue
         try:
-            loaded_docs.append(json.loads(path.read_text(encoding="utf-8")))
+            loaded_docs.append((path, json.loads(path.read_text(encoding="utf-8"))))
         except (OSError, json.JSONDecodeError):
             continue
 
     for slot, loader in loaders.items():
         pin = (manifest.get("documents") or {}).get(slot) or {}
         match = None
-        for item in loaded_docs:
+        for document_path, item in loaded_docs:
             if not isinstance(item, Mapping):
                 continue
             if item.get("document_id") == pin.get("document_id") and item.get("content_hash") == pin.get("content_hash"):
-                match = dict(item)
+                match = loader(document_path)
                 break
         if match is None:
-            # Fall back to conventional filenames under ir/.
-            conventional = {
-                "rule_ir": "game.rule-ir.json",
-                "scene_ir": "game.scene-ir.json",
-                "asset_ir": "game.asset-ir.json",
-                "input_ir": "game.input-ir.json",
-            }.get(slot)
-            if conventional and (ir_dir / conventional).is_file():
-                match = loader(ir_dir / conventional)
-        if match is None:
             raise FileNotFoundError(
-                "Bundle missing pinned {0} document ({1})".format(slot, pin.get("document_id"))
+                "Bundle missing or mismatched pinned {0} document ({1}). "
+                "Restore a complete successful bundle; do not approve mixed runs.".format(slot, pin.get("document_id"))
             )
         documents[slot] = match
+
+    source_pin = manifest.get("source_manifest")
+    if isinstance(source_pin, Mapping):
+        source = load_project_manifest(root / "source.manifest.json")
+        if any(source.get(key) != source_pin.get(key) for key in ("project_id", "content_hash")):
+            raise ValueError("Target bundle has a mismatched source Manifest")
 
     proposal = None
     proposal_path = root / "proposal.json"
@@ -2119,6 +2126,9 @@ def load_compile_report_from_bundle(bundle_dir: Path) -> CompileReport:
             report_meta = json.loads(report_path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):
             report_meta = {}
+
+    if report_meta.get("ok") is False:
+        raise ValueError("This bundle belongs to a failed compilation and cannot be approved or lifted.")
 
     return CompileReport(
         ok=True,
