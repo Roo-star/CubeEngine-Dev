@@ -401,7 +401,14 @@ class RuleTransaction:
                 })
             return
         if operation in ("state.set", "state.increment"):
-            target = self.evaluate(command["target"])
+            if "target" in command:
+                target_expr = command["target"]
+            elif isinstance(command.get("variable"), str) and command["variable"].strip():
+                # Legacy / LLM shorthand: variable id instead of target expression.
+                target_expr = {"op": "literal", "value": command["variable"].strip()}
+            else:
+                raise RuleRuntimeError("state.set/state.increment requires target")
+            target = self.evaluate(target_expr)
             scope_key = self.evaluate(command["scope"]) if "scope" in command else None
             value = self.evaluate(command["value"])
             if operation == "state.increment":
@@ -1722,6 +1729,17 @@ def _core_functions(runtime: RuleRuntime) -> Dict[str, FunctionSpec]:
         coordinate = tuple(args[1])
         return bool(topology_contains((_topology_for_grid(state(context), str(args[0])), coordinate), context) and array[coordinate] == args[2])
 
+    def grid_get(args: Tuple[Any, ...], context: EvaluationContext):
+        array = grid(args, context)
+        coordinate = tuple(args[1])
+        shape = array.shape
+        if len(coordinate) != len(shape) or any(
+            isinstance(item, bool) or not isinstance(item, int) or item < 0 or item >= shape[index]
+            for index, item in enumerate(coordinate)
+        ):
+            raise ExpressionError("core:grid.get coordinate is outside the grid")
+        return array[coordinate]
+
     def none_equal(args: Tuple[Any, ...], context: EvaluationContext):
         return not any(value == args[1] for value in grid(args, context).flat)
 
@@ -1819,6 +1837,7 @@ def _core_functions(runtime: RuleRuntime) -> Dict[str, FunctionSpec]:
         "core:topology.connected": FunctionSpec("core:topology.connected", topology_connected, "core:bool", ("core:string", "core:any", "core:bool")),
         "core:topology.shortest_path": FunctionSpec("core:topology.shortest_path", topology_shortest_path, "core:any", ("core:string", "core:coord", "core:coord", "core:any", "core:bool")),
         "core:grid.equals": FunctionSpec("core:grid.equals", grid_equals, "core:bool", ("core:string", "core:coord", "core:any")),
+        "core:grid.get": FunctionSpec("core:grid.get", grid_get, "core:any", ("core:string", "core:coord")),
         "core:grid.none_equal": FunctionSpec("core:grid.none_equal", none_equal, "core:bool", ("core:string", "core:any")),
         "core:grid.count_state_at_least": FunctionSpec("core:grid.count_state_at_least", count_at_least, "core:bool", ("core:string", "core:any", "core:int")),
         "core:grid.count_equal": FunctionSpec("core:grid.count_equal", count_equal, "core:int", ("core:string", "core:any")),

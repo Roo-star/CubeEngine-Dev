@@ -1,0 +1,1023 @@
+{
+  "proposal_version": "cubeengine.srtp/llm-proposal/2.0",
+  "patches": {
+    "rule_ir": [
+      {
+        "target_document": "rule_ir",
+        "operations": [
+          {
+            "op": "replace",
+            "path": "/topologies",
+            "value": [
+              {
+                "id": "rule:topology.board",
+                "kind": "rect_grid",
+                "anchor": "cell",
+                "axes": [
+                  {
+                    "name": "x",
+                    "extent": 20,
+                    "boundary": "bounded"
+                  },
+                  {
+                    "name": "y",
+                    "extent": 20,
+                    "boundary": "bounded"
+                  }
+                ],
+                "neighborhoods": [],
+                "name": "Board"
+              }
+            ]
+          },
+          {
+            "op": "add",
+            "path": "/state",
+            "value": {
+              "variables": [
+                {
+                  "id": "rule:state.board_cell",
+                  "name": "Board Cell",
+                  "type": "core:int",
+                  "scope": "topology_site",
+                  "topology": "rule:topology.board",
+                  "initial_value": {
+                    "op": "literal",
+                    "value": 0
+                  },
+                  "initial": {
+                    "op": "literal",
+                    "value": 0
+                  }
+                }
+              ],
+              "initial_effects": [
+                {
+                  "op": "grid.set",
+                  "state": "rule:state.board_cell",
+                  "topology": "rule:topology.board",
+                  "coordinate": {
+                    "op": "literal",
+                    "value": [
+                      10,
+                      10
+                    ]
+                  },
+                  "value": {
+                    "op": "literal",
+                    "value": 2
+                  }
+                },
+                {
+                  "op": "grid.set",
+                  "state": "rule:state.board_cell",
+                  "topology": "rule:topology.board",
+                  "coordinate": {
+                    "op": "literal",
+                    "value": [
+                      5,
+                      5
+                    ]
+                  },
+                  "value": {
+                    "op": "literal",
+                    "value": -1
+                  }
+                }
+              ],
+              "entity_types": [],
+              "information_model": "perfect"
+            }
+          },
+          {
+            "op": "replace",
+            "path": "/actions",
+            "value": [
+              {
+                "id": "rule:action.move_up",
+                "name": "Move Up",
+                "actor": {
+                  "op": "literal",
+                  "value": "rule:participant.human.player"
+                },
+                "verb": "control",
+                "target": {
+                  "kind": "source_defined"
+                },
+                "parameters": [],
+                "preconditions": {
+                  "op": "literal",
+                  "value": true
+                },
+                "effects": [
+                  {
+                    "op": "grid.set",
+                    "state": "rule:state.board_cell",
+                    "topology": "rule:topology.board",
+                    "coordinate": {
+                      "op": "literal",
+                      "value": [
+                        10,
+                        11
+                      ]
+                    },
+                    "value": {
+                      "op": "literal",
+                      "value": 2
+                    }
+                  }
+                ],
+                "timing": {
+                  "phase": "rule:phase.input"
+                },
+                "executable": true,
+                "semantic_status": "proven",
+                "precondition": {
+                  "op": "literal",
+                  "value": true
+                },
+                "encoding": {
+                  "kind": "none"
+                }
+              },
+              {
+                "id": "rule:action.move_down",
+                "name": "Move Down",
+                "actor": {
+                  "op": "literal",
+                  "value": "rule:participant.human.player"
+                },
+                "verb": "control",
+                "target": {
+                  "kind": "source_defined"
+                },
+                "parameters": [],
+                "preconditions": {
+                  "op": "literal",
+                  "value": true
+                },
+                "effects": [
+                  {
+                    "op": "grid.set",
+                    "state": "rule:state.board_cell",
+                    "topology": "rule:topology.board",
+                    "coordinate": {
+                      "op": "literal",
+                      "value": [
+                        10,
+                        9
+                      ]
+                    },
+                    "value": {
+                      "op": "literal",
+                      "value": 2
+                    }
+                  }
+                ],
+                "timing": {
+                  "phase": "rule:phase.input"
+                },
+                "executable": true,
+                "semantic_status": "proven",
+                "precondition": {
+                  "op": "literal",
+                  "value": true
+                },
+                "encoding": {
+                  "kind": "none"
+                }
+              },
+              {
+                "id": "rule:action.move_left",
+                "name": "Move Left",
+                "actor": {
+                  "op": "literal",
+                  "value": "rule:participant.human.player"
+                },
+                "verb": "control",
+                "target": {
+                  "kind": "source_defined"
+                },
+                "parameters": [],
+                "preconditions": {
+                  "op": "literal",
+                  "value": true
+                },
+                "effects": [
+                  {
+                    "op": "grid.set",
+                    "state": "rule:state.board_cell",
+                    "topology": "rule:topology.board",
+                    "coordinate": {
+                      "op": "literal",
+                      "value": [
+                        9,
+                        10
+                      ]
+                    },
+                    "value": {
+                      "op": "literal",
+                      "value": 2
+                    }
+                  }
+                ],
+                "timing": {
+                  "phase": "rule:phase.input"
+                },
+                "executable": true,
+                "semantic_status": "proven",
+                "precondition": {
+                  "op": "literal",
+                  "value": true
+                },
+                "encoding": {
+                  "kind": "none"
+                }
+              },
+              {
+                "id": "rule:action.move_right",
+                "name": "Move Right",
+                "actor": {
+                  "op": "literal",
+                  "value": "rule:participant.human.player"
+                },
+                "verb": "control",
+                "target": {
+                  "kind": "source_defined"
+                },
+                "parameters": [],
+                "preconditions": {
+                  "op": "literal",
+                  "value": true
+                },
+                "effects": [
+                  {
+                    "op": "grid.set",
+                    "state": "rule:state.board_cell",
+                    "topology": "rule:topology.board",
+                    "coordinate": {
+                      "op": "literal",
+                      "value": [
+                        11,
+                        10
+                      ]
+                    },
+                    "value": {
+                      "op": "literal",
+                      "value": 2
+                    }
+                  }
+                ],
+                "timing": {
+                  "phase": "rule:phase.input"
+                },
+                "executable": true,
+                "semantic_status": "proven",
+                "precondition": {
+                  "op": "literal",
+                  "value": true
+                },
+                "encoding": {
+                  "kind": "none"
+                }
+              }
+            ]
+          },
+          {
+            "op": "add",
+            "path": "/flow",
+            "value": {
+              "model": "fixed_tick",
+              "phases": [
+                {
+                  "id": "rule:phase.input",
+                  "order": 100
+                },
+                {
+                  "id": "rule:phase.update",
+                  "order": 200
+                }
+              ],
+              "initial_phase": "rule:phase.input",
+              "scheduler": {
+                "clock": "event_queue",
+                "tick_hz": 8,
+                "ordering": "phase_priority_id"
+              },
+              "turn_order": []
+            }
+          },
+          {
+            "op": "replace",
+            "path": "/unresolved",
+            "value": []
+          }
+        ],
+        "evidence": [
+          {
+            "evidence_id": "ev:param.source_tick_ms.0",
+            "path": "snake.py",
+            "kind": "static",
+            "supports": "/rule_ir/flow",
+            "confidence": 0.8,
+            "file_sha256": "085015d8aaa06f484df9ce0361fa4438981aecd8e1dc14ea0ba3ba744583b7dd",
+            "span": {
+              "line_start": 277,
+              "line_end": 277
+            }
+          }
+        ],
+        "document_id": "rule:game.snake.game.with.python.and.pygame.source",
+        "base_revision": 0,
+        "base_content_hash": "9ba7c8c8637ec5efa2ad84fe8c645c6bcf2595b0ab4f9ca6774f219e34a38d01",
+        "unresolved": [],
+        "assumptions": []
+      }
+    ],
+    "scene_ir": [
+      {
+        "target_document": "scene_ir",
+        "operations": [
+          {
+            "op": "replace",
+            "path": "/nodes",
+            "value": [
+              {
+                "id": "scene:node.board",
+                "name": "Board Grid",
+                "active": true,
+                "transform": {
+                  "translation": [
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  "rotation_euler_deg": [
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  "scale": [
+                    1.0,
+                    1.0,
+                    1.0
+                  ]
+                },
+                "components": [
+                  {
+                    "id": "sites",
+                    "type": "topology_visualizer",
+                    "enabled": true,
+                    "properties": {
+                      "topology": "rule:topology.board",
+                      "rule_topology": "rule:topology.board",
+                      "prefab": "scene:prefab.cell",
+                      "index_to_world": [
+                        1.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        1.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        1.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        1.0
+                      ]
+                    }
+                  }
+                ],
+                "children": [],
+                "parent": null,
+                "layer": "scene:layer.runtime"
+              },
+              {
+                "id": "scene:node.camera",
+                "name": "Main Camera",
+                "active": true,
+                "transform": {
+                  "translation": [
+                    10.0,
+                    10.0,
+                    15.0
+                  ],
+                  "rotation_euler_deg": [
+                    -45.0,
+                    0.0,
+                    0.0
+                  ],
+                  "scale": [
+                    1.0,
+                    1.0,
+                    1.0
+                  ]
+                },
+                "components": [
+                  {
+                    "id": "camera",
+                    "type": "camera",
+                    "enabled": true,
+                    "properties": {
+                      "projection": "perspective",
+                      "near_clip": 0.1,
+                      "far_clip": 100.0,
+                      "active": true,
+                      "fov_deg": 60.0,
+                      "fov": 55.0
+                    }
+                  }
+                ],
+                "children": [],
+                "parent": null,
+                "layer": "scene:layer.runtime"
+              }
+            ]
+          },
+          {
+            "op": "add",
+            "path": "/bindings",
+            "value": [
+              {
+                "id": "scene:binding.cell.variant",
+                "name": "Cell Variant",
+                "source": {
+                  "kind": "state",
+                  "scope": "topology_site",
+                  "variable": "rule:state.board_cell"
+                },
+                "target": {
+                  "selector": "topology_sites",
+                  "node": "scene:node.board",
+                  "visualizer": "sites",
+                  "component": "renderer",
+                  "property": "variant"
+                },
+                "transform": {
+                  "kind": "map",
+                  "cases": [
+                    {
+                      "equals": 0,
+                      "value": "empty"
+                    },
+                    {
+                      "equals": 1,
+                      "value": "body"
+                    },
+                    {
+                      "equals": 2,
+                      "value": "head"
+                    },
+                    {
+                      "equals": -1,
+                      "value": "food"
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "op": "replace",
+            "path": "/unresolved",
+            "value": []
+          }
+        ],
+        "evidence": [
+          {
+            "evidence_id": "ev:asset.font_poetsenone_regular_ttf",
+            "path": "Font/PoetsenOne-Regular.ttf",
+            "kind": "static",
+            "supports": "/scene_ir/nodes",
+            "confidence": 0.7,
+            "file_sha256": "85b9c540b6e59c75c3eea602d9256ec5eb386f49c982d86ced4b7c161aac2a2f",
+            "span": {
+              "byte_start": 0,
+              "byte_end": 64
+            }
+          }
+        ],
+        "document_id": "scene:game.snake.game.with.python.and.pygame.source",
+        "base_revision": 0,
+        "base_content_hash": "a1f0564a545d31b8627986984079d2885587f6ae1d3ca68dec50ee9b06adb26f",
+        "unresolved": [],
+        "assumptions": []
+      }
+    ],
+    "asset_ir": [
+      {
+        "target_document": "asset_ir",
+        "operations": [
+          {
+            "op": "replace",
+            "path": "/assets",
+            "value": [
+              {
+                "id": "asset:graphics.apple",
+                "name": "Apple Graphics",
+                "kind": "image",
+                "source": {
+                  "uri": "project://Graphics/apple.png",
+                  "content_hash": "9fef533da2d37741de43e78bec068f87752fcfde21e782daf5eb7b7ebe968ade",
+                  "byte_size": 632
+                },
+                "media_type": "image/png",
+                "license": {
+                  "spdx_id": "NOASSERTION",
+                  "attribution": "",
+                  "source_uri": null,
+                  "redistribution": "unknown"
+                },
+                "importer": {
+                  "capability": "cubeengine.image",
+                  "version": "1.0",
+                  "settings": {}
+                },
+                "metadata": {}
+              },
+              {
+                "id": "asset:graphics.head.up",
+                "name": "Head Up",
+                "kind": "image",
+                "source": {
+                  "uri": "project://Graphics/head_up.png",
+                  "content_hash": "8abfe032ab851705fe382c451d82be65fed055d70e1070ce67a79e0f8c3f8dad",
+                  "byte_size": 688
+                },
+                "media_type": "image/png",
+                "license": {
+                  "spdx_id": "NOASSERTION",
+                  "attribution": "",
+                  "source_uri": null,
+                  "redistribution": "unknown"
+                },
+                "importer": {
+                  "capability": "cubeengine.image",
+                  "version": "1.0",
+                  "settings": {}
+                },
+                "metadata": {}
+              },
+              {
+                "id": "asset:graphics.head.down",
+                "name": "Head Down",
+                "kind": "image",
+                "source": {
+                  "uri": "project://Graphics/head_down.png",
+                  "content_hash": "ae033f886353caf898c3309fc9f5d4feeda9fbad447e25094776c05427388f84",
+                  "byte_size": 680
+                },
+                "media_type": "image/png",
+                "license": {
+                  "spdx_id": "NOASSERTION",
+                  "attribution": "",
+                  "source_uri": null,
+                  "redistribution": "unknown"
+                },
+                "importer": {
+                  "capability": "cubeengine.image",
+                  "version": "1.0",
+                  "settings": {}
+                },
+                "metadata": {}
+              },
+              {
+                "id": "asset:graphics.head.left",
+                "name": "Head Left",
+                "kind": "image",
+                "source": {
+                  "uri": "project://Graphics/head_left.png",
+                  "content_hash": "8b4ce7eb7e49595627a3915cc5f24f5d91a96bf3e84991f0827be47899d46922",
+                  "byte_size": 711
+                },
+                "media_type": "image/png",
+                "license": {
+                  "spdx_id": "NOASSERTION",
+                  "attribution": "",
+                  "source_uri": null,
+                  "redistribution": "unknown"
+                },
+                "importer": {
+                  "capability": "cubeengine.image",
+                  "version": "1.0",
+                  "settings": {}
+                },
+                "metadata": {}
+              },
+              {
+                "id": "asset:graphics.head.right",
+                "name": "Head Right",
+                "kind": "image",
+                "source": {
+                  "uri": "project://Graphics/head_right.png",
+                  "content_hash": "b45dae4793f7f107fa4ea880c0067667dd08217ed15965f1cc5cdcd2b7eba2f1",
+                  "byte_size": 671
+                },
+                "media_type": "image/png",
+                "license": {
+                  "spdx_id": "NOASSERTION",
+                  "attribution": "",
+                  "source_uri": null,
+                  "redistribution": "unknown"
+                },
+                "importer": {
+                  "capability": "cubeengine.image",
+                  "version": "1.0",
+                  "settings": {}
+                },
+                "metadata": {}
+              },
+              {
+                "id": "asset:graphics.body.horizontal",
+                "name": "Body Horizontal",
+                "kind": "image",
+                "source": {
+                  "uri": "project://Graphics/body_horizontal.png",
+                  "content_hash": "de9ce13b2c69b5df20b7f0649e5989fe41520e78640c2c72e3b33753162077eb",
+                  "byte_size": 165
+                },
+                "media_type": "image/png",
+                "license": {
+                  "spdx_id": "NOASSERTION",
+                  "attribution": "",
+                  "source_uri": null,
+                  "redistribution": "unknown"
+                },
+                "importer": {
+                  "capability": "cubeengine.image",
+                  "version": "1.0",
+                  "settings": {}
+                },
+                "metadata": {}
+              },
+              {
+                "id": "asset:graphics.body.vertical",
+                "name": "Body Vertical",
+                "kind": "image",
+                "source": {
+                  "uri": "project://Graphics/body_vertical.png",
+                  "content_hash": "45623c677e1e5fb9be6c67025834380a99df9c468ed273b76ae57a0e2c2c0605",
+                  "byte_size": 171
+                },
+                "media_type": "image/png",
+                "license": {
+                  "spdx_id": "NOASSERTION",
+                  "attribution": "",
+                  "source_uri": null,
+                  "redistribution": "unknown"
+                },
+                "importer": {
+                  "capability": "cubeengine.image",
+                  "version": "1.0",
+                  "settings": {}
+                },
+                "metadata": {}
+              },
+              {
+                "id": "asset:font.poetsenone",
+                "name": "PoetsenOne Font",
+                "kind": "font",
+                "source": {
+                  "uri": "project://Font/PoetsenOne-Regular.ttf",
+                  "content_hash": "85b9c540b6e59c75c3eea602d9256ec5eb386f49c982d86ced4b7c161aac2a2f",
+                  "byte_size": 172456
+                },
+                "media_type": "font/ttf",
+                "license": {
+                  "spdx_id": "NOASSERTION",
+                  "attribution": "",
+                  "source_uri": null,
+                  "redistribution": "unknown"
+                },
+                "importer": {
+                  "capability": "cubeengine.raw-file",
+                  "version": "1.0",
+                  "settings": {}
+                },
+                "metadata": {}
+              }
+            ]
+          },
+          {
+            "op": "replace",
+            "path": "/derivations",
+            "value": []
+          },
+          {
+            "op": "replace",
+            "path": "/unresolved",
+            "value": []
+          }
+        ],
+        "evidence": [
+          {
+            "evidence_id": "ev:asset.font_poetsenone_regular_ttf",
+            "path": "Font/PoetsenOne-Regular.ttf",
+            "kind": "static",
+            "supports": "/asset_ir/assets",
+            "confidence": 0.7,
+            "file_sha256": "85b9c540b6e59c75c3eea602d9256ec5eb386f49c982d86ced4b7c161aac2a2f",
+            "span": {
+              "byte_start": 0,
+              "byte_end": 64
+            }
+          }
+        ],
+        "document_id": "asset:game.snake.game.with.python.and.pygame.source",
+        "base_revision": 0,
+        "base_content_hash": "3db9e5c9530bc2a03c2b597cd35c31d49371b99d9d3054d9f13675a6e60870b0",
+        "unresolved": [],
+        "assumptions": []
+      }
+    ],
+    "input_ir": [
+      {
+        "target_document": "input_ir",
+        "operations": [
+          {
+            "op": "replace",
+            "path": "/contexts",
+            "value": [
+              {
+                "id": "input:context.play",
+                "name": "Play",
+                "priority": 100,
+                "enabled_by_default": true,
+                "focus": "viewport",
+                "consume_policy": "first_match",
+                "exclusive_group": "runtime_mode"
+              }
+            ]
+          },
+          {
+            "op": "replace",
+            "path": "/intents",
+            "value": [
+              {
+                "id": "input:action.intent.move.up",
+                "name": "Move Up",
+                "value_type": "digital",
+                "required": true,
+                "target": {
+                  "kind": "rule_action",
+                  "action": "rule:action.move_up",
+                  "parameters": {}
+                }
+              },
+              {
+                "id": "input:action.intent.move.down",
+                "name": "Move Down",
+                "value_type": "digital",
+                "required": true,
+                "target": {
+                  "kind": "rule_action",
+                  "action": "rule:action.move_down",
+                  "parameters": {}
+                }
+              },
+              {
+                "id": "input:action.intent.move.left",
+                "name": "Move Left",
+                "value_type": "digital",
+                "required": true,
+                "target": {
+                  "kind": "rule_action",
+                  "action": "rule:action.move_left",
+                  "parameters": {}
+                }
+              },
+              {
+                "id": "input:action.intent.move.right",
+                "name": "Move Right",
+                "value_type": "digital",
+                "required": true,
+                "target": {
+                  "kind": "rule_action",
+                  "action": "rule:action.move_right",
+                  "parameters": {}
+                }
+              }
+            ]
+          },
+          {
+            "op": "replace",
+            "path": "/bindings",
+            "value": [
+              {
+                "id": "input:binding.up",
+                "name": "Up Key",
+                "context": "input:context.play",
+                "intent": "input:action.intent.move.up",
+                "priority": 100,
+                "enabled": true,
+                "consume": true,
+                "rebindable": true,
+                "slot": "primary",
+                "accessibility_label": "Up",
+                "trigger": {
+                  "kind": "control",
+                  "device": "keyboard",
+                  "control": "keyboard.key.arrow_up",
+                  "phase": "press",
+                  "modifiers": [],
+                  "modifier_policy": "exact"
+                },
+                "processing": {
+                  "dead_zone": 0,
+                  "sensitivity_numerator": 1,
+                  "sensitivity_denominator": 1,
+                  "invert": false,
+                  "clamp_min": -32768,
+                  "clamp_max": 32767
+                }
+              },
+              {
+                "id": "input:binding.down",
+                "name": "Down Key",
+                "context": "input:context.play",
+                "intent": "input:action.intent.move.down",
+                "priority": 100,
+                "enabled": true,
+                "consume": true,
+                "rebindable": true,
+                "slot": "primary",
+                "accessibility_label": "Down",
+                "trigger": {
+                  "kind": "control",
+                  "device": "keyboard",
+                  "control": "keyboard.key.arrow_down",
+                  "phase": "press",
+                  "modifiers": [],
+                  "modifier_policy": "exact"
+                },
+                "processing": {
+                  "dead_zone": 0,
+                  "sensitivity_numerator": 1,
+                  "sensitivity_denominator": 1,
+                  "invert": false,
+                  "clamp_min": -32768,
+                  "clamp_max": 32767
+                }
+              },
+              {
+                "id": "input:binding.left",
+                "name": "Left Key",
+                "context": "input:context.play",
+                "intent": "input:action.intent.move.left",
+                "priority": 100,
+                "enabled": true,
+                "consume": true,
+                "rebindable": true,
+                "slot": "primary",
+                "accessibility_label": "Left",
+                "trigger": {
+                  "kind": "control",
+                  "device": "keyboard",
+                  "control": "keyboard.key.arrow_left",
+                  "phase": "press",
+                  "modifiers": [],
+                  "modifier_policy": "exact"
+                },
+                "processing": {
+                  "dead_zone": 0,
+                  "sensitivity_numerator": 1,
+                  "sensitivity_denominator": 1,
+                  "invert": false,
+                  "clamp_min": -32768,
+                  "clamp_max": 32767
+                }
+              },
+              {
+                "id": "input:binding.right",
+                "name": "Right Key",
+                "context": "input:context.play",
+                "intent": "input:action.intent.move.right",
+                "priority": 100,
+                "enabled": true,
+                "consume": true,
+                "rebindable": true,
+                "slot": "primary",
+                "accessibility_label": "Right",
+                "trigger": {
+                  "kind": "control",
+                  "device": "keyboard",
+                  "control": "keyboard.key.arrow_right",
+                  "phase": "press",
+                  "modifiers": [],
+                  "modifier_policy": "exact"
+                },
+                "processing": {
+                  "dead_zone": 0,
+                  "sensitivity_numerator": 1,
+                  "sensitivity_denominator": 1,
+                  "invert": false,
+                  "clamp_min": -32768,
+                  "clamp_max": 32767
+                }
+              }
+            ]
+          },
+          {
+            "op": "replace",
+            "path": "/unresolved",
+            "value": []
+          }
+        ],
+        "evidence": [
+          {
+            "evidence_id": "ev:input.0",
+            "path": "snake.py",
+            "kind": "static",
+            "supports": "/input_ir/bindings",
+            "confidence": 0.8,
+            "file_sha256": "085015d8aaa06f484df9ce0361fa4438981aecd8e1dc14ea0ba3ba744583b7dd",
+            "span": {
+              "line_start": 288,
+              "line_end": 288
+            }
+          },
+          {
+            "evidence_id": "ev:input.1",
+            "path": "snake.py",
+            "kind": "static",
+            "supports": "/input_ir/bindings",
+            "confidence": 0.8,
+            "file_sha256": "085015d8aaa06f484df9ce0361fa4438981aecd8e1dc14ea0ba3ba744583b7dd",
+            "span": {
+              "line_start": 291,
+              "line_end": 291
+            }
+          },
+          {
+            "evidence_id": "ev:input.2",
+            "path": "snake.py",
+            "kind": "static",
+            "supports": "/input_ir/bindings",
+            "confidence": 0.8,
+            "file_sha256": "085015d8aaa06f484df9ce0361fa4438981aecd8e1dc14ea0ba3ba744583b7dd",
+            "span": {
+              "line_start": 294,
+              "line_end": 294
+            }
+          },
+          {
+            "evidence_id": "ev:input.3",
+            "path": "snake.py",
+            "kind": "static",
+            "supports": "/input_ir/bindings",
+            "confidence": 0.8,
+            "file_sha256": "085015d8aaa06f484df9ce0361fa4438981aecd8e1dc14ea0ba3ba744583b7dd",
+            "span": {
+              "line_start": 297,
+              "line_end": 297
+            }
+          }
+        ],
+        "document_id": "input:game.snake.game.with.python.and.pygame.source",
+        "base_revision": 0,
+        "base_content_hash": "d409f0cf52ba79eb2a58cbfe40a57ae5fa96560f83d69ba54637437932d99d27",
+        "unresolved": [],
+        "assumptions": []
+      }
+    ]
+  },
+  "claims": [],
+  "tests": [],
+  "extension_proposals": [],
+  "spatial_lift_options": [],
+  "proposal_id": "proposal:b3565516ba24",
+  "job_id": "job:ee2a5c16b9b649b6",
+  "stage": "source_rule_semantics",
+  "source_package_hash": "6bbf008a8c81a818a748c0c6d58bb2457c311dc3efed88f516d073cecfbb756c",
+  "design_intent": null,
+  "base_documents": {
+    "rule_ir": {
+      "document_id": "rule:game.snake.game.with.python.and.pygame.source",
+      "revision": 0,
+      "content_hash": "9ba7c8c8637ec5efa2ad84fe8c645c6bcf2595b0ab4f9ca6774f219e34a38d01"
+    },
+    "scene_ir": {
+      "document_id": "scene:game.snake.game.with.python.and.pygame.source",
+      "revision": 0,
+      "content_hash": "a1f0564a545d31b8627986984079d2885587f6ae1d3ca68dec50ee9b06adb26f"
+    },
+    "asset_ir": {
+      "document_id": "asset:game.snake.game.with.python.and.pygame.source",
+      "revision": 0,
+      "content_hash": "3db9e5c9530bc2a03c2b597cd35c31d49371b99d9d3054d9f13675a6e60870b0"
+    },
+    "input_ir": {
+      "document_id": "input:game.snake.game.with.python.and.pygame.source",
+      "revision": 0,
+      "content_hash": "d409f0cf52ba79eb2a58cbfe40a57ae5fa96560f83d69ba54637437932d99d27"
+    }
+  },
+  "assumptions": [],
+  "unresolved": [],
+  "clarification_questions": []
+}

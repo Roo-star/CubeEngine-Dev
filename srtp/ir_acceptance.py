@@ -195,7 +195,9 @@ class IRAcceptanceController:
         self.activity.append("Opened Rule IR preview: {0}".format(rule_path.name))
         return "loaded"
 
-    def open_project_bundle(self, path: Path) -> str:
+    def open_project_bundle(
+        self, path: Path, asset_project_root: Optional[Path] = None,
+    ) -> str:
         """Open a sealed five-document Project bundle from one directory.
 
         This is the product bridge expected by the future LLM compiler.  The
@@ -270,7 +272,7 @@ class IRAcceptanceController:
             scene=documents["scene_ir"],
             asset=documents["asset_ir"],
             input=documents["input_ir"],
-            asset_project_root=root,
+            asset_project_root=Path(asset_project_root).resolve() if asset_project_root else root,
         )
         if "loaded" in self.sessions:
             self.sessions.pop("loaded").close()
@@ -335,6 +337,44 @@ class IRAcceptanceController:
         ))
         return InteractionResult(
             selected, coord, accepted, code, message,
+            len(result.transitions), len(result.scene_delta.commands),
+            self.snapshot(selected),
+        )
+
+    def dispatch_physical(
+        self,
+        event: PhysicalInputEvent,
+        key: Optional[str] = None,
+        *,
+        focus: str = "viewport",
+    ) -> InteractionResult:
+        """Forward a host physical event through Input IR → Rule → Scene."""
+
+        selected = key or self.active_key
+        if selected not in self.sessions:
+            raise IRAcceptanceError("Unknown Workbench project: " + str(selected))
+        session = self.sessions[selected]
+        result = session.handle_input(event, focus=focus)
+        accepted = bool(result.transitions) and not result.rejections
+        label = getattr(event, "control", "input")
+        if accepted:
+            code = "transition_committed"
+            message = "Accepted {0}; Rule revision is now {1}.".format(
+                label, session.rule_runtime.state.revision,
+            )
+        elif result.rejections:
+            code = result.rejections[0].code
+            message = result.rejections[0].message
+        else:
+            code = "input_not_resolved"
+            message = "Input IR did not resolve this event to a Rule action."
+        self.last_scene_commands[selected] = len(result.scene_delta.commands)
+        marker = "ACCEPT" if accepted else "REJECT"
+        self.activity.append("{0} {1} {2}: {3}".format(
+            marker, self.labels[selected], label, code,
+        ))
+        return InteractionResult(
+            selected, (), accepted, code, message,
             len(result.transitions), len(result.scene_delta.commands),
             self.snapshot(selected),
         )

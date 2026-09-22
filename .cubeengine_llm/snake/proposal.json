@@ -1,0 +1,589 @@
+{
+  "proposal_version": "cubeengine.srtp/llm-proposal/2.0",
+  "proposal_id": "prop.snake.001",
+  "task": "source_four_ir_proposal",
+  "patches": {
+    "rule_ir": [
+      {
+        "document_id": "rule:game.snake.game.with.python.and.pygame.source",
+        "revision": 0,
+        "operations": [
+          {
+            "op": "replace",
+            "path": "/topologies",
+            "value": [
+              {
+                "id": "rule:topology.board",
+                "kind": "rect_grid",
+                "anchor": "cell",
+                "axes": [
+                  {
+                    "name": "x",
+                    "extent": 20,
+                    "boundary": "bounded"
+                  },
+                  {
+                    "name": "y",
+                    "extent": 20,
+                    "boundary": "bounded"
+                  }
+                ],
+                "neighborhoods": [],
+                "name": "Board"
+              }
+            ]
+          },
+          {
+            "op": "replace",
+            "path": "/actions",
+            "value": [
+              {
+                "id": "rule:action.change_direction",
+                "name": "Change direction",
+                "actor": {
+                  "op": "literal",
+                  "value": "rule:participant.human.player"
+                },
+                "verb": "control",
+                "target": {
+                  "kind": "source_defined"
+                },
+                "parameters": [],
+                "preconditions": {
+                  "op": "literal",
+                  "value": true
+                },
+                "effects": [
+                  {
+                    "op": "state.set",
+                    "variable": "rule:state.snake_dir",
+                    "value": {
+                      "op": "literal",
+                      "value": 1
+                    }
+                  }
+                ],
+                "timing": {
+                  "phase": "rule:phase.input"
+                },
+                "executable": true,
+                "precondition": {
+                  "op": "literal",
+                  "value": true
+                },
+                "encoding": {
+                  "kind": "none"
+                }
+              },
+              {
+                "id": "rule:action.advance",
+                "name": "Advance moving body",
+                "actor": {
+                  "op": "literal",
+                  "value": "rule:participant.system"
+                },
+                "verb": "move",
+                "target": {
+                  "kind": "source_defined"
+                },
+                "parameters": [],
+                "preconditions": {
+                  "op": "literal",
+                  "value": true
+                },
+                "effects": [
+                  {
+                    "op": "grid.set",
+                    "state": "rule:state.board_cell",
+                    "topology": "rule:topology.board",
+                    "coordinate": {
+                      "op": "literal",
+                      "value": [
+                        0,
+                        0
+                      ]
+                    },
+                    "value": {
+                      "op": "literal",
+                      "value": 1
+                    }
+                  }
+                ],
+                "timing": {
+                  "phase": "rule:phase.update"
+                },
+                "executable": true,
+                "precondition": {
+                  "op": "literal",
+                  "value": true
+                },
+                "encoding": {
+                  "kind": "none"
+                }
+              }
+            ]
+          },
+          {
+            "op": "replace",
+            "path": "/unresolved",
+            "value": []
+          }
+        ],
+        "evidence": [
+          {
+            "evidence_id": "ev:param.source_tick_ms.0",
+            "path": "snake.py",
+            "file_sha256": "085015d8aaa06f484df9ce0361fa4438981aecd8e1dc14ea0ba3ba744583b7dd",
+            "kind": "static",
+            "span": {
+              "line_start": 277,
+              "line_end": 277
+            },
+            "supports": "/rule_ir/flow",
+            "topic": "movement",
+            "confidence": 0.8,
+            "detail": "Movement interval (milliseconds)"
+          }
+        ],
+        "unresolved": [],
+        "base_revision": 0,
+        "base_content_hash": "9ba7c8c8637ec5efa2ad84fe8c645c6bcf2595b0ab4f9ca6774f219e34a38d01",
+        "assumptions": []
+      }
+    ],
+    "scene_ir": [
+      {
+        "document_id": "scene:game.snake.game.with.python.and.pygame.source",
+        "revision": 0,
+        "operations": [
+          {
+            "op": "replace",
+            "path": "/nodes",
+            "value": [
+              {
+                "id": "scene:node.board",
+                "name": "Board",
+                "active": true,
+                "transform": {
+                  "translation": [
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  "rotation_euler_deg": [
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  "scale": [
+                    1.0,
+                    1.0,
+                    1.0
+                  ]
+                },
+                "components": [
+                  {
+                    "id": "sites",
+                    "type": "topology_visualizer",
+                    "enabled": true,
+                    "properties": {
+                      "topology": "rule:topology.board",
+                      "rule_topology": "rule:topology.board",
+                      "prefab": "scene:prefab.cell",
+                      "index_to_world": [
+                        1.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        1.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        1.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        1.0
+                      ]
+                    }
+                  }
+                ],
+                "children": [],
+                "parent": null,
+                "layer": "scene:layer.runtime"
+              },
+              {
+                "id": "scene:node.camera",
+                "name": "Main Camera",
+                "active": true,
+                "transform": {
+                  "translation": [
+                    10.0,
+                    10.0,
+                    20.0
+                  ],
+                  "rotation_euler_deg": [
+                    -45.0,
+                    0.0,
+                    0.0
+                  ],
+                  "scale": [
+                    1.0,
+                    1.0,
+                    1.0
+                  ]
+                },
+                "components": [
+                  {
+                    "id": "camera",
+                    "type": "camera",
+                    "enabled": true,
+                    "properties": {
+                      "projection": "orthographic",
+                      "near_clip": 0.1,
+                      "far_clip": 1000.0,
+                      "active": true,
+                      "orthographic_size": 8.0
+                    }
+                  }
+                ],
+                "children": [],
+                "parent": null,
+                "layer": "scene:layer.runtime"
+              }
+            ]
+          },
+          {
+            "op": "replace",
+            "path": "/unresolved",
+            "value": []
+          }
+        ],
+        "evidence": [
+          {
+            "evidence_id": "ev:param.source_tick_ms.0",
+            "path": "snake.py",
+            "file_sha256": "085015d8aaa06f484df9ce0361fa4438981aecd8e1dc14ea0ba3ba744583b7dd",
+            "kind": "static",
+            "span": {
+              "line_start": 277,
+              "line_end": 277
+            },
+            "supports": "/scene_ir/nodes",
+            "topic": "board_node",
+            "confidence": 0.8,
+            "detail": "board"
+          }
+        ],
+        "unresolved": [],
+        "base_revision": 0,
+        "base_content_hash": "a1f0564a545d31b8627986984079d2885587f6ae1d3ca68dec50ee9b06adb26f",
+        "assumptions": []
+      }
+    ],
+    "asset_ir": [
+      {
+        "document_id": "asset:game.snake.game.with.python.and.pygame.source",
+        "revision": 0,
+        "operations": [
+          {
+            "op": "replace",
+            "path": "/assets",
+            "value": [
+              {
+                "id": "asset:font.poetsenone",
+                "name": "PoetsenOne Font",
+                "kind": "font",
+                "source": {
+                  "uri": "project://Font/PoetsenOne-Regular.ttf",
+                  "content_hash": "85b9c540b6e59c75c3eea602d9256ec5eb386f49c982d86ced4b7c161aac2a2f",
+                  "byte_size": 172456
+                },
+                "media_type": "font/ttf",
+                "license": {
+                  "spdx_id": "NOASSERTION",
+                  "attribution": "",
+                  "source_uri": null,
+                  "redistribution": "unknown"
+                },
+                "importer": {
+                  "capability": "cubeengine.raw-file",
+                  "version": "1.0",
+                  "settings": {}
+                },
+                "metadata": {}
+              },
+              {
+                "id": "asset:image.apple",
+                "name": "Apple Image",
+                "kind": "image",
+                "source": {
+                  "uri": "project://Graphics/apple.png",
+                  "content_hash": "9fef533da2d37741de43e78bec068f87752fcfde21e782daf5eb7b7ebe968ade",
+                  "byte_size": 632
+                },
+                "media_type": "image/png",
+                "license": {
+                  "spdx_id": "NOASSERTION",
+                  "attribution": "",
+                  "source_uri": null,
+                  "redistribution": "unknown"
+                },
+                "importer": {
+                  "capability": "cubeengine.image",
+                  "version": "1.0",
+                  "settings": {}
+                },
+                "metadata": {}
+              }
+            ]
+          },
+          {
+            "op": "replace",
+            "path": "/unresolved",
+            "value": []
+          }
+        ],
+        "evidence": [
+          {
+            "evidence_id": "ev:asset.font_poetsenone_regular_ttf",
+            "path": "Font/PoetsenOne-Regular.ttf",
+            "file_sha256": "85b9c540b6e59c75c3eea602d9256ec5eb386f49c982d86ced4b7c161aac2a2f",
+            "kind": "static",
+            "span": {
+              "byte_start": 0,
+              "byte_end": 64
+            },
+            "supports": "/asset_ir/assets",
+            "topic": "asset_load",
+            "confidence": 0.7,
+            "detail": "Font/PoetsenOne-Regular.ttf"
+          }
+        ],
+        "unresolved": [],
+        "base_revision": 0,
+        "base_content_hash": "3db9e5c9530bc2a03c2b597cd35c31d49371b99d9d3054d9f13675a6e60870b0",
+        "assumptions": []
+      }
+    ],
+    "input_ir": [
+      {
+        "document_id": "input:game.snake.game.with.python.and.pygame.source",
+        "revision": 0,
+        "operations": [
+          {
+            "op": "replace",
+            "path": "/contexts",
+            "value": [
+              {
+                "id": "input:context.play",
+                "name": "Play",
+                "priority": 100,
+                "enabled_by_default": true,
+                "focus": "viewport",
+                "consume_policy": "first_match",
+                "exclusive_group": "runtime_mode"
+              }
+            ]
+          },
+          {
+            "op": "replace",
+            "path": "/intents",
+            "value": [
+              {
+                "id": "input:action.intent.change.direction",
+                "name": "Change Direction",
+                "value_type": "digital",
+                "required": true,
+                "target": {
+                  "kind": "rule_action",
+                  "action": "rule:action.change_direction",
+                  "parameters": {}
+                }
+              }
+            ]
+          },
+          {
+            "op": "replace",
+            "path": "/bindings",
+            "value": [
+              {
+                "id": "input:binding.up",
+                "name": "Up",
+                "context": "input:context.play",
+                "intent": "input:action.intent.change.direction",
+                "priority": 100,
+                "enabled": true,
+                "consume": true,
+                "rebindable": true,
+                "slot": "primary",
+                "accessibility_label": "Up",
+                "trigger": {
+                  "kind": "control",
+                  "device": "keyboard",
+                  "control": "keyboard.key.arrow_up",
+                  "phase": "press",
+                  "modifiers": [],
+                  "modifier_policy": "exact"
+                },
+                "processing": {
+                  "dead_zone": 0,
+                  "sensitivity_numerator": 1,
+                  "sensitivity_denominator": 1,
+                  "invert": false,
+                  "clamp_min": -32768,
+                  "clamp_max": 32767
+                }
+              },
+              {
+                "id": "input:binding.down",
+                "name": "Down",
+                "context": "input:context.play",
+                "intent": "input:action.intent.change.direction",
+                "priority": 100,
+                "enabled": true,
+                "consume": true,
+                "rebindable": true,
+                "slot": "primary",
+                "accessibility_label": "Down",
+                "trigger": {
+                  "kind": "control",
+                  "device": "keyboard",
+                  "control": "keyboard.key.arrow_down",
+                  "phase": "press",
+                  "modifiers": [],
+                  "modifier_policy": "exact"
+                },
+                "processing": {
+                  "dead_zone": 0,
+                  "sensitivity_numerator": 1,
+                  "sensitivity_denominator": 1,
+                  "invert": false,
+                  "clamp_min": -32768,
+                  "clamp_max": 32767
+                }
+              },
+              {
+                "id": "input:binding.left",
+                "name": "Left",
+                "context": "input:context.play",
+                "intent": "input:action.intent.change.direction",
+                "priority": 100,
+                "enabled": true,
+                "consume": true,
+                "rebindable": true,
+                "slot": "primary",
+                "accessibility_label": "Left",
+                "trigger": {
+                  "kind": "control",
+                  "device": "keyboard",
+                  "control": "keyboard.key.arrow_left",
+                  "phase": "press",
+                  "modifiers": [],
+                  "modifier_policy": "exact"
+                },
+                "processing": {
+                  "dead_zone": 0,
+                  "sensitivity_numerator": 1,
+                  "sensitivity_denominator": 1,
+                  "invert": false,
+                  "clamp_min": -32768,
+                  "clamp_max": 32767
+                }
+              },
+              {
+                "id": "input:binding.right",
+                "name": "Right",
+                "context": "input:context.play",
+                "intent": "input:action.intent.change.direction",
+                "priority": 100,
+                "enabled": true,
+                "consume": true,
+                "rebindable": true,
+                "slot": "primary",
+                "accessibility_label": "Right",
+                "trigger": {
+                  "kind": "control",
+                  "device": "keyboard",
+                  "control": "keyboard.key.arrow_right",
+                  "phase": "press",
+                  "modifiers": [],
+                  "modifier_policy": "exact"
+                },
+                "processing": {
+                  "dead_zone": 0,
+                  "sensitivity_numerator": 1,
+                  "sensitivity_denominator": 1,
+                  "invert": false,
+                  "clamp_min": -32768,
+                  "clamp_max": 32767
+                }
+              }
+            ]
+          },
+          {
+            "op": "replace",
+            "path": "/unresolved",
+            "value": []
+          }
+        ],
+        "evidence": [
+          {
+            "evidence_id": "ev:input.0",
+            "path": "snake.py",
+            "file_sha256": "085015d8aaa06f484df9ce0361fa4438981aecd8e1dc14ea0ba3ba744583b7dd",
+            "kind": "static",
+            "span": {
+              "line_start": 288,
+              "line_end": 288
+            },
+            "supports": "/input_ir/bindings",
+            "topic": "direction_input",
+            "confidence": 0.8,
+            "detail": "0"
+          }
+        ],
+        "unresolved": [],
+        "base_revision": 0,
+        "base_content_hash": "d409f0cf52ba79eb2a58cbfe40a57ae5fa96560f83d69ba54637437932d99d27",
+        "assumptions": []
+      }
+    ]
+  },
+  "claims": [],
+  "tests": [],
+  "extension_proposals": [],
+  "spatial_lift_options": [],
+  "job_id": "job:92d629151c814161",
+  "stage": "source_rule_semantics",
+  "source_package_hash": "6bbf008a8c81a818a748c0c6d58bb2457c311dc3efed88f516d073cecfbb756c",
+  "design_intent": null,
+  "base_documents": {
+    "rule_ir": {
+      "document_id": "rule:game.snake.game.with.python.and.pygame.source",
+      "revision": 0,
+      "content_hash": "9ba7c8c8637ec5efa2ad84fe8c645c6bcf2595b0ab4f9ca6774f219e34a38d01"
+    },
+    "scene_ir": {
+      "document_id": "scene:game.snake.game.with.python.and.pygame.source",
+      "revision": 0,
+      "content_hash": "a1f0564a545d31b8627986984079d2885587f6ae1d3ca68dec50ee9b06adb26f"
+    },
+    "asset_ir": {
+      "document_id": "asset:game.snake.game.with.python.and.pygame.source",
+      "revision": 0,
+      "content_hash": "3db9e5c9530bc2a03c2b597cd35c31d49371b99d9d3054d9f13675a6e60870b0"
+    },
+    "input_ir": {
+      "document_id": "input:game.snake.game.with.python.and.pygame.source",
+      "revision": 0,
+      "content_hash": "d409f0cf52ba79eb2a58cbfe40a57ae5fa96560f83d69ba54637437932d99d27"
+    }
+  },
+  "assumptions": [],
+  "unresolved": [],
+  "clarification_questions": []
+}

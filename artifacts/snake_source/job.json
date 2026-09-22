@@ -1,0 +1,46 @@
+{
+  "record_version": "cubeengine.srtp/llm-job-record/1.0",
+  "job_id": "job:77f63bd1b5343303",
+  "status": "failed",
+  "stage": "unresolved",
+  "source_package_hash": "77f63bd1b534330325acf2f4abd3ee2603abf4b061ebb4065fc759a052ee8abd",
+  "runtime": {
+    "backend_id": "fixture",
+    "prompt_template_version": "cubeengine.freeflow-llm/prompt/1.0",
+    "weight_hash": "",
+    "tokenizer_hash": "",
+    "model_path": "srtp/freeflow_llm/fixture_runtime.py"
+  },
+  "events": [
+    {
+      "stage": "intake",
+      "message": "Imported source package Snake Game with Python and Pygame.",
+      "error": false
+    },
+    {
+      "stage": "evidence_indexed",
+      "message": "Indexed 35 evidence items.",
+      "error": false
+    },
+    {
+      "stage": "unresolved",
+      "message": "Proposal left required unresolved items.",
+      "error": true
+    }
+  ],
+  "errors": [
+    {
+      "stage": "unresolved",
+      "message": "Proposal left required unresolved items.",
+      "error": true
+    }
+  ],
+  "unresolved": [
+    {
+      "path": "/actions",
+      "reason": "No reviewed fixture exists for this source family. Mechanics remain unresolved.",
+      "required": true,
+      "owner": "llm"
+    }
+  ]
+}

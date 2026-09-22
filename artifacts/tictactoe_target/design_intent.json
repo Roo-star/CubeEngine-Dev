@@ -1,0 +1,44 @@
+{
+  "intent_version": "cubeengine.srtp/design-intent/1.0",
+  "intent_id": "intent:011c868ac13219fe",
+  "conversation_id": "conversation:freeflow",
+  "turn_id": "turn:0",
+  "project_id": "project:game.tictactoe_2d_source",
+  "source_manifest_hash": "011c868ac13219fe7bf396f83bb6ac9437bdefaa26ae7c93c6b0adef372458d4",
+  "source_package_hash": "3aa7197b1fc902c10a27cd333564e8645a507fdb18c559fe9be2108ba8397d14",
+  "target_base": {
+    "project_id": "project:game.tictactoe_2d_source",
+    "revision": 0,
+    "content_hash": "011c868ac13219fe7bf396f83bb6ac9437bdefaa26ae7c93c6b0adef372458d4"
+  },
+  "original_text": "Preserve X/Y, set Z to 3",
+  "language": "en",
+  "operation": "transform",
+  "scope": [
+    "rule",
+    "scene",
+    "asset",
+    "input"
+  ],
+  "preserve": [
+    {
+      "subject": "source.topology.x_y",
+      "strength": "required"
+    }
+  ],
+  "changes": [
+    {
+      "subject": "target.topology.z",
+      "operator": "set",
+      "value": 3
+    }
+  ],
+  "constraints": [],
+  "resolved_references": [],
+  "assumptions": [],
+  "conflicts": [],
+  "unresolved": [],
+  "requires_confirmation": false,
+  "status": "accepted",
+  "target_z_extent": 3
+}

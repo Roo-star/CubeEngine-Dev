@@ -1,0 +1,197 @@
+{
+  "schema_version": "cubeengine.srtp/llm-proposal/2.0",
+  "patches": {
+    "rule_ir": [
+      {
+        "document_id": "rule:game.snake.game.with.python.and.pygame.target",
+        "base_revision": 0,
+        "base_content_hash": "33aa5a7bd28c74c2baa9b4a3e33d25f78bf4b6830ecb93d6e97059874a9d0174",
+        "operations": [
+          {
+            "op": "add",
+            "path": "/topologies/0/axes/-",
+            "value": {
+              "name": "z",
+              "extent": 3,
+              "boundary": "bounded"
+            }
+          },
+          {
+            "op": "replace",
+            "path": "/topologies/0/anchor",
+            "value": "cell"
+          }
+        ],
+        "evidence": [
+          {
+            "evidence_id": "ev:param.source_tick_ms.0",
+            "path": "snake.py",
+            "kind": "static",
+            "supports": "/rule_ir/flow",
+            "confidence": 0.8,
+            "file_sha256": "085015d8aaa06f484df9ce0361fa4438981aecd8e1dc14ea0ba3ba744583b7dd",
+            "span": {
+              "line_start": 277,
+              "line_end": 277
+            }
+          }
+        ],
+        "assumptions": [
+          "Z extent 3 provides 3 vertical layers [0, 1, 2]"
+        ],
+        "unresolved": []
+      }
+    ],
+    "scene_ir": [
+      {
+        "document_id": "scene:game.snake.game.with.python.and.pygame.target",
+        "base_revision": 0,
+        "base_content_hash": "8b624709f0ab913001cccd4f349ed87d679b6f0c75ed842fe121cf0ff43a84a8",
+        "operations": [
+          {
+            "op": "add",
+            "path": "/grid_3d",
+            "value": {
+              "dimensions": {
+                "x": 20,
+                "y": 20,
+                "z": 3
+              },
+              "cell_size": 1.0
+            }
+          }
+        ],
+        "evidence": [
+          {
+            "evidence_id": "ev:param.source_tick_ms.0",
+            "path": "snake.py",
+            "kind": "static",
+            "supports": "/rule_ir/flow",
+            "confidence": 0.8,
+            "file_sha256": "085015d8aaa06f484df9ce0361fa4438981aecd8e1dc14ea0ba3ba744583b7dd",
+            "span": {
+              "line_start": 277,
+              "line_end": 277
+            }
+          }
+        ],
+        "assumptions": [
+          "Scene layout extends to 3D grid with 3 Z layers"
+        ],
+        "unresolved": []
+      }
+    ],
+    "asset_ir": [],
+    "input_ir": [
+      {
+        "document_id": "input:game.snake.game.with.python.and.pygame.target",
+        "base_revision": 0,
+        "base_content_hash": "6aedbf60724a70c044330e1301d251b2dbe71b06ec80a3b7125b6790242a0148",
+        "operations": [
+          {
+            "op": "add",
+            "path": "/target_3d_bindings",
+            "value": [
+              {
+                "action": "change_direction_z_up",
+                "inputs": [
+                  "Page Up"
+                ]
+              },
+              {
+                "action": "change_direction_z_down",
+                "inputs": [
+                  "Page Down"
+                ]
+              }
+            ]
+          }
+        ],
+        "evidence": [
+          {
+            "evidence_id": "ev:input.0",
+            "path": "snake.py",
+            "kind": "static",
+            "supports": "/input_ir/bindings",
+            "confidence": 0.8,
+            "file_sha256": "085015d8aaa06f484df9ce0361fa4438981aecd8e1dc14ea0ba3ba744583b7dd",
+            "span": {
+              "line_start": 288,
+              "line_end": 288
+            }
+          }
+        ],
+        "assumptions": [
+          "Page Up and Page Down control Z-axis direction selection"
+        ],
+        "unresolved": []
+      }
+    ]
+  },
+  "proposal_version": "cubeengine.srtp/llm-proposal/2.0",
+  "proposal_id": "proposal:50212014ba7e",
+  "job_id": "job:92d629151c814161",
+  "stage": "spatial_lift",
+  "source_package_hash": "6bbf008a8c81a818a748c0c6d58bb2457c311dc3efed88f516d073cecfbb756c",
+  "design_intent": {
+    "intent_version": "cubeengine.srtp/design-intent/1.0",
+    "intent_id": "intent:snake_z_extent_3",
+    "conversation_id": "conv:snake_game_3d_lift",
+    "turn_id": "turn_1",
+    "project_id": "project:snake.game.with.python.and.pygame.llm.source",
+    "source_manifest_hash": "bc4ffebde4962adf0220ce04ea37540dcd709ba4381380bd848e3243bef6a032",
+    "original_text": "Preserve XY step-snake; extend topology with Z extent 3.",
+    "language": "en",
+    "operation": "transform",
+    "scope": [
+      "scene",
+      "rule"
+    ],
+    "preserve": [
+      "XY step-snake"
+    ],
+    "changes": [
+      "Extend topology with Z dimension",
+      "Set Z extent to 3"
+    ],
+    "constraints": [
+      "Z extent = 3"
+    ],
+    "resolved_references": [],
+    "assumptions": [],
+    "conflicts": [],
+    "unresolved": [],
+    "requires_confirmation": false,
+    "status": "ready",
+    "target_base": null
+  },
+  "base_documents": {
+    "rule_ir": {
+      "document_id": "rule:game.snake.game.with.python.and.pygame.target",
+      "revision": 0,
+      "content_hash": "33aa5a7bd28c74c2baa9b4a3e33d25f78bf4b6830ecb93d6e97059874a9d0174"
+    },
+    "scene_ir": {
+      "document_id": "scene:game.snake.game.with.python.and.pygame.target",
+      "revision": 0,
+      "content_hash": "8b624709f0ab913001cccd4f349ed87d679b6f0c75ed842fe121cf0ff43a84a8"
+    },
+    "asset_ir": {
+      "document_id": "asset:game.snake.game.with.python.and.pygame.target",
+      "revision": 0,
+      "content_hash": "167088e45b2eea1eb3bf99a53bad936ab0f986dc7b88b6420a6b8ee4223c3c20"
+    },
+    "input_ir": {
+      "document_id": "input:game.snake.game.with.python.and.pygame.target",
+      "revision": 0,
+      "content_hash": "6aedbf60724a70c044330e1301d251b2dbe71b06ec80a3b7125b6790242a0148"
+    }
+  },
+  "claims": [],
+  "tests": [],
+  "extension_proposals": [],
+  "spatial_lift_options": [],
+  "assumptions": [],
+  "unresolved": [],
+  "clarification_questions": []
+}

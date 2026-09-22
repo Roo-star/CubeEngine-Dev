@@ -1,0 +1,42 @@
+{
+  "manifest_version": "cubeengine.project-manifest/2.0-alpha.2",
+  "project_id": "project:snake.game.with.python.and.pygame.llm.source",
+  "revision": 1,
+  "content_hash": "781e7f923108307993d997da678f706435347b4114597e3088624cbcb93e809e",
+  "metadata": {
+    "title": "Snake Game with Python and Pygame",
+    "description": ""
+  },
+  "variant": "source",
+  "source_manifest": null,
+  "documents": {
+    "rule_ir": {
+      "document_id": "rule:game.snake.game.with.python.and.pygame.source",
+      "ir_version": "cubeengine.rule-ir/2.0-alpha.1",
+      "content_hash": "edf1ad213ad04fa672c9e036b2b4263e43d260f2fcfd85e8eefdfc9681a358fe"
+    },
+    "scene_ir": {
+      "document_id": "scene:game.snake.game.with.python.and.pygame.source",
+      "ir_version": "cubeengine.scene-ir/2.0-alpha.1",
+      "content_hash": "a00c81b972c9af97e13ff82bd52b9ef745b43a3cf68c99218ac5b1e62d1a4071"
+    },
+    "asset_ir": {
+      "document_id": "asset:game.snake.game.with.python.and.pygame.source",
+      "ir_version": "cubeengine.asset-ir/2.0-alpha.1",
+      "content_hash": "98f9a663d7a05f90b74865eeaf3e5121279e03bcaf17a0ebf25d4d62b32a2a06"
+    },
+    "input_ir": {
+      "document_id": "input:game.snake.game.with.python.and.pygame.source",
+      "ir_version": "cubeengine.input-ir/2.0-alpha.1",
+      "content_hash": "a925e4bda454c2b5a4dff50206f39017c5a284256ff4c033acf7c80dcb2a300d"
+    }
+  },
+  "extensions": [],
+  "provenance": {
+    "llm_proposal_id": "proposal:b3565516ba24",
+    "prompt_template_version": "cubeengine.srtp/llm-prompt/2.0",
+    "designer_approved": true,
+    "approved_by": "cli"
+  },
+  "unresolved": []
+}

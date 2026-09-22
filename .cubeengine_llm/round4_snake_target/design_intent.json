@@ -1,0 +1,35 @@
+{
+  "intent_version": "cubeengine.srtp/design-intent/1.0",
+  "intent_id": "intent-001",
+  "conversation_id": "conv-001",
+  "turn_id": "turn-001",
+  "project_id": "project:snake.game.with.python.and.pygame.llm.source",
+  "source_manifest_hash": "781e7f923108307993d997da678f706435347b4114597e3088624cbcb93e809e",
+  "original_text": "Preserve XY step-snake on the existing board_cell grid.set moves. Add Z extent 3. move_z_up and move_z_down must include non-empty grid.set effects on rule:state.board_cell, same shape as the XY move actions.",
+  "language": "en",
+  "operation": "transform",
+  "scope": [
+    "rule"
+  ],
+  "preserve": [
+    "XY step-snake mechanism on existing board_cell grid.set moves"
+  ],
+  "changes": [
+    "Set grid Z extent to 3",
+    "Add move_z_up action with non-empty grid.set effects on rule:state.board_cell matching XY move action shape",
+    "Add move_z_down action with non-empty grid.set effects on rule:state.board_cell matching XY move action shape"
+  ],
+  "constraints": [
+    "move_z_up and move_z_down must include non-empty grid.set effects on rule:state.board_cell",
+    "grid.set effects on Z movement actions must match the schema/shape of existing XY move actions"
+  ],
+  "resolved_references": [
+    "rule:state.board_cell"
+  ],
+  "assumptions": [],
+  "conflicts": [],
+  "unresolved": [],
+  "requires_confirmation": false,
+  "status": "pending",
+  "target_base": null
+}

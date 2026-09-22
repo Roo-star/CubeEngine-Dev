@@ -1,0 +1,848 @@
+{
+  "proposal_version": "cubeengine.srtp/llm-proposal/2.0",
+  "proposal_id": "proposal:fixture.source_rule_semantics",
+  "job_id": "job:3aa7197b1fc902c1",
+  "stage": "source_rule_semantics",
+  "source_package_hash": "3aa7197b1fc902c10a27cd333564e8645a507fdb18c559fe9be2108ba8397d14",
+  "design_intent": null,
+  "base_documents": {
+    "rule_ir": {
+      "document_id": "rule:game.tictactoe_2d",
+      "revision": 0,
+      "content_hash": "6924b0cb88313e696dccf428d163309593dce7c5a021ec8a0a794c970d8bae0b"
+    },
+    "scene_ir": {
+      "document_id": "scene:game.tictactoe_2d",
+      "revision": 0,
+      "content_hash": "22d00defd7ae2295e8585140c6d54b8c1d524f1d050621288dc774d034f222e6"
+    },
+    "asset_ir": {
+      "document_id": "asset:game.tictactoe_2d",
+      "revision": 0,
+      "content_hash": "78271d64fb60e8d6baf064984adc285f678b5eecc0bfae0afd808dafa380a7cb"
+    },
+    "input_ir": {
+      "document_id": "input:game.tictactoe_2d",
+      "revision": 0,
+      "content_hash": "28a4b413bb03c9ad1d9c255745a5491de1a900434181ea2097fbce468a542a81"
+    }
+  },
+  "patches": {
+    "rule_ir": [
+      {
+        "document_id": "rule:game.tictactoe_2d",
+        "base_revision": 0,
+        "base_content_hash": "6924b0cb88313e696dccf428d163309593dce7c5a021ec8a0a794c970d8bae0b",
+        "operations": [
+          {
+            "op": "replace",
+            "path": "/metadata",
+            "value": {
+              "title": "2D Tic-Tac-Toe Source Contract",
+              "description": "Source-plane reconstruction of the tictactoe_2d Function 1 fixture.",
+              "source_project_hash": "3aa7197b1fc902c10a27cd333564e8645a507fdb18c559fe9be2108ba8397d14",
+              "determinism": "deterministic"
+            }
+          },
+          {
+            "op": "replace",
+            "path": "/types",
+            "value": [
+              {
+                "id": "rule:type.cell_state",
+                "name": "Cell State",
+                "kind": "enum",
+                "values": {
+                  "negative": -1,
+                  "empty": 0,
+                  "positive": 1
+                }
+              }
+            ]
+          },
+          {
+            "op": "replace",
+            "path": "/participants",
+            "value": [
+              {
+                "id": "rule:participant.positive",
+                "name": "Positive",
+                "kind": "human_or_agent"
+              },
+              {
+                "id": "rule:participant.negative",
+                "name": "Negative",
+                "kind": "human_or_agent"
+              }
+            ]
+          },
+          {
+            "op": "replace",
+            "path": "/topologies",
+            "value": [
+              {
+                "id": "rule:topology.board",
+                "name": "2D Source Board",
+                "kind": "rect_grid",
+                "anchor": "cell",
+                "axes": [
+                  {
+                    "name": "x",
+                    "extent": 3,
+                    "boundary": "bounded"
+                  },
+                  {
+                    "name": "y",
+                    "extent": 3,
+                    "boundary": "bounded"
+                  }
+                ],
+                "neighborhoods": []
+              }
+            ]
+          },
+          {
+            "op": "replace",
+            "path": "/state",
+            "value": {
+              "variables": [
+                {
+                  "id": "rule:state.board_cell",
+                  "name": "Board Cell",
+                  "type": "rule:type.cell_state",
+                  "scope": "topology_site",
+                  "topology": "rule:topology.board",
+                  "initial": {
+                    "op": "literal",
+                    "value": 0
+                  }
+                }
+              ],
+              "entity_types": [
+                {
+                  "id": "rule:entity.positive_mark",
+                  "name": "Positive Mark",
+                  "components": [
+                    {
+                      "name": "legacy_state_value",
+                      "type": "core:int",
+                      "default": {
+                        "op": "literal",
+                        "value": 1
+                      }
+                    }
+                  ],
+                  "legacy": {
+                    "owner": "rule:participant.positive",
+                    "state_value": 1
+                  }
+                },
+                {
+                  "id": "rule:entity.negative_mark",
+                  "name": "Negative Mark",
+                  "components": [
+                    {
+                      "name": "legacy_state_value",
+                      "type": "core:int",
+                      "default": {
+                        "op": "literal",
+                        "value": -1
+                      }
+                    }
+                  ],
+                  "legacy": {
+                    "owner": "rule:participant.negative",
+                    "state_value": -1
+                  }
+                }
+              ],
+              "initial_effects": [],
+              "information_model": "perfect"
+            }
+          },
+          {
+            "op": "replace",
+            "path": "/queries",
+            "value": []
+          },
+          {
+            "op": "replace",
+            "path": "/events",
+            "value": []
+          },
+          {
+            "op": "replace",
+            "path": "/actions",
+            "value": [
+              {
+                "id": "rule:action.place",
+                "name": "Place Mark",
+                "actor": {
+                  "op": "ref",
+                  "path": "flow.current_actor"
+                },
+                "parameters": [
+                  {
+                    "name": "target",
+                    "type": "core:coord",
+                    "domain": {
+                      "op": "call",
+                      "function": "core:topology.sites",
+                      "args": [
+                        {
+                          "op": "literal",
+                          "value": "rule:topology.board"
+                        }
+                      ]
+                    }
+                  }
+                ],
+                "precondition": {
+                  "op": "call",
+                  "function": "core:grid.equals",
+                  "args": [
+                    {
+                      "op": "literal",
+                      "value": "rule:state.board_cell"
+                    },
+                    {
+                      "op": "param",
+                      "name": "target"
+                    },
+                    {
+                      "op": "literal",
+                      "value": 0
+                    }
+                  ]
+                },
+                "effects": [
+                  {
+                    "op": "grid.set",
+                    "state": "rule:state.board_cell",
+                    "topology": "rule:topology.board",
+                    "coordinate": {
+                      "op": "param",
+                      "name": "target"
+                    },
+                    "value": {
+                      "op": "call",
+                      "function": "core:participant.state",
+                      "args": [
+                        {
+                          "op": "ref",
+                          "path": "flow.current_actor"
+                        }
+                      ]
+                    }
+                  }
+                ],
+                "timing": {
+                  "phase": "rule:phase.input"
+                },
+                "encoding": {
+                  "kind": "parameter_product",
+                  "parameters": [
+                    "target"
+                  ],
+                  "ordering": "lexicographic"
+                }
+              }
+            ]
+          },
+          {
+            "op": "replace",
+            "path": "/systems",
+            "value": []
+          },
+          {
+            "op": "replace",
+            "path": "/flow",
+            "value": {
+              "model": "turn_based",
+              "phases": [
+                {
+                  "id": "rule:phase.input",
+                  "order": 100
+                },
+                {
+                  "id": "rule:phase.outcome",
+                  "order": 200
+                }
+              ],
+              "initial_phase": "rule:phase.input",
+              "scheduler": {
+                "clock": "turn",
+                "tick_hz": null,
+                "ordering": "phase_priority_id"
+              },
+              "turn_order": [
+                "rule:participant.positive",
+                "rule:participant.negative"
+              ]
+            }
+          },
+          {
+            "op": "replace",
+            "path": "/random_streams",
+            "value": []
+          },
+          {
+            "op": "replace",
+            "path": "/goals",
+            "value": [
+              {
+                "id": "rule:goal.line_three",
+                "name": "Form a length-three spatial line"
+              }
+            ]
+          },
+          {
+            "op": "replace",
+            "path": "/outcomes",
+            "value": [
+              {
+                "id": "rule:outcome.positive_win",
+                "name": "Positive Wins",
+                "priority": 100,
+                "condition": {
+                  "op": "call",
+                  "function": "core:grid.has_line",
+                  "args": [
+                    {
+                      "op": "literal",
+                      "value": "rule:state.board_cell"
+                    },
+                    {
+                      "op": "literal",
+                      "value": 1
+                    },
+                    {
+                      "op": "literal",
+                      "value": 3
+                    }
+                  ]
+                },
+                "result": {
+                  "status": "win",
+                  "terminal": true,
+                  "winners": [
+                    {
+                      "op": "literal",
+                      "value": "rule:participant.positive"
+                    }
+                  ],
+                  "losers": [
+                    {
+                      "op": "literal",
+                      "value": "rule:participant.negative"
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "rule:outcome.negative_win",
+                "name": "Negative Wins",
+                "priority": 100,
+                "condition": {
+                  "op": "call",
+                  "function": "core:grid.has_line",
+                  "args": [
+                    {
+                      "op": "literal",
+                      "value": "rule:state.board_cell"
+                    },
+                    {
+                      "op": "literal",
+                      "value": -1
+                    },
+                    {
+                      "op": "literal",
+                      "value": 3
+                    }
+                  ]
+                },
+                "result": {
+                  "status": "win",
+                  "terminal": true,
+                  "winners": [
+                    {
+                      "op": "literal",
+                      "value": "rule:participant.negative"
+                    }
+                  ],
+                  "losers": [
+                    {
+                      "op": "literal",
+                      "value": "rule:participant.positive"
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "rule:outcome.draw",
+                "name": "Draw",
+                "priority": 10,
+                "condition": {
+                  "op": "call",
+                  "function": "core:grid.none_equal",
+                  "args": [
+                    {
+                      "op": "literal",
+                      "value": "rule:state.board_cell"
+                    },
+                    {
+                      "op": "literal",
+                      "value": 0
+                    }
+                  ]
+                },
+                "result": {
+                  "status": "draw",
+                  "terminal": true
+                }
+              }
+            ]
+          },
+          {
+            "op": "replace",
+            "path": "/modes",
+            "value": [
+              {
+                "id": "rule:mode.default",
+                "name": "Default",
+                "overrides": []
+              }
+            ]
+          },
+          {
+            "op": "replace",
+            "path": "/invariants",
+            "value": [
+              {
+                "id": "rule:invariant.cell_domain",
+                "name": "Cell values remain in the declared enum",
+                "condition": {
+                  "op": "call",
+                  "function": "core:grid.values_in_type",
+                  "args": [
+                    {
+                      "op": "literal",
+                      "value": "rule:state.board_cell"
+                    },
+                    {
+                      "op": "literal",
+                      "value": "rule:type.cell_state"
+                    }
+                  ]
+                },
+                "severity": "error"
+              }
+            ]
+          },
+          {
+            "op": "replace",
+            "path": "/extensions",
+            "value": {}
+          },
+          {
+            "op": "replace",
+            "path": "/unresolved",
+            "value": []
+          }
+        ],
+        "evidence": [
+          {
+            "evidence_id": "ev:sha256:3c61fde069f7c222b26e0865d311cca4acc0d2000397ce8d95c9c5d94319f9b8",
+            "source_file_hash": "5e641469943dc3d7b639868e442f9d2a8e706e0f8fb1b67cb312bf19755078ca",
+            "path": "srtp/examples/tictactoe_2d.py",
+            "kind": "source_file"
+          }
+        ],
+        "assumptions": [],
+        "unresolved": []
+      }
+    ],
+    "asset_ir": [
+      {
+        "document_id": "asset:game.tictactoe_2d",
+        "base_revision": 0,
+        "base_content_hash": "78271d64fb60e8d6baf064984adc285f678b5eecc0bfae0afd808dafa380a7cb",
+        "operations": [
+          {
+            "op": "replace",
+            "path": "/derivations",
+            "value": [
+              {
+                "id": "asset:model.cell_cube_tictactoe_2d",
+                "name": "Cell Cube",
+                "kind": "model",
+                "media_type": "application/vnd.cubeengine.presentation+json",
+                "strategy": "procedural_mesh",
+                "inputs": [],
+                "settings": {
+                  "primitive": "cube",
+                  "dimensions": [
+                    1.0,
+                    1.0,
+                    1.0
+                  ]
+                },
+                "expected_content_hash": "",
+                "license_policy": "inherit"
+              }
+            ]
+          },
+          {
+            "op": "replace",
+            "path": "/roles",
+            "value": [
+              {
+                "id": "asset:role.board_cell_tictactoe_2d",
+                "name": "Board Cell",
+                "semantic": "board.cell",
+                "resource": "asset:model.cell_cube_tictactoe_2d",
+                "usage": "world_mesh",
+                "required": true
+              }
+            ]
+          },
+          {
+            "op": "replace",
+            "path": "/unresolved",
+            "value": []
+          }
+        ],
+        "evidence": [
+          {
+            "evidence_id": "ev:sha256:3c61fde069f7c222b26e0865d311cca4acc0d2000397ce8d95c9c5d94319f9b8",
+            "source_file_hash": "5e641469943dc3d7b639868e442f9d2a8e706e0f8fb1b67cb312bf19755078ca",
+            "path": "srtp/examples/tictactoe_2d.py",
+            "kind": "source_file"
+          }
+        ],
+        "assumptions": [],
+        "unresolved": []
+      }
+    ],
+    "scene_ir": [
+      {
+        "document_id": "scene:game.tictactoe_2d",
+        "base_revision": 0,
+        "base_content_hash": "22d00defd7ae2295e8585140c6d54b8c1d524f1d050621288dc774d034f222e6",
+        "operations": [
+          {
+            "op": "replace",
+            "path": "/dependencies",
+            "value": {
+              "rule_ir": {
+                "document_id": "rule:game.tictactoe_2d",
+                "content_hash": "$pin:rule_ir"
+              },
+              "asset_ir": {
+                "document_id": "asset:game.tictactoe_2d",
+                "content_hash": "$pin:asset_ir"
+              },
+              "extensions": []
+            }
+          },
+          {
+            "op": "replace",
+            "path": "/prefabs",
+            "value": [
+              {
+                "id": "scene:prefab.cell",
+                "name": "Cell",
+                "root": {
+                  "local_id": "root",
+                  "name": "Cell",
+                  "active": true,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      0.0,
+                      0.0
+                    ],
+                    "rotation_euler_deg": [
+                      0.0,
+                      0.0,
+                      0.0
+                    ],
+                    "scale": [
+                      1.0,
+                      1.0,
+                      1.0
+                    ]
+                  },
+                  "components": [
+                    {
+                      "id": "renderer",
+                      "type": "renderer",
+                      "enabled": true,
+                      "properties": {
+                        "geometry": "asset:model.cell_cube_tictactoe_2d",
+                        "visible": true,
+                        "opacity": 1.0,
+                        "variant": "empty"
+                      }
+                    },
+                    {
+                      "id": "collider",
+                      "type": "collider",
+                      "enabled": true,
+                      "properties": {
+                        "shape": "box",
+                        "size": [
+                          1.0,
+                          1.0,
+                          1.0
+                        ],
+                        "is_trigger": false,
+                        "selectable": true
+                      }
+                    }
+                  ],
+                  "children": []
+                }
+              }
+            ]
+          },
+          {
+            "op": "replace",
+            "path": "/nodes",
+            "value": [
+              {
+                "id": "scene:node.board",
+                "name": "Board",
+                "parent": null,
+                "active": true,
+                "layer": "scene:layer.runtime",
+                "transform": {
+                  "translation": [
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  "rotation_euler_deg": [
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  "scale": [
+                    1.0,
+                    1.0,
+                    1.0
+                  ]
+                },
+                "components": [
+                  {
+                    "id": "sites",
+                    "type": "topology_visualizer",
+                    "enabled": true,
+                    "properties": {
+                      "rule_topology": "rule:topology.board",
+                      "prefab": "scene:prefab.cell",
+                      "index_to_world": [
+                        1.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        1.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        1.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        1.0
+                      ]
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "op": "replace",
+            "path": "/bindings",
+            "value": [
+              {
+                "id": "scene:binding.cell_variant",
+                "name": "Cell Variant",
+                "source": {
+                  "kind": "state",
+                  "scope": "topology_site",
+                  "variable": "rule:state.board_cell"
+                },
+                "target": {
+                  "selector": "topology_sites",
+                  "node": "scene:node.board",
+                  "visualizer": "sites",
+                  "component": "renderer",
+                  "property": "variant"
+                },
+                "transform": {
+                  "kind": "map",
+                  "cases": [
+                    {
+                      "equals": 0,
+                      "value": "empty"
+                    },
+                    {
+                      "equals": 1,
+                      "value": "positive"
+                    },
+                    {
+                      "equals": -1,
+                      "value": "negative"
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "op": "replace",
+            "path": "/unresolved",
+            "value": []
+          }
+        ],
+        "evidence": [
+          {
+            "evidence_id": "ev:sha256:3c61fde069f7c222b26e0865d311cca4acc0d2000397ce8d95c9c5d94319f9b8",
+            "source_file_hash": "5e641469943dc3d7b639868e442f9d2a8e706e0f8fb1b67cb312bf19755078ca",
+            "path": "srtp/examples/tictactoe_2d.py",
+            "kind": "source_file"
+          }
+        ],
+        "assumptions": [],
+        "unresolved": []
+      }
+    ],
+    "input_ir": [
+      {
+        "document_id": "input:game.tictactoe_2d",
+        "base_revision": 0,
+        "base_content_hash": "28a4b413bb03c9ad1d9c255745a5491de1a900434181ea2097fbce468a542a81",
+        "operations": [
+          {
+            "op": "replace",
+            "path": "/dependencies",
+            "value": {
+              "rule_ir": {
+                "document_id": "rule:game.tictactoe_2d",
+                "content_hash": "$pin:rule_ir"
+              },
+              "extensions": []
+            }
+          },
+          {
+            "op": "replace",
+            "path": "/contexts",
+            "value": [
+              {
+                "id": "input:context.play",
+                "name": "Play",
+                "priority": 100,
+                "enabled_by_default": true,
+                "focus": "viewport",
+                "consume_policy": "first_match",
+                "exclusive_group": "runtime_mode"
+              }
+            ]
+          },
+          {
+            "op": "replace",
+            "path": "/intents",
+            "value": [
+              {
+                "id": "input:action.place",
+                "name": "Place",
+                "value_type": "digital",
+                "required": true,
+                "target": {
+                  "kind": "rule_action",
+                  "action": "rule:action.place",
+                  "parameters": {
+                    "target": {
+                      "source": "event_data",
+                      "key": "rule_coordinate",
+                      "value_type": "core:coord"
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "op": "replace",
+            "path": "/bindings",
+            "value": [
+              {
+                "id": "input:binding.place_mouse",
+                "name": "Place with Mouse",
+                "context": "input:context.play",
+                "intent": "input:action.place",
+                "priority": 100,
+                "enabled": true,
+                "consume": true,
+                "rebindable": true,
+                "slot": "primary",
+                "accessibility_label": "Place",
+                "trigger": {
+                  "kind": "control",
+                  "device": "mouse",
+                  "control": "mouse.button.primary",
+                  "phase": "press",
+                  "modifiers": [],
+                  "modifier_policy": "exact"
+                },
+                "processing": {
+                  "dead_zone": 0,
+                  "sensitivity_numerator": 1,
+                  "sensitivity_denominator": 1,
+                  "invert": false,
+                  "clamp_min": -32768,
+                  "clamp_max": 32767
+                }
+              }
+            ]
+          },
+          {
+            "op": "replace",
+            "path": "/unresolved",
+            "value": []
+          }
+        ],
+        "evidence": [
+          {
+            "evidence_id": "ev:sha256:3c61fde069f7c222b26e0865d311cca4acc0d2000397ce8d95c9c5d94319f9b8",
+            "source_file_hash": "5e641469943dc3d7b639868e442f9d2a8e706e0f8fb1b67cb312bf19755078ca",
+            "path": "srtp/examples/tictactoe_2d.py",
+            "kind": "source_file"
+          }
+        ],
+        "assumptions": [],
+        "unresolved": []
+      }
+    ]
+  },
+  "claims": [
+    {
+      "id": "claim:tictactoe.place",
+      "path": "/actions/0",
+      "evidence_id": "ev:sha256:3c61fde069f7c222b26e0865d311cca4acc0d2000397ce8d95c9c5d94319f9b8",
+      "value": "empty-cell placement with length-three lines"
+    }
+  ],
+  "tests": [],
+  "extension_proposals": [],
+  "spatial_lift_options": [],
+  "assumptions": [],
+  "unresolved": [],
+  "clarification_questions": [],
+  "generated_adapter": null
+}

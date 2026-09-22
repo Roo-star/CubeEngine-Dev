@@ -1,0 +1,32 @@
+{
+  "intent_version": "cubeengine.srtp/design-intent/1.0",
+  "intent_id": "intent:snake_z_extent_3",
+  "conversation_id": "conv:snake_game_3d_lift",
+  "turn_id": "turn_1",
+  "project_id": "project:snake.game.with.python.and.pygame.llm.source",
+  "source_manifest_hash": "bc4ffebde4962adf0220ce04ea37540dcd709ba4381380bd848e3243bef6a032",
+  "original_text": "Preserve XY step-snake; extend topology with Z extent 3.",
+  "language": "en",
+  "operation": "transform",
+  "scope": [
+    "scene",
+    "rule"
+  ],
+  "preserve": [
+    "XY step-snake"
+  ],
+  "changes": [
+    "Extend topology with Z dimension",
+    "Set Z extent to 3"
+  ],
+  "constraints": [
+    "Z extent = 3"
+  ],
+  "resolved_references": [],
+  "assumptions": [],
+  "conflicts": [],
+  "unresolved": [],
+  "requires_confirmation": false,
+  "status": "ready",
+  "target_base": null
+}

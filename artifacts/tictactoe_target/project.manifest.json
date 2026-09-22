@@ -1,0 +1,40 @@
+{
+  "manifest_version": "cubeengine.project-manifest/2.0-alpha.2",
+  "project_id": "project:game.tictactoe_2d_target",
+  "revision": 0,
+  "content_hash": "3b1a3c156865f05317767f544e170803b061286a38304c5b86d0ef208f7a3844",
+  "metadata": {
+    "title": "3D Tic-Tac-Toe Target Contract",
+    "description": ""
+  },
+  "variant": "target",
+  "source_manifest": {
+    "project_id": "project:game.tictactoe_2d_source",
+    "content_hash": "011c868ac13219fe7bf396f83bb6ac9437bdefaa26ae7c93c6b0adef372458d4"
+  },
+  "documents": {
+    "rule_ir": {
+      "document_id": "rule:game.tictactoe_2d",
+      "ir_version": "cubeengine.rule-ir/2.0-alpha.1",
+      "content_hash": "355ab402454ebc6e47befaa4e521c15147b85ff38e2f538f5749e0fb21809576"
+    },
+    "scene_ir": {
+      "document_id": "scene:game.tictactoe_2d",
+      "ir_version": "cubeengine.scene-ir/2.0-alpha.1",
+      "content_hash": "927417758cb66b8f3d83fc5ff03e68655d7871a54b0b136c772834f15cbc58b0"
+    },
+    "asset_ir": {
+      "document_id": "asset:game.tictactoe_2d",
+      "ir_version": "cubeengine.asset-ir/2.0-alpha.1",
+      "content_hash": "480b6638f19dfe9cba5e93d08f150d0ae4987fe4e0c332c4af4dab8aa10126cd"
+    },
+    "input_ir": {
+      "document_id": "input:game.tictactoe_2d",
+      "ir_version": "cubeengine.input-ir/2.0-alpha.1",
+      "content_hash": "c402b5fa9df83a704314afb789ef7cc3ebe36eaa07fc72d585526d4332b9c93f"
+    }
+  },
+  "extensions": [],
+  "provenance": {},
+  "unresolved": []
+}

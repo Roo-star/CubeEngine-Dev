@@ -1,0 +1,47 @@
+{
+  "manifest_version": "cubeengine.project-manifest/2.0-alpha.2",
+  "project_id": "project:snake.game.with.python.and.pygame.llm.target",
+  "revision": 4,
+  "content_hash": "bbf71983179c17c753a0b374b51631f12a80b9b951c56ea05a296c94f60e5ec7",
+  "metadata": {
+    "title": "Snake Game with Python and Pygame (target)",
+    "description": "Arrow keys move XY; PageUp/PageDown move Z. Playable overlay from snake_playable_fixture."
+  },
+  "variant": "target",
+  "source_manifest": {
+    "project_id": "project:snake.game.with.python.and.pygame.llm.source",
+    "content_hash": "781e7f923108307993d997da678f706435347b4114597e3088624cbcb93e809e"
+  },
+  "documents": {
+    "rule_ir": {
+      "document_id": "rule:game.snake.game.with.python.and.pygame.target",
+      "ir_version": "cubeengine.rule-ir/2.0-alpha.1",
+      "content_hash": "7678bc300532bfc439a9b4f06131170e6c737282534ea8b77cedc612a1825f0f"
+    },
+    "scene_ir": {
+      "document_id": "scene:game.snake.game.with.python.and.pygame.target",
+      "ir_version": "cubeengine.scene-ir/2.0-alpha.1",
+      "content_hash": "b72b12f114aad47c0fa34e7693daf81d080d3ed07d065ecca8b33426e5cd4a44"
+    },
+    "asset_ir": {
+      "document_id": "asset:game.snake.game.with.python.and.pygame.target",
+      "ir_version": "cubeengine.asset-ir/2.0-alpha.1",
+      "content_hash": "d184f06436ddfe382f553a8de26e45a641f9a70a3ee6f72d2ca80271a79c59a1"
+    },
+    "input_ir": {
+      "document_id": "input:game.snake.game.with.python.and.pygame.target",
+      "ir_version": "cubeengine.input-ir/2.0-alpha.1",
+      "content_hash": "1acea5bccad7917c482c773d46558b941ff5919df49cb46517c9a9e42bdb2329"
+    }
+  },
+  "extensions": [],
+  "provenance": {
+    "llm_proposal_id": "prop-001",
+    "prompt_template_version": "cubeengine.srtp/llm-prompt/2.0",
+    "designer_approved": true,
+    "approved_by": "cli",
+    "playable_overlay": "snake_playable_fixture",
+    "playable_overlay_note": "Reviewed XY+Z step-snake overlay applied for Project Session playability (arrows + PageUp/PageDown)."
+  },
+  "unresolved": []
+}

@@ -1,0 +1,4662 @@
+{
+  "ir_version": "cubeengine.rule-ir/2.0-alpha.1",
+  "document_id": "rule:game.snake_step_playable",
+  "revision": 0,
+  "content_hash": "a293f7081066df095a0e96b14a066be617a6bce772fe51161174f8ff4ec7006b",
+  "metadata": {
+    "title": "Step Snake",
+    "description": "One cell per arrow-key action. No automatic tick.",
+    "source_project_hash": "",
+    "determinism": "deterministic"
+  },
+  "dependencies": {
+    "scene_ir": null,
+    "asset_ir": null,
+    "input_ir": null,
+    "extensions": []
+  },
+  "parameters": [],
+  "types": [],
+  "participants": [
+    {
+      "id": "rule:participant.player",
+      "name": "Player",
+      "kind": "human"
+    }
+  ],
+  "topologies": [
+    {
+      "id": "rule:topology.board",
+      "name": "Board",
+      "kind": "rect_grid",
+      "anchor": "cell",
+      "axes": [
+        {
+          "name": "x",
+          "extent": 20,
+          "boundary": "bounded"
+        },
+        {
+          "name": "y",
+          "extent": 20,
+          "boundary": "bounded"
+        }
+      ],
+      "neighborhoods": []
+    }
+  ],
+  "state": {
+    "variables": [
+      {
+        "id": "rule:state.head_x",
+        "name": "Head X",
+        "type": "core:int",
+        "scope": "global",
+        "initial": {
+          "op": "literal",
+          "value": 5
+        }
+      },
+      {
+        "id": "rule:state.head_y",
+        "name": "Head Y",
+        "type": "core:int",
+        "scope": "global",
+        "initial": {
+          "op": "literal",
+          "value": 10
+        }
+      },
+      {
+        "id": "rule:state.tail_x",
+        "name": "Tail X",
+        "type": "core:int",
+        "scope": "global",
+        "initial": {
+          "op": "literal",
+          "value": 3
+        }
+      },
+      {
+        "id": "rule:state.tail_y",
+        "name": "Tail Y",
+        "type": "core:int",
+        "scope": "global",
+        "initial": {
+          "op": "literal",
+          "value": 10
+        }
+      },
+      {
+        "id": "rule:state.food_x",
+        "name": "Food X",
+        "type": "core:int",
+        "scope": "global",
+        "initial": {
+          "op": "literal",
+          "value": 10
+        }
+      },
+      {
+        "id": "rule:state.food_y",
+        "name": "Food Y",
+        "type": "core:int",
+        "scope": "global",
+        "initial": {
+          "op": "literal",
+          "value": 10
+        }
+      },
+      {
+        "id": "rule:state.last_dx",
+        "name": "Last DX",
+        "type": "core:int",
+        "scope": "global",
+        "initial": {
+          "op": "literal",
+          "value": 0
+        }
+      },
+      {
+        "id": "rule:state.last_dy",
+        "name": "Last DY",
+        "type": "core:int",
+        "scope": "global",
+        "initial": {
+          "op": "literal",
+          "value": 0
+        }
+      },
+      {
+        "id": "rule:state.length",
+        "name": "Length",
+        "type": "core:int",
+        "scope": "global",
+        "initial": {
+          "op": "literal",
+          "value": 3
+        }
+      },
+      {
+        "id": "rule:state.score",
+        "name": "Score",
+        "type": "core:int",
+        "scope": "global",
+        "initial": {
+          "op": "literal",
+          "value": 0
+        }
+      },
+      {
+        "id": "rule:state.alive",
+        "name": "Alive",
+        "type": "core:bool",
+        "scope": "global",
+        "initial": {
+          "op": "literal",
+          "value": true
+        }
+      },
+      {
+        "id": "rule:state.grow_pending",
+        "name": "Grow Pending",
+        "type": "core:bool",
+        "scope": "global",
+        "initial": {
+          "op": "literal",
+          "value": false
+        }
+      },
+      {
+        "id": "rule:state.board_cell",
+        "name": "Board Cell",
+        "type": "core:int",
+        "scope": "topology_site",
+        "topology": "rule:topology.board",
+        "initial": {
+          "op": "literal",
+          "value": 0
+        }
+      },
+      {
+        "id": "rule:state.trail_dir",
+        "name": "Trail Direction",
+        "type": "core:int",
+        "scope": "topology_site",
+        "topology": "rule:topology.board",
+        "initial": {
+          "op": "literal",
+          "value": 0
+        }
+      },
+      {
+        "id": "rule:state.extent",
+        "name": "Extent",
+        "type": "core:int",
+        "scope": "global",
+        "initial": {
+          "op": "literal",
+          "value": 20
+        }
+      },
+      {
+        "id": "rule:state.clear_x",
+        "name": "Clear X",
+        "type": "core:int",
+        "scope": "global",
+        "initial": {
+          "op": "literal",
+          "value": 3
+        }
+      },
+      {
+        "id": "rule:state.clear_y",
+        "name": "Clear Y",
+        "type": "core:int",
+        "scope": "global",
+        "initial": {
+          "op": "literal",
+          "value": 10
+        }
+      },
+      {
+        "id": "rule:state.next_tail_x",
+        "name": "Next Tail X",
+        "type": "core:int",
+        "scope": "global",
+        "initial": {
+          "op": "literal",
+          "value": 3
+        }
+      },
+      {
+        "id": "rule:state.next_tail_y",
+        "name": "Next Tail Y",
+        "type": "core:int",
+        "scope": "global",
+        "initial": {
+          "op": "literal",
+          "value": 10
+        }
+      }
+    ],
+    "entity_types": [],
+    "initial_effects": [
+      {
+        "op": "grid.set",
+        "state": "rule:state.board_cell",
+        "topology": "rule:topology.board",
+        "coordinate": {
+          "op": "literal",
+          "value": [
+            3,
+            10
+          ]
+        },
+        "value": {
+          "op": "literal",
+          "value": 1
+        }
+      },
+      {
+        "op": "grid.set",
+        "state": "rule:state.board_cell",
+        "topology": "rule:topology.board",
+        "coordinate": {
+          "op": "literal",
+          "value": [
+            4,
+            10
+          ]
+        },
+        "value": {
+          "op": "literal",
+          "value": 1
+        }
+      },
+      {
+        "op": "grid.set",
+        "state": "rule:state.board_cell",
+        "topology": "rule:topology.board",
+        "coordinate": {
+          "op": "literal",
+          "value": [
+            5,
+            10
+          ]
+        },
+        "value": {
+          "op": "literal",
+          "value": 2
+        }
+      },
+      {
+        "op": "grid.set",
+        "state": "rule:state.trail_dir",
+        "topology": "rule:topology.board",
+        "coordinate": {
+          "op": "literal",
+          "value": [
+            3,
+            10
+          ]
+        },
+        "value": {
+          "op": "literal",
+          "value": 4
+        }
+      },
+      {
+        "op": "grid.set",
+        "state": "rule:state.trail_dir",
+        "topology": "rule:topology.board",
+        "coordinate": {
+          "op": "literal",
+          "value": [
+            4,
+            10
+          ]
+        },
+        "value": {
+          "op": "literal",
+          "value": 4
+        }
+      },
+      {
+        "op": "grid.set",
+        "state": "rule:state.board_cell",
+        "topology": "rule:topology.board",
+        "coordinate": {
+          "op": "literal",
+          "value": [
+            10,
+            10
+          ]
+        },
+        "value": {
+          "op": "literal",
+          "value": -1
+        }
+      }
+    ],
+    "information_model": "perfect"
+  },
+  "queries": [],
+  "events": [],
+  "actions": [
+    {
+      "id": "rule:action.move_up",
+      "name": "Move Up",
+      "actor": {
+        "op": "literal",
+        "value": "rule:participant.player"
+      },
+      "parameters": [],
+      "precondition": {
+        "op": "and",
+        "args": [
+          {
+            "op": "eq",
+            "args": [
+              {
+                "op": "ref",
+                "path": "rule:state.alive"
+              },
+              {
+                "op": "literal",
+                "value": true
+              }
+            ]
+          },
+          {
+            "op": "not",
+            "args": [
+              {
+                "op": "and",
+                "args": [
+                  {
+                    "op": "eq",
+                    "args": [
+                      {
+                        "op": "ref",
+                        "path": "rule:state.last_dx"
+                      },
+                      {
+                        "op": "literal",
+                        "value": 0
+                      }
+                    ]
+                  },
+                  {
+                    "op": "eq",
+                    "args": [
+                      {
+                        "op": "ref",
+                        "path": "rule:state.last_dy"
+                      },
+                      {
+                        "op": "literal",
+                        "value": 1
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "op": "call",
+            "function": "core:topology.contains",
+            "args": [
+              {
+                "op": "literal",
+                "value": "rule:topology.board"
+              },
+              {
+                "op": "vector",
+                "items": [
+                  {
+                    "op": "add",
+                    "args": [
+                      {
+                        "op": "ref",
+                        "path": "rule:state.head_x"
+                      },
+                      {
+                        "op": "literal",
+                        "value": 0
+                      }
+                    ]
+                  },
+                  {
+                    "op": "add",
+                    "args": [
+                      {
+                        "op": "ref",
+                        "path": "rule:state.head_y"
+                      },
+                      {
+                        "op": "literal",
+                        "value": -1
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "op": "or",
+            "args": [
+              {
+                "op": "call",
+                "function": "core:grid.equals",
+                "args": [
+                  {
+                    "op": "literal",
+                    "value": "rule:state.board_cell"
+                  },
+                  {
+                    "op": "vector",
+                    "items": [
+                      {
+                        "op": "add",
+                        "args": [
+                          {
+                            "op": "ref",
+                            "path": "rule:state.head_x"
+                          },
+                          {
+                            "op": "literal",
+                            "value": 0
+                          }
+                        ]
+                      },
+                      {
+                        "op": "add",
+                        "args": [
+                          {
+                            "op": "ref",
+                            "path": "rule:state.head_y"
+                          },
+                          {
+                            "op": "literal",
+                            "value": -1
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "op": "literal",
+                    "value": 0
+                  }
+                ]
+              },
+              {
+                "op": "call",
+                "function": "core:grid.equals",
+                "args": [
+                  {
+                    "op": "literal",
+                    "value": "rule:state.board_cell"
+                  },
+                  {
+                    "op": "vector",
+                    "items": [
+                      {
+                        "op": "add",
+                        "args": [
+                          {
+                            "op": "ref",
+                            "path": "rule:state.head_x"
+                          },
+                          {
+                            "op": "literal",
+                            "value": 0
+                          }
+                        ]
+                      },
+                      {
+                        "op": "add",
+                        "args": [
+                          {
+                            "op": "ref",
+                            "path": "rule:state.head_y"
+                          },
+                          {
+                            "op": "literal",
+                            "value": -1
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "op": "literal",
+                    "value": -1
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "effects": [
+        {
+          "op": "state.set",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.grow_pending"
+          },
+          "value": {
+            "op": "call",
+            "function": "core:grid.equals",
+            "args": [
+              {
+                "op": "literal",
+                "value": "rule:state.board_cell"
+              },
+              {
+                "op": "vector",
+                "items": [
+                  {
+                    "op": "add",
+                    "args": [
+                      {
+                        "op": "ref",
+                        "path": "rule:state.head_x"
+                      },
+                      {
+                        "op": "literal",
+                        "value": 0
+                      }
+                    ]
+                  },
+                  {
+                    "op": "add",
+                    "args": [
+                      {
+                        "op": "ref",
+                        "path": "rule:state.head_y"
+                      },
+                      {
+                        "op": "literal",
+                        "value": -1
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "op": "literal",
+                "value": -1
+              }
+            ]
+          }
+        },
+        {
+          "op": "state.set",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.clear_x"
+          },
+          "value": {
+            "op": "ref",
+            "path": "rule:state.tail_x"
+          }
+        },
+        {
+          "op": "state.set",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.clear_y"
+          },
+          "value": {
+            "op": "ref",
+            "path": "rule:state.tail_y"
+          }
+        },
+        {
+          "op": "state.set",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.next_tail_x"
+          },
+          "value": {
+            "op": "if",
+            "condition": {
+              "op": "ref",
+              "path": "rule:state.grow_pending"
+            },
+            "then": {
+              "op": "ref",
+              "path": "rule:state.tail_x"
+            },
+            "else": {
+              "op": "add",
+              "args": [
+                {
+                  "op": "ref",
+                  "path": "rule:state.tail_x"
+                },
+                {
+                  "op": "if",
+                  "condition": {
+                    "op": "eq",
+                    "args": [
+                      {
+                        "op": "call",
+                        "function": "core:grid.get",
+                        "args": [
+                          {
+                            "op": "literal",
+                            "value": "rule:state.trail_dir"
+                          },
+                          {
+                            "op": "vector",
+                            "items": [
+                              {
+                                "op": "ref",
+                                "path": "rule:state.tail_x"
+                              },
+                              {
+                                "op": "ref",
+                                "path": "rule:state.tail_y"
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "op": "literal",
+                        "value": 4
+                      }
+                    ]
+                  },
+                  "then": {
+                    "op": "literal",
+                    "value": 1
+                  },
+                  "else": {
+                    "op": "if",
+                    "condition": {
+                      "op": "eq",
+                      "args": [
+                        {
+                          "op": "call",
+                          "function": "core:grid.get",
+                          "args": [
+                            {
+                              "op": "literal",
+                              "value": "rule:state.trail_dir"
+                            },
+                            {
+                              "op": "vector",
+                              "items": [
+                                {
+                                  "op": "ref",
+                                  "path": "rule:state.tail_x"
+                                },
+                                {
+                                  "op": "ref",
+                                  "path": "rule:state.tail_y"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "op": "literal",
+                          "value": 3
+                        }
+                      ]
+                    },
+                    "then": {
+                      "op": "literal",
+                      "value": -1
+                    },
+                    "else": {
+                      "op": "literal",
+                      "value": 0
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "op": "state.set",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.next_tail_y"
+          },
+          "value": {
+            "op": "if",
+            "condition": {
+              "op": "ref",
+              "path": "rule:state.grow_pending"
+            },
+            "then": {
+              "op": "ref",
+              "path": "rule:state.tail_y"
+            },
+            "else": {
+              "op": "add",
+              "args": [
+                {
+                  "op": "ref",
+                  "path": "rule:state.tail_y"
+                },
+                {
+                  "op": "if",
+                  "condition": {
+                    "op": "eq",
+                    "args": [
+                      {
+                        "op": "call",
+                        "function": "core:grid.get",
+                        "args": [
+                          {
+                            "op": "literal",
+                            "value": "rule:state.trail_dir"
+                          },
+                          {
+                            "op": "vector",
+                            "items": [
+                              {
+                                "op": "ref",
+                                "path": "rule:state.tail_x"
+                              },
+                              {
+                                "op": "ref",
+                                "path": "rule:state.tail_y"
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "op": "literal",
+                        "value": 2
+                      }
+                    ]
+                  },
+                  "then": {
+                    "op": "literal",
+                    "value": 1
+                  },
+                  "else": {
+                    "op": "if",
+                    "condition": {
+                      "op": "eq",
+                      "args": [
+                        {
+                          "op": "call",
+                          "function": "core:grid.get",
+                          "args": [
+                            {
+                              "op": "literal",
+                              "value": "rule:state.trail_dir"
+                            },
+                            {
+                              "op": "vector",
+                              "items": [
+                                {
+                                  "op": "ref",
+                                  "path": "rule:state.tail_x"
+                                },
+                                {
+                                  "op": "ref",
+                                  "path": "rule:state.tail_y"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "op": "literal",
+                          "value": 1
+                        }
+                      ]
+                    },
+                    "then": {
+                      "op": "literal",
+                      "value": -1
+                    },
+                    "else": {
+                      "op": "literal",
+                      "value": 0
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "op": "grid.set",
+          "state": "rule:state.trail_dir",
+          "topology": "rule:topology.board",
+          "coordinate": {
+            "op": "vector",
+            "items": [
+              {
+                "op": "ref",
+                "path": "rule:state.head_x"
+              },
+              {
+                "op": "ref",
+                "path": "rule:state.head_y"
+              }
+            ]
+          },
+          "value": {
+            "op": "literal",
+            "value": 1
+          }
+        },
+        {
+          "op": "grid.set",
+          "state": "rule:state.board_cell",
+          "topology": "rule:topology.board",
+          "coordinate": {
+            "op": "vector",
+            "items": [
+              {
+                "op": "ref",
+                "path": "rule:state.head_x"
+              },
+              {
+                "op": "ref",
+                "path": "rule:state.head_y"
+              }
+            ]
+          },
+          "value": {
+            "op": "literal",
+            "value": 1
+          }
+        },
+        {
+          "op": "grid.set",
+          "state": "rule:state.board_cell",
+          "topology": "rule:topology.board",
+          "coordinate": {
+            "op": "vector",
+            "items": [
+              {
+                "op": "add",
+                "args": [
+                  {
+                    "op": "ref",
+                    "path": "rule:state.head_x"
+                  },
+                  {
+                    "op": "literal",
+                    "value": 0
+                  }
+                ]
+              },
+              {
+                "op": "add",
+                "args": [
+                  {
+                    "op": "ref",
+                    "path": "rule:state.head_y"
+                  },
+                  {
+                    "op": "literal",
+                    "value": -1
+                  }
+                ]
+              }
+            ]
+          },
+          "value": {
+            "op": "literal",
+            "value": 2
+          }
+        },
+        {
+          "op": "grid.set",
+          "state": "rule:state.board_cell",
+          "topology": "rule:topology.board",
+          "coordinate": {
+            "op": "vector",
+            "items": [
+              {
+                "op": "ref",
+                "path": "rule:state.clear_x"
+              },
+              {
+                "op": "ref",
+                "path": "rule:state.clear_y"
+              }
+            ]
+          },
+          "value": {
+            "op": "if",
+            "condition": {
+              "op": "ref",
+              "path": "rule:state.grow_pending"
+            },
+            "then": {
+              "op": "call",
+              "function": "core:grid.get",
+              "args": [
+                {
+                  "op": "literal",
+                  "value": "rule:state.board_cell"
+                },
+                {
+                  "op": "vector",
+                  "items": [
+                    {
+                      "op": "ref",
+                      "path": "rule:state.clear_x"
+                    },
+                    {
+                      "op": "ref",
+                      "path": "rule:state.clear_y"
+                    }
+                  ]
+                }
+              ]
+            },
+            "else": {
+              "op": "literal",
+              "value": 0
+            }
+          }
+        },
+        {
+          "op": "grid.set",
+          "state": "rule:state.trail_dir",
+          "topology": "rule:topology.board",
+          "coordinate": {
+            "op": "vector",
+            "items": [
+              {
+                "op": "ref",
+                "path": "rule:state.clear_x"
+              },
+              {
+                "op": "ref",
+                "path": "rule:state.clear_y"
+              }
+            ]
+          },
+          "value": {
+            "op": "if",
+            "condition": {
+              "op": "ref",
+              "path": "rule:state.grow_pending"
+            },
+            "then": {
+              "op": "call",
+              "function": "core:grid.get",
+              "args": [
+                {
+                  "op": "literal",
+                  "value": "rule:state.trail_dir"
+                },
+                {
+                  "op": "vector",
+                  "items": [
+                    {
+                      "op": "ref",
+                      "path": "rule:state.clear_x"
+                    },
+                    {
+                      "op": "ref",
+                      "path": "rule:state.clear_y"
+                    }
+                  ]
+                }
+              ]
+            },
+            "else": {
+              "op": "literal",
+              "value": 0
+            }
+          }
+        },
+        {
+          "op": "state.set",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.tail_x"
+          },
+          "value": {
+            "op": "ref",
+            "path": "rule:state.next_tail_x"
+          }
+        },
+        {
+          "op": "state.set",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.tail_y"
+          },
+          "value": {
+            "op": "ref",
+            "path": "rule:state.next_tail_y"
+          }
+        },
+        {
+          "op": "state.set",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.head_x"
+          },
+          "value": {
+            "op": "add",
+            "args": [
+              {
+                "op": "ref",
+                "path": "rule:state.head_x"
+              },
+              {
+                "op": "literal",
+                "value": 0
+              }
+            ]
+          }
+        },
+        {
+          "op": "state.set",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.head_y"
+          },
+          "value": {
+            "op": "add",
+            "args": [
+              {
+                "op": "ref",
+                "path": "rule:state.head_y"
+              },
+              {
+                "op": "literal",
+                "value": -1
+              }
+            ]
+          }
+        },
+        {
+          "op": "state.set",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.last_dx"
+          },
+          "value": {
+            "op": "literal",
+            "value": 0
+          }
+        },
+        {
+          "op": "state.set",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.last_dy"
+          },
+          "value": {
+            "op": "literal",
+            "value": -1
+          }
+        },
+        {
+          "op": "state.set",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.score"
+          },
+          "value": {
+            "op": "if",
+            "condition": {
+              "op": "ref",
+              "path": "rule:state.grow_pending"
+            },
+            "then": {
+              "op": "add",
+              "args": [
+                {
+                  "op": "ref",
+                  "path": "rule:state.score"
+                },
+                {
+                  "op": "literal",
+                  "value": 1
+                }
+              ]
+            },
+            "else": {
+              "op": "ref",
+              "path": "rule:state.score"
+            }
+          }
+        },
+        {
+          "op": "state.set",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.length"
+          },
+          "value": {
+            "op": "if",
+            "condition": {
+              "op": "ref",
+              "path": "rule:state.grow_pending"
+            },
+            "then": {
+              "op": "add",
+              "args": [
+                {
+                  "op": "ref",
+                  "path": "rule:state.length"
+                },
+                {
+                  "op": "literal",
+                  "value": 1
+                }
+              ]
+            },
+            "else": {
+              "op": "ref",
+              "path": "rule:state.length"
+            }
+          }
+        },
+        {
+          "op": "state.set",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.food_x"
+          },
+          "value": {
+            "op": "if",
+            "condition": {
+              "op": "ref",
+              "path": "rule:state.grow_pending"
+            },
+            "then": {
+              "op": "mod",
+              "args": [
+                {
+                  "op": "add",
+                  "args": [
+                    {
+                      "op": "ref",
+                      "path": "rule:state.food_x"
+                    },
+                    {
+                      "op": "literal",
+                      "value": 7
+                    }
+                  ]
+                },
+                {
+                  "op": "ref",
+                  "path": "rule:state.extent"
+                }
+              ]
+            },
+            "else": {
+              "op": "ref",
+              "path": "rule:state.food_x"
+            }
+          }
+        },
+        {
+          "op": "state.set",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.food_y"
+          },
+          "value": {
+            "op": "if",
+            "condition": {
+              "op": "ref",
+              "path": "rule:state.grow_pending"
+            },
+            "then": {
+              "op": "mod",
+              "args": [
+                {
+                  "op": "add",
+                  "args": [
+                    {
+                      "op": "ref",
+                      "path": "rule:state.food_y"
+                    },
+                    {
+                      "op": "literal",
+                      "value": 5
+                    }
+                  ]
+                },
+                {
+                  "op": "ref",
+                  "path": "rule:state.extent"
+                }
+              ]
+            },
+            "else": {
+              "op": "ref",
+              "path": "rule:state.food_y"
+            }
+          }
+        },
+        {
+          "op": "grid.set",
+          "state": "rule:state.board_cell",
+          "topology": "rule:topology.board",
+          "coordinate": {
+            "op": "vector",
+            "items": [
+              {
+                "op": "ref",
+                "path": "rule:state.food_x"
+              },
+              {
+                "op": "ref",
+                "path": "rule:state.food_y"
+              }
+            ]
+          },
+          "value": {
+            "op": "if",
+            "condition": {
+              "op": "ref",
+              "path": "rule:state.grow_pending"
+            },
+            "then": {
+              "op": "if",
+              "condition": {
+                "op": "or",
+                "args": [
+                  {
+                    "op": "call",
+                    "function": "core:grid.equals",
+                    "args": [
+                      {
+                        "op": "literal",
+                        "value": "rule:state.board_cell"
+                      },
+                      {
+                        "op": "vector",
+                        "items": [
+                          {
+                            "op": "ref",
+                            "path": "rule:state.food_x"
+                          },
+                          {
+                            "op": "ref",
+                            "path": "rule:state.food_y"
+                          }
+                        ]
+                      },
+                      {
+                        "op": "literal",
+                        "value": 0
+                      }
+                    ]
+                  },
+                  {
+                    "op": "call",
+                    "function": "core:grid.equals",
+                    "args": [
+                      {
+                        "op": "literal",
+                        "value": "rule:state.board_cell"
+                      },
+                      {
+                        "op": "vector",
+                        "items": [
+                          {
+                            "op": "ref",
+                            "path": "rule:state.food_x"
+                          },
+                          {
+                            "op": "ref",
+                            "path": "rule:state.food_y"
+                          }
+                        ]
+                      },
+                      {
+                        "op": "literal",
+                        "value": -1
+                      }
+                    ]
+                  }
+                ]
+              },
+              "then": {
+                "op": "literal",
+                "value": -1
+              },
+              "else": {
+                "op": "call",
+                "function": "core:grid.get",
+                "args": [
+                  {
+                    "op": "literal",
+                    "value": "rule:state.board_cell"
+                  },
+                  {
+                    "op": "vector",
+                    "items": [
+                      {
+                        "op": "ref",
+                        "path": "rule:state.food_x"
+                      },
+                      {
+                        "op": "ref",
+                        "path": "rule:state.food_y"
+                      }
+                    ]
+                  }
+                ]
+              }
+            },
+            "else": {
+              "op": "call",
+              "function": "core:grid.get",
+              "args": [
+                {
+                  "op": "literal",
+                  "value": "rule:state.board_cell"
+                },
+                {
+                  "op": "vector",
+                  "items": [
+                    {
+                      "op": "ref",
+                      "path": "rule:state.food_x"
+                    },
+                    {
+                      "op": "ref",
+                      "path": "rule:state.food_y"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "op": "state.set",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.grow_pending"
+          },
+          "value": {
+            "op": "literal",
+            "value": false
+          }
+        }
+      ],
+      "timing": {
+        "phase": "rule:phase.input"
+      },
+      "encoding": {
+        "kind": "none"
+      }
+    },
+    {
+      "id": "rule:action.move_down",
+      "name": "Move Down",
+      "actor": {
+        "op": "literal",
+        "value": "rule:participant.player"
+      },
+      "parameters": [],
+      "precondition": {
+        "op": "and",
+        "args": [
+          {
+            "op": "eq",
+            "args": [
+              {
+                "op": "ref",
+                "path": "rule:state.alive"
+              },
+              {
+                "op": "literal",
+                "value": true
+              }
+            ]
+          },
+          {
+            "op": "not",
+            "args": [
+              {
+                "op": "and",
+                "args": [
+                  {
+                    "op": "eq",
+                    "args": [
+                      {
+                        "op": "ref",
+                        "path": "rule:state.last_dx"
+                      },
+                      {
+                        "op": "literal",
+                        "value": 0
+                      }
+                    ]
+                  },
+                  {
+                    "op": "eq",
+                    "args": [
+                      {
+                        "op": "ref",
+                        "path": "rule:state.last_dy"
+                      },
+                      {
+                        "op": "literal",
+                        "value": -1
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "op": "call",
+            "function": "core:topology.contains",
+            "args": [
+              {
+                "op": "literal",
+                "value": "rule:topology.board"
+              },
+              {
+                "op": "vector",
+                "items": [
+                  {
+                    "op": "add",
+                    "args": [
+                      {
+                        "op": "ref",
+                        "path": "rule:state.head_x"
+                      },
+                      {
+                        "op": "literal",
+                        "value": 0
+                      }
+                    ]
+                  },
+                  {
+                    "op": "add",
+                    "args": [
+                      {
+                        "op": "ref",
+                        "path": "rule:state.head_y"
+                      },
+                      {
+                        "op": "literal",
+                        "value": 1
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "op": "or",
+            "args": [
+              {
+                "op": "call",
+                "function": "core:grid.equals",
+                "args": [
+                  {
+                    "op": "literal",
+                    "value": "rule:state.board_cell"
+                  },
+                  {
+                    "op": "vector",
+                    "items": [
+                      {
+                        "op": "add",
+                        "args": [
+                          {
+                            "op": "ref",
+                            "path": "rule:state.head_x"
+                          },
+                          {
+                            "op": "literal",
+                            "value": 0
+                          }
+                        ]
+                      },
+                      {
+                        "op": "add",
+                        "args": [
+                          {
+                            "op": "ref",
+                            "path": "rule:state.head_y"
+                          },
+                          {
+                            "op": "literal",
+                            "value": 1
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "op": "literal",
+                    "value": 0
+                  }
+                ]
+              },
+              {
+                "op": "call",
+                "function": "core:grid.equals",
+                "args": [
+                  {
+                    "op": "literal",
+                    "value": "rule:state.board_cell"
+                  },
+                  {
+                    "op": "vector",
+                    "items": [
+                      {
+                        "op": "add",
+                        "args": [
+                          {
+                            "op": "ref",
+                            "path": "rule:state.head_x"
+                          },
+                          {
+                            "op": "literal",
+                            "value": 0
+                          }
+                        ]
+                      },
+                      {
+                        "op": "add",
+                        "args": [
+                          {
+                            "op": "ref",
+                            "path": "rule:state.head_y"
+                          },
+                          {
+                            "op": "literal",
+                            "value": 1
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "op": "literal",
+                    "value": -1
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "effects": [
+        {
+          "op": "state.set",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.grow_pending"
+          },
+          "value": {
+            "op": "call",
+            "function": "core:grid.equals",
+            "args": [
+              {
+                "op": "literal",
+                "value": "rule:state.board_cell"
+              },
+              {
+                "op": "vector",
+                "items": [
+                  {
+                    "op": "add",
+                    "args": [
+                      {
+                        "op": "ref",
+                        "path": "rule:state.head_x"
+                      },
+                      {
+                        "op": "literal",
+                        "value": 0
+                      }
+                    ]
+                  },
+                  {
+                    "op": "add",
+                    "args": [
+                      {
+                        "op": "ref",
+                        "path": "rule:state.head_y"
+                      },
+                      {
+                        "op": "literal",
+                        "value": 1
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "op": "literal",
+                "value": -1
+              }
+            ]
+          }
+        },
+        {
+          "op": "state.set",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.clear_x"
+          },
+          "value": {
+            "op": "ref",
+            "path": "rule:state.tail_x"
+          }
+        },
+        {
+          "op": "state.set",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.clear_y"
+          },
+          "value": {
+            "op": "ref",
+            "path": "rule:state.tail_y"
+          }
+        },
+        {
+          "op": "state.set",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.next_tail_x"
+          },
+          "value": {
+            "op": "if",
+            "condition": {
+              "op": "ref",
+              "path": "rule:state.grow_pending"
+            },
+            "then": {
+              "op": "ref",
+              "path": "rule:state.tail_x"
+            },
+            "else": {
+              "op": "add",
+              "args": [
+                {
+                  "op": "ref",
+                  "path": "rule:state.tail_x"
+                },
+                {
+                  "op": "if",
+                  "condition": {
+                    "op": "eq",
+                    "args": [
+                      {
+                        "op": "call",
+                        "function": "core:grid.get",
+                        "args": [
+                          {
+                            "op": "literal",
+                            "value": "rule:state.trail_dir"
+                          },
+                          {
+                            "op": "vector",
+                            "items": [
+                              {
+                                "op": "ref",
+                                "path": "rule:state.tail_x"
+                              },
+                              {
+                                "op": "ref",
+                                "path": "rule:state.tail_y"
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "op": "literal",
+                        "value": 4
+                      }
+                    ]
+                  },
+                  "then": {
+                    "op": "literal",
+                    "value": 1
+                  },
+                  "else": {
+                    "op": "if",
+                    "condition": {
+                      "op": "eq",
+                      "args": [
+                        {
+                          "op": "call",
+                          "function": "core:grid.get",
+                          "args": [
+                            {
+                              "op": "literal",
+                              "value": "rule:state.trail_dir"
+                            },
+                            {
+                              "op": "vector",
+                              "items": [
+                                {
+                                  "op": "ref",
+                                  "path": "rule:state.tail_x"
+                                },
+                                {
+                                  "op": "ref",
+                                  "path": "rule:state.tail_y"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "op": "literal",
+                          "value": 3
+                        }
+                      ]
+                    },
+                    "then": {
+                      "op": "literal",
+                      "value": -1
+                    },
+                    "else": {
+                      "op": "literal",
+                      "value": 0
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "op": "state.set",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.next_tail_y"
+          },
+          "value": {
+            "op": "if",
+            "condition": {
+              "op": "ref",
+              "path": "rule:state.grow_pending"
+            },
+            "then": {
+              "op": "ref",
+              "path": "rule:state.tail_y"
+            },
+            "else": {
+              "op": "add",
+              "args": [
+                {
+                  "op": "ref",
+                  "path": "rule:state.tail_y"
+                },
+                {
+                  "op": "if",
+                  "condition": {
+                    "op": "eq",
+                    "args": [
+                      {
+                        "op": "call",
+                        "function": "core:grid.get",
+                        "args": [
+                          {
+                            "op": "literal",
+                            "value": "rule:state.trail_dir"
+                          },
+                          {
+                            "op": "vector",
+                            "items": [
+                              {
+                                "op": "ref",
+                                "path": "rule:state.tail_x"
+                              },
+                              {
+                                "op": "ref",
+                                "path": "rule:state.tail_y"
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "op": "literal",
+                        "value": 2
+                      }
+                    ]
+                  },
+                  "then": {
+                    "op": "literal",
+                    "value": 1
+                  },
+                  "else": {
+                    "op": "if",
+                    "condition": {
+                      "op": "eq",
+                      "args": [
+                        {
+                          "op": "call",
+                          "function": "core:grid.get",
+                          "args": [
+                            {
+                              "op": "literal",
+                              "value": "rule:state.trail_dir"
+                            },
+                            {
+                              "op": "vector",
+                              "items": [
+                                {
+                                  "op": "ref",
+                                  "path": "rule:state.tail_x"
+                                },
+                                {
+                                  "op": "ref",
+                                  "path": "rule:state.tail_y"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "op": "literal",
+                          "value": 1
+                        }
+                      ]
+                    },
+                    "then": {
+                      "op": "literal",
+                      "value": -1
+                    },
+                    "else": {
+                      "op": "literal",
+                      "value": 0
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "op": "grid.set",
+          "state": "rule:state.trail_dir",
+          "topology": "rule:topology.board",
+          "coordinate": {
+            "op": "vector",
+            "items": [
+              {
+                "op": "ref",
+                "path": "rule:state.head_x"
+              },
+              {
+                "op": "ref",
+                "path": "rule:state.head_y"
+              }
+            ]
+          },
+          "value": {
+            "op": "literal",
+            "value": 2
+          }
+        },
+        {
+          "op": "grid.set",
+          "state": "rule:state.board_cell",
+          "topology": "rule:topology.board",
+          "coordinate": {
+            "op": "vector",
+            "items": [
+              {
+                "op": "ref",
+                "path": "rule:state.head_x"
+              },
+              {
+                "op": "ref",
+                "path": "rule:state.head_y"
+              }
+            ]
+          },
+          "value": {
+            "op": "literal",
+            "value": 1
+          }
+        },
+        {
+          "op": "grid.set",
+          "state": "rule:state.board_cell",
+          "topology": "rule:topology.board",
+          "coordinate": {
+            "op": "vector",
+            "items": [
+              {
+                "op": "add",
+                "args": [
+                  {
+                    "op": "ref",
+                    "path": "rule:state.head_x"
+                  },
+                  {
+                    "op": "literal",
+                    "value": 0
+                  }
+                ]
+              },
+              {
+                "op": "add",
+                "args": [
+                  {
+                    "op": "ref",
+                    "path": "rule:state.head_y"
+                  },
+                  {
+                    "op": "literal",
+                    "value": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "value": {
+            "op": "literal",
+            "value": 2
+          }
+        },
+        {
+          "op": "grid.set",
+          "state": "rule:state.board_cell",
+          "topology": "rule:topology.board",
+          "coordinate": {
+            "op": "vector",
+            "items": [
+              {
+                "op": "ref",
+                "path": "rule:state.clear_x"
+              },
+              {
+                "op": "ref",
+                "path": "rule:state.clear_y"
+              }
+            ]
+          },
+          "value": {
+            "op": "if",
+            "condition": {
+              "op": "ref",
+              "path": "rule:state.grow_pending"
+            },
+            "then": {
+              "op": "call",
+              "function": "core:grid.get",
+              "args": [
+                {
+                  "op": "literal",
+                  "value": "rule:state.board_cell"
+                },
+                {
+                  "op": "vector",
+                  "items": [
+                    {
+                      "op": "ref",
+                      "path": "rule:state.clear_x"
+                    },
+                    {
+                      "op": "ref",
+                      "path": "rule:state.clear_y"
+                    }
+                  ]
+                }
+              ]
+            },
+            "else": {
+              "op": "literal",
+              "value": 0
+            }
+          }
+        },
+        {
+          "op": "grid.set",
+          "state": "rule:state.trail_dir",
+          "topology": "rule:topology.board",
+          "coordinate": {
+            "op": "vector",
+            "items": [
+              {
+                "op": "ref",
+                "path": "rule:state.clear_x"
+              },
+              {
+                "op": "ref",
+                "path": "rule:state.clear_y"
+              }
+            ]
+          },
+          "value": {
+            "op": "if",
+            "condition": {
+              "op": "ref",
+              "path": "rule:state.grow_pending"
+            },
+            "then": {
+              "op": "call",
+              "function": "core:grid.get",
+              "args": [
+                {
+                  "op": "literal",
+                  "value": "rule:state.trail_dir"
+                },
+                {
+                  "op": "vector",
+                  "items": [
+                    {
+                      "op": "ref",
+                      "path": "rule:state.clear_x"
+                    },
+                    {
+                      "op": "ref",
+                      "path": "rule:state.clear_y"
+                    }
+                  ]
+                }
+              ]
+            },
+            "else": {
+              "op": "literal",
+              "value": 0
+            }
+          }
+        },
+        {
+          "op": "state.set",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.tail_x"
+          },
+          "value": {
+            "op": "ref",
+            "path": "rule:state.next_tail_x"
+          }
+        },
+        {
+          "op": "state.set",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.tail_y"
+          },
+          "value": {
+            "op": "ref",
+            "path": "rule:state.next_tail_y"
+          }
+        },
+        {
+          "op": "state.set",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.head_x"
+          },
+          "value": {
+            "op": "add",
+            "args": [
+              {
+                "op": "ref",
+                "path": "rule:state.head_x"
+              },
+              {
+                "op": "literal",
+                "value": 0
+              }
+            ]
+          }
+        },
+        {
+          "op": "state.set",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.head_y"
+          },
+          "value": {
+            "op": "add",
+            "args": [
+              {
+                "op": "ref",
+                "path": "rule:state.head_y"
+              },
+              {
+                "op": "literal",
+                "value": 1
+              }
+            ]
+          }
+        },
+        {
+          "op": "state.set",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.last_dx"
+          },
+          "value": {
+            "op": "literal",
+            "value": 0
+          }
+        },
+        {
+          "op": "state.set",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.last_dy"
+          },
+          "value": {
+            "op": "literal",
+            "value": 1
+          }
+        },
+        {
+          "op": "state.set",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.score"
+          },
+          "value": {
+            "op": "if",
+            "condition": {
+              "op": "ref",
+              "path": "rule:state.grow_pending"
+            },
+            "then": {
+              "op": "add",
+              "args": [
+                {
+                  "op": "ref",
+                  "path": "rule:state.score"
+                },
+                {
+                  "op": "literal",
+                  "value": 1
+                }
+              ]
+            },
+            "else": {
+              "op": "ref",
+              "path": "rule:state.score"
+            }
+          }
+        },
+        {
+          "op": "state.set",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.length"
+          },
+          "value": {
+            "op": "if",
+            "condition": {
+              "op": "ref",
+              "path": "rule:state.grow_pending"
+            },
+            "then": {
+              "op": "add",
+              "args": [
+                {
+                  "op": "ref",
+                  "path": "rule:state.length"
+                },
+                {
+                  "op": "literal",
+                  "value": 1
+                }
+              ]
+            },
+            "else": {
+              "op": "ref",
+              "path": "rule:state.length"
+            }
+          }
+        },
+        {
+          "op": "state.set",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.food_x"
+          },
+          "value": {
+            "op": "if",
+            "condition": {
+              "op": "ref",
+              "path": "rule:state.grow_pending"
+            },
+            "then": {
+              "op": "mod",
+              "args": [
+                {
+                  "op": "add",
+                  "args": [
+                    {
+                      "op": "ref",
+                      "path": "rule:state.food_x"
+                    },
+                    {
+                      "op": "literal",
+                      "value": 7
+                    }
+                  ]
+                },
+                {
+                  "op": "ref",
+                  "path": "rule:state.extent"
+                }
+              ]
+            },
+            "else": {
+              "op": "ref",
+              "path": "rule:state.food_x"
+            }
+          }
+        },
+        {
+          "op": "state.set",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.food_y"
+          },
+          "value": {
+            "op": "if",
+            "condition": {
+              "op": "ref",
+              "path": "rule:state.grow_pending"
+            },
+            "then": {
+              "op": "mod",
+              "args": [
+                {
+                  "op": "add",
+                  "args": [
+                    {
+                      "op": "ref",
+                      "path": "rule:state.food_y"
+                    },
+                    {
+                      "op": "literal",
+                      "value": 5
+                    }
+                  ]
+                },
+                {
+                  "op": "ref",
+                  "path": "rule:state.extent"
+                }
+              ]
+            },
+            "else": {
+              "op": "ref",
+              "path": "rule:state.food_y"
+            }
+          }
+        },
+        {
+          "op": "grid.set",
+          "state": "rule:state.board_cell",
+          "topology": "rule:topology.board",
+          "coordinate": {
+            "op": "vector",
+            "items": [
+              {
+                "op": "ref",
+                "path": "rule:state.food_x"
+              },
+              {
+                "op": "ref",
+                "path": "rule:state.food_y"
+              }
+            ]
+          },
+          "value": {
+            "op": "if",
+            "condition": {
+              "op": "ref",
+              "path": "rule:state.grow_pending"
+            },
+            "then": {
+              "op": "if",
+              "condition": {
+                "op": "or",
+                "args": [
+                  {
+                    "op": "call",
+                    "function": "core:grid.equals",
+                    "args": [
+                      {
+                        "op": "literal",
+                        "value": "rule:state.board_cell"
+                      },
+                      {
+                        "op": "vector",
+                        "items": [
+                          {
+                            "op": "ref",
+                            "path": "rule:state.food_x"
+                          },
+                          {
+                            "op": "ref",
+                            "path": "rule:state.food_y"
+                          }
+                        ]
+                      },
+                      {
+                        "op": "literal",
+                        "value": 0
+                      }
+                    ]
+                  },
+                  {
+                    "op": "call",
+                    "function": "core:grid.equals",
+                    "args": [
+                      {
+                        "op": "literal",
+                        "value": "rule:state.board_cell"
+                      },
+                      {
+                        "op": "vector",
+                        "items": [
+                          {
+                            "op": "ref",
+                            "path": "rule:state.food_x"
+                          },
+                          {
+                            "op": "ref",
+                            "path": "rule:state.food_y"
+                          }
+                        ]
+                      },
+                      {
+                        "op": "literal",
+                        "value": -1
+                      }
+                    ]
+                  }
+                ]
+              },
+              "then": {
+                "op": "literal",
+                "value": -1
+              },
+              "else": {
+                "op": "call",
+                "function": "core:grid.get",
+                "args": [
+                  {
+                    "op": "literal",
+                    "value": "rule:state.board_cell"
+                  },
+                  {
+                    "op": "vector",
+                    "items": [
+                      {
+                        "op": "ref",
+                        "path": "rule:state.food_x"
+                      },
+                      {
+                        "op": "ref",
+                        "path": "rule:state.food_y"
+                      }
+                    ]
+                  }
+                ]
+              }
+            },
+            "else": {
+              "op": "call",
+              "function": "core:grid.get",
+              "args": [
+                {
+                  "op": "literal",
+                  "value": "rule:state.board_cell"
+                },
+                {
+                  "op": "vector",
+                  "items": [
+                    {
+                      "op": "ref",
+                      "path": "rule:state.food_x"
+                    },
+                    {
+                      "op": "ref",
+                      "path": "rule:state.food_y"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "op": "state.set",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.grow_pending"
+          },
+          "value": {
+            "op": "literal",
+            "value": false
+          }
+        }
+      ],
+      "timing": {
+        "phase": "rule:phase.input"
+      },
+      "encoding": {
+        "kind": "none"
+      }
+    },
+    {
+      "id": "rule:action.move_left",
+      "name": "Move Left",
+      "actor": {
+        "op": "literal",
+        "value": "rule:participant.player"
+      },
+      "parameters": [],
+      "precondition": {
+        "op": "and",
+        "args": [
+          {
+            "op": "eq",
+            "args": [
+              {
+                "op": "ref",
+                "path": "rule:state.alive"
+              },
+              {
+                "op": "literal",
+                "value": true
+              }
+            ]
+          },
+          {
+            "op": "not",
+            "args": [
+              {
+                "op": "and",
+                "args": [
+                  {
+                    "op": "eq",
+                    "args": [
+                      {
+                        "op": "ref",
+                        "path": "rule:state.last_dx"
+                      },
+                      {
+                        "op": "literal",
+                        "value": 1
+                      }
+                    ]
+                  },
+                  {
+                    "op": "eq",
+                    "args": [
+                      {
+                        "op": "ref",
+                        "path": "rule:state.last_dy"
+                      },
+                      {
+                        "op": "literal",
+                        "value": 0
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "op": "call",
+            "function": "core:topology.contains",
+            "args": [
+              {
+                "op": "literal",
+                "value": "rule:topology.board"
+              },
+              {
+                "op": "vector",
+                "items": [
+                  {
+                    "op": "add",
+                    "args": [
+                      {
+                        "op": "ref",
+                        "path": "rule:state.head_x"
+                      },
+                      {
+                        "op": "literal",
+                        "value": -1
+                      }
+                    ]
+                  },
+                  {
+                    "op": "add",
+                    "args": [
+                      {
+                        "op": "ref",
+                        "path": "rule:state.head_y"
+                      },
+                      {
+                        "op": "literal",
+                        "value": 0
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "op": "or",
+            "args": [
+              {
+                "op": "call",
+                "function": "core:grid.equals",
+                "args": [
+                  {
+                    "op": "literal",
+                    "value": "rule:state.board_cell"
+                  },
+                  {
+                    "op": "vector",
+                    "items": [
+                      {
+                        "op": "add",
+                        "args": [
+                          {
+                            "op": "ref",
+                            "path": "rule:state.head_x"
+                          },
+                          {
+                            "op": "literal",
+                            "value": -1
+                          }
+                        ]
+                      },
+                      {
+                        "op": "add",
+                        "args": [
+                          {
+                            "op": "ref",
+                            "path": "rule:state.head_y"
+                          },
+                          {
+                            "op": "literal",
+                            "value": 0
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "op": "literal",
+                    "value": 0
+                  }
+                ]
+              },
+              {
+                "op": "call",
+                "function": "core:grid.equals",
+                "args": [
+                  {
+                    "op": "literal",
+                    "value": "rule:state.board_cell"
+                  },
+                  {
+                    "op": "vector",
+                    "items": [
+                      {
+                        "op": "add",
+                        "args": [
+                          {
+                            "op": "ref",
+                            "path": "rule:state.head_x"
+                          },
+                          {
+                            "op": "literal",
+                            "value": -1
+                          }
+                        ]
+                      },
+                      {
+                        "op": "add",
+                        "args": [
+                          {
+                            "op": "ref",
+                            "path": "rule:state.head_y"
+                          },
+                          {
+                            "op": "literal",
+                            "value": 0
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "op": "literal",
+                    "value": -1
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "effects": [
+        {
+          "op": "state.set",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.grow_pending"
+          },
+          "value": {
+            "op": "call",
+            "function": "core:grid.equals",
+            "args": [
+              {
+                "op": "literal",
+                "value": "rule:state.board_cell"
+              },
+              {
+                "op": "vector",
+                "items": [
+                  {
+                    "op": "add",
+                    "args": [
+                      {
+                        "op": "ref",
+                        "path": "rule:state.head_x"
+                      },
+                      {
+                        "op": "literal",
+                        "value": -1
+                      }
+                    ]
+                  },
+                  {
+                    "op": "add",
+                    "args": [
+                      {
+                        "op": "ref",
+                        "path": "rule:state.head_y"
+                      },
+                      {
+                        "op": "literal",
+                        "value": 0
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "op": "literal",
+                "value": -1
+              }
+            ]
+          }
+        },
+        {
+          "op": "state.set",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.clear_x"
+          },
+          "value": {
+            "op": "ref",
+            "path": "rule:state.tail_x"
+          }
+        },
+        {
+          "op": "state.set",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.clear_y"
+          },
+          "value": {
+            "op": "ref",
+            "path": "rule:state.tail_y"
+          }
+        },
+        {
+          "op": "state.set",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.next_tail_x"
+          },
+          "value": {
+            "op": "if",
+            "condition": {
+              "op": "ref",
+              "path": "rule:state.grow_pending"
+            },
+            "then": {
+              "op": "ref",
+              "path": "rule:state.tail_x"
+            },
+            "else": {
+              "op": "add",
+              "args": [
+                {
+                  "op": "ref",
+                  "path": "rule:state.tail_x"
+                },
+                {
+                  "op": "if",
+                  "condition": {
+                    "op": "eq",
+                    "args": [
+                      {
+                        "op": "call",
+                        "function": "core:grid.get",
+                        "args": [
+                          {
+                            "op": "literal",
+                            "value": "rule:state.trail_dir"
+                          },
+                          {
+                            "op": "vector",
+                            "items": [
+                              {
+                                "op": "ref",
+                                "path": "rule:state.tail_x"
+                              },
+                              {
+                                "op": "ref",
+                                "path": "rule:state.tail_y"
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "op": "literal",
+                        "value": 4
+                      }
+                    ]
+                  },
+                  "then": {
+                    "op": "literal",
+                    "value": 1
+                  },
+                  "else": {
+                    "op": "if",
+                    "condition": {
+                      "op": "eq",
+                      "args": [
+                        {
+                          "op": "call",
+                          "function": "core:grid.get",
+                          "args": [
+                            {
+                              "op": "literal",
+                              "value": "rule:state.trail_dir"
+                            },
+                            {
+                              "op": "vector",
+                              "items": [
+                                {
+                                  "op": "ref",
+                                  "path": "rule:state.tail_x"
+                                },
+                                {
+                                  "op": "ref",
+                                  "path": "rule:state.tail_y"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "op": "literal",
+                          "value": 3
+                        }
+                      ]
+                    },
+                    "then": {
+                      "op": "literal",
+                      "value": -1
+                    },
+                    "else": {
+                      "op": "literal",
+                      "value": 0
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "op": "state.set",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.next_tail_y"
+          },
+          "value": {
+            "op": "if",
+            "condition": {
+              "op": "ref",
+              "path": "rule:state.grow_pending"
+            },
+            "then": {
+              "op": "ref",
+              "path": "rule:state.tail_y"
+            },
+            "else": {
+              "op": "add",
+              "args": [
+                {
+                  "op": "ref",
+                  "path": "rule:state.tail_y"
+                },
+                {
+                  "op": "if",
+                  "condition": {
+                    "op": "eq",
+                    "args": [
+                      {
+                        "op": "call",
+                        "function": "core:grid.get",
+                        "args": [
+                          {
+                            "op": "literal",
+                            "value": "rule:state.trail_dir"
+                          },
+                          {
+                            "op": "vector",
+                            "items": [
+                              {
+                                "op": "ref",
+                                "path": "rule:state.tail_x"
+                              },
+                              {
+                                "op": "ref",
+                                "path": "rule:state.tail_y"
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "op": "literal",
+                        "value": 2
+                      }
+                    ]
+                  },
+                  "then": {
+                    "op": "literal",
+                    "value": 1
+                  },
+                  "else": {
+                    "op": "if",
+                    "condition": {
+                      "op": "eq",
+                      "args": [
+                        {
+                          "op": "call",
+                          "function": "core:grid.get",
+                          "args": [
+                            {
+                              "op": "literal",
+                              "value": "rule:state.trail_dir"
+                            },
+                            {
+                              "op": "vector",
+                              "items": [
+                                {
+                                  "op": "ref",
+                                  "path": "rule:state.tail_x"
+                                },
+                                {
+                                  "op": "ref",
+                                  "path": "rule:state.tail_y"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "op": "literal",
+                          "value": 1
+                        }
+                      ]
+                    },
+                    "then": {
+                      "op": "literal",
+                      "value": -1
+                    },
+                    "else": {
+                      "op": "literal",
+                      "value": 0
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "op": "grid.set",
+          "state": "rule:state.trail_dir",
+          "topology": "rule:topology.board",
+          "coordinate": {
+            "op": "vector",
+            "items": [
+              {
+                "op": "ref",
+                "path": "rule:state.head_x"
+              },
+              {
+                "op": "ref",
+                "path": "rule:state.head_y"
+              }
+            ]
+          },
+          "value": {
+            "op": "literal",
+            "value": 3
+          }
+        },
+        {
+          "op": "grid.set",
+          "state": "rule:state.board_cell",
+          "topology": "rule:topology.board",
+          "coordinate": {
+            "op": "vector",
+            "items": [
+              {
+                "op": "ref",
+                "path": "rule:state.head_x"
+              },
+              {
+                "op": "ref",
+                "path": "rule:state.head_y"
+              }
+            ]
+          },
+          "value": {
+            "op": "literal",
+            "value": 1
+          }
+        },
+        {
+          "op": "grid.set",
+          "state": "rule:state.board_cell",
+          "topology": "rule:topology.board",
+          "coordinate": {
+            "op": "vector",
+            "items": [
+              {
+                "op": "add",
+                "args": [
+                  {
+                    "op": "ref",
+                    "path": "rule:state.head_x"
+                  },
+                  {
+                    "op": "literal",
+                    "value": -1
+                  }
+                ]
+              },
+              {
+                "op": "add",
+                "args": [
+                  {
+                    "op": "ref",
+                    "path": "rule:state.head_y"
+                  },
+                  {
+                    "op": "literal",
+                    "value": 0
+                  }
+                ]
+              }
+            ]
+          },
+          "value": {
+            "op": "literal",
+            "value": 2
+          }
+        },
+        {
+          "op": "grid.set",
+          "state": "rule:state.board_cell",
+          "topology": "rule:topology.board",
+          "coordinate": {
+            "op": "vector",
+            "items": [
+              {
+                "op": "ref",
+                "path": "rule:state.clear_x"
+              },
+              {
+                "op": "ref",
+                "path": "rule:state.clear_y"
+              }
+            ]
+          },
+          "value": {
+            "op": "if",
+            "condition": {
+              "op": "ref",
+              "path": "rule:state.grow_pending"
+            },
+            "then": {
+              "op": "call",
+              "function": "core:grid.get",
+              "args": [
+                {
+                  "op": "literal",
+                  "value": "rule:state.board_cell"
+                },
+                {
+                  "op": "vector",
+                  "items": [
+                    {
+                      "op": "ref",
+                      "path": "rule:state.clear_x"
+                    },
+                    {
+                      "op": "ref",
+                      "path": "rule:state.clear_y"
+                    }
+                  ]
+                }
+              ]
+            },
+            "else": {
+              "op": "literal",
+              "value": 0
+            }
+          }
+        },
+        {
+          "op": "grid.set",
+          "state": "rule:state.trail_dir",
+          "topology": "rule:topology.board",
+          "coordinate": {
+            "op": "vector",
+            "items": [
+              {
+                "op": "ref",
+                "path": "rule:state.clear_x"
+              },
+              {
+                "op": "ref",
+                "path": "rule:state.clear_y"
+              }
+            ]
+          },
+          "value": {
+            "op": "if",
+            "condition": {
+              "op": "ref",
+              "path": "rule:state.grow_pending"
+            },
+            "then": {
+              "op": "call",
+              "function": "core:grid.get",
+              "args": [
+                {
+                  "op": "literal",
+                  "value": "rule:state.trail_dir"
+                },
+                {
+                  "op": "vector",
+                  "items": [
+                    {
+                      "op": "ref",
+                      "path": "rule:state.clear_x"
+                    },
+                    {
+                      "op": "ref",
+                      "path": "rule:state.clear_y"
+                    }
+                  ]
+                }
+              ]
+            },
+            "else": {
+              "op": "literal",
+              "value": 0
+            }
+          }
+        },
+        {
+          "op": "state.set",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.tail_x"
+          },
+          "value": {
+            "op": "ref",
+            "path": "rule:state.next_tail_x"
+          }
+        },
+        {
+          "op": "state.set",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.tail_y"
+          },
+          "value": {
+            "op": "ref",
+            "path": "rule:state.next_tail_y"
+          }
+        },
+        {
+          "op": "state.set",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.head_x"
+          },
+          "value": {
+            "op": "add",
+            "args": [
+              {
+                "op": "ref",
+                "path": "rule:state.head_x"
+              },
+              {
+                "op": "literal",
+                "value": -1
+              }
+            ]
+          }
+        },
+        {
+          "op": "state.set",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.head_y"
+          },
+          "value": {
+            "op": "add",
+            "args": [
+              {
+                "op": "ref",
+                "path": "rule:state.head_y"
+              },
+              {
+                "op": "literal",
+                "value": 0
+              }
+            ]
+          }
+        },
+        {
+          "op": "state.set",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.last_dx"
+          },
+          "value": {
+            "op": "literal",
+            "value": -1
+          }
+        },
+        {
+          "op": "state.set",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.last_dy"
+          },
+          "value": {
+            "op": "literal",
+            "value": 0
+          }
+        },
+        {
+          "op": "state.set",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.score"
+          },
+          "value": {
+            "op": "if",
+            "condition": {
+              "op": "ref",
+              "path": "rule:state.grow_pending"
+            },
+            "then": {
+              "op": "add",
+              "args": [
+                {
+                  "op": "ref",
+                  "path": "rule:state.score"
+                },
+                {
+                  "op": "literal",
+                  "value": 1
+                }
+              ]
+            },
+            "else": {
+              "op": "ref",
+              "path": "rule:state.score"
+            }
+          }
+        },
+        {
+          "op": "state.set",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.length"
+          },
+          "value": {
+            "op": "if",
+            "condition": {
+              "op": "ref",
+              "path": "rule:state.grow_pending"
+            },
+            "then": {
+              "op": "add",
+              "args": [
+                {
+                  "op": "ref",
+                  "path": "rule:state.length"
+                },
+                {
+                  "op": "literal",
+                  "value": 1
+                }
+              ]
+            },
+            "else": {
+              "op": "ref",
+              "path": "rule:state.length"
+            }
+          }
+        },
+        {
+          "op": "state.set",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.food_x"
+          },
+          "value": {
+            "op": "if",
+            "condition": {
+              "op": "ref",
+              "path": "rule:state.grow_pending"
+            },
+            "then": {
+              "op": "mod",
+              "args": [
+                {
+                  "op": "add",
+                  "args": [
+                    {
+                      "op": "ref",
+                      "path": "rule:state.food_x"
+                    },
+                    {
+                      "op": "literal",
+                      "value": 7
+                    }
+                  ]
+                },
+                {
+                  "op": "ref",
+                  "path": "rule:state.extent"
+                }
+              ]
+            },
+            "else": {
+              "op": "ref",
+              "path": "rule:state.food_x"
+            }
+          }
+        },
+        {
+          "op": "state.set",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.food_y"
+          },
+          "value": {
+            "op": "if",
+            "condition": {
+              "op": "ref",
+              "path": "rule:state.grow_pending"
+            },
+            "then": {
+              "op": "mod",
+              "args": [
+                {
+                  "op": "add",
+                  "args": [
+                    {
+                      "op": "ref",
+                      "path": "rule:state.food_y"
+                    },
+                    {
+                      "op": "literal",
+                      "value": 5
+                    }
+                  ]
+                },
+                {
+                  "op": "ref",
+                  "path": "rule:state.extent"
+                }
+              ]
+            },
+            "else": {
+              "op": "ref",
+              "path": "rule:state.food_y"
+            }
+          }
+        },
+        {
+          "op": "grid.set",
+          "state": "rule:state.board_cell",
+          "topology": "rule:topology.board",
+          "coordinate": {
+            "op": "vector",
+            "items": [
+              {
+                "op": "ref",
+                "path": "rule:state.food_x"
+              },
+              {
+                "op": "ref",
+                "path": "rule:state.food_y"
+              }
+            ]
+          },
+          "value": {
+            "op": "if",
+            "condition": {
+              "op": "ref",
+              "path": "rule:state.grow_pending"
+            },
+            "then": {
+              "op": "if",
+              "condition": {
+                "op": "or",
+                "args": [
+                  {
+                    "op": "call",
+                    "function": "core:grid.equals",
+                    "args": [
+                      {
+                        "op": "literal",
+                        "value": "rule:state.board_cell"
+                      },
+                      {
+                        "op": "vector",
+                        "items": [
+                          {
+                            "op": "ref",
+                            "path": "rule:state.food_x"
+                          },
+                          {
+                            "op": "ref",
+                            "path": "rule:state.food_y"
+                          }
+                        ]
+                      },
+                      {
+                        "op": "literal",
+                        "value": 0
+                      }
+                    ]
+                  },
+                  {
+                    "op": "call",
+                    "function": "core:grid.equals",
+                    "args": [
+                      {
+                        "op": "literal",
+                        "value": "rule:state.board_cell"
+                      },
+                      {
+                        "op": "vector",
+                        "items": [
+                          {
+                            "op": "ref",
+                            "path": "rule:state.food_x"
+                          },
+                          {
+                            "op": "ref",
+                            "path": "rule:state.food_y"
+                          }
+                        ]
+                      },
+                      {
+                        "op": "literal",
+                        "value": -1
+                      }
+                    ]
+                  }
+                ]
+              },
+              "then": {
+                "op": "literal",
+                "value": -1
+              },
+              "else": {
+                "op": "call",
+                "function": "core:grid.get",
+                "args": [
+                  {
+                    "op": "literal",
+                    "value": "rule:state.board_cell"
+                  },
+                  {
+                    "op": "vector",
+                    "items": [
+                      {
+                        "op": "ref",
+                        "path": "rule:state.food_x"
+                      },
+                      {
+                        "op": "ref",
+                        "path": "rule:state.food_y"
+                      }
+                    ]
+                  }
+                ]
+              }
+            },
+            "else": {
+              "op": "call",
+              "function": "core:grid.get",
+              "args": [
+                {
+                  "op": "literal",
+                  "value": "rule:state.board_cell"
+                },
+                {
+                  "op": "vector",
+                  "items": [
+                    {
+                      "op": "ref",
+                      "path": "rule:state.food_x"
+                    },
+                    {
+                      "op": "ref",
+                      "path": "rule:state.food_y"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "op": "state.set",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.grow_pending"
+          },
+          "value": {
+            "op": "literal",
+            "value": false
+          }
+        }
+      ],
+      "timing": {
+        "phase": "rule:phase.input"
+      },
+      "encoding": {
+        "kind": "none"
+      }
+    },
+    {
+      "id": "rule:action.move_right",
+      "name": "Move Right",
+      "actor": {
+        "op": "literal",
+        "value": "rule:participant.player"
+      },
+      "parameters": [],
+      "precondition": {
+        "op": "and",
+        "args": [
+          {
+            "op": "eq",
+            "args": [
+              {
+                "op": "ref",
+                "path": "rule:state.alive"
+              },
+              {
+                "op": "literal",
+                "value": true
+              }
+            ]
+          },
+          {
+            "op": "not",
+            "args": [
+              {
+                "op": "and",
+                "args": [
+                  {
+                    "op": "eq",
+                    "args": [
+                      {
+                        "op": "ref",
+                        "path": "rule:state.last_dx"
+                      },
+                      {
+                        "op": "literal",
+                        "value": -1
+                      }
+                    ]
+                  },
+                  {
+                    "op": "eq",
+                    "args": [
+                      {
+                        "op": "ref",
+                        "path": "rule:state.last_dy"
+                      },
+                      {
+                        "op": "literal",
+                        "value": 0
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "op": "call",
+            "function": "core:topology.contains",
+            "args": [
+              {
+                "op": "literal",
+                "value": "rule:topology.board"
+              },
+              {
+                "op": "vector",
+                "items": [
+                  {
+                    "op": "add",
+                    "args": [
+                      {
+                        "op": "ref",
+                        "path": "rule:state.head_x"
+                      },
+                      {
+                        "op": "literal",
+                        "value": 1
+                      }
+                    ]
+                  },
+                  {
+                    "op": "add",
+                    "args": [
+                      {
+                        "op": "ref",
+                        "path": "rule:state.head_y"
+                      },
+                      {
+                        "op": "literal",
+                        "value": 0
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "op": "or",
+            "args": [
+              {
+                "op": "call",
+                "function": "core:grid.equals",
+                "args": [
+                  {
+                    "op": "literal",
+                    "value": "rule:state.board_cell"
+                  },
+                  {
+                    "op": "vector",
+                    "items": [
+                      {
+                        "op": "add",
+                        "args": [
+                          {
+                            "op": "ref",
+                            "path": "rule:state.head_x"
+                          },
+                          {
+                            "op": "literal",
+                            "value": 1
+                          }
+                        ]
+                      },
+                      {
+                        "op": "add",
+                        "args": [
+                          {
+                            "op": "ref",
+                            "path": "rule:state.head_y"
+                          },
+                          {
+                            "op": "literal",
+                            "value": 0
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "op": "literal",
+                    "value": 0
+                  }
+                ]
+              },
+              {
+                "op": "call",
+                "function": "core:grid.equals",
+                "args": [
+                  {
+                    "op": "literal",
+                    "value": "rule:state.board_cell"
+                  },
+                  {
+                    "op": "vector",
+                    "items": [
+                      {
+                        "op": "add",
+                        "args": [
+                          {
+                            "op": "ref",
+                            "path": "rule:state.head_x"
+                          },
+                          {
+                            "op": "literal",
+                            "value": 1
+                          }
+                        ]
+                      },
+                      {
+                        "op": "add",
+                        "args": [
+                          {
+                            "op": "ref",
+                            "path": "rule:state.head_y"
+                          },
+                          {
+                            "op": "literal",
+                            "value": 0
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "op": "literal",
+                    "value": -1
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "effects": [
+        {
+          "op": "state.set",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.grow_pending"
+          },
+          "value": {
+            "op": "call",
+            "function": "core:grid.equals",
+            "args": [
+              {
+                "op": "literal",
+                "value": "rule:state.board_cell"
+              },
+              {
+                "op": "vector",
+                "items": [
+                  {
+                    "op": "add",
+                    "args": [
+                      {
+                        "op": "ref",
+                        "path": "rule:state.head_x"
+                      },
+                      {
+                        "op": "literal",
+                        "value": 1
+                      }
+                    ]
+                  },
+                  {
+                    "op": "add",
+                    "args": [
+                      {
+                        "op": "ref",
+                        "path": "rule:state.head_y"
+                      },
+                      {
+                        "op": "literal",
+                        "value": 0
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "op": "literal",
+                "value": -1
+              }
+            ]
+          }
+        },
+        {
+          "op": "state.set",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.clear_x"
+          },
+          "value": {
+            "op": "ref",
+            "path": "rule:state.tail_x"
+          }
+        },
+        {
+          "op": "state.set",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.clear_y"
+          },
+          "value": {
+            "op": "ref",
+            "path": "rule:state.tail_y"
+          }
+        },
+        {
+          "op": "state.set",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.next_tail_x"
+          },
+          "value": {
+            "op": "if",
+            "condition": {
+              "op": "ref",
+              "path": "rule:state.grow_pending"
+            },
+            "then": {
+              "op": "ref",
+              "path": "rule:state.tail_x"
+            },
+            "else": {
+              "op": "add",
+              "args": [
+                {
+                  "op": "ref",
+                  "path": "rule:state.tail_x"
+                },
+                {
+                  "op": "if",
+                  "condition": {
+                    "op": "eq",
+                    "args": [
+                      {
+                        "op": "call",
+                        "function": "core:grid.get",
+                        "args": [
+                          {
+                            "op": "literal",
+                            "value": "rule:state.trail_dir"
+                          },
+                          {
+                            "op": "vector",
+                            "items": [
+                              {
+                                "op": "ref",
+                                "path": "rule:state.tail_x"
+                              },
+                              {
+                                "op": "ref",
+                                "path": "rule:state.tail_y"
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "op": "literal",
+                        "value": 4
+                      }
+                    ]
+                  },
+                  "then": {
+                    "op": "literal",
+                    "value": 1
+                  },
+                  "else": {
+                    "op": "if",
+                    "condition": {
+                      "op": "eq",
+                      "args": [
+                        {
+                          "op": "call",
+                          "function": "core:grid.get",
+                          "args": [
+                            {
+                              "op": "literal",
+                              "value": "rule:state.trail_dir"
+                            },
+                            {
+                              "op": "vector",
+                              "items": [
+                                {
+                                  "op": "ref",
+                                  "path": "rule:state.tail_x"
+                                },
+                                {
+                                  "op": "ref",
+                                  "path": "rule:state.tail_y"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "op": "literal",
+                          "value": 3
+                        }
+                      ]
+                    },
+                    "then": {
+                      "op": "literal",
+                      "value": -1
+                    },
+                    "else": {
+                      "op": "literal",
+                      "value": 0
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "op": "state.set",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.next_tail_y"
+          },
+          "value": {
+            "op": "if",
+            "condition": {
+              "op": "ref",
+              "path": "rule:state.grow_pending"
+            },
+            "then": {
+              "op": "ref",
+              "path": "rule:state.tail_y"
+            },
+            "else": {
+              "op": "add",
+              "args": [
+                {
+                  "op": "ref",
+                  "path": "rule:state.tail_y"
+                },
+                {
+                  "op": "if",
+                  "condition": {
+                    "op": "eq",
+                    "args": [
+                      {
+                        "op": "call",
+                        "function": "core:grid.get",
+                        "args": [
+                          {
+                            "op": "literal",
+                            "value": "rule:state.trail_dir"
+                          },
+                          {
+                            "op": "vector",
+                            "items": [
+                              {
+                                "op": "ref",
+                                "path": "rule:state.tail_x"
+                              },
+                              {
+                                "op": "ref",
+                                "path": "rule:state.tail_y"
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "op": "literal",
+                        "value": 2
+                      }
+                    ]
+                  },
+                  "then": {
+                    "op": "literal",
+                    "value": 1
+                  },
+                  "else": {
+                    "op": "if",
+                    "condition": {
+                      "op": "eq",
+                      "args": [
+                        {
+                          "op": "call",
+                          "function": "core:grid.get",
+                          "args": [
+                            {
+                              "op": "literal",
+                              "value": "rule:state.trail_dir"
+                            },
+                            {
+                              "op": "vector",
+                              "items": [
+                                {
+                                  "op": "ref",
+                                  "path": "rule:state.tail_x"
+                                },
+                                {
+                                  "op": "ref",
+                                  "path": "rule:state.tail_y"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "op": "literal",
+                          "value": 1
+                        }
+                      ]
+                    },
+                    "then": {
+                      "op": "literal",
+                      "value": -1
+                    },
+                    "else": {
+                      "op": "literal",
+                      "value": 0
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "op": "grid.set",
+          "state": "rule:state.trail_dir",
+          "topology": "rule:topology.board",
+          "coordinate": {
+            "op": "vector",
+            "items": [
+              {
+                "op": "ref",
+                "path": "rule:state.head_x"
+              },
+              {
+                "op": "ref",
+                "path": "rule:state.head_y"
+              }
+            ]
+          },
+          "value": {
+            "op": "literal",
+            "value": 4
+          }
+        },
+        {
+          "op": "grid.set",
+          "state": "rule:state.board_cell",
+          "topology": "rule:topology.board",
+          "coordinate": {
+            "op": "vector",
+            "items": [
+              {
+                "op": "ref",
+                "path": "rule:state.head_x"
+              },
+              {
+                "op": "ref",
+                "path": "rule:state.head_y"
+              }
+            ]
+          },
+          "value": {
+            "op": "literal",
+            "value": 1
+          }
+        },
+        {
+          "op": "grid.set",
+          "state": "rule:state.board_cell",
+          "topology": "rule:topology.board",
+          "coordinate": {
+            "op": "vector",
+            "items": [
+              {
+                "op": "add",
+                "args": [
+                  {
+                    "op": "ref",
+                    "path": "rule:state.head_x"
+                  },
+                  {
+                    "op": "literal",
+                    "value": 1
+                  }
+                ]
+              },
+              {
+                "op": "add",
+                "args": [
+                  {
+                    "op": "ref",
+                    "path": "rule:state.head_y"
+                  },
+                  {
+                    "op": "literal",
+                    "value": 0
+                  }
+                ]
+              }
+            ]
+          },
+          "value": {
+            "op": "literal",
+            "value": 2
+          }
+        },
+        {
+          "op": "grid.set",
+          "state": "rule:state.board_cell",
+          "topology": "rule:topology.board",
+          "coordinate": {
+            "op": "vector",
+            "items": [
+              {
+                "op": "ref",
+                "path": "rule:state.clear_x"
+              },
+              {
+                "op": "ref",
+                "path": "rule:state.clear_y"
+              }
+            ]
+          },
+          "value": {
+            "op": "if",
+            "condition": {
+              "op": "ref",
+              "path": "rule:state.grow_pending"
+            },
+            "then": {
+              "op": "call",
+              "function": "core:grid.get",
+              "args": [
+                {
+                  "op": "literal",
+                  "value": "rule:state.board_cell"
+                },
+                {
+                  "op": "vector",
+                  "items": [
+                    {
+                      "op": "ref",
+                      "path": "rule:state.clear_x"
+                    },
+                    {
+                      "op": "ref",
+                      "path": "rule:state.clear_y"
+                    }
+                  ]
+                }
+              ]
+            },
+            "else": {
+              "op": "literal",
+              "value": 0
+            }
+          }
+        },
+        {
+          "op": "grid.set",
+          "state": "rule:state.trail_dir",
+          "topology": "rule:topology.board",
+          "coordinate": {
+            "op": "vector",
+            "items": [
+              {
+                "op": "ref",
+                "path": "rule:state.clear_x"
+              },
+              {
+                "op": "ref",
+                "path": "rule:state.clear_y"
+              }
+            ]
+          },
+          "value": {
+            "op": "if",
+            "condition": {
+              "op": "ref",
+              "path": "rule:state.grow_pending"
+            },
+            "then": {
+              "op": "call",
+              "function": "core:grid.get",
+              "args": [
+                {
+                  "op": "literal",
+                  "value": "rule:state.trail_dir"
+                },
+                {
+                  "op": "vector",
+                  "items": [
+                    {
+                      "op": "ref",
+                      "path": "rule:state.clear_x"
+                    },
+                    {
+                      "op": "ref",
+                      "path": "rule:state.clear_y"
+                    }
+                  ]
+                }
+              ]
+            },
+            "else": {
+              "op": "literal",
+              "value": 0
+            }
+          }
+        },
+        {
+          "op": "state.set",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.tail_x"
+          },
+          "value": {
+            "op": "ref",
+            "path": "rule:state.next_tail_x"
+          }
+        },
+        {
+          "op": "state.set",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.tail_y"
+          },
+          "value": {
+            "op": "ref",
+            "path": "rule:state.next_tail_y"
+          }
+        },
+        {
+          "op": "state.set",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.head_x"
+          },
+          "value": {
+            "op": "add",
+            "args": [
+              {
+                "op": "ref",
+                "path": "rule:state.head_x"
+              },
+              {
+                "op": "literal",
+                "value": 1
+              }
+            ]
+          }
+        },
+        {
+          "op": "state.set",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.head_y"
+          },
+          "value": {
+            "op": "add",
+            "args": [
+              {
+                "op": "ref",
+                "path": "rule:state.head_y"
+              },
+              {
+                "op": "literal",
+                "value": 0
+              }
+            ]
+          }
+        },
+        {
+          "op": "state.set",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.last_dx"
+          },
+          "value": {
+            "op": "literal",
+            "value": 1
+          }
+        },
+        {
+          "op": "state.set",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.last_dy"
+          },
+          "value": {
+            "op": "literal",
+            "value": 0
+          }
+        },
+        {
+          "op": "state.set",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.score"
+          },
+          "value": {
+            "op": "if",
+            "condition": {
+              "op": "ref",
+              "path": "rule:state.grow_pending"
+            },
+            "then": {
+              "op": "add",
+              "args": [
+                {
+                  "op": "ref",
+                  "path": "rule:state.score"
+                },
+                {
+                  "op": "literal",
+                  "value": 1
+                }
+              ]
+            },
+            "else": {
+              "op": "ref",
+              "path": "rule:state.score"
+            }
+          }
+        },
+        {
+          "op": "state.set",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.length"
+          },
+          "value": {
+            "op": "if",
+            "condition": {
+              "op": "ref",
+              "path": "rule:state.grow_pending"
+            },
+            "then": {
+              "op": "add",
+              "args": [
+                {
+                  "op": "ref",
+                  "path": "rule:state.length"
+                },
+                {
+                  "op": "literal",
+                  "value": 1
+                }
+              ]
+            },
+            "else": {
+              "op": "ref",
+              "path": "rule:state.length"
+            }
+          }
+        },
+        {
+          "op": "state.set",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.food_x"
+          },
+          "value": {
+            "op": "if",
+            "condition": {
+              "op": "ref",
+              "path": "rule:state.grow_pending"
+            },
+            "then": {
+              "op": "mod",
+              "args": [
+                {
+                  "op": "add",
+                  "args": [
+                    {
+                      "op": "ref",
+                      "path": "rule:state.food_x"
+                    },
+                    {
+                      "op": "literal",
+                      "value": 7
+                    }
+                  ]
+                },
+                {
+                  "op": "ref",
+                  "path": "rule:state.extent"
+                }
+              ]
+            },
+            "else": {
+              "op": "ref",
+              "path": "rule:state.food_x"
+            }
+          }
+        },
+        {
+          "op": "state.set",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.food_y"
+          },
+          "value": {
+            "op": "if",
+            "condition": {
+              "op": "ref",
+              "path": "rule:state.grow_pending"
+            },
+            "then": {
+              "op": "mod",
+              "args": [
+                {
+                  "op": "add",
+                  "args": [
+                    {
+                      "op": "ref",
+                      "path": "rule:state.food_y"
+                    },
+                    {
+                      "op": "literal",
+                      "value": 5
+                    }
+                  ]
+                },
+                {
+                  "op": "ref",
+                  "path": "rule:state.extent"
+                }
+              ]
+            },
+            "else": {
+              "op": "ref",
+              "path": "rule:state.food_y"
+            }
+          }
+        },
+        {
+          "op": "grid.set",
+          "state": "rule:state.board_cell",
+          "topology": "rule:topology.board",
+          "coordinate": {
+            "op": "vector",
+            "items": [
+              {
+                "op": "ref",
+                "path": "rule:state.food_x"
+              },
+              {
+                "op": "ref",
+                "path": "rule:state.food_y"
+              }
+            ]
+          },
+          "value": {
+            "op": "if",
+            "condition": {
+              "op": "ref",
+              "path": "rule:state.grow_pending"
+            },
+            "then": {
+              "op": "if",
+              "condition": {
+                "op": "or",
+                "args": [
+                  {
+                    "op": "call",
+                    "function": "core:grid.equals",
+                    "args": [
+                      {
+                        "op": "literal",
+                        "value": "rule:state.board_cell"
+                      },
+                      {
+                        "op": "vector",
+                        "items": [
+                          {
+                            "op": "ref",
+                            "path": "rule:state.food_x"
+                          },
+                          {
+                            "op": "ref",
+                            "path": "rule:state.food_y"
+                          }
+                        ]
+                      },
+                      {
+                        "op": "literal",
+                        "value": 0
+                      }
+                    ]
+                  },
+                  {
+                    "op": "call",
+                    "function": "core:grid.equals",
+                    "args": [
+                      {
+                        "op": "literal",
+                        "value": "rule:state.board_cell"
+                      },
+                      {
+                        "op": "vector",
+                        "items": [
+                          {
+                            "op": "ref",
+                            "path": "rule:state.food_x"
+                          },
+                          {
+                            "op": "ref",
+                            "path": "rule:state.food_y"
+                          }
+                        ]
+                      },
+                      {
+                        "op": "literal",
+                        "value": -1
+                      }
+                    ]
+                  }
+                ]
+              },
+              "then": {
+                "op": "literal",
+                "value": -1
+              },
+              "else": {
+                "op": "call",
+                "function": "core:grid.get",
+                "args": [
+                  {
+                    "op": "literal",
+                    "value": "rule:state.board_cell"
+                  },
+                  {
+                    "op": "vector",
+                    "items": [
+                      {
+                        "op": "ref",
+                        "path": "rule:state.food_x"
+                      },
+                      {
+                        "op": "ref",
+                        "path": "rule:state.food_y"
+                      }
+                    ]
+                  }
+                ]
+              }
+            },
+            "else": {
+              "op": "call",
+              "function": "core:grid.get",
+              "args": [
+                {
+                  "op": "literal",
+                  "value": "rule:state.board_cell"
+                },
+                {
+                  "op": "vector",
+                  "items": [
+                    {
+                      "op": "ref",
+                      "path": "rule:state.food_x"
+                    },
+                    {
+                      "op": "ref",
+                      "path": "rule:state.food_y"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "op": "state.set",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.grow_pending"
+          },
+          "value": {
+            "op": "literal",
+            "value": false
+          }
+        }
+      ],
+      "timing": {
+        "phase": "rule:phase.input"
+      },
+      "encoding": {
+        "kind": "none"
+      }
+    }
+  ],
+  "systems": [],
+  "flow": {
+    "model": "event_driven",
+    "phases": [
+      {
+        "id": "rule:phase.input",
+        "order": 100
+      },
+      {
+        "id": "rule:phase.update",
+        "order": 200
+      },
+      {
+        "id": "rule:phase.outcome",
+        "order": 300
+      }
+    ],
+    "initial_phase": "rule:phase.input",
+    "scheduler": {
+      "clock": "event_queue",
+      "tick_hz": null,
+      "ordering": "phase_priority_id"
+    },
+    "turn_order": []
+  },
+  "random_streams": [],
+  "goals": [],
+  "outcomes": [
+    {
+      "id": "rule:outcome.collision_loss",
+      "name": "Collision Loss",
+      "priority": 100,
+      "condition": {
+        "op": "eq",
+        "args": [
+          {
+            "op": "ref",
+            "path": "rule:state.alive"
+          },
+          {
+            "op": "literal",
+            "value": false
+          }
+        ]
+      },
+      "result": {
+        "status": "loss",
+        "terminal": true,
+        "winners": [],
+        "losers": [
+          {
+            "op": "literal",
+            "value": "rule:participant.player"
+          }
+        ],
+        "scores": {}
+      }
+    }
+  ],
+  "modes": [
+    {
+      "id": "rule:mode.default",
+      "name": "Default",
+      "overrides": []
+    }
+  ],
+  "invariants": [],
+  "extensions": {},
+  "provenance": {},
+  "unresolved": []
+}

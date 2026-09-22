@@ -1,0 +1,32 @@
+{
+  "plan_version": "cubeengine.srtp/spatial-lift-plan/1.0",
+  "lift_id": "lift-001",
+  "source_manifest_hash": "781e7f923108307993d997da678f706435347b4114597e3088624cbcb93e809e",
+  "target_dimensions": {
+    "x": 20,
+    "y": 20,
+    "z": 3
+  },
+  "z_consequences": {
+    "topology_axis": "Added Z axis with extent 3 and bounded boundary to rule:topology.board",
+    "neighborhood": "3D orthogonal 6-connectivity (X, Y, Z)",
+    "input": "Mapped Page Up / Page Down to rule:action.move_z_up and rule:action.move_z_down"
+  },
+  "preservation_rules": [
+    "Preserve XY step-snake mechanism on existing board_cell grid.set moves"
+  ],
+  "plan_id": "lift:3902e8d4982d",
+  "design_intent_id": "intent-001",
+  "topology": {},
+  "source_xy_policy": {},
+  "target_z": {},
+  "neighborhood": {},
+  "movement": {},
+  "outcomes": {},
+  "presentation": {},
+  "input": {},
+  "z_equals_one_tests": [],
+  "z_gt_one_tests": [],
+  "alternatives": [],
+  "unresolved": []
+}

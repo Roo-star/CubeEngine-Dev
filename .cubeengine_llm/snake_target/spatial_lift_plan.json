@@ -1,0 +1,32 @@
+{
+  "schema_version": "cubeengine.srtp/spatial-lift-plan/1.0",
+  "design_intent": "Preserve XY step-snake; extend topology with Z extent 3.",
+  "target_z_extent": 3,
+  "xy_preservation_strategy": "Maintain 20x20 orthogonal grid stepping on XY plane; extend movement vectors into 3D space.",
+  "z_consequences": {
+    "topology_axis": "Z-axis active with range [0, 2] (3 discrete layers).",
+    "neighborhood": "6-connected 3D orthogonal grid neighborhood.",
+    "input": "Map Page Up and Page Down keys to modify Z-axis movement direction."
+  },
+  "affected_documents": [
+    "rule_ir",
+    "scene_ir",
+    "input_ir"
+  ],
+  "plan_version": "cubeengine.srtp/spatial-lift-plan/1.0",
+  "plan_id": "lift:5970f2178a44",
+  "source_manifest_hash": "bc4ffebde4962adf0220ce04ea37540dcd709ba4381380bd848e3243bef6a032",
+  "design_intent_id": "intent:snake_z_extent_3",
+  "topology": {},
+  "source_xy_policy": {},
+  "target_z": {},
+  "neighborhood": {},
+  "movement": {},
+  "outcomes": {},
+  "presentation": {},
+  "input": {},
+  "z_equals_one_tests": [],
+  "z_gt_one_tests": [],
+  "alternatives": [],
+  "unresolved": []
+}

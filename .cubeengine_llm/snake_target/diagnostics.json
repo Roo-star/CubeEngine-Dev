@@ -1,0 +1,10 @@
+{
+  "ok": true,
+  "stage": "spatial_lift",
+  "diagnostics": [],
+  "unresolved_summary": [],
+  "provider": "gemini",
+  "model": "gemini-3.6-flash",
+  "attempts": 2,
+  "compile_ready": false
+}

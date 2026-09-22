@@ -1,0 +1,264 @@
+{
+  "ir_version": "cubeengine.scene-ir/2.0-alpha.1",
+  "document_id": "scene:game.snake.game.with.python.and.pygame.target",
+  "revision": 2,
+  "content_hash": "a8a0bc5c68eb1c15696c47a53201d134d7ce0566ec9de2659868bc5314d255e5",
+  "metadata": {
+    "title": "Snake Game with Python and Pygame",
+    "description": "LLM compiler bootstrap shell. Semantics must be filled by evidence-backed patches.",
+    "source_project_hash": "6bbf008a8c81a818a748c0c6d58bb2457c311dc3efed88f516d073cecfbb756c"
+  },
+  "dependencies": {
+    "rule_ir": {
+      "document_id": "rule:game.snake.game.with.python.and.pygame.target",
+      "content_hash": "a17fc4a022426781f8d725a148773ba3dee5737ea2c3fefdd4c9441e452f8dc7"
+    },
+    "asset_ir": {
+      "document_id": "asset:game.snake.game.with.python.and.pygame.target",
+      "content_hash": "167088e45b2eea1eb3bf99a53bad936ab0f986dc7b88b6420a6b8ee4223c3c20"
+    },
+    "extensions": []
+  },
+  "layers": [
+    {
+      "id": "scene:layer.runtime",
+      "name": "Runtime",
+      "kind": "runtime",
+      "visible": true,
+      "pickable": true,
+      "opacity": 1.0
+    }
+  ],
+  "prefabs": [
+    {
+      "id": "scene:prefab.cell",
+      "name": "Cell",
+      "root": {
+        "local_id": "root",
+        "name": "Cell",
+        "active": true,
+        "transform": {
+          "translation": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "rotation_euler_deg": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "scale": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "components": [
+          {
+            "id": "renderer",
+            "type": "renderer",
+            "enabled": true,
+            "properties": {
+              "geometry": "builtin:cube",
+              "visible": true
+            }
+          }
+        ],
+        "children": []
+      }
+    }
+  ],
+  "nodes": [
+    {
+      "id": "scene:node.board",
+      "name": "Board",
+      "active": true,
+      "transform": {
+        "translation": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "rotation_euler_deg": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "components": [
+        {
+          "id": "sites",
+          "type": "topology_visualizer",
+          "enabled": true,
+          "properties": {
+            "topology": "rule:topology.board",
+            "rule_topology": "rule:topology.board",
+            "prefab": "scene:prefab.cell",
+            "index_to_world": [
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          }
+        }
+      ],
+      "children": [],
+      "parent": null,
+      "layer": "scene:layer.runtime"
+    },
+    {
+      "id": "scene:node.camera",
+      "name": "Main Camera",
+      "active": true,
+      "transform": {
+        "translation": [
+          10.0,
+          10.0,
+          20.0
+        ],
+        "rotation_euler_deg": [
+          -45.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "components": [
+        {
+          "id": "camera",
+          "type": "camera",
+          "enabled": true,
+          "properties": {
+            "projection": "orthographic",
+            "near_clip": 0.1,
+            "far_clip": 1000.0,
+            "active": true,
+            "orthographic_size": 8.0
+          }
+        }
+      ],
+      "children": [],
+      "parent": null,
+      "layer": "scene:layer.runtime"
+    }
+  ],
+  "bindings": [
+    {
+      "id": "scene:binding.cell_variant",
+      "name": "Cell Variant",
+      "source": {
+        "kind": "state",
+        "scope": "topology_site",
+        "variable": "rule:state.board_cell"
+      },
+      "target": {
+        "selector": "topology_sites",
+        "node": "scene:node.board",
+        "visualizer": "sites",
+        "component": "renderer",
+        "property": "variant"
+      },
+      "transform": {
+        "kind": "map",
+        "cases": [
+          {
+            "equals": 0,
+            "value": "empty"
+          },
+          {
+            "equals": 1,
+            "value": "body"
+          },
+          {
+            "equals": 2,
+            "value": "head"
+          },
+          {
+            "equals": -1,
+            "value": "food"
+          }
+        ]
+      }
+    }
+  ],
+  "provenance": {
+    "patch_history": [
+      {
+        "base_revision": 0,
+        "base_content_hash": "a1f0564a545d31b8627986984079d2885587f6ae1d3ca68dec50ee9b06adb26f",
+        "evidence": [
+          {
+            "evidence_id": "ev:param.source_tick_ms.0",
+            "path": "snake.py",
+            "file_sha256": "085015d8aaa06f484df9ce0361fa4438981aecd8e1dc14ea0ba3ba744583b7dd",
+            "kind": "static",
+            "span": {
+              "line_start": 277,
+              "line_end": 277
+            },
+            "supports": "/scene_ir/nodes",
+            "topic": "board_node",
+            "confidence": 0.8,
+            "detail": "board"
+          }
+        ],
+        "assumptions": [],
+        "operation_count": 2
+      },
+      {
+        "base_revision": 0,
+        "base_content_hash": "8b624709f0ab913001cccd4f349ed87d679b6f0c75ed842fe121cf0ff43a84a8",
+        "evidence": [
+          {
+            "evidence_id": "ev:param.source_tick_ms.0",
+            "path": "snake.py",
+            "kind": "static",
+            "supports": "/rule_ir/flow",
+            "confidence": 0.8,
+            "file_sha256": "085015d8aaa06f484df9ce0361fa4438981aecd8e1dc14ea0ba3ba744583b7dd",
+            "span": {
+              "line_start": 277,
+              "line_end": 277
+            }
+          }
+        ],
+        "assumptions": [
+          "Scene layout extends to 3D grid with 3 Z layers"
+        ],
+        "operation_count": 1
+      }
+    ]
+  },
+  "unresolved": [],
+  "grid_3d": {
+    "dimensions": {
+      "x": 20,
+      "y": 20,
+      "z": 3
+    },
+    "cell_size": 1.0
+  }
+}

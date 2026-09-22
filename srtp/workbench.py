@@ -18,6 +18,13 @@ if __package__ in (None, ""):
     from srtp.ir_acceptance import (
         IRAcceptanceController, IRAcceptanceError, ProjectViewState,
     )
+    from srtp.llm_compiler_v1 import SourceToIRCompiler
+    from srtp.llm_compiler_v1.approval import (
+        ApprovalError, approve_llm_manifest_file, attach_gate, approval_status,
+    )
+    from srtp.llm_compiler_v1.bootstrap import slugify
+    from srtp.llm_compiler_v1.client import LLMClientError
+    from srtp.project_manifest_v2 import load_project_manifest
 else:
     from .source_game import SourceGamePackage
     from .source_importer import SourceGameImporter
@@ -27,6 +34,13 @@ else:
     from .ir_acceptance import (
         IRAcceptanceController, IRAcceptanceError, ProjectViewState,
     )
+    from .llm_compiler_v1 import SourceToIRCompiler
+    from .llm_compiler_v1.approval import (
+        ApprovalError, approve_llm_manifest_file, attach_gate, approval_status,
+    )
+    from .llm_compiler_v1.bootstrap import slugify
+    from .llm_compiler_v1.client import LLMClientError
+    from .project_manifest_v2 import load_project_manifest
 
 
 PACKAGE_DIR = Path(__file__).resolve().parent
@@ -136,8 +150,18 @@ class SrtpWorkbench:
             self.stop_preview()
             return
         if self._preview_mode() == "Project Session":
-            self._render_viewport()
-            self._message("Project Session is already running inside the Workbench.")
+            if self.core_controller is not None and self.core_controller.has_active_project:
+                self._render_viewport()
+                self._message(
+                    "Project Session is ready. Use arrow keys (PageUp/PageDown for Z if bound) "
+                    "in this viewport. Ursina Transformed 3D is a separate adapter demo — "
+                    "not the LLM IR path."
+                )
+            else:
+                self._render_viewport()
+                self._message(
+                    "Project Session runs inside this Workbench. Approve/Attach a sealed Project Manifest first."
+                )
         elif self._preview_mode() == "Source 2D":
             self.launch_original()
         else:
@@ -168,19 +192,6 @@ class SrtpWorkbench:
         self._attach_core_to_current_source()
         self._activate_core_mode("Rule IR compiled into a live Project Session.")
 
-    def open_project_manifest(self, path: Path) -> None:
-        if self.package is None:
-            self._message("Import the source game before attaching its Project Manifest.", error=True)
-            return
-        try:
-            core = self._ensure_core()
-            core.open_project_bundle(path)
-        except (IRAcceptanceError, OSError, ValueError) as error:
-            self._message("Project bundle could not open: {0}".format(error), error=True)
-            return
-        self._attach_core_to_current_source()
-        self._activate_core_mode("Sealed Project Manifest compiled into a live Project Session.")
-
     def select_core_project(self, sender=None, app_data=None, user_data=None) -> None:
         core = self.core_controller
         if core is None:
@@ -206,6 +217,193 @@ class SrtpWorkbench:
             self._message(result.message, error=not result.accepted)
         except (IRAcceptanceError, ValueError) as error:
             self._message(str(error), error=True)
+
+    def handle_core_key(self, sender=None, app_data=None, user_data=None) -> None:
+        """Map Dear PyGui key presses to Input IR physical keyboard events."""
+
+        # #region agent log
+        def _dbg(hypothesis_id, message, data=None):
+            try:
+                import json, time
+                from pathlib import Path
+                payload = {
+                    "sessionId": "3d9e82",
+                    "runId": "post-fix",
+                    "hypothesisId": hypothesis_id,
+                    "location": "workbench.py:handle_core_key",
+                    "message": message,
+                    "data": data or {},
+                    "timestamp": int(time.time() * 1000),
+                }
+                Path(__file__).resolve().parents[1].joinpath("debug-3d9e82.log").open(
+                    "a", encoding="utf-8",
+                ).write(json.dumps(payload, ensure_ascii=False) + "\n")
+            except Exception:
+                pass
+        # #endregion
+
+        mode = self._preview_mode()
+        has_project = bool(
+            self.core_controller is not None and self.core_controller.has_active_project
+        )
+        if mode != "Project Session":
+            # #region agent log
+            _dbg("H2", "key ignored: not Project Session", {
+                "mode": mode, "app_data": repr(app_data),
+            })
+            # #endregion
+            return
+        if self.core_controller is None or not self.core_controller.has_active_project:
+            # #region agent log
+            _dbg("H2", "key ignored: no active project", {
+                "has_controller": self.core_controller is not None,
+                "app_data": repr(app_data),
+            })
+            # #endregion
+            return
+        key = app_data
+        try:
+            key = int(key)
+        except (TypeError, ValueError):
+            # #region agent log
+            _dbg("H1", "key not int", {"app_data": repr(app_data)})
+            # #endregion
+            return
+        mapping = {
+            getattr(self.dpg, "mvKey_Up", -1): "keyboard.key.arrow_up",
+            getattr(self.dpg, "mvKey_Down", -2): "keyboard.key.arrow_down",
+            getattr(self.dpg, "mvKey_Left", -3): "keyboard.key.arrow_left",
+            getattr(self.dpg, "mvKey_Right", -4): "keyboard.key.arrow_right",
+            # Dear PyGui key-press handler delivers 517/518 for PageUp/PageDown
+            # (between Down=516 and Home=519). mvKey_Prior/Next are Win32 VK 33/34
+            # and do not match the handler payload on this platform.
+            517: "keyboard.key.page_up",
+            518: "keyboard.key.page_down",
+            getattr(self.dpg, "mvKey_Prior", -5): "keyboard.key.page_up",
+            getattr(self.dpg, "mvKey_Next", -6): "keyboard.key.page_down",
+        }
+        control = mapping.get(key)
+        if control is None:
+            # #region agent log
+            _dbg("H1", "unmapped key", {
+                "key": key,
+                "mvKey_Prior": getattr(self.dpg, "mvKey_Prior", None),
+                "mvKey_Next": getattr(self.dpg, "mvKey_Next", None),
+                "mvKey_Up": getattr(self.dpg, "mvKey_Up", None),
+            })
+            # #endregion
+            # R resets the Project Session.
+            if key == getattr(self.dpg, "mvKey_R", None):
+                self.reset_core()
+            return
+        from srtp.input_ir_v2 import PhysicalInputEvent
+        selected = self.core_controller.active_key
+        self.core_controller.sequence[selected] = self.core_controller.sequence.get(selected, 0) + 1
+        event = PhysicalInputEvent(
+            self.core_controller.sequence[selected],
+            "keyboard",
+            control,
+            "press",
+        )
+        # #region agent log
+        food_before = None
+        head_before = None
+        try:
+            selected_key = self.core_controller.active_key
+            sess = self.core_controller.sessions.get(selected_key)
+            if sess is not None:
+                gg = sess.rule_runtime.state.globals
+                food_before = {
+                    "x": gg.get("rule:state.food_x"),
+                    "y": gg.get("rule:state.food_y"),
+                    "z": gg.get("rule:state.food_z"),
+                    "score": gg.get("rule:state.score"),
+                }
+                head_before = {
+                    "x": gg.get("rule:state.head_x"),
+                    "y": gg.get("rule:state.head_y"),
+                    "z": gg.get("rule:state.head_z"),
+                }
+        except Exception as err:
+            food_before = {"error": str(err)}
+        _dbg("H3", "dispatching mapped key", {
+            "key": key, "control": control, "food_before": food_before, "head_before": head_before,
+        })
+        # #endregion
+        try:
+            result = self.core_controller.dispatch_physical(event)
+            self.core_last_result = result.to_mapping()
+            self._render_core_scene()
+            message = result.message
+            # #region agent log
+            food_after = None
+            food_cells = None
+            try:
+                selected_key = self.core_controller.active_key
+                sess = self.core_controller.sessions.get(selected_key)
+                if sess is not None:
+                    rt = sess.rule_runtime
+                    gl = rt.state.globals
+                    board = rt.state.grids.get("rule:state.board_cell")
+                    food_after = {
+                        "x": gl.get("rule:state.food_x"),
+                        "y": gl.get("rule:state.food_y"),
+                        "z": gl.get("rule:state.food_z"),
+                        "score": gl.get("rule:state.score"),
+                        "head": [
+                            gl.get("rule:state.head_x"),
+                            gl.get("rule:state.head_y"),
+                            gl.get("rule:state.head_z"),
+                        ],
+                    }
+                    if board is not None:
+                        import numpy as np
+                        coords = list(zip(*np.where(np.asarray(board) == -1)))
+                        food_cells = [tuple(int(c) for c in item) for item in coords[:8]]
+                        fx, fy, fz = food_after["x"], food_after["y"], food_after["z"]
+                        if fz is None:
+                            painted = int(board[fx, fy]) if fx is not None else None
+                        else:
+                            painted = int(board[fx, fy, fz])
+                        food_after["painted_cell"] = painted
+            except Exception as err:
+                food_after = {"error": str(err)}
+            _dbg("H3/H4/H5", "dispatch result", {
+                "control": control,
+                "accepted": bool(result.accepted),
+                "message": message,
+                "food_after": food_after,
+                "food_cells_on_grid": food_cells,
+                "score_before": food_before.get("score") if isinstance(food_before, dict) else None,
+            })
+            # #endregion
+            if result.accepted:
+                before = getattr(self, "_core_last_grid_fingerprint", None)
+                try:
+                    grid = self.core_controller.snapshot().grid
+                    fingerprint = repr(grid)
+                except Exception:  # noqa: BLE001
+                    fingerprint = None
+                if before is not None and fingerprint == before:
+                    message = (
+                        "{0} (board grid unchanged — this Project may be an LLM draft "
+                        "without move effects; try artifacts/snake_playable)".format(message)
+                    )
+                if fingerprint is not None:
+                    self._core_last_grid_fingerprint = fingerprint
+            self._message(message, error=not result.accepted)
+        except (IRAcceptanceError, ValueError) as error:
+            # #region agent log
+            _dbg("H3", "dispatch IRAcceptanceError", {"error": str(error), "control": control})
+            # #endregion
+            self._message(str(error), error=True)
+        except Exception as error:  # noqa: BLE001 — surface Rule Runtime failures in console
+            # #region agent log
+            _dbg("H3", "dispatch Exception", {
+                "error": "{0}: {1}".format(type(error).__name__, error), "control": control,
+            })
+            # #endregion
+            self._message("Input handling failed: {0}: {1}".format(type(error).__name__, error), error=True)
 
     def reset_core(self, sender=None, app_data=None, user_data=None) -> None:
         if self.core_controller is None:
@@ -395,6 +593,219 @@ class SrtpWorkbench:
             return
         self._message("Analysis package saved. The source project remains unchanged.")
 
+    def compile_llm_source_to_ir(self, sender=None, app_data=None, user_data=None) -> None:
+        if self.package is None:
+            self._message("Import a source game before running the LLM compiler.", error=True)
+            return
+        repo_root = PACKAGE_DIR.parent
+        out_dir = repo_root / ".cubeengine_llm" / slugify(self.package.title) / "source"
+        self._pending_llm_source_dir = out_dir
+        self._message("Running LLM Source→four-IR (no Spatial Lift yet)…")
+        try:
+            report = SourceToIRCompiler().compile(
+                self.package,
+                out_dir=out_dir,
+                intent_text=None,
+            )
+        except LLMClientError as error:
+            self._message("LLM compiler failed: {0}".format(error), error=True)
+            return
+        except Exception as error:  # noqa: BLE001 - surface transport/import failures
+            self._message("LLM compiler failed: {0}".format(error), error=True)
+            return
+
+        lines = [
+            "LLM stage: {0}".format(report.stage),
+            "ok={0} compile_ready={1} attempts={2}".format(
+                report.ok, report.compile_ready, report.attempts,
+            ),
+            "provider={0} model={1}".format(report.provider or "-", report.model or "-"),
+            "output: {0}".format(report.output_dir or out_dir),
+        ]
+        if report.diagnostics:
+            lines.append("diagnostics:")
+            lines.extend("- {0}".format(item) for item in report.diagnostics[:20])
+        if report.unresolved_summary:
+            lines.append("unresolved: {0} item(s)".format(len(report.unresolved_summary)))
+        self.dpg.set_value("srtp_diagnostics", "\n".join(lines))
+        if report.ok and report.manifest is not None:
+            manifest_path = Path(report.output_dir or out_dir) / "project.manifest.json"
+            self._pending_llm_manifest = manifest_path
+            status = approval_status(report.manifest)
+            if status.get("can_approve"):
+                self._message(
+                    "Source draft ready (LLM draft — not artifacts/snake_playable). "
+                    "APPROVE LLM MANIFEST, then RUN SPATIAL LIFT with Design Intent.",
+                )
+                if self.dpg.does_item_exist("srtp_core_activity"):
+                    self.dpg.set_value(
+                        "srtp_core_activity",
+                        (
+                            "LLM Source four-IR draft at:\n{0}\n\n"
+                            "This is not the playable step-snake fixture.\n"
+                            "1) APPROVE LLM MANIFEST\n"
+                            "2) Enter Design Intent\n"
+                            "3) RUN SPATIAL LIFT\n"
+                            "4) Approve Target → Project Session\n"
+                            "For a known-good moving snake, attach artifacts/snake_playable."
+                        ).format(report.output_dir or out_dir),
+                    )
+            elif report.compile_ready:
+                self._message("Source compile_ready. Enter Design Intent and RUN SPATIAL LIFT.")
+            else:
+                self._message(
+                    "Source draft has required unresolved items (not only approval). See Diagnostics.",
+                    error=True,
+                )
+        else:
+            self._message(
+                "LLM Source compiler finished with blockers. See Diagnostics for details.",
+                error=True,
+            )
+
+    def run_spatial_lift(self, sender=None, app_data=None, user_data=None) -> None:
+        if self.package is None:
+            self._message("Import a source game before Spatial Lift.", error=True)
+            return
+        intent = ""
+        if self.dpg.does_item_exist("srtp_llm_intent"):
+            raw = self.dpg.get_value("srtp_llm_intent")
+            if isinstance(raw, str):
+                intent = raw.strip()
+        if not intent:
+            self._message("Enter a Design Intent before RUN SPATIAL LIFT.", error=True)
+            return
+        source_dir = getattr(self, "_pending_llm_source_dir", None)
+        if source_dir is None:
+            source_dir = PACKAGE_DIR.parent / ".cubeengine_llm" / slugify(self.package.title) / "source"
+        source_manifest = Path(source_dir) / "project.manifest.json"
+        if not source_manifest.is_file():
+            self._message(
+                "No Source bundle at {0}. Run COMPILE LLM → IR and Approve first.".format(source_dir),
+                error=True,
+            )
+            return
+        try:
+            manifest = load_project_manifest(source_manifest)
+        except Exception as error:  # noqa: BLE001
+            self._message("Could not load Source manifest: {0}".format(error), error=True)
+            return
+        status = approval_status(manifest)
+        if not status.get("compile_ready"):
+            if status.get("can_approve"):
+                self._message("Source is not approved yet. Click APPROVE LLM MANIFEST first.", error=True)
+            else:
+                self._message("Source is not compile_ready. Resolve required unresolved first.", error=True)
+            return
+
+        repo_root = PACKAGE_DIR.parent
+        out_dir = repo_root / ".cubeengine_llm" / slugify(self.package.title) / "target"
+        self._message("Running Spatial Lift from approved Source…")
+        try:
+            report = SourceToIRCompiler().compile_spatial_lift(
+                self.package,
+                source_bundle_dir=Path(source_dir),
+                intent_text=intent,
+                out_dir=out_dir,
+            )
+        except LLMClientError as error:
+            self._message("Spatial Lift failed: {0}".format(error), error=True)
+            return
+        except Exception as error:  # noqa: BLE001
+            self._message("Spatial Lift failed: {0}".format(error), error=True)
+            return
+
+        lines = [
+            "LLM stage: {0}".format(report.stage),
+            "ok={0} compile_ready={1}".format(report.ok, report.compile_ready),
+            "output: {0}".format(report.output_dir or out_dir),
+        ]
+        if report.diagnostics:
+            lines.append("diagnostics:")
+            lines.extend("- {0}".format(item) for item in report.diagnostics[:20])
+        self.dpg.set_value("srtp_diagnostics", "\n".join(lines))
+        if report.ok and report.manifest is not None:
+            manifest_path = Path(report.output_dir or out_dir) / "project.manifest.json"
+            self._pending_llm_manifest = manifest_path
+            self._message(
+                "Target draft ready. APPROVE LLM MANIFEST then open Project Session. "
+                "If Accepted keys do not change the board, attach artifacts/snake_playable.",
+            )
+            if self.dpg.does_item_exist("srtp_core_activity"):
+                self.dpg.set_value(
+                    "srtp_core_activity",
+                    (
+                        "Target 3D four-IR draft at:\n{0}\n\n"
+                        "Approve the Target manifest, then Project Session + arrow keys.\n"
+                        "LLM draft ≠ playable fixture. Transformed 3D PLAY is Ursina only."
+                    ).format(report.output_dir or out_dir),
+                )
+        else:
+            self._message("Spatial Lift finished with blockers. See Diagnostics.", error=True)
+
+    def approve_pending_llm_manifest(self, sender=None, app_data=None, user_data=None) -> None:
+        path = getattr(self, "_pending_llm_manifest", None)
+        if path is None and self.dpg.does_item_exist("srtp_llm_manifest_path"):
+            raw = self.dpg.get_value("srtp_llm_manifest_path")
+            if isinstance(raw, str) and raw.strip():
+                path = Path(raw.strip())
+        if path is None:
+            self._message("No pending LLM manifest to approve. Run LLM Source→IR first.", error=True)
+            return
+        self.approve_llm_manifest(Path(path))
+
+    def approve_llm_manifest(self, path: Path) -> None:
+        if self.package is None:
+            self._message("Import the source game before approving a Project Manifest.", error=True)
+            return
+        try:
+            approve_llm_manifest_file(Path(path), designer_id="workbench")
+        except (ApprovalError, OSError, ValueError) as error:
+            self._message("Approve failed: {0}".format(error), error=True)
+            return
+        self._pending_llm_manifest = Path(path)
+        self._message(
+            "Designer approved. Manifest resealed compile_ready=true. Opening Project Session…",
+        )
+        self.open_project_manifest(Path(path), after_approval=True)
+
+    def open_project_manifest(self, path: Path, *, after_approval: bool = False) -> None:
+        if self.package is None:
+            self._message("Import the source game before attaching its Project Manifest.", error=True)
+            return
+        try:
+            manifest = load_project_manifest(Path(path))
+        except Exception as error:  # noqa: BLE001
+            self._message("Project Manifest could not load: {0}".format(error), error=True)
+            return
+        allowed, reason = attach_gate(manifest)
+        if not allowed:
+            status = approval_status(manifest)
+            self._pending_llm_manifest = Path(path)
+            if status.get("can_approve") and not after_approval:
+                self._message(
+                    "Attach blocked: {0} Use APPROVE LLM MANIFEST first.".format(reason),
+                    error=True,
+                )
+                if self.dpg.does_item_exist("srtp_core_activity"):
+                    self.dpg.set_value(
+                        "srtp_core_activity",
+                        "Attach blocked until compile_ready.\n{0}\n\nClick APPROVE LLM MANIFEST.".format(
+                            path,
+                        ),
+                    )
+                return
+            self._message("Attach blocked: {0}".format(reason), error=True)
+            return
+        try:
+            core = self._ensure_core()
+            core.open_project_bundle(path, asset_project_root=Path(self.package.root))
+        except (IRAcceptanceError, OSError, ValueError) as error:
+            self._message("Project bundle could not open: {0}".format(error), error=True)
+            return
+        self._attach_core_to_current_source()
+        self._activate_core_mode("Sealed Project Manifest compiled into a live Project Session.")
+
     def _render_package(self) -> None:
         assert self.package is not None
         package = self.package
@@ -521,7 +932,14 @@ class SrtpWorkbench:
     def _activate_core_mode(self, message: str) -> None:
         self.dpg.set_value("srtp_preview_mode", "Project Session")
         self._configure_core_projects()
-        self._render_viewport()
+        try:
+            self._render_viewport()
+        except IRAcceptanceError as error:
+            self._message(
+                "Project Session opened but preview could not render: {0}".format(error),
+                error=True,
+            )
+            return
         self._message(message)
 
     def _configure_core_projects(self) -> None:
@@ -552,7 +970,18 @@ class SrtpWorkbench:
             self.dpg.set_value("srtp_core_activity_view", "")
             self.dpg.set_value("srtp_core_rule_summary", "")
             return
-        state = core.snapshot()
+        try:
+            state = core.snapshot()
+        except IRAcceptanceError as error:
+            self.dpg.set_value("srtp_core_scene_title", "Project Session preview unavailable")
+            self.dpg.set_value("srtp_core_scene_help", str(error))
+            if hasattr(self.dpg, "delete_item"):
+                self.dpg.delete_item("srtp_core_scene_layers", children_only=True)
+                if hasattr(self.dpg, "add_text"):
+                    self.dpg.add_text(
+                        str(error), parent="srtp_core_scene_layers", color=(238, 105, 105),
+                    )
+            raise
         self._configure_core_projects()
         self.dpg.set_value(
             "srtp_core_scene_title",
@@ -562,8 +991,10 @@ class SrtpWorkbench:
         )
         self.dpg.set_value(
             "srtp_core_scene_help",
-            "Clicks are physical Input IR events. Rule Runtime owns legality, state and outcome; "
-            "Scene IR only projects the committed result.",
+            "Clicks are physical Input IR events for placement games. Arrow keys "
+            "drive XY Input IR bindings; PageUp/PageDown drive Z when bound "
+            "(for example Step Snake). "
+            "Rule Runtime owns legality, state and outcome; Scene IR projects the result.",
         )
         self.dpg.set_value("srtp_core_activity", core.activity_text())
         self.dpg.set_value("srtp_core_activity_view", core.activity_text())
@@ -808,6 +1239,12 @@ def _core_grid_value(grid: Any, coordinate: Sequence[int]) -> int:
 
 
 def _core_cell_style(value: int, legal: bool) -> Tuple[str, str]:
+    if value == 2:
+        return "H", "srtp_core_cell_positive"
+    if value == 1:
+        return "B", "srtp_core_cell_positive"
+    if value == -1:
+        return "F", "srtp_core_cell_negative"
     if value > 0:
         return "P1", "srtp_core_cell_positive"
     if value < 0:
@@ -935,6 +1372,23 @@ def main() -> None:
                         tag="srtp_core_attachment", wrap=215, color=(178, 185, 198),
                     )
                     dpg.add_button(
+                        label="COMPILE LLM → SOURCE IR", width=-1,
+                        callback=controller.compile_llm_source_to_ir,
+                    )
+                    dpg.add_button(
+                        label="APPROVE LLM MANIFEST", width=-1,
+                        callback=controller.approve_pending_llm_manifest,
+                    )
+                    dpg.add_input_text(
+                        tag="srtp_llm_intent",
+                        hint="Design Intent for 3D lift (after Source approved)",
+                        width=-1,
+                    )
+                    dpg.add_button(
+                        label="RUN SPATIAL LIFT → TARGET", width=-1,
+                        callback=controller.run_spatial_lift,
+                    )
+                    dpg.add_button(
                         label="ATTACH PROJECT MANIFEST...", width=-1,
                         callback=lambda: dpg.show_item("srtp_project_manifest_dialog"),
                     )
@@ -1054,6 +1508,8 @@ def main() -> None:
     dpg.set_primary_window("srtp_primary", True)
     dpg.setup_dearpygui()
     dpg.show_viewport()
+    with dpg.handler_registry():
+        dpg.add_key_press_handler(callback=controller.handle_core_key)
     controller.load_selected_reference()
     if os.environ.get("CUBEENGINE_SRTP_WORKBENCH_SMOKE") == "1":
         controller.close()

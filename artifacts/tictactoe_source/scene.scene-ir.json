@@ -1,0 +1,198 @@
+{
+  "ir_version": "cubeengine.scene-ir/2.0-alpha.1",
+  "document_id": "scene:game.tictactoe_2d",
+  "revision": 1,
+  "content_hash": "c688d1bb4b8cd1c98a1d07c4714d1d516975d1c5f1293794b5f127c15d9f759f",
+  "metadata": {
+    "title": "tictactoe_2d scene seed",
+    "description": "",
+    "source_project_hash": "05ace7156afda5dc84b98f80342ee2c5e4f43e0d1fe0e12ae42205b5adec7c7f"
+  },
+  "dependencies": {
+    "rule_ir": {
+      "document_id": "rule:game.tictactoe_2d",
+      "content_hash": "35396b33288bc37ad017d4ab92e73e46543adca0927dab8d402c924296854b18"
+    },
+    "asset_ir": {
+      "document_id": "asset:game.tictactoe_2d",
+      "content_hash": "480b6638f19dfe9cba5e93d08f150d0ae4987fe4e0c332c4af4dab8aa10126cd"
+    },
+    "extensions": []
+  },
+  "layers": [
+    {
+      "id": "scene:layer.runtime",
+      "name": "Runtime",
+      "kind": "runtime",
+      "visible": true,
+      "pickable": true,
+      "opacity": 1.0
+    }
+  ],
+  "prefabs": [
+    {
+      "id": "scene:prefab.cell",
+      "name": "Cell",
+      "root": {
+        "local_id": "root",
+        "name": "Cell",
+        "active": true,
+        "transform": {
+          "translation": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "rotation_euler_deg": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "scale": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "components": [
+          {
+            "id": "renderer",
+            "type": "renderer",
+            "enabled": true,
+            "properties": {
+              "geometry": "asset:model.cell_cube_tictactoe_2d",
+              "visible": true,
+              "opacity": 1.0,
+              "variant": "empty"
+            }
+          },
+          {
+            "id": "collider",
+            "type": "collider",
+            "enabled": true,
+            "properties": {
+              "shape": "box",
+              "size": [
+                1.0,
+                1.0,
+                1.0
+              ],
+              "is_trigger": false,
+              "selectable": true
+            }
+          }
+        ],
+        "children": []
+      }
+    }
+  ],
+  "nodes": [
+    {
+      "id": "scene:node.board",
+      "name": "Board",
+      "parent": null,
+      "active": true,
+      "layer": "scene:layer.runtime",
+      "transform": {
+        "translation": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "rotation_euler_deg": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "components": [
+        {
+          "id": "sites",
+          "type": "topology_visualizer",
+          "enabled": true,
+          "properties": {
+            "rule_topology": "rule:topology.board",
+            "prefab": "scene:prefab.cell",
+            "index_to_world": [
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "bindings": [
+    {
+      "id": "scene:binding.cell_variant",
+      "name": "Cell Variant",
+      "source": {
+        "kind": "state",
+        "scope": "topology_site",
+        "variable": "rule:state.board_cell"
+      },
+      "target": {
+        "selector": "topology_sites",
+        "node": "scene:node.board",
+        "visualizer": "sites",
+        "component": "renderer",
+        "property": "variant"
+      },
+      "transform": {
+        "kind": "map",
+        "cases": [
+          {
+            "equals": 0,
+            "value": "empty"
+          },
+          {
+            "equals": 1,
+            "value": "positive"
+          },
+          {
+            "equals": -1,
+            "value": "negative"
+          }
+        ]
+      }
+    }
+  ],
+  "provenance": {
+    "patch_history": [
+      {
+        "base_revision": 0,
+        "base_content_hash": "22d00defd7ae2295e8585140c6d54b8c1d524f1d050621288dc774d034f222e6",
+        "evidence": [
+          {
+            "evidence_id": "ev:sha256:3c61fde069f7c222b26e0865d311cca4acc0d2000397ce8d95c9c5d94319f9b8",
+            "source_file_hash": "5e641469943dc3d7b639868e442f9d2a8e706e0f8fb1b67cb312bf19755078ca",
+            "path": "srtp/examples/tictactoe_2d.py",
+            "kind": "source_file"
+          }
+        ],
+        "assumptions": [],
+        "operation_count": 5
+      }
+    ]
+  },
+  "unresolved": []
+}
