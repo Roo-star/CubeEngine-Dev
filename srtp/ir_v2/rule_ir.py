@@ -15,7 +15,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Mapping, MutableMapping, Optional, Sequence, Set
 
-from .types import RuleTypeError, RuleTypeRegistry
+from .types import RuleTypeError, RuleTypeRegistry, BUILTIN_TYPES
+from .command_contracts import COMMAND_CONTRACTS, missing_operands
 from .random_service import (
     PCG32_ALGORITHM,
     RECORDED_ALGORITHM,
@@ -32,21 +33,14 @@ _LOCAL = re.compile(r"^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$")
 _EXTENSION_CAPABILITY = re.compile(
     r"^extension:[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*(?:/[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*)+/[1-9][0-9]*(?:\.[0-9]+){0,2}$"
 )
-_BUILTIN_TYPES = {
-    "core:any", "core:bool", "core:int", "core:fixed", "core:string",
-    "core:coord", "core:entity_id", "core:participant_id", "core:action_id",
-}
+_BUILTIN_TYPES = BUILTIN_TYPES
 _EXPRESSION_OPS = {
     "literal", "ref", "param", "var", "call", "list", "vector",
     "not", "and", "or", "eq", "ne", "lt", "lte", "gt", "gte",
     "add", "sub", "mul", "div", "mod", "min", "max", "neg", "abs",
     "if", "coalesce", "contains", "count", "all", "any",
 }
-_COMMAND_OPS = {
-    "state.set", "state.increment", "grid.set", "grid.toggle", "entity.spawn",
-    "entity.despawn", "entity.set", "event.emit", "event.schedule",
-    "event.cancel", "phase.set", "random.sample", "random.draw", "foreach", "assert",
-}
+_COMMAND_OPS = set(COMMAND_CONTRACTS)
 
 
 @dataclass(frozen=True)
@@ -411,15 +405,15 @@ def _validate_state(
             if not isinstance(item, Mapping):
                 continue
             type_ref = item.get("type")
-            if group == "variables" and type_ref not in declared_types:
+            if group == "variables" and (not isinstance(type_ref, str) or type_ref not in declared_types):
                 diagnostics.append(_error("type.reference", "/state/{0}/{1}/type".format(group, index), "Unknown state type reference."))
             if group == "variables":
                 scope = item.get("scope")
                 if scope not in ("global", "participant", "topology_site", "entity"):
                     diagnostics.append(_error("state.scope", "/state/variables/{0}/scope".format(index), "Unsupported state scope."))
-                if scope == "topology_site" and item.get("topology") not in topology_ids:
+                if scope == "topology_site" and (not isinstance(item.get("topology"), str) or item.get("topology") not in topology_ids):
                     diagnostics.append(_error("state.topology", "/state/variables/{0}/topology".format(index), "Topology-site state requires a declared topology."))
-                if scope == "entity" and item.get("entity_type") is not None and item.get("entity_type") not in entity_type_ids:
+                if scope == "entity" and item.get("entity_type") is not None and (not isinstance(item.get("entity_type"), str) or item.get("entity_type") not in entity_type_ids):
                     diagnostics.append(_error("state.entity_type", "/state/variables/{0}/entity_type".format(index), "Entity-scoped state references an unknown entity type."))
                 _validate_expression(item.get("initial"), "/state/variables/{0}/initial".format(index), diagnostics)
             else:
@@ -534,7 +528,10 @@ def _validate_flow(flow: Mapping[str, Any], phases: Set[str], diagnostics: List[
         return
     clock = scheduler.get("clock")
     if clock not in ("turn", "event_queue", "fixed_tick", "real_time"):
-        diagnostics.append(_error("flow.clock", "/flow/scheduler/clock", "Unsupported scheduler clock."))
+        diagnostics.append(_error(
+            "flow.clock", "/flow/scheduler/clock",
+            "Unsupported scheduler clock {0!r}. Expected one of: turn, event_queue, fixed_tick, real_time.".format(clock),
+        ))
     tick_hz = scheduler.get("tick_hz")
     if clock in ("fixed_tick", "real_time") and (isinstance(tick_hz, bool) or not isinstance(tick_hz, int) or tick_hz <= 0):
         diagnostics.append(_error("flow.tick_hz", "/flow/scheduler/tick_hz", "Fixed-tick and real-time schedulers require a positive integer tick_hz."))
@@ -590,6 +587,11 @@ def _validate_outcomes(value: Any, diagnostics: List[RuleIRDiagnostic]) -> None:
         result = item.get("result")
         if not isinstance(result, Mapping) or not isinstance(result.get("status"), str) or not isinstance(result.get("terminal"), bool):
             diagnostics.append(_error("outcome.result", path + "/result", "Outcome result requires status and terminal."))
+        else:
+            from .expression_contracts import outcome_schema, expression_schema
+            from srtp.ir_contracts import errors as contract_errors
+            for message in contract_errors(result,outcome_schema(),path+'/result',{'$defs':{'expression':expression_schema(False)}}):
+                diagnostics.append(_error('outcome.contract',path+'/result',message))
 
 
 def _validate_parameters(value: Any, path: str, declared_types: Set[str], diagnostics: List[RuleIRDiagnostic]) -> None:
@@ -637,6 +639,14 @@ def _validate_expression(value: Any, path: str, diagnostics: List[RuleIRDiagnost
     if operation not in _EXPRESSION_OPS:
         diagnostics.append(_error("expression.op", path + "/op", "Unsupported expression operation."))
         return
+    from .expression_contracts import expression_schema
+    from srtp.ir_contracts import errors as contract_errors
+    contract=expression_schema(False)
+    shape_errors=contract_errors(value,contract,path,{'$defs':{'expression':contract}})
+    if shape_errors:
+        for message in shape_errors:
+            diagnostics.append(_error('expression.operands',path,message))
+        return
     if operation == "literal" and "value" not in value:
         diagnostics.append(_error("expression.literal", path, "Literal expression requires value."))
     if operation == "ref" and not isinstance(value.get("path"), str):
@@ -676,6 +686,19 @@ def _validate_commands(
         if operation not in _COMMAND_OPS:
             diagnostics.append(_error("effect.op", item_path + "/op", "Unsupported effect operation."))
             continue
+        for key,kind in missing_operands(command):
+            diagnostics.append(_error('effect.required', item_path + '/' + key,
+                '{0} requires {1} ({2}). Required operands: {3}.'.format(
+                    operation,key,kind,', '.join(COMMAND_CONTRACTS[operation][0]))))
+        required, optional = COMMAND_CONTRACTS[operation]
+        for key, kind in dict(required, **optional).items():
+            if key not in command:
+                continue
+            if kind == 'ruleId':
+                _validate_public_id(command[key], item_path + '/' + key, 'rule', diagnostics)
+            elif kind == 'localId' and (not isinstance(command[key], str) or not _LOCAL.fullmatch(command[key])):
+                diagnostics.append(_error('effect.binding', item_path + '/' + key,
+                    '{0} requires a literal local name string.'.format(key)))
         for key in (
             "target", "scope", "value", "coordinate", "entity", "at", "domain",
             "condition", "payload", "delay_ticks", "off", "on", "schedule_id", "phase",
@@ -691,8 +714,6 @@ def _validate_commands(
                     _validate_expression(expression, item_path + "/components/" + str(name), diagnostics)
         if operation in ("random.sample", "random.draw") and command.get("stream") not in random_streams:
             diagnostics.append(_error("random.reference", item_path + "/stream", "Random command must reference a declared stream."))
-        if operation in ("random.sample", "random.draw") and (not isinstance(command.get("as"), str) or not _LOCAL.fullmatch(str(command.get("as")))):
-            diagnostics.append(_error("random.binding", item_path + "/as", "Random command requires a local result binding."))
         if operation == "random.draw":
             distribution = command.get("distribution")
             if not isinstance(distribution, Mapping) or distribution.get("kind") not in SUPPORTED_DISTRIBUTIONS:
@@ -713,15 +734,11 @@ def _validate_commands(
                         _validate_expression(distribution[key], item_path + "/distribution/" + key, diagnostics)
         if operation in ("event.emit", "event.schedule") and command.get("event") not in events | {"rule:event.action_applied", "rule:event.joint_actions_applied"}:
             diagnostics.append(_error("event.reference", item_path + "/event", "Event command must reference a declared event."))
-        if operation == "event.cancel" and "schedule_id" not in command:
-            diagnostics.append(_error("event.cancel", item_path + "/schedule_id", "Event cancellation requires a schedule ID expression."))
-        if operation == "phase.set" and "phase" not in command:
-            diagnostics.append(_error("phase.set", item_path + "/phase", "Phase transition requires a phase expression."))
         if operation == "foreach":
-            if not isinstance(command.get("as"), str) or not _LOCAL.fullmatch(str(command.get("as"))):
-                diagnostics.append(_error("foreach.binding", item_path + "/as", "Foreach requires a local binding name."))
-            _validate_expression(command.get("query"), item_path + "/query", diagnostics)
-            _validate_commands(command.get("effects"), item_path + "/effects", random_streams, events, diagnostics)
+            if "query" in command:
+                _validate_expression(command["query"], item_path + "/query", diagnostics)
+            if "effects" in command:
+                _validate_commands(command["effects"], item_path + "/effects", random_streams, events, diagnostics)
 
 
 def _validate_public_id(value: Any, path: str, prefix: str, diagnostics: List[RuleIRDiagnostic]) -> None:

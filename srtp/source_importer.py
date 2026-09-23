@@ -67,6 +67,12 @@ class SourceGameImporter:
 
     def import_path(self, path: Path) -> SourceGamePackage:
         selected = Path(path).resolve()
+        manifest_path = selected / 'project.manifest.json' if selected.is_dir() else selected
+        if manifest_path.is_file() and manifest_path.suffix.lower() == '.json':
+            data = json.loads(manifest_path.read_text(encoding='utf-8'))
+            if isinstance(data, dict) and 'manifest_version' in data:
+                from .manifest_source import import_manifest
+                return import_manifest(manifest_path, self.python_executable)
         entrypoint, root = self._resolve_entrypoint(selected)
         files = self._inventory(root, entrypoint)
         relative_files = [self._relative(item, root) for item in files]

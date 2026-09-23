@@ -1,4 +1,4 @@
-"""Source-to-IR compiler orchestration using freeflow-llm."""
+"""Source-to-IR compiler orchestration using OpenRouter Responses."""
 
 from __future__ import annotations
 
@@ -24,7 +24,7 @@ from srtp.source_importer import SourceGameImporter
 
 from .artifacts import write_compile_artifacts
 from .bootstrap import BootstrapDocuments, bootstrap_documents, document_pin, slugify
-from .client import FreeFlowLLMClient, LLMClientError, LLMTransportError
+from .client import OpenRouterLLMClient, LLMClientError, LLMTransportError
 from .contracts import (
     DESIGN_INTENT_VERSION,
     LLM_PROPOSAL_VERSION,
@@ -37,6 +37,7 @@ from .contracts import (
 from .evidence import PROMPT_TEMPLATE_VERSION, build_evidence_pack
 from .prompts import design_intent_messages, source_to_ir_messages, spatial_lift_messages
 from .validation import validate_and_apply_proposal
+from .source_workspace import SourceWorkspace
 
 MAX_REPAIR_ATTEMPTS = 2
 _IR_KEYS = ("rule_ir", "scene_ir", "asset_ir", "input_ir")
@@ -78,7 +79,7 @@ _RULE_REFERENCE = re.compile(r"^rule:[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$")
 _SCENE_LOCAL_ID = re.compile(r"^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$")
 _SCENE_COMPONENT_TYPES = (
     "renderer", "camera", "light", "collider",
-    "topology_visualizer", "rule_entity_visualizer", "ui_canvas", "authoring_marker",
+    "topology_visualizer", "rule_entity_visualizer", "ui_canvas", "audio_source", "authoring_marker",
 )
 _SCENE_COMPONENT_ID_FALLBACK = {
     "topology_visualizer": "sites",
@@ -88,6 +89,7 @@ _SCENE_COMPONENT_ID_FALLBACK = {
     "light": "light",
     "collider": "collider",
     "ui_canvas": "canvas",
+    "audio_source": "audio",
     "authoring_marker": "marker",
 }
 
@@ -153,30 +155,53 @@ def _inherit_action_shells(
         return
     actor = _uniform_action_field(rule, "actor")
     timing = _uniform_action_field(rule, "timing")
-    if actor is None and timing is None:
-        return
+    # Input-linked actions can share a player shell even when the Rule also
+    # contains autonomous system updates. Never infer ownership from names.
+    def linked_actions(intents: Any) -> set:
+        return {
+            item["target"].get("action") for item in (intents or [])
+            if isinstance(item, Mapping) and isinstance(item.get("target"), Mapping)
+            and item["target"].get("kind") == "rule_action"
+            and isinstance(item["target"].get("action"), str)
+        }
+
+    input_doc = documents.get("input_ir") or {}
+    existing_linked = linked_actions(input_doc.get("intents"))
+    input_rule = {"actions": [a for a in rule.get("actions") or []
+                               if isinstance(a, Mapping) and a.get("id") in existing_linked]}
+    input_actor = _uniform_action_field(input_rule, "actor")
+    input_timing = _uniform_action_field(input_rule, "timing")
     patches = proposal.get("patches")
     if not isinstance(patches, Mapping):
         return
+    new_linked = set(existing_linked)
+    for entry in patches.get("input_ir") or []:
+        for operation in entry.get("operations") or []:
+            parts = str(operation.get("path") or "").strip("/").split("/")
+            if parts[0] == "intents" and len(parts) <= 2 and operation.get("op") in ("add", "replace"):
+                new_linked.update(linked_actions(_operation_items(operation.get("value"))))
     for entry in patches.get("rule_ir") or []:
         if not isinstance(entry, Mapping):
             continue
         for operation in entry.get("operations") or []:
             if not isinstance(operation, dict):
                 continue
-            if not str(operation.get("path") or "").startswith("/actions"):
+            parts = str(operation.get("path") or "").strip("/").split("/")
+            if parts[0] != "actions" or len(parts) > 2 or operation.get("op") not in ("add", "replace"):
                 continue
             for item in _operation_items(operation.get("value")):
+                selected_actor = input_actor if item.get("id") in new_linked else actor
+                selected_timing = input_timing if item.get("id") in new_linked else timing
                 missing_actor = item.get("actor") in (None, "", {})
                 timing_value = item.get("timing")
                 missing_timing = (
                     timing_value in (None, "", {})
                     or (isinstance(timing_value, Mapping) and not timing_value.get("phase"))
                 )
-                if missing_actor and actor is not None:
-                    item["actor"] = deepcopy(actor)
-                if missing_timing and timing is not None:
-                    item["timing"] = deepcopy(timing)
+                if missing_actor and selected_actor is not None:
+                    item["actor"] = deepcopy(selected_actor)
+                if missing_timing and selected_timing is not None:
+                    item["timing"] = deepcopy(selected_timing)
 
 
 def _uniform_intent_shell(input_doc: Mapping[str, Any]) -> Optional[Dict[str, Any]]:
@@ -288,6 +313,25 @@ def _empty_effect_repair_diagnostics(documents: Mapping[str, Mapping[str, Any]])
         path = str(item.get("path") or "")
         if path.startswith("/actions/") and path.endswith("/effects"):
             messages.append("{0}: {1}".format(path, item.get("reason") or "effects are empty"))
+    def check_effects(effects: Any, path: str) -> None:
+        for index, effect in enumerate(effects or []):
+            if not isinstance(effect, Mapping):
+                continue
+            location = "{0}/{1}".format(path, index)
+            if effect.get("op") == "grid.set":
+                missing = [key for key in ("state", "topology")
+                           if not isinstance(effect.get(key), str) or not effect.get(key)]
+                missing.extend(key for key in ("coordinate", "value")
+                               if not isinstance(effect.get(key), Mapping) or not effect[key].get("op"))
+                if missing:
+                    messages.append("{0}: grid.set requires {1}; delta alone is not an executable effect.".format(
+                        location, ", ".join(missing)))
+            for key in ("effects", "then", "else"):
+                if isinstance(effect.get(key), list):
+                    check_effects(effect[key], location + "/" + key)
+    for index, action in enumerate(rule.get("actions") or []):
+        if isinstance(action, Mapping):
+            check_effects(action.get("effects"), "/actions/{0}/effects".format(index))
     return messages
 
 
@@ -340,6 +384,7 @@ class CompileReport:
     output_dir: Optional[str] = None
     compile_ready: bool = False
     unresolved_summary: List[Any] = field(default_factory=list)
+    compilation_trace: Dict[str, Any] = field(default_factory=dict)
 
     def to_mapping(self) -> Dict[str, Any]:
         return {
@@ -358,6 +403,7 @@ class CompileReport:
             "unresolved_summary": list(self.unresolved_summary),
             "proposal_id": (self.proposal or {}).get("proposal_id"),
             "manifest_project_id": (self.manifest or {}).get("project_id"),
+            "compilation_trace": deepcopy(self.compilation_trace),
         }
 
 
@@ -367,14 +413,33 @@ class SourceToIRCompiler:
     def __init__(
         self,
         *,
-        client: Optional[FreeFlowLLMClient] = None,
+        client: Optional[OpenRouterLLMClient] = None,
         chat_fn: Optional[Callable[..., Any]] = None,
         max_repairs: int = MAX_REPAIR_ATTEMPTS,
         temperature: float = 0.1,
+        staged: bool = True,
+        progress: Optional[Callable[[Mapping[str, Any]], None]] = None,
+        cancel_token=None,
     ) -> None:
         self.max_repairs = max(0, int(max_repairs))
         self._owned_client = client is None
-        self.client = client or FreeFlowLLMClient(temperature=temperature, chat_fn=chat_fn)
+        self.client = client or OpenRouterLLMClient(temperature=temperature, chat_fn=chat_fn)
+        self.staged = staged
+        self.progress = progress
+        self.checkpoint_path = None
+        self.cancel_token = cancel_token
+        self.asset_project_root = None
+
+    def check_cancelled(self):
+        if self.cancel_token is not None:
+            self.cancel_token.check()
+
+    def _write_compile_artifacts(self, out_dir, report, **kwargs):
+        from contextlib import nullcontext
+        guard = self.cancel_token.publication() if self.cancel_token is not None else nullcontext()
+        with guard:
+            kwargs['asset_project_root'] = self.asset_project_root
+            return write_compile_artifacts(out_dir, report, **kwargs)
 
     def compile_path(
         self,
@@ -404,6 +469,9 @@ class SourceToIRCompiler:
         Passing ``intent_text`` here still gates on compile_ready (P0-4).
         """
 
+        self.check_cancelled()
+        self.asset_project_root = Path(package.root)
+        self.checkpoint_path = Path(out_dir).with_name(Path(out_dir).name + '.stages.json') if out_dir else None
         evidence = build_evidence_pack(package)
         package_hash = str(evidence["source_package_hash"])
         bootstrap = bootstrap_documents(title=package.title, source_package_hash=package_hash)
@@ -420,21 +488,21 @@ class SourceToIRCompiler:
             if not source_report.ok:
                 if out_dir is not None:
                     source_report.output_dir = str(
-                        write_compile_artifacts(out_dir, source_report)
+                        self._write_compile_artifacts(out_dir, source_report)
                     )
                 return source_report
 
             if not wants_lift:
                 if out_dir is not None:
                     source_report.output_dir = str(
-                        write_compile_artifacts(out_dir, source_report)
+                        self._write_compile_artifacts(out_dir, source_report)
                     )
                 return source_report
 
             # Persist source before lift so designers can approve then resume.
             if out_dir is not None and not source_report.compile_ready:
                 source_report.output_dir = str(
-                    write_compile_artifacts(out_dir, source_report)
+                    self._write_compile_artifacts(out_dir, source_report)
                 )
 
             return self._compile_lift_stage(
@@ -451,7 +519,8 @@ class SourceToIRCompiler:
         package: SourceGamePackage,
         *,
         source_bundle_dir: Path,
-        intent_text: str,
+        intent_text: str = "",
+        target_dimensions: Optional[Mapping[str, int]] = None,
         out_dir: Optional[Path] = None,
         language: str = "en",
     ) -> CompileReport:
@@ -462,8 +531,11 @@ class SourceToIRCompiler:
         """
 
         intent = str(intent_text or "").strip()
-        if not intent:
-            raise ValueError("compile_spatial_lift requires non-empty intent_text")
+        self.check_cancelled()
+        self.asset_project_root = Path(package.root)
+        self.checkpoint_path = Path(out_dir).with_name(Path(out_dir).name + '.stages.json') if out_dir else None
+        if not intent and not target_dimensions:
+            raise ValueError("Spatial conversion requires natural language or Inspector dimensions")
 
         source_report = load_compile_report_from_bundle(Path(source_bundle_dir))
         if not source_report.compile_ready or source_report.manifest is None:
@@ -476,12 +548,18 @@ class SourceToIRCompiler:
                 "(approve the Source Project Manifest first).",
             ]
             if out_dir is not None:
-                report.output_dir = str(write_compile_artifacts(out_dir, report))
+                report.output_dir = str(self._write_compile_artifacts(out_dir, report))
             return report
 
         evidence = build_evidence_pack(package)
         if not source_report.source_package_hash:
             source_report.source_package_hash = str(evidence["source_package_hash"])
+        structured_intent = None
+        if not intent:
+            from .conversion_request import inspector_intent
+            structured_intent = inspector_intent(dict(target_dimensions),
+                project_id=source_report.project_id,source_manifest_hash=source_report.manifest['content_hash'])
+            intent = structured_intent['original_text']
         with self.client:
             return self._compile_lift_stage(
                 package=package,
@@ -490,6 +568,7 @@ class SourceToIRCompiler:
                 intent_text=intent,
                 language=language,
                 out_dir=out_dir,
+                structured_intent=structured_intent,
             )
 
     def compile_spatial_lift_path(
@@ -518,6 +597,10 @@ class SourceToIRCompiler:
         bootstrap: BootstrapDocuments,
         job_id: str,
     ) -> CompileReport:
+        if self.staged:
+            from .staged import compile_staged_report
+            return compile_staged_report(self, package=package, evidence=evidence,
+                documents=bootstrap.documents, job_id=job_id, project_id=bootstrap.project_id)
         base_pins = bootstrap.base_pins()
         documents = deepcopy(bootstrap.documents)
         diagnostics: List[str] = []
@@ -529,6 +612,7 @@ class SourceToIRCompiler:
         ok = False
         best_proposal: Optional[Dict[str, Any]] = None
         best_diagnostics: List[str] = []
+        workspace = SourceWorkspace(Path(package.root), Path(package.entrypoint))
 
         while attempts < self.max_repairs + 1:
             attempts += 1
@@ -536,7 +620,7 @@ class SourceToIRCompiler:
                 evidence, base_pins, repair_diagnostics=repair,
             )
             try:
-                result = self.client.chat_json(messages)
+                result = workspace.chat(self.client, messages)
             except LLMClientError as error:
                 diagnostics = [str(error)]
                 if isinstance(error, LLMTransportError):
@@ -545,16 +629,22 @@ class SourceToIRCompiler:
                 continue
             provider = result.provider
             model = result.model
-            proposal = _normalize_source_proposal(
-                dict(result.parsed),
-                job_id=job_id,
-                source_package_hash=bootstrap.source_package_hash,
-                base_pins=base_pins,
-                source_root=Path(package.root),
-                evidence_pack=evidence,
-            )
-            _inherit_action_shells(proposal, bootstrap.documents)
-            _ensure_binding_intents(proposal, bootstrap.documents)
+            proposal = deepcopy(dict(result.parsed))
+            try:
+                proposal = _normalize_source_proposal(
+                    proposal, job_id=job_id,
+                    source_package_hash=bootstrap.source_package_hash,
+                    base_pins=base_pins, source_root=Path(package.root), evidence_pack=evidence,
+                )
+                _inherit_action_shells(proposal, bootstrap.documents)
+                _ensure_binding_intents(proposal, bootstrap.documents)
+            except (TypeError, ValueError) as error:
+                import traceback
+                frame = traceback.extract_tb(error.__traceback__)[-1]
+                diagnostics = ["Invalid model field shape at {0}:{1}: {2}. Use scalar IDs/enums, not objects where an ID is required.".format(
+                    Path(frame.filename).name, frame.lineno, error)]
+                repair = diagnostics
+                continue
             applied = validate_and_apply_proposal(
                 proposal,
                 bootstrap.documents,
@@ -648,6 +738,7 @@ class SourceToIRCompiler:
             attempts=attempts,
             compile_ready=compile_ready,
             unresolved_summary=unresolved[:50],
+            compilation_trace={"source_inspection": workspace.trace()},
         )
 
     def _compile_lift_stage(
@@ -659,6 +750,7 @@ class SourceToIRCompiler:
         intent_text: str,
         language: str,
         out_dir: Optional[Path],
+        structured_intent: Optional[Mapping[str, Any]] = None,
     ) -> CompileReport:
         assert source_report.manifest is not None
         source_manifest = source_report.manifest
@@ -709,18 +801,22 @@ class SourceToIRCompiler:
                 "Spatial Lift blocked: source must reach compile_ready after designer approval.",
             ]
             if out_dir is not None:
-                report.output_dir = str(write_compile_artifacts(out_dir, report))
+                report.output_dir = str(self._write_compile_artifacts(out_dir, report))
             return report
 
         try:
-            intent_result = self.client.chat_json(
+            if structured_intent is not None:
+                from .client import LLMChatResult
+                intent_result = LLMChatResult(json.dumps(structured_intent),provider,model,structured_intent)
+            else:
+                intent_result = self.client.chat_json(
                 design_intent_messages(
                     original_text=intent_text,
                     project_id=source_report.project_id,
                     source_manifest_hash=source_hash,
                     language=language,
                 )
-            )
+                )
         except LLMClientError as error:
             report = deepcopy_report(source_report)
             report.ok = False
@@ -728,7 +824,7 @@ class SourceToIRCompiler:
             report.stage = "design_intent"
             report.diagnostics = [str(error)]
             if out_dir is not None:
-                report.output_dir = str(write_compile_artifacts(out_dir, report))
+                report.output_dir = str(self._write_compile_artifacts(out_dir, report))
             return report
 
         provider = intent_result.provider or provider
@@ -771,7 +867,7 @@ class SourceToIRCompiler:
             report.provider = provider
             report.model = model
             if out_dir is not None:
-                report.output_dir = str(write_compile_artifacts(out_dir, report))
+                report.output_dir = str(self._write_compile_artifacts(out_dir, report))
             return report
 
         # Target bootstrap from current sealed source documents.
@@ -811,14 +907,25 @@ class SourceToIRCompiler:
             for key, doc in target_docs.items()
         }
 
+        if self.staged:
+            from .staged import compile_staged_report
+            report = compile_staged_report(self, package=package, evidence=evidence,
+                documents=target_docs, job_id=source_report.job_id,
+                project_id=source_report.project_id.rstrip('.') + '.target',
+                design_intent=design_intent, source_manifest=source_manifest)
+            if out_dir is not None:
+                report.output_dir = str(self._write_compile_artifacts(out_dir, report, source_manifest=source_manifest))
+            return report
+
         repair_lift: Optional[List[str]] = None
+        workspace = SourceWorkspace(Path(package.root), Path(package.entrypoint))
         lift_attempt = 0
         report: Optional[CompileReport] = None
         while lift_attempt <= self.max_repairs:
             lift_attempt += 1
             diagnostics = []
             try:
-                lift_result = self.client.chat_json(
+                lift_result = workspace.chat(self.client,
                     spatial_lift_messages(
                         evidence_pack=evidence,
                         design_intent=design_intent,
@@ -838,7 +945,7 @@ class SourceToIRCompiler:
                 report.provider = provider
                 report.model = model
                 if out_dir is not None:
-                    report.output_dir = str(write_compile_artifacts(out_dir, report))
+                    report.output_dir = str(self._write_compile_artifacts(out_dir, report))
                 return report
 
             provider = lift_result.provider or provider
@@ -881,7 +988,7 @@ class SourceToIRCompiler:
                 report.provider = provider
                 report.model = model
                 if out_dir is not None:
-                    report.output_dir = str(write_compile_artifacts(out_dir, report))
+                    report.output_dir = str(self._write_compile_artifacts(out_dir, report))
                 return report
 
             proposal = dict(proposal)
@@ -931,6 +1038,10 @@ class SourceToIRCompiler:
             )
             if not applied.ok:
                 diagnostics.extend(applied.diagnostics)
+
+            if diagnostics and lift_attempt <= self.max_repairs:
+                repair_lift = list(diagnostics)
+                continue
 
             ok = not diagnostics and applied.ok
             documents = applied.documents if applied.ok else target_docs
@@ -997,8 +1108,9 @@ class SourceToIRCompiler:
             report.compile_ready = False
             report.stage = "spatial_lift"
             report.diagnostics = diagnostics or ["spatial lift produced no report"]
+        report.compilation_trace["source_inspection"] = workspace.trace()
         if out_dir is not None:
-            report.output_dir = str(write_compile_artifacts(
+            report.output_dir = str(self._write_compile_artifacts(
                 Path(out_dir), report, source_manifest=source_report.manifest,
             ))
         return report
@@ -1510,11 +1622,8 @@ def _validate_playable_session(documents: Mapping[str, Mapping[str, Any]]) -> No
             else:
                 has_placement = True
                 break
-    if site_vars and not has_placement:
-        require(
-            "/state/initial_effects",
-            "No non-empty initial board placement; Session grid starts blank.",
-        )
+    # Empty initial boards are valid for placement games. A generic compiler
+    # must not require Snake's head/body/food initialization for every game.
 
     intent_targets = {
         str(item.get("id")): item.get("target")
@@ -1568,6 +1677,11 @@ def _source_ir_excerpt_for_lift(documents: Mapping[str, Mapping[str, Any]]) -> D
         actions.append({
             "id": item.get("id"),
             "name": item.get("name"),
+            "actor": deepcopy(item.get("actor")),
+            "timing": deepcopy(item.get("timing")),
+            "parameters": deepcopy(item.get("parameters")),
+            "precondition": deepcopy(item.get("precondition")),
+            "effects": deepcopy(item.get("effects")),
             "effect_ops": [
                 effect.get("op")
                 for effect in (item.get("effects") or [])
@@ -1598,12 +1712,15 @@ def _source_ir_excerpt_for_lift(documents: Mapping[str, Mapping[str, Any]]) -> D
             "document_id": rule.get("document_id"),
             "topologies": topologies[:4],
             "variables": variables[:24],
+            "participants": deepcopy(rule.get("participants") or []),
+            "flow": deepcopy(rule.get("flow") or {}),
             "actions": actions[:24],
             "initial_effects_count": len((rule.get("state") or {}).get("initial_effects") or []),
         },
         "input_ir": {
             "document_id": input_doc.get("document_id"),
             "bindings": bindings[:24],
+            "intents": deepcopy(input_doc.get("intents") or []),
             "intent_count": len(input_doc.get("intents") or []),
         },
     }
@@ -2050,6 +2167,7 @@ def deepcopy_report(report: CompileReport) -> CompileReport:
         output_dir=report.output_dir,
         compile_ready=report.compile_ready,
         unresolved_summary=list(report.unresolved_summary),
+        compilation_trace=deepcopy(report.compilation_trace),
     )
 
 
@@ -4179,6 +4297,8 @@ _TYPE_ALIASES = {
     "boolean": "core:bool",
     "string": "core:string",
     "str": "core:string",
+    "core:coordinate": "core:coord",
+    "coordinate": "core:coord",
 }
 _FLOW_MODELS = {
     "tick_based": "fixed_tick",
@@ -4320,7 +4440,7 @@ def _keep_rule_operation(operation: Mapping[str, Any]) -> bool:
         if isinstance(value, Mapping):
             op_name = str(value.get("op") or "")
             if op_name and op_name not in _RULE_EFFECT_OPS:
-                return False
+                raise ValueError("Unsupported rule effect {0} at {1}; repair the effect instead of deleting it".format(op_name, path))
     return True
 
 
@@ -4518,18 +4638,11 @@ def _coerce_outcome_object(value: Dict[str, Any]) -> None:
         value["name"] = _name_from_id(value, "Outcome")
     if not isinstance(value.get("priority"), int) or isinstance(value.get("priority"), bool):
         value["priority"] = 100
-    value["condition"] = _coerce_expression(value.get("condition"), fallback=False)
-    result = value.get("result")
-    if not isinstance(result, dict):
-        value["result"] = {"status": "ongoing", "terminal": False}
-    else:
-        if not isinstance(result.get("status"), str) or not result.get("status"):
-            result["status"] = "ongoing"
-        if not isinstance(result.get("terminal"), bool):
-            result["terminal"] = False
+    if value.get("condition") is not None:
+        value["condition"] = _coerce_expression(value["condition"])
     _ensure_required_keys(
         value,
-        ("id", "name", "priority", "condition", "result"),
+        ("id", "name", "priority"),
         {
             "id": "rule:outcome.default",
             "name": "Outcome",
@@ -4612,10 +4725,10 @@ def _coerce_expression(value: Any, *, fallback: Any = 0) -> Dict[str, Any]:
         operation = value.get("op", value.get("kind"))
         if isinstance(operation, str) and operation in _EXPRESSION_OPS:
             value["op"] = operation
-            if operation == "literal" and "value" not in value:
-                value["value"] = fallback
             return value
-        return {"op": "literal", "value": value.get("value", fallback)}
+        # Unknown ASTs are semantic errors, not literal values. Preserve them
+        # so validation can reject/repair without changing the game's rules.
+        return deepcopy(value)
     return {"op": "literal", "value": fallback if value is None else value}
 
 
@@ -4772,7 +4885,12 @@ def _coerce_flow_object(value: Dict[str, Any]) -> None:
     }
     raw_clock = scheduler.get("clock")
     if isinstance(raw_clock, str):
-        mapped_clock = clock_aliases.get(raw_clock.strip().lower().replace("-", "_").replace(" ", "_"))
+        clock_key = raw_clock.strip().lower().replace("-", "_").replace(" ", "_")
+        mapped_clock = clock_aliases.get(clock_key)
+        # A timer alone does not specify scheduling semantics. Use only an
+        # explicitly declared timed model; leave ambiguous models for repair.
+        if clock_key == "timer" and value.get("model") in {"fixed_tick", "real_time"}:
+            mapped_clock = value["model"]
         if mapped_clock:
             scheduler["clock"] = mapped_clock
 
@@ -4834,14 +4952,14 @@ def _coerce_action_object(value: Dict[str, Any]) -> None:
             if isinstance(effect, dict):
                 _coerce_effect_object(effect)
                 if effect.get("_llm_reject_effect"):
-                    continue
+                    raise ValueError(str(effect["_llm_reject_effect"]))
                 kept_effects.append(effect)
             else:
                 kept_effects.append(effect)
         value["effects"] = kept_effects
     preconditions = value.get("preconditions")
     if isinstance(preconditions, list):
-        value.pop("preconditions", None)
+        raise ValueError("Action preconditions must be an explicit precondition AST; list conditions must not be discarded")
     coerced_actor = _coerce_actor_expression(value.get("actor"))
     if coerced_actor is not None:
         value["actor"] = coerced_actor
@@ -4851,8 +4969,8 @@ def _coerce_action_object(value: Dict[str, Any]) -> None:
         value["precondition"] = _coerce_expression(value.get("precondition"), fallback=True)
     else:
         value.pop("precondition", None)
-        # Rule IR schema requires precondition; structural shell only (not semantic guessing).
-        value["precondition"] = {"op": "literal", "value": True}
+        # Missing legality must reach validation. A default `true` would
+        # silently grant moves the source may reject.
     timing = value.get("timing")
     if isinstance(timing, dict):
         _coerce_action_timing(timing)
@@ -4885,21 +5003,15 @@ def _coerce_action_object(value: Dict[str, Any]) -> None:
 def _coerce_system_object(value: Dict[str, Any]) -> None:
     if not isinstance(value.get("name"), str) or not value.get("name"):
         value["name"] = _name_from_id(value, "System")
-    if not isinstance(value.get("phase"), str):
-        value["phase"] = "rule:phase.update"
     if not isinstance(value.get("priority"), int) or isinstance(value.get("priority"), bool):
         value["priority"] = 100
-    trigger = value.get("trigger")
-    if not isinstance(trigger, dict) or trigger.get("kind") not in (
-        "event", "tick", "phase_enter", "phase_exit", "state_changed", "manual",
-    ):
-        value["trigger"] = {"kind": "tick", "every": 1, "offset": 0}
-    value["condition"] = _coerce_expression(value.get("condition"), fallback=True)
+    if value.get("condition") is not None:
+        value["condition"] = _coerce_expression(value["condition"])
     if not isinstance(value.get("effects"), list):
         value["effects"] = []
     _ensure_required_keys(
         value,
-        ("id", "name", "phase", "priority", "trigger", "condition", "effects"),
+        ("id", "name", "priority", "effects"),
         {
             "id": "rule:system.default",
             "name": "System",

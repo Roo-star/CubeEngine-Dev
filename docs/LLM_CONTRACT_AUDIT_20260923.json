@@ -1,0 +1,199 @@
+{
+  "date": "2026-09-23",
+  "source_job": "5c8a8484fdc94f8b811328db99620b29",
+  "source_sha256": "fe934e578327e76620ffd7588aca5c05b35bffc81c3fd6cc4c4d59f637964003",
+  "original_reported_usage": {
+    "http_requests": 4,
+    "input_tokens": 70960,
+    "output_tokens": 9612,
+    "reported_cost_usd": 0.2643646
+  },
+  "real_api_requests_this_audit": 0,
+  "archived_scene_rejected": true,
+  "batched_diagnostic_count": 94,
+  "batched_diagnostics": [
+    "scene_ir invalid at /prefabs/0/root/components/1/properties/shape: Unsupported collider shape.",
+    "scene_ir invalid at /prefabs/0/root/components/1/properties: Collider trigger/selectable flags must be explicit booleans.",
+    "scene_ir invalid at /nodes/1/components/0/properties: Camera clip planes require 0 < near < far.",
+    "scene_ir invalid at /nodes/1/components/0/properties/active: Camera active must be explicit.",
+    "scene_ir invalid at /nodes/1/components/0/properties/orthographic_size: Orthographic size must be positive.",
+    "scene_ir invalid at /nodes/2/components/0/properties/rule_topology: Visualizer requires a rule: reference.",
+    "scene_ir invalid at /nodes/2/components/0/properties/index_to_world: Index-to-world transform requires 16 finite row-major values.",
+    "scene_ir invalid at /bindings/0/source: Binding requires a supported source kind.",
+    "scene_ir invalid at /bindings/0/target: Binding requires a supported target selector.",
+    "scene_ir invalid at /bindings/0/transform: Binding requires a supported transform.",
+    "scene_ir invalid at /bindings/1/source: Binding requires a supported source kind.",
+    "scene_ir invalid at /bindings/1/target: Binding requires a supported target selector.",
+    "scene_ir invalid at /bindings/1/transform: Binding requires a supported transform.",
+    "scene_ir invalid at /bindings/2/source: Binding requires a supported source kind.",
+    "scene_ir invalid at /bindings/2/target: Binding requires a supported target selector.",
+    "scene_ir invalid at /bindings/2/transform: Binding requires a supported transform.",
+    "scene_ir invalid at /bindings/3/source: Binding requires a supported source kind.",
+    "scene_ir invalid at /bindings/3/target: Binding requires a supported target selector.",
+    "scene_ir invalid at /bindings/3/transform: Binding requires a supported transform.",
+    "scene_ir invalid at /bindings/4/source: Binding requires a supported source kind.",
+    "scene_ir invalid at /bindings/4/target: Binding requires a supported target selector.",
+    "scene_ir invalid at /bindings/4/transform: Binding requires a supported transform.",
+    "scene_ir invalid at /bindings/5/source: Binding requires a supported source kind.",
+    "scene_ir invalid at /bindings/5/target: Binding requires a supported target selector.",
+    "scene_ir invalid at /bindings/5/transform: Binding requires a supported transform.",
+    "/prefabs/0/root/components/0/properties/size: unsupported field; allowed geometry, visible, color, opacity, material, texture, font, scale, text, text_color, text_scale, text_billboard, marker, animation, variant, variants",
+    "/prefabs/0/root/components/1/properties/shape: required",
+    "/prefabs/0/root/components/1/properties/is_trigger: required",
+    "/prefabs/0/root/components/1/properties/selectable: required",
+    "/prefabs/0/root/components/1/properties/geometry: unsupported field; allowed shape, size, is_trigger, selectable",
+    "/prefabs/0/root/components/1/properties/rule_coordinate_from_site: unsupported field; allowed shape, size, is_trigger, selectable",
+    "/nodes/1/components/0/properties/near_clip: required",
+    "/nodes/1/components/0/properties/far_clip: required",
+    "/nodes/1/components/0/properties/active: required",
+    "/nodes/1/components/0/properties/orthographic_size: required",
+    "/nodes/1/components/0/properties/orthographic_height: unsupported field; allowed projection, near_clip, far_clip, active, orthographic_size",
+    "/nodes/1/components/0/properties/viewport_size: unsupported field; allowed projection, near_clip, far_clip, active, orthographic_size",
+    "/nodes/1/components/0/properties/look_direction: unsupported field; allowed projection, near_clip, far_clip, active, orthographic_size",
+    "/nodes/2/components/0/properties/rule_topology: required",
+    "/nodes/2/components/0/properties/topology: unsupported field; allowed rule_topology, prefab, index_to_world",
+    "/nodes/2/components/0/properties/state: unsupported field; allowed rule_topology, prefab, index_to_world",
+    "/nodes/2/components/0/properties/index_to_world: expected array",
+    "/nodes/2/components/0/properties/variant_by_value: unsupported field; allowed rule_topology, prefab, index_to_world",
+    "/nodes/2/components/0/properties/pickable: unsupported field; allowed rule_topology, prefab, index_to_world",
+    "/nodes/2/components/0/properties/rule_coordinate_from_site: unsupported field; allowed rule_topology, prefab, index_to_world",
+    "/nodes/3/components/0/properties/size: expected array",
+    "/nodes/4/components/0/properties/size: expected array",
+    "/nodes/5/components/0/properties/size: expected array",
+    "/nodes/6/components/0/properties/size: expected array",
+    "/nodes/7/components/0/properties/size: expected array",
+    "/nodes/8/components/0/properties/size: expected array",
+    "/bindings/0/source/kind: required",
+    "/bindings/0/source/variable: required",
+    "/bindings/0/source/state: unsupported field; allowed kind, scope, variable, participant",
+    "/bindings/0/source/topology: unsupported field; allowed kind, scope, variable, participant",
+    "/bindings/0/target/selector: required",
+    "/bindings/0/transform/kind: required",
+    "/bindings/0/transform/value_map: unsupported field; allowed kind",
+    "/bindings/1/source/kind: required",
+    "/bindings/1/source/property: required",
+    "/bindings/1/source/states: unsupported field; allowed kind, property",
+    "/bindings/1/target/selector: required",
+    "/bindings/1/transform/kind: required",
+    "/bindings/1/transform/op: unsupported field; allowed kind",
+    "/bindings/1/transform/args: unsupported field; allowed kind",
+    "/bindings/2/source/kind: required",
+    "/bindings/2/source/property: required",
+    "/bindings/2/source/states: unsupported field; allowed kind, property",
+    "/bindings/2/target/selector: required",
+    "/bindings/2/transform/kind: required",
+    "/bindings/2/transform/op: unsupported field; allowed kind",
+    "/bindings/2/transform/args: unsupported field; allowed kind",
+    "/bindings/3/source/kind: required",
+    "/bindings/3/source/property: required",
+    "/bindings/3/source/state: unsupported field; allowed kind, property",
+    "/bindings/3/target/selector: required",
+    "/bindings/3/transform/kind: required",
+    "/bindings/3/transform/op: unsupported field; allowed kind",
+    "/bindings/3/transform/args: unsupported field; allowed kind",
+    "/bindings/4/source/kind: required",
+    "/bindings/4/source/property: required",
+    "/bindings/4/source/state: unsupported field; allowed kind, property",
+    "/bindings/4/target/selector: required",
+    "/bindings/4/transform/kind: required",
+    "/bindings/4/transform/op: unsupported field; allowed kind",
+    "/bindings/4/transform/args: unsupported field; allowed kind",
+    "/bindings/5/source/kind: required",
+    "/bindings/5/source/property: required",
+    "/bindings/5/source/state: unsupported field; allowed kind, property",
+    "/bindings/5/target/selector: required",
+    "/bindings/5/transform/kind: required",
+    "/bindings/5/transform/op: unsupported field; allowed kind",
+    "/bindings/5/transform/function: unsupported field; allowed kind",
+    "/bindings/5/transform/args: unsupported field; allowed kind"
+  ],
+  "paid_cache_revalidated": [
+    {
+      "stage": "rule_ir",
+      "passed": true,
+      "cached": true,
+      "checks": [
+        {
+          "name": "Occupied cell is rejected and restart clears placements",
+          "passed": true,
+          "state_hash": "73f4ce2f7bb078fd5281f394f9c0639e76bee6863374f0594d07001e7621117a"
+        },
+        {
+          "name": "X wins across the top row; subsequent placement is rejected",
+          "passed": true,
+          "state_hash": "ea6de9dec0f746c02d33f7c20b9bf09ae448af73ab61c49ce1a219a3035531e8"
+        },
+        {
+          "name": "Full board without a winning line is a draw",
+          "passed": true,
+          "state_hash": "d928b140fd1c93e05dc0c8ff4cb6f8e41e8c8ce1950fc44dc3c14307d1edb5c2"
+        }
+      ],
+      "lowered_authoring_fields": [
+        "/outcomes/0/result/winner_state -> winners/state.get"
+      ]
+    },
+    {
+      "stage": "asset_ir",
+      "passed": true,
+      "cached": true,
+      "checks": [
+        {
+          "resources": 1,
+          "compiled": true
+        }
+      ]
+    }
+  ],
+  "next_uncached_stage": "scene_ir",
+  "offline_boundary_reached": true,
+  "generated_replacement_manifest": false,
+  "interpretation": "Saved Rule/Asset responses execute under current validators. Original Scene is still invalid. No new model output or live conversion quality claim.",
+  "diagnostic_count_note": "Core validator and backend profile entries may address the same field; this is not a count of distinct root causes.",
+  "rejected_scene_checkpoint_retained": true,
+  "first_resumed_request_receives_current_diagnostics": 94,
+  "checkpoint_original_accepted_payloads_unchanged": true,
+  "unittest": {
+    "total": 437,
+    "passed": 435,
+    "errors": [
+      "test_real_local_mcts_and_coach_episode_accept_compiled_game (tests.test_alphazero_v1.AlphaZero3DTests)"
+    ],
+    "failures": [],
+    "skipped": [
+      [
+        "test_live_source_proposal_envelope (tests.test_llm_compiler_v1.LiveSmokeTests)",
+        "Set CUBEENGINE_LLM_LIVE=1 with OPENROUTER_API_KEY for live smoke"
+      ]
+    ],
+    "network_connect_disabled": true
+  },
+  "offscreen_probes": {
+    "ursina_contract_probe": {
+      "passed": true,
+      "geometry_recipe_variants": 13,
+      "colliders": [
+        "box",
+        "sphere"
+      ],
+      "light_kinds": [
+        "ambient",
+        "directional",
+        "point"
+      ],
+      "orthographic_camera_and_overlay_lifecycle": true
+    },
+    "ursina_visual_probe": {
+      "passed": true,
+      "animated_pixels_changed": true,
+      "extrusion_source_pixels": 128,
+      "audio_loaded": true
+    },
+    "ursina_scene_probe": {
+      "passed": true,
+      "rendered_nodes": 28,
+      "rule_state_unchanged": true
+    },
+    "fixture_notice": "Engineering fixtures, not new model output or source fidelity certification"
+  }
+}

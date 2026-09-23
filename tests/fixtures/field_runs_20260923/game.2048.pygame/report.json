@@ -1,0 +1,2606 @@
+{
+  "ok": false,
+  "stage": "source_four_ir",
+  "job_id": "job:0147cc8a64b74971",
+  "project_id": "project:game.2048.pygame.llm.source",
+  "source_package_hash": "df19b85c6c9cb1a3ce75390edbc209093fe1a4ae09df624cb08291e3500855ef",
+  "provider": "openrouter",
+  "model": "openai/gpt-6-sol",
+  "attempts": 3,
+  "prompt_template_version": "cubeengine.srtp/llm-prompt/2.0",
+  "diagnostics": [
+    "rule_ir: Rule IR type validation failed: rule:random.tiles seed must be an integer"
+  ],
+  "compile_ready": false,
+  "output_dir": "E:\\CubeEngine\\CubeEngine-SRTP\\.cubeengine_llm\\game.2048.pygame\\source.failed\\69e803683958426d92b0fcee14ef7926",
+  "unresolved_summary": [],
+  "proposal_id": null,
+  "manifest_project_id": null,
+  "compilation_trace": {
+    "stages": [
+      {
+        "stage": "rule_ir",
+        "attempt": 1,
+        "passed": false,
+        "diagnostics": [
+          "Expression at /systems/0/effects/2/coordinate: No runtime implementation for function coalesce; received \"coalesce(sequence.get(var.shuffled_sites,0) if grid.get('rule:state.board',sequence.get(var.shuffled_sites,0)) == 0 else None, sequence.get(var.shuffled_sites,1) if grid.get('rule:state.board',sequence.get(var.shuffled_sites,1)) == 0 else None, sequence.get(var.shuffled_sites,2) if grid.get('rule:state.board',sequence.get(var.shuffled_sites,2)) == 0 else None, sequence.get(var.shuffled_sites,3) if grid.get('rule:state.board',sequence.get(var.shuffled_sites,3)) == 0 else None, sequence.get(var.shuffled_sites,4) if grid.get('rule:state.board',sequence.get(var.shuffled_sites,4)) == 0 else None, sequence.get(var.shuffled_sites,5) if grid.get('rule:state.board',sequence.get(var.shuffled_sites,5)) == 0 else None, sequence.get(var.shuffled_sites,6) if grid.get('rule:state.board',sequence.get(var.shuffled_sites,6)) == 0 else None, sequence.get(var.shuffled_sites,7) if grid.get('rule:state.board',sequence.get(var.shuffled_sites,7)) == 0 else None, sequence.get(var.shuffled_sites,8) if grid.get('rule:state.board',sequence.get(var.shuffled_sites,8)) == 0 else None, sequence.get(var.shuffled_sites,9) if grid.get('rule:state.board',sequence.get(var.shuffled_sites,9)) == 0 else None, sequence.get(var.shuffled_sites,10) if grid.get('rule:state.board',sequence.get(var.shuffled_sites,10)) == 0 else None, sequence.get(var.shuffled_sites,11) if grid.get('rule:state.board',sequence.get(var.shuffled_sites,11)) == 0 else None, sequence.get(var.shuffled_sites,12) if grid.get('rule:state.board',sequence.get(var.shuffled_sites,12)) == 0 else None, sequence.get(var.shuffled_sites,13) if grid.get('rule:state.board',sequence.get(var.shuffled_sites,13)) == 0 else None, sequence.get(var.shuffled_sites,14) if grid.get('rule:state.board',sequence.get(var.shuffled_sites,14)) == 0 else None, sequence.get(var.shuffled_sites,15) if grid.get('rule:state.board',sequence.get(var.shuffled_sites,15)) == 0 else None)\""
+        ],
+        "ignored_engine_fields": [],
+        "rejected_definition": {
+          "definition": {
+            "metadata": {
+              "title": "2048-pygame",
+              "description": "A four-by-four sliding-number puzzle. A changed move merges equal tiles once per move and spawns a 2 or 4; the chosen target tile wins, while a full board without adjacent equal tiles loses.",
+              "source_project_hash": "df19b85c6c9cb1a3ce75390edbc209093fe1a4ae09df624cb08291e3500855ef",
+              "determinism": "seeded"
+            },
+            "parameters": [
+              {
+                "id": "rule:parameter.target",
+                "name": "Winning tile",
+                "key": "target",
+                "type": "core:int",
+                "default": {
+                  "expr": "2048"
+                },
+                "choices": [
+                  256,
+                  512,
+                  1024,
+                  2048
+                ]
+              },
+              {
+                "id": "rule:parameter.theme",
+                "name": "Theme",
+                "key": "theme",
+                "type": "core:string",
+                "default": {
+                  "expr": "'light'"
+                },
+                "choices": [
+                  "light",
+                  "dark"
+                ]
+              }
+            ],
+            "types": [],
+            "participants": [
+              {
+                "id": "rule:participant.player",
+                "name": "Player",
+                "kind": "human"
+              }
+            ],
+            "topologies": [
+              {
+                "id": "rule:topology.board",
+                "name": "Four-by-four board",
+                "kind": "rect_grid",
+                "anchor": "cell",
+                "axes": [
+                  {
+                    "name": "x",
+                    "extent": 4,
+                    "boundary": "bounded"
+                  },
+                  {
+                    "name": "y",
+                    "extent": 4,
+                    "boundary": "bounded"
+                  }
+                ],
+                "neighborhoods": [
+                  {
+                    "name": "orthogonal",
+                    "diagonals": false
+                  }
+                ]
+              }
+            ],
+            "state": {
+              "variables": [
+                {
+                  "id": "rule:state.board",
+                  "name": "Tile value",
+                  "type": "core:int",
+                  "scope": "topology_site",
+                  "topology": "rule:topology.board",
+                  "initial": {
+                    "expr": "0"
+                  }
+                }
+              ],
+              "entity_types": [],
+              "initial_effects": [
+                {
+                  "op": "random.draw",
+                  "stream": "rule:random.tiles",
+                  "distribution": {
+                    "kind": "shuffle",
+                    "values": {
+                      "expr": "topology.sites('rule:topology.board')"
+                    }
+                  },
+                  "as": "initial_sites"
+                },
+                {
+                  "op": "grid.set",
+                  "state": "rule:state.board",
+                  "coordinate": {
+                    "expr": "sequence.get(var.initial_sites, 0)"
+                  },
+                  "value": {
+                    "expr": "2"
+                  }
+                },
+                {
+                  "op": "grid.set",
+                  "state": "rule:state.board",
+                  "coordinate": {
+                    "expr": "sequence.get(var.initial_sites, 1)"
+                  },
+                  "value": {
+                    "expr": "2"
+                  }
+                }
+              ],
+              "information_model": "perfect"
+            },
+            "queries": [],
+            "events": [],
+            "actions": [
+              {
+                "id": "rule:action.left",
+                "name": "Slide left",
+                "actor": {
+                  "expr": "'rule:participant.player'"
+                },
+                "parameters": [],
+                "precondition": {
+                  "expr": "sequence.merge_equal(grid.values('rule:state.board', [[0,0],[1,0],[2,0],[3,0]]),0,4) != grid.values('rule:state.board', [[0,0],[1,0],[2,0],[3,0]]) or sequence.merge_equal(grid.values('rule:state.board', [[0,1],[1,1],[2,1],[3,1]]),0,4) != grid.values('rule:state.board', [[0,1],[1,1],[2,1],[3,1]]) or sequence.merge_equal(grid.values('rule:state.board', [[0,2],[1,2],[2,2],[3,2]]),0,4) != grid.values('rule:state.board', [[0,2],[1,2],[2,2],[3,2]]) or sequence.merge_equal(grid.values('rule:state.board', [[0,3],[1,3],[2,3],[3,3]]),0,4) != grid.values('rule:state.board', [[0,3],[1,3],[2,3],[3,3]])"
+                },
+                "effects": [
+                  {
+                    "op": "foreach",
+                    "query": {
+                      "expr": "[[[0,0],[1,0],[2,0],[3,0]],[[0,1],[1,1],[2,1],[3,1]],[[0,2],[1,2],[2,2],[3,2]],[[0,3],[1,3],[2,3],[3,3]]]"
+                    },
+                    "as": "line",
+                    "effects": [
+                      {
+                        "op": "foreach",
+                        "query": {
+                          "expr": "sequence.zip(var.line, sequence.merge_equal(grid.values('rule:state.board',var.line),0,4))"
+                        },
+                        "as": "cell_value",
+                        "effects": [
+                          {
+                            "op": "grid.set",
+                            "state": "rule:state.board",
+                            "coordinate": {
+                              "expr": "sequence.get(var.cell_value,0)"
+                            },
+                            "value": {
+                              "expr": "sequence.get(var.cell_value,1)"
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ],
+                "timing": {
+                  "phase": "rule:phase.input"
+                },
+                "encoding": {
+                  "kind": "finite_catalogue"
+                }
+              },
+              {
+                "id": "rule:action.right",
+                "name": "Slide right",
+                "actor": {
+                  "expr": "'rule:participant.player'"
+                },
+                "parameters": [],
+                "precondition": {
+                  "expr": "sequence.merge_equal(grid.values('rule:state.board', [[3,0],[2,0],[1,0],[0,0]]),0,4) != grid.values('rule:state.board', [[3,0],[2,0],[1,0],[0,0]]) or sequence.merge_equal(grid.values('rule:state.board', [[3,1],[2,1],[1,1],[0,1]]),0,4) != grid.values('rule:state.board', [[3,1],[2,1],[1,1],[0,1]]) or sequence.merge_equal(grid.values('rule:state.board', [[3,2],[2,2],[1,2],[0,2]]),0,4) != grid.values('rule:state.board', [[3,2],[2,2],[1,2],[0,2]]) or sequence.merge_equal(grid.values('rule:state.board', [[3,3],[2,3],[1,3],[0,3]]),0,4) != grid.values('rule:state.board', [[3,3],[2,3],[1,3],[0,3]])"
+                },
+                "effects": [
+                  {
+                    "op": "foreach",
+                    "query": {
+                      "expr": "[[[3,0],[2,0],[1,0],[0,0]],[[3,1],[2,1],[1,1],[0,1]],[[3,2],[2,2],[1,2],[0,2]],[[3,3],[2,3],[1,3],[0,3]]]"
+                    },
+                    "as": "line",
+                    "effects": [
+                      {
+                        "op": "foreach",
+                        "query": {
+                          "expr": "sequence.zip(var.line, sequence.merge_equal(grid.values('rule:state.board',var.line),0,4))"
+                        },
+                        "as": "cell_value",
+                        "effects": [
+                          {
+                            "op": "grid.set",
+                            "state": "rule:state.board",
+                            "coordinate": {
+                              "expr": "sequence.get(var.cell_value,0)"
+                            },
+                            "value": {
+                              "expr": "sequence.get(var.cell_value,1)"
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ],
+                "timing": {
+                  "phase": "rule:phase.input"
+                },
+                "encoding": {
+                  "kind": "finite_catalogue"
+                }
+              },
+              {
+                "id": "rule:action.up",
+                "name": "Slide up",
+                "actor": {
+                  "expr": "'rule:participant.player'"
+                },
+                "parameters": [],
+                "precondition": {
+                  "expr": "sequence.merge_equal(grid.values('rule:state.board', [[0,0],[0,1],[0,2],[0,3]]),0,4) != grid.values('rule:state.board', [[0,0],[0,1],[0,2],[0,3]]) or sequence.merge_equal(grid.values('rule:state.board', [[1,0],[1,1],[1,2],[1,3]]),0,4) != grid.values('rule:state.board', [[1,0],[1,1],[1,2],[1,3]]) or sequence.merge_equal(grid.values('rule:state.board', [[2,0],[2,1],[2,2],[2,3]]),0,4) != grid.values('rule:state.board', [[2,0],[2,1],[2,2],[2,3]]) or sequence.merge_equal(grid.values('rule:state.board', [[3,0],[3,1],[3,2],[3,3]]),0,4) != grid.values('rule:state.board', [[3,0],[3,1],[3,2],[3,3]])"
+                },
+                "effects": [
+                  {
+                    "op": "foreach",
+                    "query": {
+                      "expr": "[[[0,0],[0,1],[0,2],[0,3]],[[1,0],[1,1],[1,2],[1,3]],[[2,0],[2,1],[2,2],[2,3]],[[3,0],[3,1],[3,2],[3,3]]]"
+                    },
+                    "as": "line",
+                    "effects": [
+                      {
+                        "op": "foreach",
+                        "query": {
+                          "expr": "sequence.zip(var.line, sequence.merge_equal(grid.values('rule:state.board',var.line),0,4))"
+                        },
+                        "as": "cell_value",
+                        "effects": [
+                          {
+                            "op": "grid.set",
+                            "state": "rule:state.board",
+                            "coordinate": {
+                              "expr": "sequence.get(var.cell_value,0)"
+                            },
+                            "value": {
+                              "expr": "sequence.get(var.cell_value,1)"
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ],
+                "timing": {
+                  "phase": "rule:phase.input"
+                },
+                "encoding": {
+                  "kind": "finite_catalogue"
+                }
+              },
+              {
+                "id": "rule:action.down",
+                "name": "Slide down",
+                "actor": {
+                  "expr": "'rule:participant.player'"
+                },
+                "parameters": [],
+                "precondition": {
+                  "expr": "sequence.merge_equal(grid.values('rule:state.board', [[0,3],[0,2],[0,1],[0,0]]),0,4) != grid.values('rule:state.board', [[0,3],[0,2],[0,1],[0,0]]) or sequence.merge_equal(grid.values('rule:state.board', [[1,3],[1,2],[1,1],[1,0]]),0,4) != grid.values('rule:state.board', [[1,3],[1,2],[1,1],[1,0]]) or sequence.merge_equal(grid.values('rule:state.board', [[2,3],[2,2],[2,1],[2,0]]),0,4) != grid.values('rule:state.board', [[2,3],[2,2],[2,1],[2,0]]) or sequence.merge_equal(grid.values('rule:state.board', [[3,3],[3,2],[3,1],[3,0]]),0,4) != grid.values('rule:state.board', [[3,3],[3,2],[3,1],[3,0]])"
+                },
+                "effects": [],
+                "timing": {
+                  "phase": "rule:phase.input"
+                },
+                "encoding": {
+                  "kind": "finite_catalogue"
+                }
+              }
+            ],
+            "systems": [
+              {
+                "id": "rule:system.spawn",
+                "name": "Spawn after a changed move",
+                "phase": "rule:phase.input",
+                "priority": 100,
+                "trigger": {
+                  "kind": "event",
+                  "event": "rule:event.action_applied"
+                },
+                "condition": {
+                  "expr": "True"
+                },
+                "effects": [
+                  {
+                    "op": "random.draw",
+                    "stream": "rule:random.tiles",
+                    "distribution": {
+                      "kind": "shuffle",
+                      "values": {
+                        "expr": "topology.sites('rule:topology.board')"
+                      }
+                    },
+                    "as": "shuffled_sites"
+                  },
+                  {
+                    "op": "random.draw",
+                    "stream": "rule:random.tiles",
+                    "distribution": {
+                      "kind": "choice",
+                      "values": {
+                        "expr": "[2,4]"
+                      }
+                    },
+                    "as": "new_value"
+                  },
+                  {
+                    "op": "grid.set",
+                    "state": "rule:state.board",
+                    "coordinate": {
+                      "expr": "coalesce(sequence.get(var.shuffled_sites,0) if grid.get('rule:state.board',sequence.get(var.shuffled_sites,0)) == 0 else None, sequence.get(var.shuffled_sites,1) if grid.get('rule:state.board',sequence.get(var.shuffled_sites,1)) == 0 else None, sequence.get(var.shuffled_sites,2) if grid.get('rule:state.board',sequence.get(var.shuffled_sites,2)) == 0 else None, sequence.get(var.shuffled_sites,3) if grid.get('rule:state.board',sequence.get(var.shuffled_sites,3)) == 0 else None, sequence.get(var.shuffled_sites,4) if grid.get('rule:state.board',sequence.get(var.shuffled_sites,4)) == 0 else None, sequence.get(var.shuffled_sites,5) if grid.get('rule:state.board',sequence.get(var.shuffled_sites,5)) == 0 else None, sequence.get(var.shuffled_sites,6) if grid.get('rule:state.board',sequence.get(var.shuffled_sites,6)) == 0 else None, sequence.get(var.shuffled_sites,7) if grid.get('rule:state.board',sequence.get(var.shuffled_sites,7)) == 0 else None, sequence.get(var.shuffled_sites,8) if grid.get('rule:state.board',sequence.get(var.shuffled_sites,8)) == 0 else None, sequence.get(var.shuffled_sites,9) if grid.get('rule:state.board',sequence.get(var.shuffled_sites,9)) == 0 else None, sequence.get(var.shuffled_sites,10) if grid.get('rule:state.board',sequence.get(var.shuffled_sites,10)) == 0 else None, sequence.get(var.shuffled_sites,11) if grid.get('rule:state.board',sequence.get(var.shuffled_sites,11)) == 0 else None, sequence.get(var.shuffled_sites,12) if grid.get('rule:state.board',sequence.get(var.shuffled_sites,12)) == 0 else None, sequence.get(var.shuffled_sites,13) if grid.get('rule:state.board',sequence.get(var.shuffled_sites,13)) == 0 else None, sequence.get(var.shuffled_sites,14) if grid.get('rule:state.board',sequence.get(var.shuffled_sites,14)) == 0 else None, sequence.get(var.shuffled_sites,15) if grid.get('rule:state.board',sequence.get(var.shuffled_sites,15)) == 0 else None)"
+                    },
+                    "value": {
+                      "expr": "var.new_value"
+                    }
+                  }
+                ]
+              }
+            ],
+            "flow": {
+              "model": "event_driven",
+              "phases": [
+                {
+                  "id": "rule:phase.input",
+                  "order": 100
+                }
+              ],
+              "initial_phase": "rule:phase.input",
+              "scheduler": {
+                "clock": "event_queue",
+                "tick_hz": null,
+                "ordering": "phase_priority_id"
+              }
+            },
+            "random_streams": [
+              {
+                "id": "rule:random.tiles",
+                "name": "Tile placement and value",
+                "algorithm": "cubeengine.pcg32/1",
+                "seed_policy": "session"
+              }
+            ],
+            "goals": [
+              {
+                "id": "rule:goal.target",
+                "name": "Reach the selected winning tile"
+              }
+            ],
+            "outcomes": [
+              {
+                "id": "rule:outcome.win",
+                "name": "Target tile reached",
+                "priority": 100,
+                "condition": {
+                  "expr": "grid.count_equal('rule:state.board', parameter.get('rule:parameter.target')) > 0"
+                },
+                "result": {
+                  "status": "win",
+                  "terminal": true,
+                  "winners": [
+                    {
+                      "expr": "'rule:participant.player'"
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "rule:outcome.loss",
+                "name": "No empty cell or available merge",
+                "priority": 200,
+                "condition": {
+                  "expr": "grid.none_equal('rule:state.board',0) and grid.values('rule:state.board',[[0,0],[1,0],[2,0],[3,0]]) == sequence.merge_equal(grid.values('rule:state.board',[[0,0],[1,0],[2,0],[3,0]]),0,4) and grid.values('rule:state.board',[[0,1],[1,1],[2,1],[3,1]]) == sequence.merge_equal(grid.values('rule:state.board',[[0,1],[1,1],[2,1],[3,1]]),0,4) and grid.values('rule:state.board',[[0,2],[1,2],[2,2],[3,2]]) == sequence.merge_equal(grid.values('rule:state.board',[[0,2],[1,2],[2,2],[3,2]]),0,4) and grid.values('rule:state.board',[[0,3],[1,3],[2,3],[3,3]]) == sequence.merge_equal(grid.values('rule:state.board',[[0,3],[1,3],[2,3],[3,3]]),0,4) and grid.values('rule:state.board',[[0,0],[0,1],[0,2],[0,3]]) == sequence.merge_equal(grid.values('rule:state.board',[[0,0],[0,1],[0,2],[0,3]]),0,4) and grid.values('rule:state.board',[[1,0],[1,1],[1,2],[1,3]]) == sequence.merge_equal(grid.values('rule:state.board',[[1,0],[1,1],[1,2],[1,3]]),0,4) and grid.values('rule:state.board',[[2,0],[2,1],[2,2],[2,3]]) == sequence.merge_equal(grid.values('rule:state.board',[[2,0],[2,1],[2,2],[2,3]]),0,4) and grid.values('rule:state.board',[[3,0],[3,1],[3,2],[3,3]]) == sequence.merge_equal(grid.values('rule:state.board',[[3,0],[3,1],[3,2],[3,3]]),0,4)"
+                },
+                "result": {
+                  "status": "loss",
+                  "terminal": true,
+                  "losers": [
+                    {
+                      "expr": "'rule:participant.player'"
+                    }
+                  ]
+                }
+              }
+            ],
+            "modes": [
+              {
+                "id": "rule:mode.light_2048",
+                "name": "Light · 2048",
+                "overrides": [
+                  {
+                    "parameter": "rule:parameter.theme",
+                    "value": {
+                      "expr": "'light'"
+                    }
+                  },
+                  {
+                    "parameter": "rule:parameter.target",
+                    "value": {
+                      "expr": "2048"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "rule:mode.light_1024",
+                "name": "Light · 1024",
+                "overrides": [
+                  {
+                    "parameter": "rule:parameter.theme",
+                    "value": {
+                      "expr": "'light'"
+                    }
+                  },
+                  {
+                    "parameter": "rule:parameter.target",
+                    "value": {
+                      "expr": "1024"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "rule:mode.light_512",
+                "name": "Light · 512",
+                "overrides": [
+                  {
+                    "parameter": "rule:parameter.theme",
+                    "value": {
+                      "expr": "'light'"
+                    }
+                  },
+                  {
+                    "parameter": "rule:parameter.target",
+                    "value": {
+                      "expr": "512"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "rule:mode.light_256",
+                "name": "Light · 256",
+                "overrides": [
+                  {
+                    "parameter": "rule:parameter.theme",
+                    "value": {
+                      "expr": "'light'"
+                    }
+                  },
+                  {
+                    "parameter": "rule:parameter.target",
+                    "value": {
+                      "expr": "256"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "rule:mode.dark_2048",
+                "name": "Dark · 2048",
+                "overrides": [
+                  {
+                    "parameter": "rule:parameter.theme",
+                    "value": {
+                      "expr": "'dark'"
+                    }
+                  },
+                  {
+                    "parameter": "rule:parameter.target",
+                    "value": {
+                      "expr": "2048"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "rule:mode.dark_1024",
+                "name": "Dark · 1024",
+                "overrides": [
+                  {
+                    "parameter": "rule:parameter.theme",
+                    "value": {
+                      "expr": "'dark'"
+                    }
+                  },
+                  {
+                    "parameter": "rule:parameter.target",
+                    "value": {
+                      "expr": "1024"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "rule:mode.dark_512",
+                "name": "Dark · 512",
+                "overrides": [
+                  {
+                    "parameter": "rule:parameter.theme",
+                    "value": {
+                      "expr": "'dark'"
+                    }
+                  },
+                  {
+                    "parameter": "rule:parameter.target",
+                    "value": {
+                      "expr": "512"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "rule:mode.dark_256",
+                "name": "Dark · 256",
+                "overrides": [
+                  {
+                    "parameter": "rule:parameter.theme",
+                    "value": {
+                      "expr": "'dark'"
+                    }
+                  },
+                  {
+                    "parameter": "rule:parameter.target",
+                    "value": {
+                      "expr": "256"
+                    }
+                  }
+                ]
+              }
+            ],
+            "invariants": [],
+            "extensions": {},
+            "unresolved": [
+              {
+                "path": "/actions/3/effects",
+                "reason": "Source moveDown first merges toward the top of each column, then shifts the merged result toward the bottom. Its different ordering for runs such as [2,2,2,0] has not been encoded. The down action must not be exposed as implemented while its effects are empty.",
+                "required": true,
+                "owner": "llm"
+              },
+              {
+                "path": "/actions/0/effects",
+                "reason": "The sequence.merge_equal argument semantics and foreach evaluation against earlier grid writes have not been verified against an executable backend. Verify that all four directions merge each original line exactly once before declaring these effects accepted.",
+                "required": true,
+                "owner": "importer_or_llm"
+              },
+              {
+                "path": "/systems/0/effects",
+                "reason": "Verify backend support for conditional expressions and None in the spawn coordinate expression, and for the internal action_applied trigger firing before terminal outcome evaluation. Without those guarantees, changed moves may fail to spawn correctly.",
+                "required": true,
+                "owner": "importer_or_llm"
+              }
+            ]
+          },
+          "evidence": [
+            "logic.py:1-217@6eb83aa25d5399d0bd635bf3b755963ca299f2365579d5fd5a0b4e52cbb77d62",
+            "game.py:1-224@6118e27c83a065743620b3818dbb3f2e0f68275f3547da911eab097e3915a9fb",
+            "constants.json:1-61@4c9aca4a2fd9ad64ea12a5bcac494c18fd8534e2cf5dcff26805cbf3bda63df6",
+            "main.py:1-293@0246fe933f6eeb20fad65cd29cca32668093a9c4f08273c6d1d41fea3c4aca2c"
+          ],
+          "behavior_tests": [
+            {
+              "name": "A changed left move must merge once and spawn; requires a controlled starting-board fixture",
+              "steps": [
+                {
+                  "action": "rule:action.left",
+                  "parameters": {},
+                  "accepted": true
+                }
+              ],
+              "expect": {
+                "cells": [
+                  {
+                    "state": "rule:state.board",
+                    "coordinate": [
+                      0,
+                      0
+                    ],
+                    "value": 4
+                  }
+                ],
+                "terminal": false
+              }
+            },
+            {
+              "name": "A left move that cannot change any row must be rejected; requires a controlled starting-board fixture",
+              "steps": [
+                {
+                  "action": "rule:action.left",
+                  "parameters": {},
+                  "accepted": false
+                }
+              ],
+              "expect": {
+                "cells": [
+                  {
+                    "state": "rule:state.board",
+                    "coordinate": [
+                      0,
+                      0
+                    ],
+                    "value": 2
+                  }
+                ],
+                "terminal": false
+              }
+            }
+          ],
+          "assumptions": [
+            "The two behavior tests require fixtures: the first starts with adjacent 2 tiles at [0,0] and [1,0], and the second starts with one 2 at [0,0] and one at [0,1]. The supplied behavior-test format has no fixture field, so these tests are not independently executable as written.",
+            "Source mouse swipes and quit/restart controls belong in input and host lifecycle compilation, not in Rule actions."
+          ]
+        }
+      },
+      {
+        "stage": "rule_ir",
+        "attempt": 2,
+        "passed": false,
+        "diagnostics": [
+          "Rule IR type validation failed: rule:random.tiles seed must be an integer"
+        ],
+        "ignored_engine_fields": [],
+        "rejected_definition": {
+          "definition": {
+            "metadata": {
+              "title": "2048-pygame",
+              "description": "Slide and merge numbered tiles on a four-by-four board. A changed move spawns a 2 or 4; reaching the selected target wins, and a full board with no available merge loses.",
+              "source_project_hash": "df19b85c6c9cb1a3ce75390edbc209093fe1a4ae09df624cb08291e3500855ef",
+              "determinism": "seeded"
+            },
+            "parameters": [
+              {
+                "id": "rule:parameter.target",
+                "name": "Winning tile",
+                "key": "target",
+                "type": "core:int",
+                "default": {
+                  "expr": "2048"
+                },
+                "choices": [
+                  256,
+                  512,
+                  1024,
+                  2048
+                ]
+              },
+              {
+                "id": "rule:parameter.theme",
+                "name": "Theme",
+                "key": "theme",
+                "type": "core:string",
+                "default": {
+                  "expr": "'light'"
+                },
+                "choices": [
+                  "light",
+                  "dark"
+                ]
+              }
+            ],
+            "types": [],
+            "participants": [
+              {
+                "id": "rule:participant.player",
+                "name": "Player",
+                "kind": "human"
+              }
+            ],
+            "topologies": [
+              {
+                "id": "rule:topology.board",
+                "name": "Four-by-four board",
+                "kind": "rect_grid",
+                "anchor": "cell",
+                "axes": [
+                  {
+                    "name": "x",
+                    "extent": 4,
+                    "boundary": "bounded"
+                  },
+                  {
+                    "name": "y",
+                    "extent": 4,
+                    "boundary": "bounded"
+                  }
+                ],
+                "neighborhoods": [
+                  {
+                    "name": "orthogonal",
+                    "diagonals": false
+                  }
+                ]
+              }
+            ],
+            "state": {
+              "variables": [
+                {
+                  "id": "rule:state.board",
+                  "name": "Tile value",
+                  "type": "core:int",
+                  "scope": "topology_site",
+                  "topology": "rule:topology.board",
+                  "initial": {
+                    "expr": "0"
+                  }
+                },
+                {
+                  "id": "rule:state.spawn_count",
+                  "name": "Empty sites inspected during spawn",
+                  "type": "core:int",
+                  "scope": "global",
+                  "initial": {
+                    "expr": "0"
+                  }
+                },
+                {
+                  "id": "rule:state.spawn_coordinate",
+                  "name": "Selected empty site",
+                  "type": "core:coord",
+                  "scope": "global",
+                  "initial": {
+                    "expr": "[0,0]"
+                  }
+                }
+              ],
+              "entity_types": [],
+              "initial_effects": [
+                {
+                  "op": "random.draw",
+                  "stream": "rule:random.tiles",
+                  "distribution": {
+                    "kind": "shuffle",
+                    "values": {
+                      "expr": "topology.sites('rule:topology.board')"
+                    }
+                  },
+                  "as": "initial_sites"
+                },
+                {
+                  "op": "grid.set",
+                  "state": "rule:state.board",
+                  "coordinate": {
+                    "expr": "sequence.get(var.initial_sites,0)"
+                  },
+                  "value": {
+                    "expr": "2"
+                  }
+                },
+                {
+                  "op": "grid.set",
+                  "state": "rule:state.board",
+                  "coordinate": {
+                    "expr": "sequence.get(var.initial_sites,1)"
+                  },
+                  "value": {
+                    "expr": "2"
+                  }
+                }
+              ],
+              "information_model": "perfect"
+            },
+            "queries": [],
+            "events": [],
+            "actions": [
+              {
+                "id": "rule:action.left",
+                "name": "Slide left",
+                "actor": {
+                  "expr": "'rule:participant.player'"
+                },
+                "parameters": [],
+                "precondition": {
+                  "expr": "sequence.merge_equal(grid.values('rule:state.board',[[0,0],[1,0],[2,0],[3,0]]),0,4) != grid.values('rule:state.board',[[0,0],[1,0],[2,0],[3,0]]) or sequence.merge_equal(grid.values('rule:state.board',[[0,1],[1,1],[2,1],[3,1]]),0,4) != grid.values('rule:state.board',[[0,1],[1,1],[2,1],[3,1]]) or sequence.merge_equal(grid.values('rule:state.board',[[0,2],[1,2],[2,2],[3,2]]),0,4) != grid.values('rule:state.board',[[0,2],[1,2],[2,2],[3,2]]) or sequence.merge_equal(grid.values('rule:state.board',[[0,3],[1,3],[2,3],[3,3]]),0,4) != grid.values('rule:state.board',[[0,3],[1,3],[2,3],[3,3]])"
+                },
+                "effects": [
+                  {
+                    "op": "foreach",
+                    "query": {
+                      "expr": "[[[0,0],[1,0],[2,0],[3,0]],[[0,1],[1,1],[2,1],[3,1]],[[0,2],[1,2],[2,2],[3,2]],[[0,3],[1,3],[2,3],[3,3]]]"
+                    },
+                    "as": "line",
+                    "effects": [
+                      {
+                        "op": "foreach",
+                        "query": {
+                          "expr": "sequence.zip(var.line,sequence.merge_equal(grid.values('rule:state.board',var.line),0,4))"
+                        },
+                        "as": "cell_value",
+                        "effects": [
+                          {
+                            "op": "grid.set",
+                            "state": "rule:state.board",
+                            "coordinate": {
+                              "expr": "sequence.get(var.cell_value,0)"
+                            },
+                            "value": {
+                              "expr": "sequence.get(var.cell_value,1)"
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ],
+                "timing": {
+                  "phase": "rule:phase.input"
+                },
+                "encoding": {
+                  "kind": "finite_catalogue"
+                }
+              },
+              {
+                "id": "rule:action.right",
+                "name": "Slide right",
+                "actor": {
+                  "expr": "'rule:participant.player'"
+                },
+                "parameters": [],
+                "precondition": {
+                  "expr": "sequence.merge_equal(grid.values('rule:state.board',[[3,0],[2,0],[1,0],[0,0]]),0,4) != grid.values('rule:state.board',[[3,0],[2,0],[1,0],[0,0]]) or sequence.merge_equal(grid.values('rule:state.board',[[3,1],[2,1],[1,1],[0,1]]),0,4) != grid.values('rule:state.board',[[3,1],[2,1],[1,1],[0,1]]) or sequence.merge_equal(grid.values('rule:state.board',[[3,2],[2,2],[1,2],[0,2]]),0,4) != grid.values('rule:state.board',[[3,2],[2,2],[1,2],[0,2]]) or sequence.merge_equal(grid.values('rule:state.board',[[3,3],[2,3],[1,3],[0,3]]),0,4) != grid.values('rule:state.board',[[3,3],[2,3],[1,3],[0,3]])"
+                },
+                "effects": [
+                  {
+                    "op": "foreach",
+                    "query": {
+                      "expr": "[[[3,0],[2,0],[1,0],[0,0]],[[3,1],[2,1],[1,1],[0,1]],[[3,2],[2,2],[1,2],[0,2]],[[3,3],[2,3],[1,3],[0,3]]]"
+                    },
+                    "as": "line",
+                    "effects": [
+                      {
+                        "op": "foreach",
+                        "query": {
+                          "expr": "sequence.zip(var.line,sequence.merge_equal(grid.values('rule:state.board',var.line),0,4))"
+                        },
+                        "as": "cell_value",
+                        "effects": [
+                          {
+                            "op": "grid.set",
+                            "state": "rule:state.board",
+                            "coordinate": {
+                              "expr": "sequence.get(var.cell_value,0)"
+                            },
+                            "value": {
+                              "expr": "sequence.get(var.cell_value,1)"
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ],
+                "timing": {
+                  "phase": "rule:phase.input"
+                },
+                "encoding": {
+                  "kind": "finite_catalogue"
+                }
+              },
+              {
+                "id": "rule:action.up",
+                "name": "Slide up",
+                "actor": {
+                  "expr": "'rule:participant.player'"
+                },
+                "parameters": [],
+                "precondition": {
+                  "expr": "sequence.merge_equal(grid.values('rule:state.board',[[0,0],[0,1],[0,2],[0,3]]),0,4) != grid.values('rule:state.board',[[0,0],[0,1],[0,2],[0,3]]) or sequence.merge_equal(grid.values('rule:state.board',[[1,0],[1,1],[1,2],[1,3]]),0,4) != grid.values('rule:state.board',[[1,0],[1,1],[1,2],[1,3]]) or sequence.merge_equal(grid.values('rule:state.board',[[2,0],[2,1],[2,2],[2,3]]),0,4) != grid.values('rule:state.board',[[2,0],[2,1],[2,2],[2,3]]) or sequence.merge_equal(grid.values('rule:state.board',[[3,0],[3,1],[3,2],[3,3]]),0,4) != grid.values('rule:state.board',[[3,0],[3,1],[3,2],[3,3]])"
+                },
+                "effects": [
+                  {
+                    "op": "foreach",
+                    "query": {
+                      "expr": "[[[0,0],[0,1],[0,2],[0,3]],[[1,0],[1,1],[1,2],[1,3]],[[2,0],[2,1],[2,2],[2,3]],[[3,0],[3,1],[3,2],[3,3]]]"
+                    },
+                    "as": "line",
+                    "effects": [
+                      {
+                        "op": "foreach",
+                        "query": {
+                          "expr": "sequence.zip(var.line,sequence.merge_equal(grid.values('rule:state.board',var.line),0,4))"
+                        },
+                        "as": "cell_value",
+                        "effects": [
+                          {
+                            "op": "grid.set",
+                            "state": "rule:state.board",
+                            "coordinate": {
+                              "expr": "sequence.get(var.cell_value,0)"
+                            },
+                            "value": {
+                              "expr": "sequence.get(var.cell_value,1)"
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ],
+                "timing": {
+                  "phase": "rule:phase.input"
+                },
+                "encoding": {
+                  "kind": "finite_catalogue"
+                }
+              },
+              {
+                "id": "rule:action.down",
+                "name": "Slide down with source merge ordering",
+                "actor": {
+                  "expr": "'rule:participant.player'"
+                },
+                "parameters": [],
+                "precondition": {
+                  "expr": "sequence.merge_equal(grid.values('rule:state.board',[[0,3],[0,2],[0,1],[0,0]]),0,4) != grid.values('rule:state.board',[[0,3],[0,2],[0,1],[0,0]]) or sequence.merge_equal(grid.values('rule:state.board',[[1,3],[1,2],[1,1],[1,0]]),0,4) != grid.values('rule:state.board',[[1,3],[1,2],[1,1],[1,0]]) or sequence.merge_equal(grid.values('rule:state.board',[[2,3],[2,2],[2,1],[2,0]]),0,4) != grid.values('rule:state.board',[[2,3],[2,2],[2,1],[2,0]]) or sequence.merge_equal(grid.values('rule:state.board',[[3,3],[3,2],[3,1],[3,0]]),0,4) != grid.values('rule:state.board',[[3,3],[3,2],[3,1],[3,0]])"
+                },
+                "effects": [
+                  {
+                    "op": "foreach",
+                    "query": {
+                      "expr": "[[[0,0],[0,1],[0,2],[0,3]],[[1,0],[1,1],[1,2],[1,3]],[[2,0],[2,1],[2,2],[2,3]],[[3,0],[3,1],[3,2],[3,3]]]"
+                    },
+                    "as": "line",
+                    "effects": [
+                      {
+                        "op": "foreach",
+                        "query": {
+                          "expr": "[sequence.merge_equal(grid.values('rule:state.board',var.line),0,4)]"
+                        },
+                        "as": "merged",
+                        "effects": [
+                          {
+                            "op": "foreach",
+                            "query": {
+                              "expr": "sequence.zip(var.line,[0,1,2,3])"
+                            },
+                            "as": "cell_index",
+                            "effects": [
+                              {
+                                "op": "grid.set",
+                                "state": "rule:state.board",
+                                "coordinate": {
+                                  "expr": "sequence.get(var.cell_index,0)"
+                                },
+                                "value": {
+                                  "expr": "sequence.get(var.merged,sequence.get(var.cell_index,1) - ((sequence.get(var.merged,0) == 0) + (sequence.get(var.merged,1) == 0) + (sequence.get(var.merged,2) == 0) + (sequence.get(var.merged,3) == 0))) if sequence.get(var.cell_index,1) >= ((sequence.get(var.merged,0) == 0) + (sequence.get(var.merged,1) == 0) + (sequence.get(var.merged,2) == 0) + (sequence.get(var.merged,3) == 0)) else 0"
+                                }
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ],
+                "timing": {
+                  "phase": "rule:phase.input"
+                },
+                "encoding": {
+                  "kind": "finite_catalogue"
+                }
+              }
+            ],
+            "systems": [
+              {
+                "id": "rule:system.spawn",
+                "name": "Spawn a tile after a changed move",
+                "phase": "rule:phase.input",
+                "priority": 100,
+                "trigger": {
+                  "kind": "event",
+                  "event": "rule:event.action_applied"
+                },
+                "condition": {
+                  "expr": "grid.count_equal('rule:state.board',0) > 0"
+                },
+                "effects": [
+                  {
+                    "op": "state.set",
+                    "target": {
+                      "expr": "'rule:state.spawn_count'"
+                    },
+                    "value": {
+                      "expr": "0"
+                    }
+                  },
+                  {
+                    "op": "foreach",
+                    "query": {
+                      "expr": "topology.sites('rule:topology.board')"
+                    },
+                    "as": "site",
+                    "effects": [
+                      {
+                        "op": "random.draw",
+                        "stream": "rule:random.tiles",
+                        "distribution": {
+                          "kind": "uniform_int",
+                          "minimum": {
+                            "expr": "1"
+                          },
+                          "maximum": {
+                            "expr": "max(1,state.get('rule:state.spawn_count') + (1 if grid.get('rule:state.board',var.site) == 0 else 0))"
+                          }
+                        },
+                        "as": "pick"
+                      },
+                      {
+                        "op": "state.set",
+                        "target": {
+                          "expr": "'rule:state.spawn_coordinate'"
+                        },
+                        "value": {
+                          "expr": "var.site if grid.get('rule:state.board',var.site) == 0 and var.pick == 1 else state.get('rule:state.spawn_coordinate')"
+                        }
+                      },
+                      {
+                        "op": "state.increment",
+                        "target": {
+                          "expr": "'rule:state.spawn_count'"
+                        },
+                        "value": {
+                          "expr": "1 if grid.get('rule:state.board',var.site) == 0 else 0"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "op": "random.draw",
+                    "stream": "rule:random.tiles",
+                    "distribution": {
+                      "kind": "choice",
+                      "values": {
+                        "expr": "[2,4]"
+                      }
+                    },
+                    "as": "new_value"
+                  },
+                  {
+                    "op": "grid.set",
+                    "state": "rule:state.board",
+                    "coordinate": {
+                      "expr": "state.get('rule:state.spawn_coordinate')"
+                    },
+                    "value": {
+                      "expr": "var.new_value"
+                    }
+                  }
+                ]
+              }
+            ],
+            "flow": {
+              "model": "event_driven",
+              "phases": [
+                {
+                  "id": "rule:phase.input",
+                  "order": 100
+                }
+              ],
+              "initial_phase": "rule:phase.input",
+              "scheduler": {
+                "clock": "event_queue",
+                "tick_hz": null,
+                "ordering": "phase_priority_id"
+              }
+            },
+            "random_streams": [
+              {
+                "id": "rule:random.tiles",
+                "name": "Tile placement and value",
+                "algorithm": "cubeengine.pcg32/1",
+                "seed_policy": "session"
+              }
+            ],
+            "goals": [
+              {
+                "id": "rule:goal.target",
+                "name": "Reach the selected winning tile"
+              }
+            ],
+            "outcomes": [
+              {
+                "id": "rule:outcome.win",
+                "name": "Target tile reached",
+                "priority": 100,
+                "condition": {
+                  "expr": "grid.count_equal('rule:state.board',parameter.get('rule:parameter.target')) > 0"
+                },
+                "result": {
+                  "status": "win",
+                  "terminal": true,
+                  "winners": [
+                    {
+                      "expr": "'rule:participant.player'"
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "rule:outcome.loss",
+                "name": "Full board without adjacent equal tiles",
+                "priority": 200,
+                "condition": {
+                  "expr": "grid.none_equal('rule:state.board',0) and grid.values('rule:state.board',[[0,0],[1,0],[2,0],[3,0]]) == sequence.merge_equal(grid.values('rule:state.board',[[0,0],[1,0],[2,0],[3,0]]),0,4) and grid.values('rule:state.board',[[0,1],[1,1],[2,1],[3,1]]) == sequence.merge_equal(grid.values('rule:state.board',[[0,1],[1,1],[2,1],[3,1]]),0,4) and grid.values('rule:state.board',[[0,2],[1,2],[2,2],[3,2]]) == sequence.merge_equal(grid.values('rule:state.board',[[0,2],[1,2],[2,2],[3,2]]),0,4) and grid.values('rule:state.board',[[0,3],[1,3],[2,3],[3,3]]) == sequence.merge_equal(grid.values('rule:state.board',[[0,3],[1,3],[2,3],[3,3]]),0,4) and grid.values('rule:state.board',[[0,0],[0,1],[0,2],[0,3]]) == sequence.merge_equal(grid.values('rule:state.board',[[0,0],[0,1],[0,2],[0,3]]),0,4) and grid.values('rule:state.board',[[1,0],[1,1],[1,2],[1,3]]) == sequence.merge_equal(grid.values('rule:state.board',[[1,0],[1,1],[1,2],[1,3]]),0,4) and grid.values('rule:state.board',[[2,0],[2,1],[2,2],[2,3]]) == sequence.merge_equal(grid.values('rule:state.board',[[2,0],[2,1],[2,2],[2,3]]),0,4) and grid.values('rule:state.board',[[3,0],[3,1],[3,2],[3,3]]) == sequence.merge_equal(grid.values('rule:state.board',[[3,0],[3,1],[3,2],[3,3]]),0,4)"
+                },
+                "result": {
+                  "status": "loss",
+                  "terminal": true,
+                  "losers": [
+                    {
+                      "expr": "'rule:participant.player'"
+                    }
+                  ]
+                }
+              }
+            ],
+            "modes": [
+              {
+                "id": "rule:mode.light_2048",
+                "name": "Light · 2048",
+                "overrides": [
+                  {
+                    "parameter": "rule:parameter.theme",
+                    "value": {
+                      "expr": "'light'"
+                    }
+                  },
+                  {
+                    "parameter": "rule:parameter.target",
+                    "value": {
+                      "expr": "2048"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "rule:mode.light_1024",
+                "name": "Light · 1024",
+                "overrides": [
+                  {
+                    "parameter": "rule:parameter.theme",
+                    "value": {
+                      "expr": "'light'"
+                    }
+                  },
+                  {
+                    "parameter": "rule:parameter.target",
+                    "value": {
+                      "expr": "1024"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "rule:mode.light_512",
+                "name": "Light · 512",
+                "overrides": [
+                  {
+                    "parameter": "rule:parameter.theme",
+                    "value": {
+                      "expr": "'light'"
+                    }
+                  },
+                  {
+                    "parameter": "rule:parameter.target",
+                    "value": {
+                      "expr": "512"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "rule:mode.light_256",
+                "name": "Light · 256",
+                "overrides": [
+                  {
+                    "parameter": "rule:parameter.theme",
+                    "value": {
+                      "expr": "'light'"
+                    }
+                  },
+                  {
+                    "parameter": "rule:parameter.target",
+                    "value": {
+                      "expr": "256"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "rule:mode.dark_2048",
+                "name": "Dark · 2048",
+                "overrides": [
+                  {
+                    "parameter": "rule:parameter.theme",
+                    "value": {
+                      "expr": "'dark'"
+                    }
+                  },
+                  {
+                    "parameter": "rule:parameter.target",
+                    "value": {
+                      "expr": "2048"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "rule:mode.dark_1024",
+                "name": "Dark · 1024",
+                "overrides": [
+                  {
+                    "parameter": "rule:parameter.theme",
+                    "value": {
+                      "expr": "'dark'"
+                    }
+                  },
+                  {
+                    "parameter": "rule:parameter.target",
+                    "value": {
+                      "expr": "1024"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "rule:mode.dark_512",
+                "name": "Dark · 512",
+                "overrides": [
+                  {
+                    "parameter": "rule:parameter.theme",
+                    "value": {
+                      "expr": "'dark'"
+                    }
+                  },
+                  {
+                    "parameter": "rule:parameter.target",
+                    "value": {
+                      "expr": "512"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "rule:mode.dark_256",
+                "name": "Dark · 256",
+                "overrides": [
+                  {
+                    "parameter": "rule:parameter.theme",
+                    "value": {
+                      "expr": "'dark'"
+                    }
+                  },
+                  {
+                    "parameter": "rule:parameter.target",
+                    "value": {
+                      "expr": "256"
+                    }
+                  }
+                ]
+              }
+            ],
+            "invariants": [],
+            "extensions": {},
+            "unresolved": []
+          },
+          "evidence": [
+            "logic.py:1-217@6eb83aa25d5399d0bd635bf3b755963ca299f2365579d5fd5a0b4e52cbb77d62",
+            "game.py:1-224@6118e27c83a065743620b3818dbb3f2e0f68275f3547da911eab097e3915a9fb",
+            "constants.json:1-61@4c9aca4a2fd9ad64ea12a5bcac494c18fd8534e2cf5dcff26805cbf3bda63df6",
+            "main.py:1-293@0246fe933f6eeb20fad65cd29cca32668093a9c4f08273c6d1d41fea3c4aca2c"
+          ],
+          "behavior_tests": [
+            {
+              "name": "Adjacent twos merge left once and a new tile spawns",
+              "fixture": {
+                "cells": [
+                  {
+                    "state": "rule:state.board",
+                    "coordinate": [
+                      0,
+                      0
+                    ],
+                    "value": 2
+                  },
+                  {
+                    "state": "rule:state.board",
+                    "coordinate": [
+                      1,
+                      0
+                    ],
+                    "value": 2
+                  }
+                ],
+                "otherwise": 0
+              },
+              "steps": [
+                {
+                  "action": "rule:action.left",
+                  "parameters": {},
+                  "accepted": true
+                }
+              ],
+              "expect": {
+                "cells": [
+                  {
+                    "state": "rule:state.board",
+                    "coordinate": [
+                      0,
+                      0
+                    ],
+                    "value": 4
+                  }
+                ],
+                "terminal": false
+              }
+            },
+            {
+              "name": "Already left-aligned tiles reject an unchanged left move",
+              "fixture": {
+                "cells": [
+                  {
+                    "state": "rule:state.board",
+                    "coordinate": [
+                      0,
+                      0
+                    ],
+                    "value": 2
+                  },
+                  {
+                    "state": "rule:state.board",
+                    "coordinate": [
+                      0,
+                      1
+                    ],
+                    "value": 2
+                  }
+                ],
+                "otherwise": 0
+              },
+              "steps": [
+                {
+                  "action": "rule:action.left",
+                  "parameters": {},
+                  "accepted": false
+                }
+              ],
+              "expect": {
+                "cells": [
+                  {
+                    "state": "rule:state.board",
+                    "coordinate": [
+                      0,
+                      0
+                    ],
+                    "value": 2
+                  },
+                  {
+                    "state": "rule:state.board",
+                    "coordinate": [
+                      0,
+                      1
+                    ],
+                    "value": 2
+                  }
+                ],
+                "terminal": false
+              }
+            },
+            {
+              "name": "Down preserves the source's top-first merge before shifting right",
+              "fixture": {
+                "cells": [
+                  {
+                    "state": "rule:state.board",
+                    "coordinate": [
+                      0,
+                      0
+                    ],
+                    "value": 2
+                  },
+                  {
+                    "state": "rule:state.board",
+                    "coordinate": [
+                      0,
+                      1
+                    ],
+                    "value": 2
+                  },
+                  {
+                    "state": "rule:state.board",
+                    "coordinate": [
+                      0,
+                      2
+                    ],
+                    "value": 2
+                  }
+                ],
+                "otherwise": 0
+              },
+              "steps": [
+                {
+                  "action": "rule:action.down",
+                  "parameters": {},
+                  "accepted": true
+                }
+              ],
+              "expect": {
+                "cells": [
+                  {
+                    "state": "rule:state.board",
+                    "coordinate": [
+                      0,
+                      2
+                    ],
+                    "value": 4
+                  },
+                  {
+                    "state": "rule:state.board",
+                    "coordinate": [
+                      0,
+                      3
+                    ],
+                    "value": 2
+                  }
+                ],
+                "terminal": false
+              }
+            }
+          ],
+          "assumptions": [
+            "The test fixtures specify board states before their steps; the supplied behavior-test format does not define a fixture field, so these tests require fixture-aware execution.",
+            "Reservoir sampling selects uniformly among empty sites but consumes a different random sequence from the source's rejection sampling. The source's opening tiles are always both 2; subsequent spawned values are equally likely to be 2 or 4.",
+            "Quit and full-session restart, including restart after a terminal outcome, are host lifecycle commands rather than Rule actions."
+          ],
+          "unresolved": []
+        }
+      },
+      {
+        "stage": "rule_ir",
+        "attempt": 3,
+        "passed": false,
+        "diagnostics": [
+          "Rule IR type validation failed: rule:random.tiles seed must be an integer"
+        ],
+        "ignored_engine_fields": [],
+        "rejected_definition": {
+          "definition": {
+            "metadata": {
+              "title": "2048-pygame",
+              "description": "Slide and merge tiles on a four-by-four board. Changed moves spawn a 2 or 4; reaching the selected target wins, and a full board without a possible merge loses.",
+              "source_project_hash": "df19b85c6c9cb1a3ce75390edbc209093fe1a4ae09df624cb08291e3500855ef",
+              "determinism": "seeded"
+            },
+            "parameters": [
+              {
+                "id": "rule:parameter.target",
+                "name": "Winning tile",
+                "key": "target",
+                "type": "core:int",
+                "default": {
+                  "expr": "2048"
+                },
+                "choices": [
+                  256,
+                  512,
+                  1024,
+                  2048
+                ]
+              },
+              {
+                "id": "rule:parameter.theme",
+                "name": "Theme",
+                "key": "theme",
+                "type": "core:string",
+                "default": {
+                  "expr": "'light'"
+                },
+                "choices": [
+                  "light",
+                  "dark"
+                ]
+              }
+            ],
+            "types": [],
+            "participants": [
+              {
+                "id": "rule:participant.player",
+                "name": "Player",
+                "kind": "human"
+              }
+            ],
+            "topologies": [
+              {
+                "id": "rule:topology.board",
+                "name": "Four-by-four board",
+                "kind": "rect_grid",
+                "anchor": "cell",
+                "axes": [
+                  {
+                    "name": "x",
+                    "extent": 4,
+                    "boundary": "bounded"
+                  },
+                  {
+                    "name": "y",
+                    "extent": 4,
+                    "boundary": "bounded"
+                  }
+                ],
+                "neighborhoods": [
+                  {
+                    "name": "orthogonal",
+                    "diagonals": false
+                  }
+                ]
+              }
+            ],
+            "state": {
+              "variables": [
+                {
+                  "id": "rule:state.board",
+                  "name": "Tile value",
+                  "type": "core:int",
+                  "scope": "topology_site",
+                  "topology": "rule:topology.board",
+                  "initial": {
+                    "expr": "0"
+                  }
+                },
+                {
+                  "id": "rule:state.spawn_count",
+                  "name": "Empty sites inspected during spawn",
+                  "type": "core:int",
+                  "scope": "global",
+                  "initial": {
+                    "expr": "0"
+                  }
+                },
+                {
+                  "id": "rule:state.spawn_coordinate",
+                  "name": "Selected empty site",
+                  "type": "core:coord",
+                  "scope": "global",
+                  "initial": {
+                    "expr": "[0,0]"
+                  }
+                }
+              ],
+              "entity_types": [],
+              "initial_effects": [
+                {
+                  "op": "random.draw",
+                  "stream": "rule:random.tiles",
+                  "distribution": {
+                    "kind": "shuffle",
+                    "values": {
+                      "expr": "topology.sites('rule:topology.board')"
+                    }
+                  },
+                  "as": "initial_sites"
+                },
+                {
+                  "op": "grid.set",
+                  "state": "rule:state.board",
+                  "coordinate": {
+                    "expr": "sequence.get(var.initial_sites,0)"
+                  },
+                  "value": {
+                    "expr": "2"
+                  }
+                },
+                {
+                  "op": "grid.set",
+                  "state": "rule:state.board",
+                  "coordinate": {
+                    "expr": "sequence.get(var.initial_sites,1)"
+                  },
+                  "value": {
+                    "expr": "2"
+                  }
+                }
+              ],
+              "information_model": "perfect"
+            },
+            "queries": [],
+            "events": [],
+            "actions": [
+              {
+                "id": "rule:action.left",
+                "name": "Slide left",
+                "actor": {
+                  "expr": "'rule:participant.player'"
+                },
+                "parameters": [],
+                "precondition": {
+                  "expr": "sequence.merge_equal(grid.values('rule:state.board',[[0,0],[1,0],[2,0],[3,0]]),0,4) != grid.values('rule:state.board',[[0,0],[1,0],[2,0],[3,0]]) or sequence.merge_equal(grid.values('rule:state.board',[[0,1],[1,1],[2,1],[3,1]]),0,4) != grid.values('rule:state.board',[[0,1],[1,1],[2,1],[3,1]]) or sequence.merge_equal(grid.values('rule:state.board',[[0,2],[1,2],[2,2],[3,2]]),0,4) != grid.values('rule:state.board',[[0,2],[1,2],[2,2],[3,2]]) or sequence.merge_equal(grid.values('rule:state.board',[[0,3],[1,3],[2,3],[3,3]]),0,4) != grid.values('rule:state.board',[[0,3],[1,3],[2,3],[3,3]])"
+                },
+                "effects": [
+                  {
+                    "op": "foreach",
+                    "query": {
+                      "expr": "[[[0,0],[1,0],[2,0],[3,0]],[[0,1],[1,1],[2,1],[3,1]],[[0,2],[1,2],[2,2],[3,2]],[[0,3],[1,3],[2,3],[3,3]]]"
+                    },
+                    "as": "line",
+                    "effects": [
+                      {
+                        "op": "foreach",
+                        "query": {
+                          "expr": "sequence.zip(var.line,sequence.merge_equal(grid.values('rule:state.board',var.line),0,4))"
+                        },
+                        "as": "cell_value",
+                        "effects": [
+                          {
+                            "op": "grid.set",
+                            "state": "rule:state.board",
+                            "coordinate": {
+                              "expr": "sequence.get(var.cell_value,0)"
+                            },
+                            "value": {
+                              "expr": "sequence.get(var.cell_value,1)"
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ],
+                "timing": {
+                  "phase": "rule:phase.input"
+                },
+                "encoding": {
+                  "kind": "finite_catalogue"
+                }
+              },
+              {
+                "id": "rule:action.right",
+                "name": "Slide right",
+                "actor": {
+                  "expr": "'rule:participant.player'"
+                },
+                "parameters": [],
+                "precondition": {
+                  "expr": "sequence.merge_equal(grid.values('rule:state.board',[[3,0],[2,0],[1,0],[0,0]]),0,4) != grid.values('rule:state.board',[[3,0],[2,0],[1,0],[0,0]]) or sequence.merge_equal(grid.values('rule:state.board',[[3,1],[2,1],[1,1],[0,1]]),0,4) != grid.values('rule:state.board',[[3,1],[2,1],[1,1],[0,1]]) or sequence.merge_equal(grid.values('rule:state.board',[[3,2],[2,2],[1,2],[0,2]]),0,4) != grid.values('rule:state.board',[[3,2],[2,2],[1,2],[0,2]]) or sequence.merge_equal(grid.values('rule:state.board',[[3,3],[2,3],[1,3],[0,3]]),0,4) != grid.values('rule:state.board',[[3,3],[2,3],[1,3],[0,3]])"
+                },
+                "effects": [
+                  {
+                    "op": "foreach",
+                    "query": {
+                      "expr": "[[[3,0],[2,0],[1,0],[0,0]],[[3,1],[2,1],[1,1],[0,1]],[[3,2],[2,2],[1,2],[0,2]],[[3,3],[2,3],[1,3],[0,3]]]"
+                    },
+                    "as": "line",
+                    "effects": [
+                      {
+                        "op": "foreach",
+                        "query": {
+                          "expr": "sequence.zip(var.line,sequence.merge_equal(grid.values('rule:state.board',var.line),0,4))"
+                        },
+                        "as": "cell_value",
+                        "effects": [
+                          {
+                            "op": "grid.set",
+                            "state": "rule:state.board",
+                            "coordinate": {
+                              "expr": "sequence.get(var.cell_value,0)"
+                            },
+                            "value": {
+                              "expr": "sequence.get(var.cell_value,1)"
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ],
+                "timing": {
+                  "phase": "rule:phase.input"
+                },
+                "encoding": {
+                  "kind": "finite_catalogue"
+                }
+              },
+              {
+                "id": "rule:action.up",
+                "name": "Slide up",
+                "actor": {
+                  "expr": "'rule:participant.player'"
+                },
+                "parameters": [],
+                "precondition": {
+                  "expr": "sequence.merge_equal(grid.values('rule:state.board',[[0,0],[0,1],[0,2],[0,3]]),0,4) != grid.values('rule:state.board',[[0,0],[0,1],[0,2],[0,3]]) or sequence.merge_equal(grid.values('rule:state.board',[[1,0],[1,1],[1,2],[1,3]]),0,4) != grid.values('rule:state.board',[[1,0],[1,1],[1,2],[1,3]]) or sequence.merge_equal(grid.values('rule:state.board',[[2,0],[2,1],[2,2],[2,3]]),0,4) != grid.values('rule:state.board',[[2,0],[2,1],[2,2],[2,3]]) or sequence.merge_equal(grid.values('rule:state.board',[[3,0],[3,1],[3,2],[3,3]]),0,4) != grid.values('rule:state.board',[[3,0],[3,1],[3,2],[3,3]])"
+                },
+                "effects": [
+                  {
+                    "op": "foreach",
+                    "query": {
+                      "expr": "[[[0,0],[0,1],[0,2],[0,3]],[[1,0],[1,1],[1,2],[1,3]],[[2,0],[2,1],[2,2],[2,3]],[[3,0],[3,1],[3,2],[3,3]]]"
+                    },
+                    "as": "line",
+                    "effects": [
+                      {
+                        "op": "foreach",
+                        "query": {
+                          "expr": "sequence.zip(var.line,sequence.merge_equal(grid.values('rule:state.board',var.line),0,4))"
+                        },
+                        "as": "cell_value",
+                        "effects": [
+                          {
+                            "op": "grid.set",
+                            "state": "rule:state.board",
+                            "coordinate": {
+                              "expr": "sequence.get(var.cell_value,0)"
+                            },
+                            "value": {
+                              "expr": "sequence.get(var.cell_value,1)"
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ],
+                "timing": {
+                  "phase": "rule:phase.input"
+                },
+                "encoding": {
+                  "kind": "finite_catalogue"
+                }
+              },
+              {
+                "id": "rule:action.down",
+                "name": "Slide down with source top-first merge ordering",
+                "actor": {
+                  "expr": "'rule:participant.player'"
+                },
+                "parameters": [],
+                "precondition": {
+                  "expr": "sequence.merge_equal(grid.values('rule:state.board',[[0,3],[0,2],[0,1],[0,0]]),0,4) != grid.values('rule:state.board',[[0,3],[0,2],[0,1],[0,0]]) or sequence.merge_equal(grid.values('rule:state.board',[[1,3],[1,2],[1,1],[1,0]]),0,4) != grid.values('rule:state.board',[[1,3],[1,2],[1,1],[1,0]]) or sequence.merge_equal(grid.values('rule:state.board',[[2,3],[2,2],[2,1],[2,0]]),0,4) != grid.values('rule:state.board',[[2,3],[2,2],[2,1],[2,0]]) or sequence.merge_equal(grid.values('rule:state.board',[[3,3],[3,2],[3,1],[3,0]]),0,4) != grid.values('rule:state.board',[[3,3],[3,2],[3,1],[3,0]])"
+                },
+                "effects": [
+                  {
+                    "op": "foreach",
+                    "query": {
+                      "expr": "[[[0,0],[0,1],[0,2],[0,3]],[[1,0],[1,1],[1,2],[1,3]],[[2,0],[2,1],[2,2],[2,3]],[[3,0],[3,1],[3,2],[3,3]]]"
+                    },
+                    "as": "line",
+                    "effects": [
+                      {
+                        "op": "foreach",
+                        "query": {
+                          "expr": "[sequence.merge_equal(grid.values('rule:state.board',var.line),0,4)]"
+                        },
+                        "as": "merged",
+                        "effects": [
+                          {
+                            "op": "foreach",
+                            "query": {
+                              "expr": "sequence.zip(var.line,[0,1,2,3])"
+                            },
+                            "as": "cell_index",
+                            "effects": [
+                              {
+                                "op": "grid.set",
+                                "state": "rule:state.board",
+                                "coordinate": {
+                                  "expr": "sequence.get(var.cell_index,0)"
+                                },
+                                "value": {
+                                  "expr": "sequence.get(var.merged,sequence.get(var.cell_index,1) - ((sequence.get(var.merged,0) == 0) + (sequence.get(var.merged,1) == 0) + (sequence.get(var.merged,2) == 0) + (sequence.get(var.merged,3) == 0))) if sequence.get(var.cell_index,1) >= ((sequence.get(var.merged,0) == 0) + (sequence.get(var.merged,1) == 0) + (sequence.get(var.merged,2) == 0) + (sequence.get(var.merged,3) == 0)) else 0"
+                                }
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ],
+                "timing": {
+                  "phase": "rule:phase.input"
+                },
+                "encoding": {
+                  "kind": "finite_catalogue"
+                }
+              }
+            ],
+            "systems": [
+              {
+                "id": "rule:system.spawn",
+                "name": "Spawn a tile after a changed move",
+                "phase": "rule:phase.input",
+                "priority": 100,
+                "trigger": {
+                  "kind": "event",
+                  "event": "rule:event.action_applied"
+                },
+                "condition": {
+                  "expr": "grid.count_equal('rule:state.board',0) > 0"
+                },
+                "effects": [
+                  {
+                    "op": "state.set",
+                    "target": {
+                      "expr": "'rule:state.spawn_count'"
+                    },
+                    "value": {
+                      "expr": "0"
+                    }
+                  },
+                  {
+                    "op": "foreach",
+                    "query": {
+                      "expr": "topology.sites('rule:topology.board')"
+                    },
+                    "as": "site",
+                    "effects": [
+                      {
+                        "op": "random.draw",
+                        "stream": "rule:random.tiles",
+                        "distribution": {
+                          "kind": "uniform_int",
+                          "minimum": {
+                            "expr": "1"
+                          },
+                          "maximum": {
+                            "expr": "max(1,state.get('rule:state.spawn_count') + (1 if grid.get('rule:state.board',var.site) == 0 else 0))"
+                          }
+                        },
+                        "as": "pick"
+                      },
+                      {
+                        "op": "state.set",
+                        "target": {
+                          "expr": "'rule:state.spawn_coordinate'"
+                        },
+                        "value": {
+                          "expr": "var.site if grid.get('rule:state.board',var.site) == 0 and var.pick == 1 else state.get('rule:state.spawn_coordinate')"
+                        }
+                      },
+                      {
+                        "op": "state.increment",
+                        "target": {
+                          "expr": "'rule:state.spawn_count'"
+                        },
+                        "value": {
+                          "expr": "1 if grid.get('rule:state.board',var.site) == 0 else 0"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "op": "random.draw",
+                    "stream": "rule:random.tiles",
+                    "distribution": {
+                      "kind": "choice",
+                      "values": {
+                        "expr": "[2,4]"
+                      }
+                    },
+                    "as": "new_value"
+                  },
+                  {
+                    "op": "grid.set",
+                    "state": "rule:state.board",
+                    "coordinate": {
+                      "expr": "state.get('rule:state.spawn_coordinate')"
+                    },
+                    "value": {
+                      "expr": "var.new_value"
+                    }
+                  }
+                ]
+              }
+            ],
+            "flow": {
+              "model": "event_driven",
+              "phases": [
+                {
+                  "id": "rule:phase.input",
+                  "order": 100
+                }
+              ],
+              "initial_phase": "rule:phase.input",
+              "scheduler": {
+                "clock": "event_queue",
+                "tick_hz": null,
+                "ordering": "phase_priority_id"
+              }
+            },
+            "random_streams": [
+              {
+                "id": "rule:random.tiles",
+                "name": "Tile placement and value",
+                "algorithm": "cubeengine.pcg32/1",
+                "seed_policy": "session",
+                "seed": 0,
+                "sequence": 1
+              }
+            ],
+            "goals": [
+              {
+                "id": "rule:goal.target",
+                "name": "Reach the selected winning tile"
+              }
+            ],
+            "outcomes": [
+              {
+                "id": "rule:outcome.win",
+                "name": "Target tile reached",
+                "priority": 100,
+                "condition": {
+                  "expr": "grid.count_equal('rule:state.board',parameter.get('rule:parameter.target')) > 0"
+                },
+                "result": {
+                  "status": "win",
+                  "terminal": true,
+                  "winners": [
+                    {
+                      "expr": "'rule:participant.player'"
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "rule:outcome.loss",
+                "name": "Full board without adjacent equal tiles",
+                "priority": 200,
+                "condition": {
+                  "expr": "grid.none_equal('rule:state.board',0) and grid.values('rule:state.board',[[0,0],[1,0],[2,0],[3,0]]) == sequence.merge_equal(grid.values('rule:state.board',[[0,0],[1,0],[2,0],[3,0]]),0,4) and grid.values('rule:state.board',[[0,1],[1,1],[2,1],[3,1]]) == sequence.merge_equal(grid.values('rule:state.board',[[0,1],[1,1],[2,1],[3,1]]),0,4) and grid.values('rule:state.board',[[0,2],[1,2],[2,2],[3,2]]) == sequence.merge_equal(grid.values('rule:state.board',[[0,2],[1,2],[2,2],[3,2]]),0,4) and grid.values('rule:state.board',[[0,3],[1,3],[2,3],[3,3]]) == sequence.merge_equal(grid.values('rule:state.board',[[0,3],[1,3],[2,3],[3,3]]),0,4) and grid.values('rule:state.board',[[0,0],[0,1],[0,2],[0,3]]) == sequence.merge_equal(grid.values('rule:state.board',[[0,0],[0,1],[0,2],[0,3]]),0,4) and grid.values('rule:state.board',[[1,0],[1,1],[1,2],[1,3]]) == sequence.merge_equal(grid.values('rule:state.board',[[1,0],[1,1],[1,2],[1,3]]),0,4) and grid.values('rule:state.board',[[2,0],[2,1],[2,2],[2,3]]) == sequence.merge_equal(grid.values('rule:state.board',[[2,0],[2,1],[2,2],[2,3]]),0,4) and grid.values('rule:state.board',[[3,0],[3,1],[3,2],[3,3]]) == sequence.merge_equal(grid.values('rule:state.board',[[3,0],[3,1],[3,2],[3,3]]),0,4)"
+                },
+                "result": {
+                  "status": "loss",
+                  "terminal": true,
+                  "losers": [
+                    {
+                      "expr": "'rule:participant.player'"
+                    }
+                  ]
+                }
+              }
+            ],
+            "modes": [
+              {
+                "id": "rule:mode.light_2048",
+                "name": "Light · 2048",
+                "overrides": [
+                  {
+                    "parameter": "rule:parameter.theme",
+                    "value": {
+                      "expr": "'light'"
+                    }
+                  },
+                  {
+                    "parameter": "rule:parameter.target",
+                    "value": {
+                      "expr": "2048"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "rule:mode.light_1024",
+                "name": "Light · 1024",
+                "overrides": [
+                  {
+                    "parameter": "rule:parameter.theme",
+                    "value": {
+                      "expr": "'light'"
+                    }
+                  },
+                  {
+                    "parameter": "rule:parameter.target",
+                    "value": {
+                      "expr": "1024"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "rule:mode.light_512",
+                "name": "Light · 512",
+                "overrides": [
+                  {
+                    "parameter": "rule:parameter.theme",
+                    "value": {
+                      "expr": "'light'"
+                    }
+                  },
+                  {
+                    "parameter": "rule:parameter.target",
+                    "value": {
+                      "expr": "512"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "rule:mode.light_256",
+                "name": "Light · 256",
+                "overrides": [
+                  {
+                    "parameter": "rule:parameter.theme",
+                    "value": {
+                      "expr": "'light'"
+                    }
+                  },
+                  {
+                    "parameter": "rule:parameter.target",
+                    "value": {
+                      "expr": "256"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "rule:mode.dark_2048",
+                "name": "Dark · 2048",
+                "overrides": [
+                  {
+                    "parameter": "rule:parameter.theme",
+                    "value": {
+                      "expr": "'dark'"
+                    }
+                  },
+                  {
+                    "parameter": "rule:parameter.target",
+                    "value": {
+                      "expr": "2048"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "rule:mode.dark_1024",
+                "name": "Dark · 1024",
+                "overrides": [
+                  {
+                    "parameter": "rule:parameter.theme",
+                    "value": {
+                      "expr": "'dark'"
+                    }
+                  },
+                  {
+                    "parameter": "rule:parameter.target",
+                    "value": {
+                      "expr": "1024"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "rule:mode.dark_512",
+                "name": "Dark · 512",
+                "overrides": [
+                  {
+                    "parameter": "rule:parameter.theme",
+                    "value": {
+                      "expr": "'dark'"
+                    }
+                  },
+                  {
+                    "parameter": "rule:parameter.target",
+                    "value": {
+                      "expr": "512"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "rule:mode.dark_256",
+                "name": "Dark · 256",
+                "overrides": [
+                  {
+                    "parameter": "rule:parameter.theme",
+                    "value": {
+                      "expr": "'dark'"
+                    }
+                  },
+                  {
+                    "parameter": "rule:parameter.target",
+                    "value": {
+                      "expr": "256"
+                    }
+                  }
+                ]
+              }
+            ],
+            "invariants": [],
+            "extensions": {},
+            "unresolved": []
+          },
+          "evidence": [
+            "logic.py:1-217@6eb83aa25d5399d0bd635bf3b755963ca299f2365579d5fd5a0b4e52cbb77d62",
+            "game.py:1-224@6118e27c83a065743620b3818dbb3f2e0f68275f3547da911eab097e3915a9fb",
+            "constants.json:1-61@4c9aca4a2fd9ad64ea12a5bcac494c18fd8534e2cf5dcff26805cbf3bda63df6",
+            "main.py:1-293@0246fe933f6eeb20fad65cd29cca32668093a9c4f08273c6d1d41fea3c4aca2c"
+          ],
+          "behavior_tests": [
+            {
+              "name": "Adjacent twos merge left and a new tile spawns",
+              "fixture": {
+                "cells": [
+                  {
+                    "state": "rule:state.board",
+                    "coordinate": [
+                      0,
+                      0
+                    ],
+                    "value": 2
+                  },
+                  {
+                    "state": "rule:state.board",
+                    "coordinate": [
+                      1,
+                      0
+                    ],
+                    "value": 2
+                  }
+                ],
+                "otherwise": 0
+              },
+              "steps": [
+                {
+                  "action": "rule:action.left",
+                  "parameters": {},
+                  "accepted": true
+                }
+              ],
+              "expect": {
+                "cells": [
+                  {
+                    "state": "rule:state.board",
+                    "coordinate": [
+                      0,
+                      0
+                    ],
+                    "value": 4
+                  }
+                ],
+                "terminal": false
+              }
+            },
+            {
+              "name": "An unchanged left move is rejected without spawning",
+              "fixture": {
+                "cells": [
+                  {
+                    "state": "rule:state.board",
+                    "coordinate": [
+                      0,
+                      0
+                    ],
+                    "value": 2
+                  },
+                  {
+                    "state": "rule:state.board",
+                    "coordinate": [
+                      0,
+                      1
+                    ],
+                    "value": 2
+                  }
+                ],
+                "otherwise": 0
+              },
+              "steps": [
+                {
+                  "action": "rule:action.left",
+                  "parameters": {},
+                  "accepted": false
+                }
+              ],
+              "expect": {
+                "cells": [
+                  {
+                    "state": "rule:state.board",
+                    "coordinate": [
+                      0,
+                      0
+                    ],
+                    "value": 2
+                  },
+                  {
+                    "state": "rule:state.board",
+                    "coordinate": [
+                      0,
+                      1
+                    ],
+                    "value": 2
+                  }
+                ],
+                "terminal": false
+              }
+            },
+            {
+              "name": "Down merges top-first before shifting toward bottom",
+              "fixture": {
+                "cells": [
+                  {
+                    "state": "rule:state.board",
+                    "coordinate": [
+                      0,
+                      0
+                    ],
+                    "value": 2
+                  },
+                  {
+                    "state": "rule:state.board",
+                    "coordinate": [
+                      0,
+                      1
+                    ],
+                    "value": 2
+                  },
+                  {
+                    "state": "rule:state.board",
+                    "coordinate": [
+                      0,
+                      2
+                    ],
+                    "value": 2
+                  }
+                ],
+                "otherwise": 0
+              },
+              "steps": [
+                {
+                  "action": "rule:action.down",
+                  "parameters": {},
+                  "accepted": true
+                }
+              ],
+              "expect": {
+                "cells": [
+                  {
+                    "state": "rule:state.board",
+                    "coordinate": [
+                      0,
+                      2
+                    ],
+                    "value": 4
+                  },
+                  {
+                    "state": "rule:state.board",
+                    "coordinate": [
+                      0,
+                      3
+                    ],
+                    "value": 2
+                  }
+                ],
+                "terminal": false
+              }
+            }
+          ],
+          "assumptions": [
+            "Behavior tests with fixture require a test runner that installs the stated cells before executing steps.",
+            "The session seed is supplied by the runtime; the integer seed field satisfies stream validation. Reservoir sampling preserves uniform empty-site selection but not the source Python random sequence.",
+            "Quit and full-session restart, including restart after a terminal result, belong to host input commands rather than Rule actions."
+          ],
+          "unresolved": []
+        },
+        "stopped_reason": "Same blocking diagnostic after repair; stopped to avoid repeating paid generations."
+      }
+    ],
+    "source_inspection": {
+      "tool_turns": 3,
+      "source_chars_read": 73674,
+      "reads": [
+        {
+          "path": "main.py",
+          "file_sha256": "0246fe933f6eeb20fad65cd29cca32668093a9c4f08273c6d1d41fea3c4aca2c",
+          "start_line": 1,
+          "end_line": 293,
+          "total_lines": 293,
+          "complete_file": true,
+          "truncated": false,
+          "citation": {
+            "evidence_id": "main.py:1-293@0246fe933f6eeb20fad65cd29cca32668093a9c4f08273c6d1d41fea3c4aca2c",
+            "path": "main.py",
+            "file_sha256": "0246fe933f6eeb20fad65cd29cca32668093a9c4f08273c6d1d41fea3c4aca2c",
+            "span": {
+              "line_start": 1,
+              "line_end": 293
+            },
+            "supports": "/"
+          }
+        },
+        {
+          "path": "logic.py",
+          "file_sha256": "6eb83aa25d5399d0bd635bf3b755963ca299f2365579d5fd5a0b4e52cbb77d62",
+          "start_line": 1,
+          "end_line": 217,
+          "total_lines": 217,
+          "complete_file": true,
+          "truncated": false,
+          "citation": {
+            "evidence_id": "logic.py:1-217@6eb83aa25d5399d0bd635bf3b755963ca299f2365579d5fd5a0b4e52cbb77d62",
+            "path": "logic.py",
+            "file_sha256": "6eb83aa25d5399d0bd635bf3b755963ca299f2365579d5fd5a0b4e52cbb77d62",
+            "span": {
+              "line_start": 1,
+              "line_end": 217
+            },
+            "supports": "/"
+          }
+        },
+        {
+          "path": "game.py",
+          "file_sha256": "6118e27c83a065743620b3818dbb3f2e0f68275f3547da911eab097e3915a9fb",
+          "start_line": 1,
+          "end_line": 224,
+          "total_lines": 224,
+          "complete_file": true,
+          "truncated": false,
+          "citation": {
+            "evidence_id": "game.py:1-224@6118e27c83a065743620b3818dbb3f2e0f68275f3547da911eab097e3915a9fb",
+            "path": "game.py",
+            "file_sha256": "6118e27c83a065743620b3818dbb3f2e0f68275f3547da911eab097e3915a9fb",
+            "span": {
+              "line_start": 1,
+              "line_end": 224
+            },
+            "supports": "/"
+          }
+        },
+        {
+          "path": "constants.json",
+          "file_sha256": "4c9aca4a2fd9ad64ea12a5bcac494c18fd8534e2cf5dcff26805cbf3bda63df6",
+          "start_line": 1,
+          "end_line": 61,
+          "total_lines": 61,
+          "complete_file": true,
+          "truncated": false,
+          "citation": {
+            "evidence_id": "constants.json:1-61@4c9aca4a2fd9ad64ea12a5bcac494c18fd8534e2cf5dcff26805cbf3bda63df6",
+            "path": "constants.json",
+            "file_sha256": "4c9aca4a2fd9ad64ea12a5bcac494c18fd8534e2cf5dcff26805cbf3bda63df6",
+            "span": {
+              "line_start": 1,
+              "line_end": 61
+            },
+            "supports": "/"
+          }
+        },
+        {
+          "path": "main.py",
+          "file_sha256": "0246fe933f6eeb20fad65cd29cca32668093a9c4f08273c6d1d41fea3c4aca2c",
+          "start_line": 1,
+          "end_line": 293,
+          "total_lines": 293,
+          "complete_file": true,
+          "truncated": false,
+          "citation": {
+            "evidence_id": "main.py:1-293@0246fe933f6eeb20fad65cd29cca32668093a9c4f08273c6d1d41fea3c4aca2c",
+            "path": "main.py",
+            "file_sha256": "0246fe933f6eeb20fad65cd29cca32668093a9c4f08273c6d1d41fea3c4aca2c",
+            "span": {
+              "line_start": 1,
+              "line_end": 293
+            },
+            "supports": "/"
+          }
+        },
+        {
+          "path": "logic.py",
+          "file_sha256": "6eb83aa25d5399d0bd635bf3b755963ca299f2365579d5fd5a0b4e52cbb77d62",
+          "start_line": 1,
+          "end_line": 217,
+          "total_lines": 217,
+          "complete_file": true,
+          "truncated": false,
+          "citation": {
+            "evidence_id": "logic.py:1-217@6eb83aa25d5399d0bd635bf3b755963ca299f2365579d5fd5a0b4e52cbb77d62",
+            "path": "logic.py",
+            "file_sha256": "6eb83aa25d5399d0bd635bf3b755963ca299f2365579d5fd5a0b4e52cbb77d62",
+            "span": {
+              "line_start": 1,
+              "line_end": 217
+            },
+            "supports": "/"
+          }
+        },
+        {
+          "path": "game.py",
+          "file_sha256": "6118e27c83a065743620b3818dbb3f2e0f68275f3547da911eab097e3915a9fb",
+          "start_line": 1,
+          "end_line": 224,
+          "total_lines": 224,
+          "complete_file": true,
+          "truncated": false,
+          "citation": {
+            "evidence_id": "game.py:1-224@6118e27c83a065743620b3818dbb3f2e0f68275f3547da911eab097e3915a9fb",
+            "path": "game.py",
+            "file_sha256": "6118e27c83a065743620b3818dbb3f2e0f68275f3547da911eab097e3915a9fb",
+            "span": {
+              "line_start": 1,
+              "line_end": 224
+            },
+            "supports": "/"
+          }
+        },
+        {
+          "path": "constants.json",
+          "file_sha256": "4c9aca4a2fd9ad64ea12a5bcac494c18fd8534e2cf5dcff26805cbf3bda63df6",
+          "start_line": 1,
+          "end_line": 61,
+          "total_lines": 61,
+          "complete_file": true,
+          "truncated": false,
+          "citation": {
+            "evidence_id": "constants.json:1-61@4c9aca4a2fd9ad64ea12a5bcac494c18fd8534e2cf5dcff26805cbf3bda63df6",
+            "path": "constants.json",
+            "file_sha256": "4c9aca4a2fd9ad64ea12a5bcac494c18fd8534e2cf5dcff26805cbf3bda63df6",
+            "span": {
+              "line_start": 1,
+              "line_end": 61
+            },
+            "supports": "/"
+          }
+        },
+        {
+          "path": "main.py",
+          "file_sha256": "0246fe933f6eeb20fad65cd29cca32668093a9c4f08273c6d1d41fea3c4aca2c",
+          "start_line": 1,
+          "end_line": 293,
+          "total_lines": 293,
+          "complete_file": true,
+          "truncated": false,
+          "citation": {
+            "evidence_id": "main.py:1-293@0246fe933f6eeb20fad65cd29cca32668093a9c4f08273c6d1d41fea3c4aca2c",
+            "path": "main.py",
+            "file_sha256": "0246fe933f6eeb20fad65cd29cca32668093a9c4f08273c6d1d41fea3c4aca2c",
+            "span": {
+              "line_start": 1,
+              "line_end": 293
+            },
+            "supports": "/"
+          }
+        },
+        {
+          "path": "logic.py",
+          "file_sha256": "6eb83aa25d5399d0bd635bf3b755963ca299f2365579d5fd5a0b4e52cbb77d62",
+          "start_line": 1,
+          "end_line": 217,
+          "total_lines": 217,
+          "complete_file": true,
+          "truncated": false,
+          "citation": {
+            "evidence_id": "logic.py:1-217@6eb83aa25d5399d0bd635bf3b755963ca299f2365579d5fd5a0b4e52cbb77d62",
+            "path": "logic.py",
+            "file_sha256": "6eb83aa25d5399d0bd635bf3b755963ca299f2365579d5fd5a0b4e52cbb77d62",
+            "span": {
+              "line_start": 1,
+              "line_end": 217
+            },
+            "supports": "/"
+          }
+        },
+        {
+          "path": "game.py",
+          "file_sha256": "6118e27c83a065743620b3818dbb3f2e0f68275f3547da911eab097e3915a9fb",
+          "start_line": 1,
+          "end_line": 224,
+          "total_lines": 224,
+          "complete_file": true,
+          "truncated": false,
+          "citation": {
+            "evidence_id": "game.py:1-224@6118e27c83a065743620b3818dbb3f2e0f68275f3547da911eab097e3915a9fb",
+            "path": "game.py",
+            "file_sha256": "6118e27c83a065743620b3818dbb3f2e0f68275f3547da911eab097e3915a9fb",
+            "span": {
+              "line_start": 1,
+              "line_end": 224
+            },
+            "supports": "/"
+          }
+        },
+        {
+          "path": "constants.json",
+          "file_sha256": "4c9aca4a2fd9ad64ea12a5bcac494c18fd8534e2cf5dcff26805cbf3bda63df6",
+          "start_line": 1,
+          "end_line": 61,
+          "total_lines": 61,
+          "complete_file": true,
+          "truncated": false,
+          "citation": {
+            "evidence_id": "constants.json:1-61@4c9aca4a2fd9ad64ea12a5bcac494c18fd8534e2cf5dcff26805cbf3bda63df6",
+            "path": "constants.json",
+            "file_sha256": "4c9aca4a2fd9ad64ea12a5bcac494c18fd8534e2cf5dcff26805cbf3bda63df6",
+            "span": {
+              "line_start": 1,
+              "line_end": 61
+            },
+            "supports": "/"
+          }
+        }
+      ],
+      "indexed_files": 5
+    },
+    "quality_assessment": {
+      "version": "cubeengine.product-quality/1",
+      "pattern_version": "cubeengine.presentation-patterns/1",
+      "scope": "source",
+      "product_ready": false,
+      "checks": [
+        {
+          "id": "executable_four_ir",
+          "status": "fail",
+          "evidence": []
+        },
+        {
+          "id": "explicit_visual_roles",
+          "status": "pass",
+          "evidence": {
+            "missing_roles": [],
+            "reason": "No automatic flattening of content into grid containers."
+          }
+        },
+        {
+          "id": "source_behavior_equivalence",
+          "status": "pending",
+          "evidence": "Needs independent original-source oracle traces, including terminal/reset and rejected input."
+        },
+        {
+          "id": "spatial_rule_equivalence",
+          "status": "not_applicable",
+          "evidence": "Needs independent lifted-rule cases (all directions/neighbors/merges as applicable); not one self-generated win."
+        },
+        {
+          "id": "source_appearance_fidelity",
+          "status": "pending",
+          "evidence": "Needs state-to-asset/font/palette evidence and rendered-frame comparison; asset loading alone is insufficient."
+        },
+        {
+          "id": "visible_interactive_states",
+          "status": "pending",
+          "evidence": "Needs rendered initial/hover/occupied/terminal frames, internal-cell ray picks, orbit/reset and legible HUD."
+        },
+        {
+          "id": "lifecycle_and_controls",
+          "status": "pending",
+          "evidence": "Needs source feature inventory, menus/pause/restart/undo/AI where required; unsupported features cannot be omitted silently."
+        },
+        {
+          "id": "performance",
+          "status": "pending",
+          "evidence": "Needs measured update/render/input latency for the produced scene at target dimensions."
+        },
+        {
+          "id": "fresh_pipeline_provenance",
+          "status": "pending",
+          "evidence": "Needs new Source and Lift HTTP receipts with no accepted-stage cache, unchanged approved artifact hashes, and its own render capture."
+        }
+      ],
+      "statement": "Compile success is not native-reference parity. Pending evidence is not a pass."
+    },
+    "api_usage": {
+      "http_requests": 6,
+      "input_tokens": 225485,
+      "output_tokens": 21854,
+      "reported_cost_usd": 0.5278589
+    },
+    "verification": "stage execution and generated behavior tests; independent source equivalence not yet certified"
+  }
+}

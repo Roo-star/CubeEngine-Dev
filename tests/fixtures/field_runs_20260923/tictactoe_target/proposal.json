@@ -1,0 +1,2250 @@
+{
+  "proposal_version": "cubeengine.srtp/llm-proposal/2.0",
+  "proposal_id": "proposal:job.30815d8113aa4f00.rule_ir",
+  "job_id": "job:30815d8113aa4f00",
+  "stage": "spatial_lift",
+  "source_package_hash": "126c97294df6f4b2a889959917e957431d88431bb27df44d4dd743854058392a",
+  "design_intent": {
+    "intent_version": "cubeengine.srtp/design-intent/1.0",
+    "intent_id": "intent:078d25e7:3d-transform",
+    "conversation_id": "unspecified",
+    "turn_id": "unspecified",
+    "project_id": "project:tic.tac.toe.llm.source",
+    "source_manifest_hash": "078d25e7451cd8ae1b9dc566827f1b64ba55af8beda16ded740b5c213b091bd5",
+    "original_text": "Convert this complete 2D Tic-Tac-Toe game into a playable 3D Tic-Tac-Toe game.",
+    "language": "en",
+    "operation": "transform",
+    "scope": [
+      "rule",
+      "scene",
+      "asset",
+      "input"
+    ],
+    "preserve": [
+      "The source game's identity as Tic-Tac-Toe.",
+      "Playability."
+    ],
+    "changes": [
+      "Convert the existing 2D game into a playable 3D Tic-Tac-Toe game."
+    ],
+    "constraints": [
+      "Do not assume board dimensions, winning conditions, or interaction details not specified by the request."
+    ],
+    "resolved_references": [
+      "project:tic.tac.toe.llm.source"
+    ],
+    "assumptions": [],
+    "conflicts": [],
+    "unresolved": [
+      "The 3D board dimensions and layout are unspecified.",
+      "The intended 3D winning conditions are unspecified.",
+      "The desired controls and 3D presentation are unspecified."
+    ],
+    "requires_confirmation": true,
+    "status": "needs_confirmation",
+    "target_base": null
+  },
+  "base_documents": {
+    "rule_ir": {
+      "document_id": "rule:game.tic.tac.toe.target",
+      "revision": 0,
+      "content_hash": "86f16d1da60134863dfc5635dab3a778b64b88a260c6a3d5e6be587a49c183f3"
+    },
+    "scene_ir": {
+      "document_id": "scene:game.tic.tac.toe.target",
+      "revision": 0,
+      "content_hash": "c22879161d5bd6ba0e25495109f307653a59d8394b68d3f9465654e8edf3cbcd"
+    },
+    "asset_ir": {
+      "document_id": "asset:game.tic.tac.toe.target",
+      "revision": 0,
+      "content_hash": "e7f09bde9ee3f9b24cbe9126126e6f1cf4e81c2902881c707a41bba7c7f124e2"
+    },
+    "input_ir": {
+      "document_id": "input:game.tic.tac.toe.target",
+      "revision": 0,
+      "content_hash": "7c2eb9fa6cef77bc2726cd9e87ba629341ce1431a108fad86e96f4bcb79a5673"
+    }
+  },
+  "patches": {
+    "rule_ir": [
+      {
+        "document_id": "rule:game.tic.tac.toe.target",
+        "base_revision": 0,
+        "base_content_hash": "86f16d1da60134863dfc5635dab3a778b64b88a260c6a3d5e6be587a49c183f3",
+        "operations": [
+          {
+            "op": "replace",
+            "path": "/metadata",
+            "value": {
+              "title": "3D Tic Tac Toe",
+              "description": "A 3×3×3 spatial lift of the source game. X and O alternate; three matching marks on a straight spatial line win. A full board without a winner draws.",
+              "source_project_hash": "126c97294df6f4b2a889959917e957431d88431bb27df44d4dd743854058392a",
+              "determinism": "deterministic"
+            }
+          },
+          {
+            "op": "replace",
+            "path": "/parameters",
+            "value": []
+          },
+          {
+            "op": "replace",
+            "path": "/types",
+            "value": []
+          },
+          {
+            "op": "replace",
+            "path": "/participants",
+            "value": [
+              {
+                "id": "rule:participant.human",
+                "name": "Local player controlling both alternating marks",
+                "kind": "human"
+              }
+            ]
+          },
+          {
+            "op": "replace",
+            "path": "/topologies",
+            "value": [
+              {
+                "id": "rule:topology.board",
+                "name": "3×3×3 board",
+                "kind": "rect_grid",
+                "anchor": "cell",
+                "axes": [
+                  {
+                    "name": "x",
+                    "extent": 3,
+                    "boundary": "bounded"
+                  },
+                  {
+                    "name": "y",
+                    "extent": 3,
+                    "boundary": "bounded"
+                  },
+                  {
+                    "name": "z",
+                    "extent": 3,
+                    "boundary": "bounded"
+                  }
+                ],
+                "neighborhoods": []
+              }
+            ]
+          },
+          {
+            "op": "replace",
+            "path": "/state",
+            "value": {
+              "variables": [
+                {
+                  "id": "rule:state.board",
+                  "name": "Board cell: empty, X or O",
+                  "type": "core:int",
+                  "scope": "topology_site",
+                  "topology": "rule:topology.board",
+                  "initial": {
+                    "op": "literal",
+                    "value": 0
+                  }
+                },
+                {
+                  "id": "rule:state.current_player",
+                  "name": "Mark whose turn it is",
+                  "type": "core:int",
+                  "scope": "global",
+                  "initial": {
+                    "op": "literal",
+                    "value": 1
+                  }
+                },
+                {
+                  "id": "rule:state.winner",
+                  "name": "Winning mark, or zero",
+                  "type": "core:int",
+                  "scope": "global",
+                  "initial": {
+                    "op": "literal",
+                    "value": 0
+                  }
+                },
+                {
+                  "id": "rule:state.draw",
+                  "name": "Whether the game is drawn",
+                  "type": "core:bool",
+                  "scope": "global",
+                  "initial": {
+                    "op": "literal",
+                    "value": false
+                  }
+                }
+              ],
+              "entity_types": [],
+              "initial_effects": [],
+              "information_model": "perfect"
+            }
+          },
+          {
+            "op": "replace",
+            "path": "/queries",
+            "value": []
+          },
+          {
+            "op": "replace",
+            "path": "/events",
+            "value": [
+              {
+                "id": "rule:event.placed",
+                "name": "Mark placed",
+                "payload": []
+              }
+            ]
+          },
+          {
+            "op": "replace",
+            "path": "/actions",
+            "value": [
+              {
+                "id": "rule:action.place",
+                "name": "Place the current mark",
+                "actor": {
+                  "op": "literal",
+                  "value": "rule:participant.human"
+                },
+                "parameters": [
+                  {
+                    "name": "coordinate",
+                    "type": "core:coord",
+                    "domain": {
+                      "op": "call",
+                      "function": "core:topology.sites",
+                      "args": [
+                        {
+                          "op": "literal",
+                          "value": "rule:topology.board"
+                        }
+                      ]
+                    }
+                  }
+                ],
+                "precondition": {
+                  "op": "and",
+                  "args": [
+                    {
+                      "op": "eq",
+                      "args": [
+                        {
+                          "op": "call",
+                          "function": "core:state.get",
+                          "args": [
+                            {
+                              "op": "literal",
+                              "value": "rule:state.winner"
+                            }
+                          ]
+                        },
+                        {
+                          "op": "literal",
+                          "value": 0
+                        }
+                      ]
+                    },
+                    {
+                      "op": "eq",
+                      "args": [
+                        {
+                          "op": "call",
+                          "function": "core:state.get",
+                          "args": [
+                            {
+                              "op": "literal",
+                              "value": "rule:state.draw"
+                            }
+                          ]
+                        },
+                        {
+                          "op": "literal",
+                          "value": false
+                        }
+                      ]
+                    },
+                    {
+                      "op": "call",
+                      "function": "core:topology.contains",
+                      "args": [
+                        {
+                          "op": "literal",
+                          "value": "rule:topology.board"
+                        },
+                        {
+                          "op": "param",
+                          "name": "coordinate"
+                        }
+                      ]
+                    },
+                    {
+                      "op": "eq",
+                      "args": [
+                        {
+                          "op": "call",
+                          "function": "core:grid.get",
+                          "args": [
+                            {
+                              "op": "literal",
+                              "value": "rule:state.board"
+                            },
+                            {
+                              "op": "param",
+                              "name": "coordinate"
+                            }
+                          ]
+                        },
+                        {
+                          "op": "literal",
+                          "value": 0
+                        }
+                      ]
+                    }
+                  ]
+                },
+                "effects": [
+                  {
+                    "op": "grid.set",
+                    "state": "rule:state.board",
+                    "coordinate": {
+                      "op": "param",
+                      "name": "coordinate"
+                    },
+                    "value": {
+                      "op": "call",
+                      "function": "core:state.get",
+                      "args": [
+                        {
+                          "op": "literal",
+                          "value": "rule:state.current_player"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "op": "event.emit",
+                    "event": "rule:event.placed"
+                  }
+                ],
+                "timing": {
+                  "phase": "rule:phase.input"
+                },
+                "encoding": {
+                  "kind": "parameter_product"
+                }
+              }
+            ]
+          },
+          {
+            "op": "replace",
+            "path": "/systems",
+            "value": [
+              {
+                "id": "rule:system.win",
+                "name": "Detect three matching marks on a straight spatial line",
+                "phase": "rule:phase.input",
+                "priority": 100,
+                "trigger": {
+                  "kind": "event",
+                  "event": "rule:event.placed"
+                },
+                "condition": {
+                  "op": "call",
+                  "function": "core:grid.has_line",
+                  "args": [
+                    {
+                      "op": "literal",
+                      "value": "rule:state.board"
+                    },
+                    {
+                      "op": "call",
+                      "function": "core:state.get",
+                      "args": [
+                        {
+                          "op": "literal",
+                          "value": "rule:state.current_player"
+                        }
+                      ]
+                    },
+                    {
+                      "op": "literal",
+                      "value": 3
+                    }
+                  ]
+                },
+                "effects": [
+                  {
+                    "op": "state.set",
+                    "target": {
+                      "op": "literal",
+                      "value": "rule:state.winner"
+                    },
+                    "value": {
+                      "op": "call",
+                      "function": "core:state.get",
+                      "args": [
+                        {
+                          "op": "literal",
+                          "value": "rule:state.current_player"
+                        }
+                      ]
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "rule:system.draw",
+                "name": "Detect a full volume without a winner",
+                "phase": "rule:phase.input",
+                "priority": 200,
+                "trigger": {
+                  "kind": "event",
+                  "event": "rule:event.placed"
+                },
+                "condition": {
+                  "op": "and",
+                  "args": [
+                    {
+                      "op": "eq",
+                      "args": [
+                        {
+                          "op": "call",
+                          "function": "core:state.get",
+                          "args": [
+                            {
+                              "op": "literal",
+                              "value": "rule:state.winner"
+                            }
+                          ]
+                        },
+                        {
+                          "op": "literal",
+                          "value": 0
+                        }
+                      ]
+                    },
+                    {
+                      "op": "eq",
+                      "args": [
+                        {
+                          "op": "call",
+                          "function": "core:grid.count_equal",
+                          "args": [
+                            {
+                              "op": "literal",
+                              "value": "rule:state.board"
+                            },
+                            {
+                              "op": "literal",
+                              "value": 0
+                            }
+                          ]
+                        },
+                        {
+                          "op": "literal",
+                          "value": 0
+                        }
+                      ]
+                    }
+                  ]
+                },
+                "effects": [
+                  {
+                    "op": "state.set",
+                    "target": {
+                      "op": "literal",
+                      "value": "rule:state.draw"
+                    },
+                    "value": {
+                      "op": "literal",
+                      "value": true
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "rule:system.next_player",
+                "name": "Alternate marks unless the game ended",
+                "phase": "rule:phase.input",
+                "priority": 300,
+                "trigger": {
+                  "kind": "event",
+                  "event": "rule:event.placed"
+                },
+                "condition": {
+                  "op": "and",
+                  "args": [
+                    {
+                      "op": "eq",
+                      "args": [
+                        {
+                          "op": "call",
+                          "function": "core:state.get",
+                          "args": [
+                            {
+                              "op": "literal",
+                              "value": "rule:state.winner"
+                            }
+                          ]
+                        },
+                        {
+                          "op": "literal",
+                          "value": 0
+                        }
+                      ]
+                    },
+                    {
+                      "op": "eq",
+                      "args": [
+                        {
+                          "op": "call",
+                          "function": "core:state.get",
+                          "args": [
+                            {
+                              "op": "literal",
+                              "value": "rule:state.draw"
+                            }
+                          ]
+                        },
+                        {
+                          "op": "literal",
+                          "value": false
+                        }
+                      ]
+                    }
+                  ]
+                },
+                "effects": [
+                  {
+                    "op": "state.set",
+                    "target": {
+                      "op": "literal",
+                      "value": "rule:state.current_player"
+                    },
+                    "value": {
+                      "op": "sub",
+                      "args": [
+                        {
+                          "op": "literal",
+                          "value": 3
+                        },
+                        {
+                          "op": "call",
+                          "function": "core:state.get",
+                          "args": [
+                            {
+                              "op": "literal",
+                              "value": "rule:state.current_player"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "op": "replace",
+            "path": "/flow",
+            "value": {
+              "model": "event_driven",
+              "phases": [
+                {
+                  "id": "rule:phase.input",
+                  "order": 100
+                }
+              ],
+              "initial_phase": "rule:phase.input",
+              "scheduler": {
+                "clock": "event_queue",
+                "tick_hz": null,
+                "ordering": "phase_priority_id"
+              }
+            }
+          },
+          {
+            "op": "replace",
+            "path": "/random_streams",
+            "value": []
+          },
+          {
+            "op": "replace",
+            "path": "/goals",
+            "value": [
+              {
+                "id": "rule:goal.three_in_row",
+                "name": "Complete three of your marks on a straight line through the volume"
+              }
+            ]
+          },
+          {
+            "op": "replace",
+            "path": "/outcomes",
+            "value": [
+              {
+                "id": "rule:outcome.win",
+                "name": "X or O wins",
+                "priority": 100,
+                "condition": {
+                  "op": "ne",
+                  "args": [
+                    {
+                      "op": "call",
+                      "function": "core:state.get",
+                      "args": [
+                        {
+                          "op": "literal",
+                          "value": "rule:state.winner"
+                        }
+                      ]
+                    },
+                    {
+                      "op": "literal",
+                      "value": 0
+                    }
+                  ]
+                },
+                "result": {
+                  "status": "win",
+                  "terminal": true,
+                  "winners": [
+                    {
+                      "op": "call",
+                      "function": "core:state.get",
+                      "args": [
+                        {
+                          "op": "literal",
+                          "value": "rule:state.winner"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "rule:outcome.draw",
+                "name": "Draw",
+                "priority": 200,
+                "condition": {
+                  "op": "eq",
+                  "args": [
+                    {
+                      "op": "call",
+                      "function": "core:state.get",
+                      "args": [
+                        {
+                          "op": "literal",
+                          "value": "rule:state.draw"
+                        }
+                      ]
+                    },
+                    {
+                      "op": "literal",
+                      "value": true
+                    }
+                  ]
+                },
+                "result": {
+                  "status": "draw",
+                  "terminal": true
+                }
+              }
+            ]
+          },
+          {
+            "op": "replace",
+            "path": "/modes",
+            "value": [
+              {
+                "id": "rule:mode.default",
+                "name": "Default",
+                "overrides": []
+              }
+            ]
+          },
+          {
+            "op": "replace",
+            "path": "/invariants",
+            "value": [
+              {
+                "id": "rule:invariant.current_player",
+                "name": "Current mark is X or O",
+                "condition": {
+                  "op": "or",
+                  "args": [
+                    {
+                      "op": "eq",
+                      "args": [
+                        {
+                          "op": "call",
+                          "function": "core:state.get",
+                          "args": [
+                            {
+                              "op": "literal",
+                              "value": "rule:state.current_player"
+                            }
+                          ]
+                        },
+                        {
+                          "op": "literal",
+                          "value": 1
+                        }
+                      ]
+                    },
+                    {
+                      "op": "eq",
+                      "args": [
+                        {
+                          "op": "call",
+                          "function": "core:state.get",
+                          "args": [
+                            {
+                              "op": "literal",
+                              "value": "rule:state.current_player"
+                            }
+                          ]
+                        },
+                        {
+                          "op": "literal",
+                          "value": 2
+                        }
+                      ]
+                    }
+                  ]
+                },
+                "severity": "error"
+              },
+              {
+                "id": "rule:invariant.cell_values",
+                "name": "All 27 cells have valid values",
+                "condition": {
+                  "op": "eq",
+                  "args": [
+                    {
+                      "op": "add",
+                      "args": [
+                        {
+                          "op": "add",
+                          "args": [
+                            {
+                              "op": "call",
+                              "function": "core:grid.count_equal",
+                              "args": [
+                                {
+                                  "op": "literal",
+                                  "value": "rule:state.board"
+                                },
+                                {
+                                  "op": "literal",
+                                  "value": 0
+                                }
+                              ]
+                            },
+                            {
+                              "op": "call",
+                              "function": "core:grid.count_equal",
+                              "args": [
+                                {
+                                  "op": "literal",
+                                  "value": "rule:state.board"
+                                },
+                                {
+                                  "op": "literal",
+                                  "value": 1
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "op": "call",
+                          "function": "core:grid.count_equal",
+                          "args": [
+                            {
+                              "op": "literal",
+                              "value": "rule:state.board"
+                            },
+                            {
+                              "op": "literal",
+                              "value": 2
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "op": "literal",
+                      "value": 27
+                    }
+                  ]
+                },
+                "severity": "error"
+              }
+            ]
+          },
+          {
+            "op": "replace",
+            "path": "/extensions",
+            "value": {}
+          },
+          {
+            "op": "replace",
+            "path": "/unresolved",
+            "value": []
+          }
+        ],
+        "evidence": [
+          {
+            "evidence_id": "main.py:1-86@fe934e578327e76620ffd7588aca5c05b35bffc81c3fd6cc4c4d59f637964003",
+            "path": "main.py",
+            "file_sha256": "fe934e578327e76620ffd7588aca5c05b35bffc81c3fd6cc4c4d59f637964003",
+            "span": {
+              "line_start": 1,
+              "line_end": 86
+            },
+            "supports": "/rule_ir"
+          }
+        ],
+        "assumptions": [
+          "The requested 3D conversion adds three depth layers while retaining the source’s three-cell line length and alternating marks.",
+          "The registered grid.has_line function evaluates straight lines across all axes and diagonals of a rank-3 rectangular topology.",
+          "Full-session restart and quit are host commands, not Rule actions; the input stage must route R to host_command restart and Escape to host_command quit. Existing scene and input documents require corresponding spatial-lift updates."
+        ],
+        "unresolved": []
+      }
+    ],
+    "scene_ir": [
+      {
+        "document_id": "scene:game.tic.tac.toe.target",
+        "base_revision": 0,
+        "base_content_hash": "c22879161d5bd6ba0e25495109f307653a59d8394b68d3f9465654e8edf3cbcd",
+        "operations": [
+          {
+            "op": "replace",
+            "path": "/metadata",
+            "value": {
+              "title": "3D Tic Tac Toe",
+              "description": "One centered 3×3×3 volume with selectable slate-coloured cell shells, blue X marks, amber O marks, and the source game's status and control text.",
+              "source_project_hash": "126c97294df6f4b2a889959917e957431d88431bb27df44d4dd743854058392a",
+              "source_visual_bindings": [
+                {
+                  "target": "/prefabs/0/root/components/0/properties/color",
+                  "id": "visual:60f40b4c44df12b80235",
+                  "kind": "color",
+                  "value": [
+                    0.16470588235294117,
+                    0.21176470588235294,
+                    0.2823529411764706,
+                    1.0
+                  ],
+                  "source": {
+                    "path": "main.py",
+                    "file_sha256": "fe934e578327e76620ffd7588aca5c05b35bffc81c3fd6cc4c4d59f637964003",
+                    "anchor": "line:73:16:color",
+                    "line": 73,
+                    "expression": "(42, 54, 72)"
+                  }
+                },
+                {
+                  "target": "/prefabs/0/root/components/0/properties/shell_color",
+                  "id": "visual:60f40b4c44df12b80235",
+                  "kind": "color",
+                  "value": [
+                    0.16470588235294117,
+                    0.21176470588235294,
+                    0.2823529411764706,
+                    1.0
+                  ],
+                  "source": {
+                    "path": "main.py",
+                    "file_sha256": "fe934e578327e76620ffd7588aca5c05b35bffc81c3fd6cc4c4d59f637964003",
+                    "anchor": "line:73:16:color",
+                    "line": 73,
+                    "expression": "(42, 54, 72)"
+                  }
+                },
+                {
+                  "target": "/prefabs/0/root/components/1/properties/variants/x/marker/color",
+                  "id": "visual:250984d2d50bec593b55",
+                  "kind": "color",
+                  "value": [
+                    0.27450980392156865,
+                    0.7450980392156863,
+                    0.9803921568627451,
+                    1.0
+                  ],
+                  "source": {
+                    "path": "main.py",
+                    "file_sha256": "fe934e578327e76620ffd7588aca5c05b35bffc81c3fd6cc4c4d59f637964003",
+                    "anchor": "line:76:20:color",
+                    "line": 76,
+                    "expression": "(70, 190, 250)"
+                  }
+                },
+                {
+                  "target": "/prefabs/0/root/components/1/properties/variants/o/marker/color",
+                  "id": "visual:b7e6a03ef48ccd81c86d",
+                  "kind": "color",
+                  "value": [
+                    0.9803921568627451,
+                    0.6666666666666666,
+                    0.29411764705882354,
+                    1.0
+                  ],
+                  "source": {
+                    "path": "main.py",
+                    "file_sha256": "fe934e578327e76620ffd7588aca5c05b35bffc81c3fd6cc4c4d59f637964003",
+                    "anchor": "line:79:20:color",
+                    "line": 79,
+                    "expression": "(250, 170, 75)"
+                  }
+                },
+                {
+                  "target": "/nodes/4/components/0/properties/color",
+                  "id": "visual:9fbe4de0bce1cff3a27a",
+                  "kind": "color",
+                  "value": [
+                    0.9019607843137255,
+                    0.9215686274509803,
+                    0.9607843137254902,
+                    1.0
+                  ],
+                  "source": {
+                    "path": "main.py",
+                    "file_sha256": "fe934e578327e76620ffd7588aca5c05b35bffc81c3fd6cc4c4d59f637964003",
+                    "anchor": "line:68:20:color",
+                    "line": 68,
+                    "expression": "(230, 235, 245)"
+                  }
+                },
+                {
+                  "target": "/nodes/5/components/0/properties/color",
+                  "id": "visual:9fbe4de0bce1cff3a27a",
+                  "kind": "color",
+                  "value": [
+                    0.9019607843137255,
+                    0.9215686274509803,
+                    0.9607843137254902,
+                    1.0
+                  ],
+                  "source": {
+                    "path": "main.py",
+                    "file_sha256": "fe934e578327e76620ffd7588aca5c05b35bffc81c3fd6cc4c4d59f637964003",
+                    "anchor": "line:68:20:color",
+                    "line": 68,
+                    "expression": "(230, 235, 245)"
+                  }
+                },
+                {
+                  "target": "/nodes/6/components/0/properties/color",
+                  "id": "visual:9fbe4de0bce1cff3a27a",
+                  "kind": "color",
+                  "value": [
+                    0.9019607843137255,
+                    0.9215686274509803,
+                    0.9607843137254902,
+                    1.0
+                  ],
+                  "source": {
+                    "path": "main.py",
+                    "file_sha256": "fe934e578327e76620ffd7588aca5c05b35bffc81c3fd6cc4c4d59f637964003",
+                    "anchor": "line:68:20:color",
+                    "line": 68,
+                    "expression": "(230, 235, 245)"
+                  }
+                },
+                {
+                  "target": "/nodes/7/components/0/properties/color",
+                  "id": "visual:9fbe4de0bce1cff3a27a",
+                  "kind": "color",
+                  "value": [
+                    0.9019607843137255,
+                    0.9215686274509803,
+                    0.9607843137254902,
+                    1.0
+                  ],
+                  "source": {
+                    "path": "main.py",
+                    "file_sha256": "fe934e578327e76620ffd7588aca5c05b35bffc81c3fd6cc4c4d59f637964003",
+                    "anchor": "line:68:20:color",
+                    "line": 68,
+                    "expression": "(230, 235, 245)"
+                  }
+                },
+                {
+                  "target": "/nodes/8/components/0/properties/color",
+                  "id": "visual:9fbe4de0bce1cff3a27a",
+                  "kind": "color",
+                  "value": [
+                    0.9019607843137255,
+                    0.9215686274509803,
+                    0.9607843137254902,
+                    1.0
+                  ],
+                  "source": {
+                    "path": "main.py",
+                    "file_sha256": "fe934e578327e76620ffd7588aca5c05b35bffc81c3fd6cc4c4d59f637964003",
+                    "anchor": "line:68:20:color",
+                    "line": 68,
+                    "expression": "(230, 235, 245)"
+                  }
+                },
+                {
+                  "target": "/nodes/9/components/0/properties/color",
+                  "id": "visual:a6306d3919105b55fc99",
+                  "kind": "color",
+                  "value": [
+                    0.6666666666666666,
+                    0.7254901960784313,
+                    0.803921568627451,
+                    1.0
+                  ],
+                  "source": {
+                    "path": "main.py",
+                    "file_sha256": "fe934e578327e76620ffd7588aca5c05b35bffc81c3fd6cc4c4d59f637964003",
+                    "anchor": "line:69:20:color",
+                    "line": 69,
+                    "expression": "(170, 185, 205)"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "op": "replace",
+            "path": "/layers",
+            "value": [
+              {
+                "id": "scene:layer.runtime",
+                "name": "Runtime",
+                "kind": "runtime",
+                "visible": true,
+                "pickable": true,
+                "opacity": 1
+              }
+            ]
+          },
+          {
+            "op": "replace",
+            "path": "/prefabs",
+            "value": [
+              {
+                "id": "scene:prefab.cell",
+                "name": "Selectable volume cell",
+                "root": {
+                  "local_id": "cell",
+                  "name": "Cell shell and centered mark",
+                  "active": true,
+                  "transform": {
+                    "translation": [
+                      0,
+                      0,
+                      0
+                    ],
+                    "rotation_euler_deg": [
+                      0,
+                      0,
+                      0
+                    ],
+                    "scale": [
+                      1,
+                      1,
+                      1
+                    ]
+                  },
+                  "components": [
+                    {
+                      "id": "shell",
+                      "type": "renderer",
+                      "enabled": true,
+                      "properties": {
+                        "geometry": "builtin:cube",
+                        "visible": true,
+                        "scale": [
+                          0.9,
+                          0.9,
+                          0.9
+                        ],
+                        "color": [
+                          0.16470588235294117,
+                          0.21176470588235294,
+                          0.2823529411764706,
+                          1.0
+                        ],
+                        "shell_color": [
+                          0.16470588235294117,
+                          0.21176470588235294,
+                          0.2823529411764706,
+                          1.0
+                        ],
+                        "opacity": 0.18,
+                        "spatial_role": "cell_shell"
+                      }
+                    },
+                    {
+                      "id": "appearance",
+                      "type": "renderer",
+                      "enabled": true,
+                      "properties": {
+                        "geometry": "builtin:quad",
+                        "visible": false,
+                        "scale": [
+                          0.01,
+                          0.01,
+                          0.01
+                        ],
+                        "variant": "empty",
+                        "spatial_role": "content",
+                        "variants": {
+                          "empty": {
+                            "visible": false,
+                            "marker": null
+                          },
+                          "x": {
+                            "visible": true,
+                            "marker": {
+                              "kind": "cross",
+                              "color": [
+                                0.27450980392156865,
+                                0.7450980392156863,
+                                0.9803921568627451,
+                                1.0
+                              ],
+                              "size": 0.514286,
+                              "billboard": false,
+                              "placement": "cell_center"
+                            }
+                          },
+                          "o": {
+                            "visible": true,
+                            "marker": {
+                              "kind": "ring",
+                              "color": [
+                                0.9803921568627451,
+                                0.6666666666666666,
+                                0.29411764705882354,
+                                1.0
+                              ],
+                              "size": 0.571429,
+                              "billboard": false,
+                              "placement": "cell_center"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "id": "cell_hit",
+                      "type": "collider",
+                      "enabled": true,
+                      "properties": {
+                        "shape": "box",
+                        "size": [
+                          0.9,
+                          0.9,
+                          0.9
+                        ],
+                        "is_trigger": false,
+                        "selectable": true
+                      }
+                    }
+                  ],
+                  "children": []
+                }
+              }
+            ]
+          },
+          {
+            "op": "replace",
+            "path": "/nodes",
+            "value": [
+              {
+                "id": "scene:board",
+                "name": "Centered 3×3×3 selectable volume",
+                "parent": null,
+                "active": true,
+                "layer": "scene:layer.runtime",
+                "transform": {
+                  "translation": [
+                    0,
+                    0,
+                    0
+                  ],
+                  "rotation_euler_deg": [
+                    0,
+                    0,
+                    0
+                  ],
+                  "scale": [
+                    1,
+                    1,
+                    1
+                  ]
+                },
+                "components": [
+                  {
+                    "id": "sites",
+                    "type": "topology_visualizer",
+                    "enabled": true,
+                    "properties": {
+                      "rule_topology": "rule:topology.board",
+                      "prefab": "scene:prefab.cell",
+                      "index_to_world": [
+                        1,
+                        0,
+                        0,
+                        -1,
+                        0,
+                        -1,
+                        0,
+                        1,
+                        0,
+                        0,
+                        1,
+                        -1,
+                        0,
+                        0,
+                        0,
+                        1
+                      ]
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "scene:light",
+                "name": "Even illumination for source colours",
+                "parent": null,
+                "active": true,
+                "layer": "scene:layer.runtime",
+                "transform": {
+                  "translation": [
+                    0,
+                    0,
+                    0
+                  ],
+                  "rotation_euler_deg": [
+                    0,
+                    0,
+                    0
+                  ],
+                  "scale": [
+                    1,
+                    1,
+                    1
+                  ]
+                },
+                "components": [
+                  {
+                    "id": "ambient",
+                    "type": "light",
+                    "enabled": true,
+                    "properties": {
+                      "kind": "ambient",
+                      "color": [
+                        1,
+                        1,
+                        1,
+                        1
+                      ],
+                      "intensity": 1
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "scene:status.play",
+                "name": "Turn status unless a mark wins",
+                "parent": null,
+                "active": true,
+                "layer": "scene:layer.runtime",
+                "transform": {
+                  "translation": [
+                    0,
+                    0,
+                    0
+                  ],
+                  "rotation_euler_deg": [
+                    0,
+                    0,
+                    0
+                  ],
+                  "scale": [
+                    1,
+                    1,
+                    1
+                  ]
+                },
+                "components": []
+              },
+              {
+                "id": "scene:status.not_draw",
+                "name": "Turn status unless the board is drawn",
+                "parent": "scene:status.play",
+                "active": true,
+                "layer": "scene:layer.runtime",
+                "transform": {
+                  "translation": [
+                    0,
+                    0,
+                    0
+                  ],
+                  "rotation_euler_deg": [
+                    0,
+                    0,
+                    0
+                  ],
+                  "scale": [
+                    1,
+                    1,
+                    1
+                  ]
+                },
+                "components": []
+              },
+              {
+                "id": "scene:status.turn_x",
+                "name": "X turn",
+                "parent": "scene:status.not_draw",
+                "active": true,
+                "layer": "scene:layer.runtime",
+                "transform": {
+                  "translation": [
+                    0,
+                    0,
+                    0
+                  ],
+                  "rotation_euler_deg": [
+                    0,
+                    0,
+                    0
+                  ],
+                  "scale": [
+                    1,
+                    1,
+                    1
+                  ]
+                },
+                "components": [
+                  {
+                    "id": "canvas",
+                    "type": "ui_canvas",
+                    "enabled": true,
+                    "properties": {
+                      "mode": "overlay",
+                      "visible": true,
+                      "text": "Turn: X",
+                      "font": "asset:font.pygame_default",
+                      "color": [
+                        0.9019607843137255,
+                        0.9215686274509803,
+                        0.9607843137254902,
+                        1.0
+                      ],
+                      "position": [
+                        -0.368421,
+                        0.447368
+                      ],
+                      "origin": [
+                        -0.5,
+                        0.5
+                      ],
+                      "scale": 2.526316
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "scene:status.turn_o",
+                "name": "O turn",
+                "parent": "scene:status.not_draw",
+                "active": false,
+                "layer": "scene:layer.runtime",
+                "transform": {
+                  "translation": [
+                    0,
+                    0,
+                    0
+                  ],
+                  "rotation_euler_deg": [
+                    0,
+                    0,
+                    0
+                  ],
+                  "scale": [
+                    1,
+                    1,
+                    1
+                  ]
+                },
+                "components": [
+                  {
+                    "id": "canvas",
+                    "type": "ui_canvas",
+                    "enabled": true,
+                    "properties": {
+                      "mode": "overlay",
+                      "visible": true,
+                      "text": "Turn: O",
+                      "font": "asset:font.pygame_default",
+                      "color": [
+                        0.9019607843137255,
+                        0.9215686274509803,
+                        0.9607843137254902,
+                        1.0
+                      ],
+                      "position": [
+                        -0.368421,
+                        0.447368
+                      ],
+                      "origin": [
+                        -0.5,
+                        0.5
+                      ],
+                      "scale": 2.526316
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "scene:status.win_x",
+                "name": "X victory",
+                "parent": null,
+                "active": false,
+                "layer": "scene:layer.runtime",
+                "transform": {
+                  "translation": [
+                    0,
+                    0,
+                    0
+                  ],
+                  "rotation_euler_deg": [
+                    0,
+                    0,
+                    0
+                  ],
+                  "scale": [
+                    1,
+                    1,
+                    1
+                  ]
+                },
+                "components": [
+                  {
+                    "id": "canvas",
+                    "type": "ui_canvas",
+                    "enabled": true,
+                    "properties": {
+                      "mode": "overlay",
+                      "visible": true,
+                      "text": "Winner: X",
+                      "font": "asset:font.pygame_default",
+                      "color": [
+                        0.9019607843137255,
+                        0.9215686274509803,
+                        0.9607843137254902,
+                        1.0
+                      ],
+                      "position": [
+                        -0.368421,
+                        0.447368
+                      ],
+                      "origin": [
+                        -0.5,
+                        0.5
+                      ],
+                      "scale": 2.526316
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "scene:status.win_o",
+                "name": "O victory",
+                "parent": null,
+                "active": false,
+                "layer": "scene:layer.runtime",
+                "transform": {
+                  "translation": [
+                    0,
+                    0,
+                    0
+                  ],
+                  "rotation_euler_deg": [
+                    0,
+                    0,
+                    0
+                  ],
+                  "scale": [
+                    1,
+                    1,
+                    1
+                  ]
+                },
+                "components": [
+                  {
+                    "id": "canvas",
+                    "type": "ui_canvas",
+                    "enabled": true,
+                    "properties": {
+                      "mode": "overlay",
+                      "visible": true,
+                      "text": "Winner: O",
+                      "font": "asset:font.pygame_default",
+                      "color": [
+                        0.9019607843137255,
+                        0.9215686274509803,
+                        0.9607843137254902,
+                        1.0
+                      ],
+                      "position": [
+                        -0.368421,
+                        0.447368
+                      ],
+                      "origin": [
+                        -0.5,
+                        0.5
+                      ],
+                      "scale": 2.526316
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "scene:status.draw",
+                "name": "Draw",
+                "parent": null,
+                "active": false,
+                "layer": "scene:layer.runtime",
+                "transform": {
+                  "translation": [
+                    0,
+                    0,
+                    0
+                  ],
+                  "rotation_euler_deg": [
+                    0,
+                    0,
+                    0
+                  ],
+                  "scale": [
+                    1,
+                    1,
+                    1
+                  ]
+                },
+                "components": [
+                  {
+                    "id": "canvas",
+                    "type": "ui_canvas",
+                    "enabled": true,
+                    "properties": {
+                      "mode": "overlay",
+                      "visible": true,
+                      "text": "Draw",
+                      "font": "asset:font.pygame_default",
+                      "color": [
+                        0.9019607843137255,
+                        0.9215686274509803,
+                        0.9607843137254902,
+                        1.0
+                      ],
+                      "position": [
+                        -0.368421,
+                        0.447368
+                      ],
+                      "origin": [
+                        -0.5,
+                        0.5
+                      ],
+                      "scale": 2.526316
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "scene:instructions",
+                "name": "Source control instructions",
+                "parent": null,
+                "active": true,
+                "layer": "scene:layer.runtime",
+                "transform": {
+                  "translation": [
+                    0,
+                    0,
+                    0
+                  ],
+                  "rotation_euler_deg": [
+                    0,
+                    0,
+                    0
+                  ],
+                  "scale": [
+                    1,
+                    1,
+                    1
+                  ]
+                },
+                "components": [
+                  {
+                    "id": "canvas",
+                    "type": "ui_canvas",
+                    "enabled": true,
+                    "properties": {
+                      "mode": "overlay",
+                      "visible": true,
+                      "text": "Click an empty cell. R: restart. Esc: quit.",
+                      "font": "asset:font.pygame_default",
+                      "color": [
+                        0.6666666666666666,
+                        0.7254901960784313,
+                        0.803921568627451,
+                        1.0
+                      ],
+                      "position": [
+                        -0.368421,
+                        0.385965
+                      ],
+                      "origin": [
+                        -0.5,
+                        0.5
+                      ],
+                      "scale": 1.754386
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "op": "replace",
+            "path": "/bindings",
+            "value": [
+              {
+                "id": "scene:binding.board",
+                "name": "Show empty, X or O at each site",
+                "source": {
+                  "kind": "state",
+                  "scope": "topology_site",
+                  "variable": "rule:state.board"
+                },
+                "target": {
+                  "selector": "topology_sites",
+                  "node": "scene:board",
+                  "visualizer": "sites",
+                  "component": "appearance",
+                  "property": "variant"
+                },
+                "transform": {
+                  "kind": "map",
+                  "cases": [
+                    {
+                      "equals": 0,
+                      "value": "empty"
+                    },
+                    {
+                      "equals": 1,
+                      "value": "x"
+                    },
+                    {
+                      "equals": 2,
+                      "value": "o"
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "scene:binding.play",
+                "name": "Hide turn after victory",
+                "source": {
+                  "kind": "state",
+                  "scope": "global",
+                  "variable": "rule:state.winner"
+                },
+                "target": {
+                  "selector": "node",
+                  "node": "scene:status.play",
+                  "property": "active"
+                },
+                "transform": {
+                  "kind": "map",
+                  "cases": [
+                    {
+                      "equals": 0,
+                      "value": true
+                    },
+                    {
+                      "equals": 1,
+                      "value": false
+                    },
+                    {
+                      "equals": 2,
+                      "value": false
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "scene:binding.not_draw",
+                "name": "Hide turn after draw",
+                "source": {
+                  "kind": "state",
+                  "scope": "global",
+                  "variable": "rule:state.draw"
+                },
+                "target": {
+                  "selector": "node",
+                  "node": "scene:status.not_draw",
+                  "property": "active"
+                },
+                "transform": {
+                  "kind": "not"
+                }
+              },
+              {
+                "id": "scene:binding.turn_x",
+                "name": "Show X turn",
+                "source": {
+                  "kind": "state",
+                  "scope": "global",
+                  "variable": "rule:state.current_player"
+                },
+                "target": {
+                  "selector": "node",
+                  "node": "scene:status.turn_x",
+                  "property": "active"
+                },
+                "transform": {
+                  "kind": "map",
+                  "cases": [
+                    {
+                      "equals": 1,
+                      "value": true
+                    },
+                    {
+                      "equals": 2,
+                      "value": false
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "scene:binding.turn_o",
+                "name": "Show O turn",
+                "source": {
+                  "kind": "state",
+                  "scope": "global",
+                  "variable": "rule:state.current_player"
+                },
+                "target": {
+                  "selector": "node",
+                  "node": "scene:status.turn_o",
+                  "property": "active"
+                },
+                "transform": {
+                  "kind": "map",
+                  "cases": [
+                    {
+                      "equals": 1,
+                      "value": false
+                    },
+                    {
+                      "equals": 2,
+                      "value": true
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "scene:binding.win_x",
+                "name": "Show X victory",
+                "source": {
+                  "kind": "state",
+                  "scope": "global",
+                  "variable": "rule:state.winner"
+                },
+                "target": {
+                  "selector": "node",
+                  "node": "scene:status.win_x",
+                  "property": "active"
+                },
+                "transform": {
+                  "kind": "map",
+                  "cases": [
+                    {
+                      "equals": 0,
+                      "value": false
+                    },
+                    {
+                      "equals": 1,
+                      "value": true
+                    },
+                    {
+                      "equals": 2,
+                      "value": false
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "scene:binding.win_o",
+                "name": "Show O victory",
+                "source": {
+                  "kind": "state",
+                  "scope": "global",
+                  "variable": "rule:state.winner"
+                },
+                "target": {
+                  "selector": "node",
+                  "node": "scene:status.win_o",
+                  "property": "active"
+                },
+                "transform": {
+                  "kind": "map",
+                  "cases": [
+                    {
+                      "equals": 0,
+                      "value": false
+                    },
+                    {
+                      "equals": 1,
+                      "value": false
+                    },
+                    {
+                      "equals": 2,
+                      "value": true
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "scene:binding.draw",
+                "name": "Show draw",
+                "source": {
+                  "kind": "state",
+                  "scope": "global",
+                  "variable": "rule:state.draw"
+                },
+                "target": {
+                  "selector": "node",
+                  "node": "scene:status.draw",
+                  "property": "active"
+                },
+                "transform": {
+                  "kind": "direct"
+                }
+              }
+            ]
+          },
+          {
+            "op": "replace",
+            "path": "/unresolved",
+            "value": []
+          },
+          {
+            "op": "replace",
+            "path": "/dependencies",
+            "value": {
+              "rule_ir": {
+                "document_id": "rule:game.tic.tac.toe.target",
+                "content_hash": "b5b54bafb4c097d7c7c2ec1bdfd115452fbfe345856dbd95e0881e23a58daf0a"
+              },
+              "asset_ir": {
+                "document_id": "asset:game.tic.tac.toe.target",
+                "content_hash": "495be11b15ec13ba076475da08b9ab801dc70f972a2152d10e707b07f93bf31a"
+              },
+              "extensions": []
+            }
+          }
+        ],
+        "evidence": [
+          {
+            "evidence_id": "main.py:1-86@fe934e578327e76620ffd7588aca5c05b35bffc81c3fd6cc4c4d59f637964003",
+            "path": "main.py",
+            "file_sha256": "fe934e578327e76620ffd7588aca5c05b35bffc81c3fd6cc4c4d59f637964003",
+            "span": {
+              "line_start": 1,
+              "line_end": 86
+            },
+            "supports": "/scene_ir"
+          }
+        ],
+        "assumptions": [
+          "The engine-owned spatial layout supplies the volume overview camera and omits the source's flat screen backdrop from the spatial viewport.",
+          "One world unit represents the source's 140-pixel cell pitch; negative world Y preserves the source's downward row order."
+        ],
+        "unresolved": []
+      }
+    ],
+    "asset_ir": [
+      {
+        "document_id": "asset:game.tic.tac.toe.target",
+        "base_revision": 0,
+        "base_content_hash": "e7f09bde9ee3f9b24cbe9126126e6f1cf4e81c2902881c707a41bba7c7f124e2",
+        "operations": [
+          {
+            "op": "replace",
+            "path": "/metadata",
+            "value": {
+              "title": "3D Tic Tac Toe",
+              "description": "The source draws its board, X and O marks, and colours procedurally; it uses Pygame’s bundled default font for status and instructions. No project image, audio or model files are required.",
+              "source_project_hash": "126c97294df6f4b2a889959917e957431d88431bb27df44d4dd743854058392a"
+            }
+          },
+          {
+            "op": "replace",
+            "path": "/assets",
+            "value": [
+              {
+                "id": "asset:font.pygame_default",
+                "name": "Pygame bundled default font",
+                "kind": "font",
+                "media_type": "font/ttf",
+                "source": {
+                  "uri": "runtime://pygame/default-font",
+                  "content_hash": "bf9251269f11e4b35582a99376096deee3d0c4973a459cbd97b0bebc01f440ad",
+                  "byte_size": 98600
+                },
+                "license": {
+                  "spdx_id": "LicenseRef-Pygame-Bundled-Font",
+                  "attribution": "Pygame bundled freesansbold.ttf",
+                  "source_uri": null,
+                  "redistribution": "unknown"
+                },
+                "importer": {
+                  "capability": "cubeengine.raw-file",
+                  "version": "1.0",
+                  "settings": {}
+                },
+                "metadata": {
+                  "source_usage": [
+                    {
+                      "text": "status",
+                      "size": 36
+                    },
+                    {
+                      "text": "instructions",
+                      "size": 25
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "op": "replace",
+            "path": "/derivations",
+            "value": []
+          },
+          {
+            "op": "replace",
+            "path": "/roles",
+            "value": [
+              {
+                "id": "asset:role.ui_font",
+                "name": "Status and instruction font",
+                "semantic": "ui_font",
+                "resource": "asset:font.pygame_default",
+                "usage": "ui_font",
+                "required": true
+              }
+            ]
+          },
+          {
+            "op": "replace",
+            "path": "/presentation_mappings",
+            "value": []
+          },
+          {
+            "op": "replace",
+            "path": "/unresolved",
+            "value": []
+          }
+        ],
+        "evidence": [
+          {
+            "evidence_id": "main.py:1-86@fe934e578327e76620ffd7588aca5c05b35bffc81c3fd6cc4c4d59f637964003",
+            "path": "main.py",
+            "file_sha256": "fe934e578327e76620ffd7588aca5c05b35bffc81c3fd6cc4c4d59f637964003",
+            "span": {
+              "line_start": 1,
+              "line_end": 86
+            },
+            "supports": "/asset_ir"
+          }
+        ],
+        "assumptions": [],
+        "unresolved": []
+      }
+    ],
+    "input_ir": [
+      {
+        "document_id": "input:game.tic.tac.toe.target",
+        "base_revision": 0,
+        "base_content_hash": "7c2eb9fa6cef77bc2726cd9e87ba629341ce1431a108fad86e96f4bcb79a5673",
+        "operations": [
+          {
+            "op": "replace",
+            "path": "/metadata",
+            "value": {
+              "title": "3D Tic Tac Toe",
+              "description": "Primary-click a selectable volume cell to place the current mark. R restarts the full session, including after a win or draw; Escape closes the player.",
+              "source_project_hash": "126c97294df6f4b2a889959917e957431d88431bb27df44d4dd743854058392a"
+            }
+          },
+          {
+            "op": "replace",
+            "path": "/contexts",
+            "value": [
+              {
+                "id": "input:context.game",
+                "name": "Session controls",
+                "priority": 100,
+                "enabled_by_default": true,
+                "focus": "global",
+                "consume_policy": "binding",
+                "exclusive_group": null
+              },
+              {
+                "id": "input:context.board",
+                "name": "Board selection",
+                "priority": 100,
+                "enabled_by_default": true,
+                "focus": "viewport",
+                "consume_policy": "binding",
+                "exclusive_group": null
+              }
+            ]
+          },
+          {
+            "op": "replace",
+            "path": "/intents",
+            "value": [
+              {
+                "id": "input:intent.place",
+                "name": "Place current mark at selected cell",
+                "value_type": "pointer",
+                "required": true,
+                "target": {
+                  "kind": "rule_action",
+                  "action": "rule:action.place",
+                  "parameters": {
+                    "coordinate": {
+                      "source": "event_data",
+                      "value_type": "core:coord",
+                      "key": "rule_coordinate"
+                    }
+                  }
+                }
+              },
+              {
+                "id": "input:intent.restart",
+                "name": "Restart full game session",
+                "value_type": "digital",
+                "required": true,
+                "target": {
+                  "kind": "host_command",
+                  "command": "restart"
+                }
+              },
+              {
+                "id": "input:intent.quit",
+                "name": "Close game player",
+                "value_type": "digital",
+                "required": true,
+                "target": {
+                  "kind": "host_command",
+                  "command": "quit"
+                }
+              }
+            ]
+          },
+          {
+            "op": "replace",
+            "path": "/bindings",
+            "value": [
+              {
+                "id": "input:binding.place",
+                "name": "Primary-click board cell",
+                "context": "input:context.board",
+                "intent": "input:intent.place",
+                "priority": 100,
+                "enabled": true,
+                "consume": true,
+                "rebindable": true,
+                "slot": "primary",
+                "accessibility_label": "Click a board cell to place the current mark",
+                "trigger": {
+                  "kind": "control",
+                  "device": "mouse",
+                  "control": "mouse.button.primary",
+                  "phase": "press",
+                  "modifiers": [],
+                  "modifier_policy": "at_least"
+                },
+                "processing": {
+                  "dead_zone": 0,
+                  "sensitivity_numerator": 1,
+                  "sensitivity_denominator": 1,
+                  "invert": false,
+                  "clamp_min": 0,
+                  "clamp_max": 1
+                }
+              },
+              {
+                "id": "input:binding.restart",
+                "name": "R to restart",
+                "context": "input:context.game",
+                "intent": "input:intent.restart",
+                "priority": 100,
+                "enabled": true,
+                "consume": true,
+                "rebindable": true,
+                "slot": "primary",
+                "accessibility_label": "Press R to restart, even after the game ends",
+                "trigger": {
+                  "kind": "control",
+                  "device": "keyboard",
+                  "control": "keyboard.key.r",
+                  "phase": "press",
+                  "modifiers": [],
+                  "modifier_policy": "at_least"
+                },
+                "processing": {
+                  "dead_zone": 0,
+                  "sensitivity_numerator": 1,
+                  "sensitivity_denominator": 1,
+                  "invert": false,
+                  "clamp_min": 0,
+                  "clamp_max": 1
+                }
+              },
+              {
+                "id": "input:binding.quit",
+                "name": "Escape to quit",
+                "context": "input:context.game",
+                "intent": "input:intent.quit",
+                "priority": 100,
+                "enabled": true,
+                "consume": true,
+                "rebindable": true,
+                "slot": "primary",
+                "accessibility_label": "Press Escape to close the game",
+                "trigger": {
+                  "kind": "control",
+                  "device": "keyboard",
+                  "control": "keyboard.key.escape",
+                  "phase": "press",
+                  "modifiers": [],
+                  "modifier_policy": "at_least"
+                },
+                "processing": {
+                  "dead_zone": 0,
+                  "sensitivity_numerator": 1,
+                  "sensitivity_denominator": 1,
+                  "invert": false,
+                  "clamp_min": 0,
+                  "clamp_max": 1
+                }
+              }
+            ]
+          },
+          {
+            "op": "replace",
+            "path": "/unresolved",
+            "value": []
+          },
+          {
+            "op": "replace",
+            "path": "/dependencies",
+            "value": {
+              "rule_ir": {
+                "document_id": "rule:game.tic.tac.toe.target",
+                "content_hash": "b5b54bafb4c097d7c7c2ec1bdfd115452fbfe345856dbd95e0881e23a58daf0a"
+              },
+              "extensions": []
+            }
+          }
+        ],
+        "evidence": [
+          {
+            "evidence_id": "main.py:1-86@fe934e578327e76620ffd7588aca5c05b35bffc81c3fd6cc4c4d59f637964003",
+            "path": "main.py",
+            "file_sha256": "fe934e578327e76620ffd7588aca5c05b35bffc81c3fd6cc4c4d59f637964003",
+            "span": {
+              "line_start": 1,
+              "line_end": 86
+            },
+            "supports": "/input_ir"
+          },
+          {
+            "evidence_id": "ev:binding.0",
+            "path": "main.py",
+            "file_sha256": "fe934e578327e76620ffd7588aca5c05b35bffc81c3fd6cc4c4d59f637964003",
+            "kind": "static",
+            "span": {
+              "line_start": 58,
+              "line_end": 58
+            },
+            "supports": "/input_ir/bindings",
+            "topic": "direction_input",
+            "confidence": 0.8
+          },
+          {
+            "evidence_id": "ev:binding.1",
+            "path": "main.py",
+            "file_sha256": "fe934e578327e76620ffd7588aca5c05b35bffc81c3fd6cc4c4d59f637964003",
+            "kind": "static",
+            "span": {
+              "line_start": 60,
+              "line_end": 60
+            },
+            "supports": "/input_ir/bindings",
+            "topic": "direction_input",
+            "confidence": 0.8
+          },
+          {
+            "evidence_id": "ev:binding.2",
+            "path": "main.py",
+            "file_sha256": "fe934e578327e76620ffd7588aca5c05b35bffc81c3fd6cc4c4d59f637964003",
+            "kind": "static",
+            "span": {
+              "line_start": 62,
+              "line_end": 62
+            },
+            "supports": "/input_ir/bindings",
+            "topic": "direction_input",
+            "confidence": 0.8
+          }
+        ],
+        "assumptions": [
+          "The scene's selectable topology-site collider supplies event_data.rule_coordinate for a primary click."
+        ],
+        "unresolved": []
+      }
+    ]
+  },
+  "claims": [],
+  "tests": [],
+  "extension_proposals": [],
+  "spatial_lift_options": [],
+  "assumptions": [
+    "The requested 3D conversion adds three depth layers while retaining the source’s three-cell line length and alternating marks.",
+    "The registered grid.has_line function evaluates straight lines across all axes and diagonals of a rank-3 rectangular topology.",
+    "Full-session restart and quit are host commands, not Rule actions; the input stage must route R to host_command restart and Escape to host_command quit. Existing scene and input documents require corresponding spatial-lift updates.",
+    "The engine-owned spatial layout supplies the volume overview camera and omits the source's flat screen backdrop from the spatial viewport.",
+    "One world unit represents the source's 140-pixel cell pitch; negative world Y preserves the source's downward row order.",
+    "The scene's selectable topology-site collider supplies event_data.rule_coordinate for a primary click."
+  ],
+  "unresolved": [],
+  "clarification_questions": []
+}

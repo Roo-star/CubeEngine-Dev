@@ -55,7 +55,7 @@
           "type": "object", "additionalProperties": false,
           "required": ["uri", "content_hash", "byte_size"],
           "properties": {
-            "uri": {"type": "string", "pattern": "^project://[^\\\\]+$"},
+            "uri": {"type": "string", "pattern": "^(project://[^\\\\]+|runtime://pygame/default-font)$"},
             "content_hash": {"$ref": "#/$defs/sha256"},
             "byte_size": {"type": "integer", "minimum": 0}
           }

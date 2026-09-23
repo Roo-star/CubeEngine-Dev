@@ -1,0 +1,82 @@
+{
+  "ir_version": "cubeengine.rule-ir/2.0-alpha.1",
+  "document_id": "rule:game.pygame.minesweeper.source",
+  "revision": 0,
+  "content_hash": "6078e896532aab58c7015fa2bf18a28038673d3657de7d3e3a10678125ff8df9",
+  "metadata": {
+    "title": "Pygame Minesweeper",
+    "description": "LLM compiler bootstrap shell. Semantics must be filled by evidence-backed patches.",
+    "source_project_hash": "711faede56c844d8c40612a1a285087c2ee39f1b4832974ac3e742125f9bd930",
+    "determinism": "deterministic"
+  },
+  "dependencies": {
+    "scene_ir": null,
+    "asset_ir": null,
+    "input_ir": null,
+    "extensions": []
+  },
+  "parameters": [],
+  "types": [],
+  "participants": [],
+  "topologies": [],
+  "state": {
+    "variables": [],
+    "entity_types": [],
+    "initial_effects": [],
+    "information_model": "perfect"
+  },
+  "queries": [],
+  "events": [],
+  "actions": [],
+  "systems": [],
+  "flow": {
+    "model": "event_driven",
+    "phases": [
+      {
+        "id": "rule:phase.input",
+        "order": 100
+      },
+      {
+        "id": "rule:phase.update",
+        "order": 200
+      },
+      {
+        "id": "rule:phase.outcome",
+        "order": 300
+      }
+    ],
+    "initial_phase": "rule:phase.input",
+    "scheduler": {
+      "clock": "event_queue",
+      "tick_hz": null,
+      "ordering": "phase_priority_id"
+    }
+  },
+  "random_streams": [],
+  "goals": [],
+  "outcomes": [],
+  "modes": [
+    {
+      "id": "rule:mode.default",
+      "name": "Default",
+      "overrides": []
+    }
+  ],
+  "invariants": [],
+  "extensions": {},
+  "provenance": {},
+  "unresolved": [
+    {
+      "path": "/topologies",
+      "reason": "No source topology has been supplied.",
+      "required": true,
+      "owner": "importer_or_llm"
+    },
+    {
+      "path": "/actions",
+      "reason": "No player/system action or event system has been supplied.",
+      "required": true,
+      "owner": "importer_or_llm"
+    }
+  ]
+}

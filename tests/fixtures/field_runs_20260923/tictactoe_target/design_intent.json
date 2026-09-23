@@ -1,0 +1,40 @@
+{
+  "intent_version": "cubeengine.srtp/design-intent/1.0",
+  "intent_id": "intent:078d25e7:3d-transform",
+  "conversation_id": "unspecified",
+  "turn_id": "unspecified",
+  "project_id": "project:tic.tac.toe.llm.source",
+  "source_manifest_hash": "078d25e7451cd8ae1b9dc566827f1b64ba55af8beda16ded740b5c213b091bd5",
+  "original_text": "Convert this complete 2D Tic-Tac-Toe game into a playable 3D Tic-Tac-Toe game.",
+  "language": "en",
+  "operation": "transform",
+  "scope": [
+    "rule",
+    "scene",
+    "asset",
+    "input"
+  ],
+  "preserve": [
+    "The source game's identity as Tic-Tac-Toe.",
+    "Playability."
+  ],
+  "changes": [
+    "Convert the existing 2D game into a playable 3D Tic-Tac-Toe game."
+  ],
+  "constraints": [
+    "Do not assume board dimensions, winning conditions, or interaction details not specified by the request."
+  ],
+  "resolved_references": [
+    "project:tic.tac.toe.llm.source"
+  ],
+  "assumptions": [],
+  "conflicts": [],
+  "unresolved": [
+    "The 3D board dimensions and layout are unspecified.",
+    "The intended 3D winning conditions are unspecified.",
+    "The desired controls and 3D presentation are unspecified."
+  ],
+  "requires_confirmation": true,
+  "status": "needs_confirmation",
+  "target_base": null
+}

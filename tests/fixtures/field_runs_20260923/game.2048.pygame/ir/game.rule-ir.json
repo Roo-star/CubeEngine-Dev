@@ -1,0 +1,82 @@
+{
+  "ir_version": "cubeengine.rule-ir/2.0-alpha.1",
+  "document_id": "rule:game.game.2048.pygame.source",
+  "revision": 0,
+  "content_hash": "0a456df06a774e3556b1509c089b07964005ba0fb3a7c260b3fd9e5ea5dd095e",
+  "metadata": {
+    "title": "2048-pygame",
+    "description": "LLM compiler bootstrap shell. Semantics must be filled by evidence-backed patches.",
+    "source_project_hash": "df19b85c6c9cb1a3ce75390edbc209093fe1a4ae09df624cb08291e3500855ef",
+    "determinism": "deterministic"
+  },
+  "dependencies": {
+    "scene_ir": null,
+    "asset_ir": null,
+    "input_ir": null,
+    "extensions": []
+  },
+  "parameters": [],
+  "types": [],
+  "participants": [],
+  "topologies": [],
+  "state": {
+    "variables": [],
+    "entity_types": [],
+    "initial_effects": [],
+    "information_model": "perfect"
+  },
+  "queries": [],
+  "events": [],
+  "actions": [],
+  "systems": [],
+  "flow": {
+    "model": "event_driven",
+    "phases": [
+      {
+        "id": "rule:phase.input",
+        "order": 100
+      },
+      {
+        "id": "rule:phase.update",
+        "order": 200
+      },
+      {
+        "id": "rule:phase.outcome",
+        "order": 300
+      }
+    ],
+    "initial_phase": "rule:phase.input",
+    "scheduler": {
+      "clock": "event_queue",
+      "tick_hz": null,
+      "ordering": "phase_priority_id"
+    }
+  },
+  "random_streams": [],
+  "goals": [],
+  "outcomes": [],
+  "modes": [
+    {
+      "id": "rule:mode.default",
+      "name": "Default",
+      "overrides": []
+    }
+  ],
+  "invariants": [],
+  "extensions": {},
+  "provenance": {},
+  "unresolved": [
+    {
+      "path": "/topologies",
+      "reason": "No source topology has been supplied.",
+      "required": true,
+      "owner": "importer_or_llm"
+    },
+    {
+      "path": "/actions",
+      "reason": "No player/system action or event system has been supplied.",
+      "required": true,
+      "owner": "importer_or_llm"
+    }
+  ]
+}

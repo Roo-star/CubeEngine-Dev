@@ -1,0 +1,145 @@
+{
+  "kind": "read-only architecture probes; no LLM calls, no generated-game acceptance",
+  "evidence": [
+    {
+      "game": "TicTacToe",
+      "source_entry": "E:\\CubeEngine\\CubeEngine-SRTP\\srtp\\reference_games\\pygame_tictactoe\\main.py",
+      "pack_chars": 16191,
+      "truncated": true,
+      "evidence_count": 12,
+      "rows_with_snippet": 0,
+      "snippet_chars": 0,
+      "topics": [
+        "direction_input",
+        "movement"
+      ]
+    },
+    {
+      "game": "Snake",
+      "source_entry": "E:\\CubeEngine\\CubeEngine-SRTP\\srtp\\reference_games\\pygame_snake\\snake.py",
+      "pack_chars": 20212,
+      "truncated": true,
+      "evidence_count": 12,
+      "rows_with_snippet": 0,
+      "snippet_chars": 0,
+      "topics": [
+        "asset_load",
+        "death",
+        "direction_input",
+        "food_spawn",
+        "movement"
+      ]
+    },
+    {
+      "game": "Minesweeper",
+      "source_entry": "E:\\CubeEngine\\CubeEngine-SRTP\\srtp\\reference_games\\pygame_minesweeper\\run_game.py",
+      "pack_chars": 20565,
+      "truncated": true,
+      "evidence_count": 12,
+      "rows_with_snippet": 0,
+      "snippet_chars": 0,
+      "topics": [
+        "asset_load",
+        "collision",
+        "death",
+        "direction_input",
+        "food_spawn",
+        "movement"
+      ]
+    },
+    {
+      "game": "2048",
+      "source_entry": "E:\\CubeEngine\\CubeEngine-SRTP\\srtp\\reference_games\\pygame_2048\\main.py",
+      "pack_chars": 20923,
+      "truncated": true,
+      "evidence_count": 12,
+      "rows_with_snippet": 0,
+      "snippet_chars": 0,
+      "topics": [
+        "asset_load",
+        "collision",
+        "death",
+        "direction_input",
+        "food_spawn",
+        "movement"
+      ]
+    },
+    {
+      "game": "Connect4",
+      "source_entry": "E:\\CubeEngine\\CubeEngine-SRTP\\srtp\\reference_games\\turtle_connect_complete\\connect_complete.py",
+      "pack_chars": 16486,
+      "truncated": true,
+      "evidence_count": 12,
+      "rows_with_snippet": 0,
+      "snippet_chars": 0,
+      "topics": [
+        "collision",
+        "death",
+        "direction_input",
+        "movement"
+      ]
+    }
+  ],
+  "unknown_precondition_coercion": {
+    "op": "literal",
+    "value": true
+  },
+  "unknown_action_coercion": {
+    "id": "rule:action.probe",
+    "precondition": {
+      "op": "literal",
+      "value": true
+    },
+    "effects": [
+      {
+        "op": "source.reveal_region"
+      },
+      {
+        "op": "grid.set",
+        "state": "rule:state.board",
+        "topology": "rule:topology.board",
+        "coordinate": {
+          "op": "literal",
+          "value": [
+            0,
+            0
+          ]
+        },
+        "value": {
+          "op": "literal",
+          "value": 1
+        }
+      }
+    ],
+    "name": "Probe",
+    "parameters": [],
+    "encoding": {
+      "kind": "none"
+    }
+  },
+  "reference_ir_outcome_probe": {
+    "geometric_lines": 49,
+    "matched_winning_lines": 49,
+    "direct_state_injection": true,
+    "scope": "Handwritten reference IR expressivity probe only. Does not test LLM conversion, legal move sequences, UI or AI.",
+    "golden_status_sample": "win_1",
+    "ir_outcome_sample": "OutcomeResult(status='win', terminal=True, revision=0, winners=('rule:participant.positive',), losers=('rule:participant.negative',), scores={}, matched_outcomes=('rule:outcome.positive_win',))"
+  },
+  "checkout": {
+    "branch": "SRTP",
+    "head": "a0d817832ea24659ae3116d23b0b50b325753522",
+    "working_tree": "Includes prior uncommitted edits. This is not an audit of an unchanged commit."
+  },
+  "method": {
+    "evidence": "SourceGameImporter().import_path(entry), build_evidence_pack(package) using its default budget; len(json.dumps(pack,ensure_ascii=False)); inspect evidence[].snippet.",
+    "coercion": "_coerce_expression on an unknown op with fallback=True; this tests normalization semantics, not an assertion that every live response uses this op.",
+    "outcome": "For each line from golden _generate_all_lines(), reset reference Target IR, inject player 1 on that line in both boards, compare golden game_status == win_1 to runtime win with positive winner. Not an end-to-end acceptance test."
+  },
+  "audited_file_sha256": {
+    "srtp/llm_compiler_v1/evidence.py": "b396d089e75ff85e87f2a0cbb5555cadb3ca2366dbb9cae9527311cdee085b5b",
+    "srtp/llm_compiler_v1/compiler.py": "92a38237493460ff9a23758e3e68b6700b34109b28efea4e9e710e9b7143ca62",
+    "srtp/llm_compiler_v1/prompts.py": "12c041bdf7164b559c61e06b89de3c684d2ad9f24a481d4da79669b858fc0b05",
+    "srtp/project_viewer.py": "15ed41b9a29db706262bb3ac1315d96f88aeca7fade42fb2c01a738252441914",
+    "srtp/presentation_bridge.py": "af2024513ff375ed26b784c2acf2f06b4abaa55e01d6d3cdcdf4a00bafbbabb9"
+  }
+}

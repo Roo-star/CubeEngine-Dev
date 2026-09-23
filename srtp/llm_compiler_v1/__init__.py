@@ -1,4 +1,4 @@
-"""LLM Source-to-IR compiler v1 backed by freeflow-llm.
+"""LLM Source-to-IR compiler v1 backed by OpenRouter Responses.
 
 The model proposes evidence-backed four-IR patches. Deterministic validators,
 RFC 6902 patch transactions and Project Manifest compilation remain authoritative.

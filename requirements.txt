@@ -1,4 +1,12 @@
-freeflow-llm>=0.1.4
+httpx>=0.27,<1
 python-dotenv>=1.0.0
-# Pillow 11+ dropped Python 3.9; Workbench launcher uses 3.9.1.
-pillow>=10.0.0,<11
+tqdm>=4.66,<5
+numpy>=1.24,<2.1; python_version < "3.10"
+numpy>=1.24; python_version >= "3.10"
+pillow>=10,<12; python_version < "3.10"
+pillow>=12.3.0; python_version >= "3.10"
+dearpygui>=1.11,<2
+pygame>=2.5,<3
+ursina>=5.2,<6; python_version < "3.10"
+ursina>=7,<8; python_version >= "3.10" and python_version < "3.12"
+ursina>=8.3,<9; python_version >= "3.12"

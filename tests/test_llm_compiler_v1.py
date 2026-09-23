@@ -1,4 +1,4 @@
-"""Offline tests for the freeflow-backed LLM Source-to-IR compiler."""
+"""Offline tests for the OpenRouter-backed LLM Source-to-IR compiler."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ from types import SimpleNamespace
 from typing import Any, Dict, List, Optional
 
 from srtp.llm_compiler_v1.bootstrap import bootstrap_documents, slugify
-from srtp.llm_compiler_v1.client import FreeFlowLLMClient, LLMClientError, extract_json_object
+from srtp.llm_compiler_v1.client import OpenRouterLLMClient, LLMClientError, extract_json_object
 from srtp.llm_compiler_v1.env import load_compiler_env, parse_api_keys
 from srtp.llm_compiler_v1.compiler import SourceToIRCompiler
 from srtp.llm_compiler_v1.contracts import (
@@ -193,7 +193,7 @@ class ClientTests(unittest.TestCase):
 
     def test_chat_json_uses_injected_fn(self):
         chat = _ScriptedChat([{"hello": "world"}])
-        with FreeFlowLLMClient(chat_fn=chat) as client:
+        with OpenRouterLLMClient(chat_fn=chat) as client:
             result = client.chat_json([{"role": "user", "content": "hi"}])
         self.assertEqual(result.parsed["hello"], "world")
         self.assertEqual(result.provider, "mock")
@@ -207,47 +207,47 @@ class ClientTests(unittest.TestCase):
         self.assertEqual(parse_api_keys("'k1'"), ["k1"])
 
     def test_load_compiler_env_reads_dotenv(self):
-        previous = os.environ.get("GEMINI_API_KEY")
+        previous = os.environ.get("OPENROUTER_API_KEY")
         try:
             with tempfile.TemporaryDirectory() as tmp:
                 path = Path(tmp) / ".env"
                 path.write_text(
-                    'GEMINI_API_KEY=["env-test-key-a","env-test-key-b"]\n',
+                    'OPENROUTER_API_KEY=env-test-key-a\n',
                     encoding="utf-8",
                 )
-                os.environ.pop("GEMINI_API_KEY", None)
+                os.environ.pop("OPENROUTER_API_KEY", None)
                 loaded = load_compiler_env(dotenv_path=path, override=True)
                 self.assertEqual(loaded, path)
                 self.assertEqual(
-                    parse_api_keys(os.environ.get("GEMINI_API_KEY")),
-                    ["env-test-key-a", "env-test-key-b"],
+                    parse_api_keys(os.environ.get("OPENROUTER_API_KEY")),
+                    ["env-test-key-a"],
                 )
         finally:
             if previous is None:
-                os.environ.pop("GEMINI_API_KEY", None)
+                os.environ.pop("OPENROUTER_API_KEY", None)
             else:
-                os.environ["GEMINI_API_KEY"] = previous
+                os.environ["OPENROUTER_API_KEY"] = previous
 
     def test_load_compiler_env_overrides_stale_single_key(self):
-        previous = os.environ.get("GEMINI_API_KEY")
+        previous = os.environ.get("OPENROUTER_API_KEY")
         try:
             with tempfile.TemporaryDirectory() as tmp:
                 path = Path(tmp) / ".env"
                 path.write_text(
-                    'GEMINI_API_KEY=["fresh-a","fresh-b","fresh-c"]\n',
+                    'OPENROUTER_API_KEY=fresh-key\n',
                     encoding="utf-8",
                 )
-                os.environ["GEMINI_API_KEY"] = "stale-single-key"
+                os.environ["OPENROUTER_API_KEY"] = "stale-single-key"
                 load_compiler_env(dotenv_path=path)
                 self.assertEqual(
-                    parse_api_keys(os.environ.get("GEMINI_API_KEY")),
-                    ["fresh-a", "fresh-b", "fresh-c"],
+                    parse_api_keys(os.environ.get("OPENROUTER_API_KEY")),
+                    ["fresh-key"],
                 )
         finally:
             if previous is None:
-                os.environ.pop("GEMINI_API_KEY", None)
+                os.environ.pop("OPENROUTER_API_KEY", None)
             else:
-                os.environ["GEMINI_API_KEY"] = previous
+                os.environ["OPENROUTER_API_KEY"] = previous
 
 
 class EvidenceAndBootstrapTests(unittest.TestCase):
@@ -519,7 +519,7 @@ class ValidationAndCompilerTests(unittest.TestCase):
             )
             chat = _ScriptedChat(["not-json-at-all", good])
             out = root / "out"
-            report = SourceToIRCompiler(chat_fn=chat, max_repairs=2).compile(
+            report = SourceToIRCompiler(staged=False, chat_fn=chat, max_repairs=2).compile(
                 package, out_dir=out,
             )
             self.assertTrue(report.ok, report.diagnostics)
@@ -539,7 +539,7 @@ class ValidationAndCompilerTests(unittest.TestCase):
             )
             empty = self._empty_ok_proposal(bootstrap, pack["source_package_hash"])
             chat = _ScriptedChat([empty])
-            report = SourceToIRCompiler(chat_fn=chat, max_repairs=0).compile(package)
+            report = SourceToIRCompiler(staged=False, chat_fn=chat, max_repairs=0).compile(package)
             self.assertFalse(report.ok)
             self.assertTrue(any("no IR patches" in item for item in report.diagnostics))
 
@@ -924,10 +924,8 @@ class ValidationAndCompilerTests(unittest.TestCase):
         outcome = outcome_op["value"]
         self.assertEqual(outcome["priority"], 100)
         self.assertEqual(outcome["name"], "Ongoing")
-        self.assertEqual(outcome["condition"]["op"], "literal")
-        self.assertFalse(outcome["condition"]["value"])
-        self.assertEqual(outcome["result"]["status"], "ongoing")
-        self.assertFalse(outcome["result"]["terminal"])
+        self.assertNotIn("condition", outcome)
+        self.assertNotIn("result", outcome)
 
         query_op = {
             "op": "add",
@@ -1042,7 +1040,7 @@ class ValidationAndCompilerTests(unittest.TestCase):
             source = _placement_source(root)
             package = SourceGameImporter().import_path(source)
             chat = _ScriptedChat(["{", "{", "{"])
-            report = SourceToIRCompiler(chat_fn=chat, max_repairs=2).compile(package)
+            report = SourceToIRCompiler(staged=False, chat_fn=chat, max_repairs=2).compile(package)
             self.assertFalse(report.ok)
             self.assertEqual(chat.calls, 3)
             self.assertTrue(report.diagnostics)
@@ -1127,7 +1125,7 @@ class FeedbackAdoptionP0Tests(unittest.TestCase):
         action = {"id": "rule:action.move", "name": "Move", "effects": []}
         _coerce_action_object(action)
         self.assertNotIn("actor", action)
-        self.assertEqual(action.get("precondition"), {"op": "literal", "value": True})
+        self.assertNotIn("precondition", action)
 
         flow = {"scheduler": {}}
         _coerce_flow_object(flow)
@@ -1479,8 +1477,9 @@ class FeedbackAdoptionP0Tests(unittest.TestCase):
             "timing": {"phase": "rule:phase.input"},
             "encoding": {"kind": "none"},
         }
-        _coerce_action_object(action)
-        self.assertEqual(action["effects"], [])
+        with self.assertRaisesRegex(ValueError, "explicit variable or target"):
+            _coerce_action_object(action)
+        self.assertTrue(action["effects"], "Invalid effects must not silently disappear")
 
     def test_unknown_z_and_adjacency_rejected_not_guessed(self):
         from copy import deepcopy
@@ -1757,7 +1756,7 @@ class FeedbackAdoptionP0Tests(unittest.TestCase):
                 evidence=_pack_evidence_cite(pack, source_root=root),
             )
             chat = _ScriptedChat([proposal])
-            report = SourceToIRCompiler(chat_fn=chat, max_repairs=0).compile(
+            report = SourceToIRCompiler(staged=False, chat_fn=chat, max_repairs=0).compile(
                 package, intent_text="lift to 3D with z=3",
             )
             self.assertEqual(report.stage, "spatial_lift_blocked")
@@ -1769,13 +1768,13 @@ class FeedbackAdoptionP0Tests(unittest.TestCase):
 
 @unittest.skipUnless(
     __import__("os").environ.get("CUBEENGINE_LLM_LIVE") == "1",
-    "Set CUBEENGINE_LLM_LIVE=1 with GROQ_API_KEY or GEMINI_API_KEY for live smoke",
+    "Set CUBEENGINE_LLM_LIVE=1 with OPENROUTER_API_KEY for live smoke",
 )
 class LiveSmokeTests(unittest.TestCase):
     def test_live_source_proposal_envelope(self):
         with tempfile.TemporaryDirectory() as tmp:
             source = _placement_source(Path(tmp))
-            report = SourceToIRCompiler(max_repairs=1).compile_path(
+            report = SourceToIRCompiler(staged=False, max_repairs=1).compile_path(
                 source, out_dir=Path(tmp) / "live-out",
             )
             self.assertIsNotNone(report.proposal)

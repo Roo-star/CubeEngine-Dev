@@ -2,38 +2,16 @@
   "ir_version": "cubeengine.asset-ir/2.0-alpha.1",
   "document_id": "asset:game.snake.game.with.python.and.pygame.source",
   "revision": 1,
-  "content_hash": "3588e8efbbd8f043e365f1d14b720fe3058d6731232edfef6ae4fd9f664dc43a",
+  "content_hash": "e82d4fe32d8bca6248f3dc99a8c121a88ee2907160baba2f7dba7878cbd0a5c7",
   "metadata": {
     "title": "Snake Game with Python and Pygame",
     "description": "LLM compiler bootstrap shell. Semantics must be filled by evidence-backed patches.",
-    "source_project_hash": "6bbf008a8c81a818a748c0c6d58bb2457c311dc3efed88f516d073cecfbb756c"
+    "source_project_hash": "5e6c01f21edd4537d785e7258b03bb92cb90549bd37e58594257f836a2d92d58"
   },
   "assets": [
     {
-      "id": "asset:font.poetsenone",
-      "kind": "font",
-      "source": {
-        "uri": "project://Font/PoetsenOne-Regular.ttf",
-        "content_hash": "85b9c540b6e59c75c3eea602d9256ec5eb386f49c982d86ced4b7c161aac2a2f",
-        "byte_size": 172456
-      },
-      "media_type": "font/ttf",
-      "name": "PoetsenOne-Regular.ttf",
-      "license": {
-        "spdx_id": "NOASSERTION",
-        "attribution": "",
-        "source_uri": null,
-        "redistribution": "unknown"
-      },
-      "importer": {
-        "capability": "cubeengine.raw-file",
-        "version": "1.0",
-        "settings": {}
-      },
-      "metadata": {}
-    },
-    {
       "id": "asset:image.apple",
+      "name": "Apple Texture",
       "kind": "image",
       "source": {
         "uri": "project://Graphics/apple.png",
@@ -41,7 +19,6 @@
         "byte_size": 632
       },
       "media_type": "image/png",
-      "name": "apple.png",
       "license": {
         "spdx_id": "NOASSERTION",
         "attribution": "",
@@ -50,6 +27,29 @@
       },
       "importer": {
         "capability": "cubeengine.image",
+        "version": "1.0",
+        "settings": {}
+      },
+      "metadata": {}
+    },
+    {
+      "id": "asset:font.poetsen.one",
+      "name": "PoetsenOne Font",
+      "kind": "font",
+      "source": {
+        "uri": "project://Font/PoetsenOne-Regular.ttf",
+        "content_hash": "85b9c540b6e59c75c3eea602d9256ec5eb386f49c982d86ced4b7c161aac2a2f",
+        "byte_size": 172456
+      },
+      "media_type": "font/ttf",
+      "license": {
+        "spdx_id": "NOASSERTION",
+        "attribution": "",
+        "source_uri": null,
+        "redistribution": "unknown"
+      },
+      "importer": {
+        "capability": "cubeengine.raw-file",
         "version": "1.0",
         "settings": {}
       },
@@ -63,27 +63,32 @@
     "patch_history": [
       {
         "base_revision": 0,
-        "base_content_hash": "3db9e5c9530bc2a03c2b597cd35c31d49371b99d9d3054d9f13675a6e60870b0",
+        "base_content_hash": "b948dc61b637af87d764687cd4540e2175bded0dc4e1605eb4c9b46a84785d0e",
         "evidence": [
           {
             "evidence_id": "ev:asset.font_poetsenone_regular_ttf",
             "path": "Font/PoetsenOne-Regular.ttf",
-            "file_sha256": "85b9c540b6e59c75c3eea602d9256ec5eb386f49c982d86ced4b7c161aac2a2f",
             "kind": "static",
+            "supports": "/asset_ir/assets",
+            "confidence": 0.7,
+            "file_sha256": "85b9c540b6e59c75c3eea602d9256ec5eb386f49c982d86ced4b7c161aac2a2f",
             "span": {
               "byte_start": 0,
               "byte_end": 64
-            },
-            "supports": "/asset_ir/assets",
-            "topic": "asset_load",
-            "confidence": 0.7,
-            "detail": "Font/PoetsenOne-Regular.ttf"
+            }
           }
         ],
         "assumptions": [],
-        "operation_count": 2
+        "operation_count": 3
       }
     ]
   },
-  "unresolved": []
+  "unresolved": [
+    {
+      "path": "/assets",
+      "reason": "Asset entry dropped, asset:role.food.texture: role missing resource reference.",
+      "required": false,
+      "owner": "llm"
+    }
+  ]
 }

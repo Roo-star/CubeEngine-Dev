@@ -222,7 +222,9 @@ def compile_asset_ir(
         first = errors[0]
         raise AssetCompileError("Asset IR is invalid at {0}: {1}".format(first.path, first.message))
     if not is_asset_ir_compile_ready(document):
-        raise AssetCompileError("Asset IR has required unresolved semantics or no resources")
+        blockers = ['{0}: {1}'.format(item.get('path', '/'), item.get('reason', 'unresolved'))
+                    for item in document.get('unresolved', []) if item.get('required') is True]
+        raise AssetCompileError("Asset IR has required unresolved semantics: " + '; '.join(blockers))
     expected_document_hash = canonical_asset_ir_hash(document)
     if document.get("content_hash") != expected_document_hash:
         raise AssetCompileError("Asset IR must be sealed with its canonical content hash")
@@ -320,14 +322,11 @@ def _import_source_asset(
     asset: Mapping[str, Any], root: Path, max_bytes: int, max_image_pixels: int,
 ) -> CompiledResource:
     source = asset["source"]
-    relative = project_uri_relative_path(str(source["uri"]))
-    candidate = root.joinpath(*relative.parts)
+    from srtp.runtime_assets import resolve_resource
     try:
-        resolved = candidate.resolve(strict=True)
-    except OSError as exc:
-        raise AssetCompileError("source asset does not exist: {0}".format(source["uri"])) from exc
-    if not _is_relative_to(resolved, root) or not resolved.is_file():
-        raise AssetCompileError("source asset escapes project root or is not a file: {0}".format(source["uri"]))
+        resolved = resolve_resource(root, str(source['uri']))
+    except (OSError, ValueError) as exc:
+        raise AssetCompileError(str(exc)) from exc
     size = resolved.stat().st_size
     if size > max_bytes:
         raise AssetCompileError("source asset exceeds byte limit: {0}".format(source["uri"]))
@@ -377,6 +376,11 @@ def _compile_derivation(
     strategy = str(item["strategy"])
     inputs = [resources[identifier] for identifier in item.get("inputs", [])]
     settings = dict(item.get("settings", {}))
+    from .recipe_contracts import RECIPES
+    from srtp.ir_contracts import errors as contract_errors
+    if strategy in RECIPES:
+        issues=contract_errors(settings,RECIPES[strategy],'/derivations/'+str(item['id'])+'/settings')
+        if issues: raise AssetCompileError('; '.join(issues))
     output_media = str(item["media_type"])
     output_kind = str(item["kind"])
     metadata: Dict[str, Any] = {

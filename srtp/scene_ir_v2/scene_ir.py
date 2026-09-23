@@ -439,6 +439,16 @@ def _validate_component_properties(
             or not _LOCAL_ID.fullmatch(str(value.get("coordinate_component")))
         ):
             diagnostics.append(_error("visualizer.coordinate_component", path + "/coordinate_component", "Coordinate component must be a stable local name."))
+    elif kind == "audio_source":
+        if not isinstance(value.get('clip'), str) or not _ASSET_ID.fullmatch(value['clip']):
+            diagnostics.append(_error('audio.clip', path + '/clip', 'Audio requires an asset: clip reference.'))
+        for key in ('playing', 'loop'):
+            if key in value and not isinstance(value[key], bool):
+                diagnostics.append(_error('audio.boolean', path + '/' + key, 'Audio control must be boolean.'))
+        if not _finite_number(value.get('volume', 1)) or not 0 <= value.get('volume', 1) <= 1:
+            diagnostics.append(_error('audio.volume', path + '/volume', 'Volume must be normalized from zero to one.'))
+        if 'trigger' in value and (isinstance(value['trigger'], bool) or not isinstance(value['trigger'], int) or value['trigger'] < 0):
+            diagnostics.append(_error('audio.trigger', path + '/trigger', 'Trigger must be a nonnegative event counter.'))
     elif kind == "ui_canvas":
         if value.get("mode") not in ("overlay", "world"):
             diagnostics.append(_error("ui.mode", path + "/mode", "UI canvas mode must be overlay or world."))

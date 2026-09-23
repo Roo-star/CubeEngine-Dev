@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import tempfile
+import shutil
 import uuid
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Mapping, Optional
@@ -15,6 +16,7 @@ if TYPE_CHECKING:
 def write_compile_artifacts(
     out_dir: Path, report: "CompileReport", *,
     source_manifest: Optional[Mapping[str, Any]] = None,
+    asset_project_root: Optional[Path] = None,
 ) -> Path:
     """Publish a complete run; failed runs must never overwrite a good bundle."""
     requested = Path(out_dir).resolve()
@@ -32,7 +34,16 @@ def write_compile_artifacts(
     root.parent.mkdir(parents=True, exist_ok=True)
     staging = Path(tempfile.mkdtemp(prefix="." + root.name + "-pending-", dir=str(root.parent)))
     report.output_dir = str(root)
-    _write_run(staging, report, source_manifest=source_manifest)
+    try:
+        _write_run(staging, report, source_manifest=source_manifest)
+        if report.ok and asset_project_root is not None:
+            from srtp.bundle_assets import copy_bundle_assets
+            copy_bundle_assets(report.documents.get('asset_ir', {}), asset_project_root, staging)
+    except Exception:
+        # Only remove the new temporary directory this invocation created.
+        if staging.resolve().parent == root.parent.resolve() and staging.name.startswith('.' + root.name + '-pending-'):
+            shutil.rmtree(staging)
+        raise
     # Keep the previous complete bundle outside the new bundle's recursive scan.
     previous = None
     if root.exists():
@@ -57,6 +68,8 @@ def _write_run(
     ir_dir.mkdir(parents=True, exist_ok=True)
 
     _write_json(root / "report.json", report.to_mapping())
+    if report.compilation_trace.get('quality_assessment'):
+        _write_json(root / 'quality.assessment.json', report.compilation_trace['quality_assessment'])
     if report.proposal is not None:
         _write_json(root / "proposal.json", report.proposal)
     if report.design_intent is not None:

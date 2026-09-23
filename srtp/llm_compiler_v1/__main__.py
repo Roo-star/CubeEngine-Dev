@@ -14,7 +14,7 @@ from srtp.llm_compiler_v1.env import load_compiler_env
 
 def main(argv: Optional[List[str]] = None) -> int:
     parser = argparse.ArgumentParser(
-        description="CubeEngine LLM Source-to-IR compiler (freeflow-llm backend)",
+        description="CubeEngine LLM Source-to-IR compiler (OpenRouter Responses backend)",
     )
     parser.add_argument(
         "--source", required=True,

@@ -1,5 +1,9 @@
 # LLM Compiler v1 (freeflow-llm)
 
+> 历史文档：2026-09-23 起，当前 SRTP 已统一迁移到 OpenRouter Responses API。
+> 下文的 FreeFlow/Gemini/Groq 安装及 Key 配置不再适用。
+> 当前设置及操作见 [OpenRouter 迁移说明](OPENROUTER_MIGRATION_20260923.md)。
+
 Status: thin MVP  
 Backend: [freeflow-llm](https://pypi.org/project/freeflow-llm/)  
 Package: `srtp/llm_compiler_v1/`

@@ -673,10 +673,9 @@ def _truncate_pack(pack: Dict[str, Any], *, max_chars: int) -> Dict[str, Any]:
     if len(encoded) <= max_chars:
         pack["truncated"] = False
         return pack
-    # Drop snippets before cutting evidence rows so topic coverage survives.
-    for item in pack.get("evidence") or []:
-        if isinstance(item, dict):
-            item.pop("snippet", None)
+    # The ID catalog duplicated every source citation. Consumers already
+    # support indexing `evidence`; trim duplication before source evidence.
+    pack.pop("evidence_by_id", None)
     encoded = json.dumps(pack, ensure_ascii=False)
     if len(encoded) <= max_chars:
         pack["truncated"] = True
@@ -690,20 +689,12 @@ def _truncate_pack(pack: Dict[str, Any], *, max_chars: int) -> Dict[str, Any]:
             return pack
     if isinstance(pack.get("evidence"), list) and len(pack["evidence"]) > 24:
         pack["evidence"] = _prefer_topic_coverage(pack["evidence"], limit=24)
-        pack["evidence_by_id"] = {
-            str(item["evidence_id"]): item for item in pack["evidence"]
-            if isinstance(item, Mapping) and item.get("evidence_id")
-        }
         encoded = json.dumps(pack, ensure_ascii=False)
         if len(encoded) <= max_chars:
             pack["truncated"] = True
             return pack
     if isinstance(pack.get("evidence"), list) and len(pack["evidence"]) > 12:
         pack["evidence"] = _prefer_topic_coverage(pack["evidence"], limit=12)
-        pack["evidence_by_id"] = {
-            str(item["evidence_id"]): item for item in pack["evidence"]
-            if isinstance(item, Mapping) and item.get("evidence_id")
-        }
     partial = pack.get("partial_schema")
     if isinstance(partial, dict):
         for key in ("actions", "outcomes", "entities", "participants"):
@@ -722,6 +713,22 @@ def _truncate_pack(pack: Dict[str, Any], *, max_chars: int) -> Dict[str, Any]:
         inventory["files"] = list(inventory.get("files") or [])[:12]
         inventory["assets"] = list(inventory.get("assets") or [])[:12]
     pack["truncated"] = True
+    # Static derived hints can be large; retain the source snippets and their
+    # verifiable spans. Full files are supplied by SourceWorkspace tools.
+    optional = ("coverage", "acceptance_gate", "static_analysis_summary",
+                "project_diagnostics", "transformation_gaps", "source_parameters")
+    for key in optional:
+        if len(json.dumps(pack, ensure_ascii=False)) <= max_chars:
+            break
+        pack.pop(key, None)
+    partial = pack.get("partial_schema", {})
+    while len(json.dumps(pack, ensure_ascii=False)) > max_chars and isinstance(partial, dict) and len(partial) > 1:
+        largest = max(partial, key=lambda key: len(json.dumps(partial[key], ensure_ascii=False)))
+        del partial[largest]
+    while len(json.dumps(pack, ensure_ascii=False)) > max_chars and len(pack.get("evidence", [])) > 1:
+        pack["evidence"] = _prefer_topic_coverage(pack["evidence"], limit=len(pack["evidence"]) - 1)
+    if len(json.dumps(pack, ensure_ascii=False)) > max_chars:
+        raise ValueError("Evidence budget too small for source identity and a verifiable citation")
     return pack
 
 
@@ -739,6 +746,10 @@ def _resolve_source_file(root: Path, rel_path: str) -> Optional[Path]:
                 return candidate.resolve()
             return None
     joined = (root / rel_path).resolve()
+    try:
+        joined.relative_to(root.resolve())
+    except ValueError:
+        return None
     if joined.is_file():
         return joined
     # Basename search within package (bounded).
@@ -746,8 +757,15 @@ def _resolve_source_file(root: Path, rel_path: str) -> Optional[Path]:
     if not name:
         return None
     matches = list(root.rglob(name))[:8]
-    files = [item for item in matches if item.is_file()]
-    return files[0].resolve() if len(files) == 1 else (files[0].resolve() if files else None)
+    files = []
+    for item in matches:
+        try:
+            item.resolve().relative_to(root.resolve())
+        except ValueError:
+            continue
+        if item.is_file():
+            files.append(item)
+    return files[0].resolve() if len(files) == 1 else None
 
 
 def _relpath(root: Path, path: Path) -> str:

@@ -1,17 +1,30 @@
 {
   "ok": true,
   "stage": "source_four_ir",
-  "job_id": "job:eaeb1796f898483e",
+  "job_id": "job:2d61cc6b0f7c4e0c",
   "project_id": "project:snake.game.with.python.and.pygame.llm.source",
-  "source_package_hash": "6bbf008a8c81a818a748c0c6d58bb2457c311dc3efed88f516d073cecfbb756c",
+  "source_package_hash": "5e6c01f21edd4537d785e7258b03bb92cb90549bd37e58594257f836a2d92d58",
   "provider": "gemini",
   "model": "gemini-3.6-flash",
-  "attempts": 3,
+  "attempts": 2,
   "prompt_template_version": "cubeengine.srtp/llm-prompt/2.0",
   "diagnostics": [],
   "compile_ready": false,
-  "output_dir": null,
-  "unresolved_summary": [],
-  "proposal_id": "proposal:cf248c465671",
+  "output_dir": "E:\\CubeEngine\\CubeEngine-SRTP\\.cubeengine_llm\\snake.game.with.python.and.pygame\\source",
+  "unresolved_summary": [
+    {
+      "path": "/assets",
+      "reason": "Asset entry dropped, asset:role.food.texture: role missing resource reference.",
+      "required": false,
+      "owner": "llm"
+    },
+    {
+      "path": "/provenance/llm",
+      "reason": "LLM proposal has not been designer-approved.",
+      "required": true,
+      "owner": "designer"
+    }
+  ],
+  "proposal_id": "proposal:4cb67a9f29c0",
   "manifest_project_id": "project:snake.game.with.python.and.pygame.llm.source"
 }

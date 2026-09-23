@@ -7,7 +7,8 @@
   "intent_value_types": ["digital", "scalar", "vector2", "pointer", "text"],
   "focus_scopes": ["global", "viewport", "ui", "text_entry"],
   "consume_policies": ["binding", "first_match", "all_events"],
-  "target_kinds": ["semantic", "rule_action"],
+  "target_kinds": ["semantic", "rule_action", "host_command"],
+  "host_commands": ["quit", "restart"],
   "parameter_sources": ["constant", "intent_value", "event_value", "event_position", "event_delta", "event_data"],
   "normalization": {
     "analog_min": -32768,

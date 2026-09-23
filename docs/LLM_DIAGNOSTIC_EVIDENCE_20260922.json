@@ -1,0 +1,73 @@
+{
+  "date": "2026-09-22",
+  "branch": "SRTP",
+  "current_egress": {
+    "time_utc": "2026-09-22T08:19:45Z",
+    "ip": "45.140.221.10",
+    "country_reported_by_ipinfo": "SG",
+    "network_reported_by_ipinfo": "AS142594 SpeedyPage Ltd",
+    "confirmed_by": [
+      "https://api.ipify.org?format=json",
+      "https://ipinfo.io/json"
+    ],
+    "limitation": "Current diagnostic destinations only, not historical or Google-observed egress."
+  },
+  "explicit_proxy": false,
+  "historical_ip_recorded": false,
+  "source_prompt_characters": 26223,
+  "fixture_target_checks": [
+    {
+      "key": "arrow_right",
+      "accepted": true,
+      "code": "transition_committed",
+      "head": [
+        [
+          6,
+          10,
+          0
+        ]
+      ],
+      "revision": 1
+    },
+    {
+      "key": "page_up",
+      "accepted": true,
+      "code": "transition_committed",
+      "head": [
+        [
+          6,
+          10,
+          1
+        ]
+      ],
+      "revision": 2
+    },
+    {
+      "key": "arrow_right",
+      "accepted": true,
+      "code": "transition_committed",
+      "head": [
+        [
+          7,
+          10,
+          1
+        ]
+      ],
+      "revision": 3
+    },
+    {
+      "key": "page_down",
+      "accepted": true,
+      "code": "transition_committed",
+      "head": [
+        [
+          7,
+          10,
+          0
+        ]
+      ],
+      "revision": 4
+    }
+  ],
+  "fixture_is_llm_output": false
+}

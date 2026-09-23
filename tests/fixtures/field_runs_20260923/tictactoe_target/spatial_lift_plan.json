@@ -1,0 +1,28 @@
+{
+  "topology": "One bounded, cell-anchored 3×3×3 rectangular volume.",
+  "source_xy_policy": "Retain source columns, rows, cell values and turn sequence.",
+  "target_z": 3,
+  "neighborhood": "Wins use straight axis, face-diagonal and space-diagonal lines; adjacency does not govern placement.",
+  "movement": "No movement; place the current mark in an unoccupied cell.",
+  "outcomes": "Three matching marks on a straight length-three line win; otherwise a full volume draws.",
+  "presentation": "One centered orthogonal volume retaining source mark colours, cell appearance, font and status.",
+  "input": "Select a volume cell to place; route R and Escape to host restart and quit.",
+  "z_equals_one_tests": [
+    "Horizontal, vertical and both diagonal wins match the source on a one-layer board.",
+    "Occupied and out-of-bounds cells reject placement."
+  ],
+  "z_gt_one_tests": [
+    "A fixed-x,y line through all depth layers wins.",
+    "A corner-to-corner space diagonal wins.",
+    "Moves after a win reject; host restart remains available."
+  ],
+  "alternatives": [
+    "One depth layer reproduces the source but does not provide spatial play.",
+    "A larger volume changes the source’s three-cell extents."
+  ],
+  "unresolved": [],
+  "plan_version": "cubeengine.srtp/spatial-lift-plan/1.0",
+  "plan_id": "lift:job.30815d8113aa4f00",
+  "source_manifest_hash": "078d25e7451cd8ae1b9dc566827f1b64ba55af8beda16ded740b5c213b091bd5",
+  "design_intent_id": "intent:078d25e7:3d-transform"
+}

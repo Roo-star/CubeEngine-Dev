@@ -1,0 +1,1026 @@
+{
+  "source_requests": [],
+  "definition": {
+    "metadata": {
+      "title": "Pygame Minesweeper",
+      "description": "The launcher starts a 10×10 game with ten mines. Right-click cycles unopened tiles through flag, question mark, and unopened. Left-click clears a question mark or opens a tile. The first opening relocates mines out of its surrounding area; opening a mine loses, and opening all safe tiles wins.",
+      "source_project_hash": "711faede56c844d8c40612a1a285087c2ee39f1b4832974ac3e742125f9bd930",
+      "determinism": "seeded"
+    },
+    "parameters": [],
+    "types": [],
+    "participants": [
+      {
+        "id": "rule:participant.player",
+        "name": "Player",
+        "kind": "human"
+      }
+    ],
+    "topologies": [
+      {
+        "id": "rule:topology.board",
+        "name": "Basic board",
+        "kind": "rect_grid",
+        "anchor": "cell",
+        "axes": [
+          {
+            "name": "row",
+            "extent": 10,
+            "boundary": "bounded"
+          },
+          {
+            "name": "column",
+            "extent": 10,
+            "boundary": "bounded"
+          }
+        ],
+        "neighborhoods": [
+          {
+            "name": "adjacent_eight",
+            "diagonals": true
+          }
+        ]
+      }
+    ],
+    "state": {
+      "variables": [
+        {
+          "id": "rule:state.mines",
+          "name": "Mine locations",
+          "type": "core:int",
+          "scope": "topology_site",
+          "topology": "rule:topology.board",
+          "initial": {
+            "expr": "0"
+          }
+        },
+        {
+          "id": "rule:state.number",
+          "name": "Adjacent mine count, or 9 for a mine",
+          "type": "core:int",
+          "scope": "topology_site",
+          "topology": "rule:topology.board",
+          "initial": {
+            "expr": "0"
+          }
+        },
+        {
+          "id": "rule:state.cover",
+          "name": "0 unopened, 1 flagged, 2 questioned, 3 opened, 4 detonated, 5 incorrect flag, 6 exposed mine",
+          "type": "core:int",
+          "scope": "topology_site",
+          "topology": "rule:topology.board",
+          "initial": {
+            "expr": "0"
+          }
+        },
+        {
+          "id": "rule:state.flood",
+          "name": "Transient flood traversal value",
+          "type": "core:int",
+          "scope": "topology_site",
+          "topology": "rule:topology.board",
+          "initial": {
+            "expr": "9"
+          }
+        },
+        {
+          "id": "rule:state.flags",
+          "name": "Flags placed by the player",
+          "type": "core:int",
+          "scope": "global",
+          "initial": {
+            "expr": "0"
+          }
+        },
+        {
+          "id": "rule:state.opened_count",
+          "name": "Tiles opened by the core board",
+          "type": "core:int",
+          "scope": "global",
+          "initial": {
+            "expr": "0"
+          }
+        },
+        {
+          "id": "rule:state.result",
+          "name": "0 playing, 1 loss, 2 win",
+          "type": "core:int",
+          "scope": "global",
+          "initial": {
+            "expr": "0"
+          }
+        },
+        {
+          "id": "rule:state.pending",
+          "name": "First-opening relocation in progress",
+          "type": "core:int",
+          "scope": "global",
+          "initial": {
+            "expr": "0"
+          }
+        },
+        {
+          "id": "rule:state.adjacent_count",
+          "name": "Mine-counting accumulator",
+          "type": "core:int",
+          "scope": "global",
+          "initial": {
+            "expr": "0"
+          }
+        },
+        {
+          "id": "rule:state.timer_active",
+          "name": "First tile has been opened",
+          "type": "core:int",
+          "scope": "global",
+          "initial": {
+            "expr": "0"
+          }
+        },
+        {
+          "id": "rule:state.timer_ticks",
+          "name": "Timer ticks within the current second",
+          "type": "core:int",
+          "scope": "global",
+          "initial": {
+            "expr": "0"
+          }
+        },
+        {
+          "id": "rule:state.seconds",
+          "name": "Elapsed whole seconds, frozen at game end",
+          "type": "core:int",
+          "scope": "global",
+          "initial": {
+            "expr": "0"
+          }
+        }
+      ],
+      "entity_types": [],
+      "initial_effects": [
+        {
+          "op": "random.draw",
+          "stream": "rule:random.mines",
+          "distribution": {
+            "kind": "shuffle",
+            "values": {
+              "expr": "topology.sites('rule:topology.board')"
+            }
+          },
+          "as": "initial_shuffle"
+        },
+        {
+          "op": "foreach",
+          "query": {
+            "expr": "sequence.slice(var.initial_shuffle, 0, 10)"
+          },
+          "as": "mine_site",
+          "effects": [
+            {
+              "op": "grid.set",
+              "state": "rule:state.mines",
+              "coordinate": {
+                "expr": "var.mine_site"
+              },
+              "value": {
+                "expr": "1"
+              }
+            }
+          ]
+        }
+      ],
+      "information_model": "perfect"
+    },
+    "queries": [],
+    "events": [],
+    "actions": [
+      {
+        "id": "rule:action.cycle_mark",
+        "name": "Cycle unopened → flag → question → unopened",
+        "actor": {
+          "expr": "'rule:participant.player'"
+        },
+        "parameters": [
+          {
+            "name": "coordinate",
+            "type": "core:coord",
+            "domain": {
+              "expr": "topology.sites('rule:topology.board')"
+            }
+          }
+        ],
+        "precondition": {
+          "expr": "state.get('rule:state.result') == 0 and topology.contains('rule:topology.board', param.coordinate) and grid.get('rule:state.cover', param.coordinate) >= 0 and grid.get('rule:state.cover', param.coordinate) < 3"
+        },
+        "effects": [
+          {
+            "op": "state.increment",
+            "target": {
+              "expr": "'rule:state.flags'"
+            },
+            "value": {
+              "expr": "1 if grid.get('rule:state.cover', param.coordinate) == 0 else (-1 if grid.get('rule:state.cover', param.coordinate) == 1 else 0)"
+            }
+          },
+          {
+            "op": "grid.set",
+            "state": "rule:state.cover",
+            "coordinate": {
+              "expr": "param.coordinate"
+            },
+            "value": {
+              "expr": "(grid.get('rule:state.cover', param.coordinate) + 1) % 3"
+            }
+          }
+        ],
+        "timing": {
+          "phase": "rule:phase.play"
+        },
+        "encoding": {
+          "kind": "parameter_product"
+        }
+      },
+      {
+        "id": "rule:action.clear_question",
+        "name": "Left-click a question mark without opening the tile",
+        "actor": {
+          "expr": "'rule:participant.player'"
+        },
+        "parameters": [
+          {
+            "name": "coordinate",
+            "type": "core:coord",
+            "domain": {
+              "expr": "topology.sites('rule:topology.board')"
+            }
+          }
+        ],
+        "precondition": {
+          "expr": "state.get('rule:state.result') == 0 and topology.contains('rule:topology.board', param.coordinate) and grid.get('rule:state.cover', param.coordinate) == 2"
+        },
+        "effects": [
+          {
+            "op": "grid.set",
+            "state": "rule:state.cover",
+            "coordinate": {
+              "expr": "param.coordinate"
+            },
+            "value": {
+              "expr": "0"
+            }
+          }
+        ],
+        "timing": {
+          "phase": "rule:phase.play"
+        },
+        "encoding": {
+          "kind": "parameter_product"
+        }
+      },
+      {
+        "id": "rule:action.reveal",
+        "name": "Open an unopened tile",
+        "actor": {
+          "expr": "'rule:participant.player'"
+        },
+        "parameters": [
+          {
+            "name": "coordinate",
+            "type": "core:coord",
+            "domain": {
+              "expr": "topology.sites('rule:topology.board')"
+            }
+          }
+        ],
+        "precondition": {
+          "expr": "state.get('rule:state.result') == 0 and topology.contains('rule:topology.board', param.coordinate) and grid.get('rule:state.cover', param.coordinate) == 0"
+        },
+        "effects": [
+          {
+            "op": "foreach",
+            "query": {
+              "expr": "[param.coordinate] if state.get('rule:state.opened_count') == 0 else []"
+            },
+            "as": "first_click",
+            "effects": [
+              {
+                "op": "state.set",
+                "target": {
+                  "expr": "'rule:state.timer_active'"
+                },
+                "value": {
+                  "expr": "1"
+                }
+              },
+              {
+                "op": "foreach",
+                "query": {
+                  "expr": "sequence.concat([param.coordinate], topology.neighbors('rule:topology.board', param.coordinate, True))"
+                },
+                "as": "protected_site",
+                "effects": [
+                  {
+                    "op": "foreach",
+                    "query": {
+                      "expr": "[var.protected_site] if grid.get('rule:state.mines', var.protected_site) == 1 else []"
+                    },
+                    "as": "mine_to_move",
+                    "effects": [
+                      {
+                        "op": "state.set",
+                        "target": {
+                          "expr": "'rule:state.pending'"
+                        },
+                        "value": {
+                          "expr": "1"
+                        }
+                      },
+                      {
+                        "op": "random.draw",
+                        "stream": "rule:random.mines",
+                        "distribution": {
+                          "kind": "shuffle",
+                          "values": {
+                            "expr": "topology.sites('rule:topology.board')"
+                          }
+                        },
+                        "as": "relocation_order"
+                      },
+                      {
+                        "op": "foreach",
+                        "query": {
+                          "expr": "var.relocation_order"
+                        },
+                        "as": "destination",
+                        "effects": [
+                          {
+                            "op": "foreach",
+                            "query": {
+                              "op": "if",
+                              "condition": {
+                                "op": "and",
+                                "args": [
+                                  {
+                                    "expr": "state.get('rule:state.pending') == 1"
+                                  },
+                                  {
+                                    "expr": "grid.get('rule:state.mines', var.destination) == 0"
+                                  },
+                                  {
+                                    "expr": "var.destination != param.coordinate"
+                                  },
+                                  {
+                                    "op": "not",
+                                    "args": [
+                                      {
+                                        "op": "contains",
+                                        "args": [
+                                          {
+                                            "expr": "topology.neighbors('rule:topology.board', param.coordinate, True)"
+                                          },
+                                          {
+                                            "expr": "var.destination"
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              },
+                              "then": {
+                                "op": "list",
+                                "items": [
+                                  {
+                                    "op": "var",
+                                    "name": "destination"
+                                  }
+                                ]
+                              },
+                              "else": {
+                                "op": "list",
+                                "items": []
+                              }
+                            },
+                            "as": "chosen_destination",
+                            "effects": [
+                              {
+                                "op": "grid.set",
+                                "state": "rule:state.mines",
+                                "coordinate": {
+                                  "expr": "var.chosen_destination"
+                                },
+                                "value": {
+                                  "expr": "1"
+                                }
+                              },
+                              {
+                                "op": "grid.set",
+                                "state": "rule:state.mines",
+                                "coordinate": {
+                                  "expr": "var.mine_to_move"
+                                },
+                                "value": {
+                                  "expr": "0"
+                                }
+                              },
+                              {
+                                "op": "state.set",
+                                "target": {
+                                  "expr": "'rule:state.pending'"
+                                },
+                                "value": {
+                                  "expr": "0"
+                                }
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "op": "foreach",
+                "query": {
+                  "expr": "topology.sites('rule:topology.board')"
+                },
+                "as": "numbered_site",
+                "effects": [
+                  {
+                    "op": "state.set",
+                    "target": {
+                      "expr": "'rule:state.adjacent_count'"
+                    },
+                    "value": {
+                      "expr": "0"
+                    }
+                  },
+                  {
+                    "op": "foreach",
+                    "query": {
+                      "expr": "topology.neighbors('rule:topology.board', var.numbered_site, True)"
+                    },
+                    "as": "neighbor",
+                    "effects": [
+                      {
+                        "op": "state.increment",
+                        "target": {
+                          "expr": "'rule:state.adjacent_count'"
+                        },
+                        "value": {
+                          "expr": "grid.get('rule:state.mines', var.neighbor)"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "op": "grid.set",
+                    "state": "rule:state.number",
+                    "coordinate": {
+                      "expr": "var.numbered_site"
+                    },
+                    "value": {
+                      "expr": "9 if grid.get('rule:state.mines', var.numbered_site) == 1 else state.get('rule:state.adjacent_count')"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "op": "foreach",
+            "query": {
+              "expr": "[param.coordinate] if grid.get('rule:state.mines', param.coordinate) == 1 else []"
+            },
+            "as": "detonated",
+            "effects": [
+              {
+                "op": "state.increment",
+                "target": {
+                  "expr": "'rule:state.opened_count'"
+                },
+                "value": {
+                  "expr": "1"
+                }
+              },
+              {
+                "op": "grid.set",
+                "state": "rule:state.cover",
+                "coordinate": {
+                  "expr": "param.coordinate"
+                },
+                "value": {
+                  "expr": "4"
+                }
+              },
+              {
+                "op": "state.set",
+                "target": {
+                  "expr": "'rule:state.result'"
+                },
+                "value": {
+                  "expr": "1"
+                }
+              },
+              {
+                "op": "foreach",
+                "query": {
+                  "expr": "topology.sites('rule:topology.board')"
+                },
+                "as": "loss_site",
+                "effects": [
+                  {
+                    "op": "foreach",
+                    "query": {
+                      "expr": "[var.loss_site] if grid.get('rule:state.mines', var.loss_site) == 1 and grid.get('rule:state.cover', var.loss_site) == 0 else []"
+                    },
+                    "as": "unflagged_mine",
+                    "effects": [
+                      {
+                        "op": "grid.set",
+                        "state": "rule:state.cover",
+                        "coordinate": {
+                          "expr": "var.unflagged_mine"
+                        },
+                        "value": {
+                          "expr": "6"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "op": "foreach",
+                    "query": {
+                      "expr": "[var.loss_site] if grid.get('rule:state.mines', var.loss_site) == 0 and grid.get('rule:state.cover', var.loss_site) == 1 else []"
+                    },
+                    "as": "incorrect_flag",
+                    "effects": [
+                      {
+                        "op": "grid.set",
+                        "state": "rule:state.cover",
+                        "coordinate": {
+                          "expr": "var.incorrect_flag"
+                        },
+                        "value": {
+                          "expr": "5"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "op": "foreach",
+            "query": {
+              "expr": "[param.coordinate] if grid.get('rule:state.mines', param.coordinate) == 0 else []"
+            },
+            "as": "safe_click",
+            "effects": [
+              {
+                "op": "foreach",
+                "query": {
+                  "expr": "topology.sites('rule:topology.board')"
+                },
+                "as": "flood_site",
+                "effects": [
+                  {
+                    "op": "grid.set",
+                    "state": "rule:state.flood",
+                    "coordinate": {
+                      "expr": "var.flood_site"
+                    },
+                    "value": {
+                      "expr": "grid.get('rule:state.number', var.flood_site) if grid.get('rule:state.cover', var.flood_site) < 3 else 9"
+                    }
+                  }
+                ]
+              },
+              {
+                "op": "foreach",
+                "query": {
+                  "expr": "grid.flood_region('rule:state.flood', param.coordinate, [0], [9], True, True, []) if grid.get('rule:state.number', param.coordinate) == 0 else [param.coordinate]"
+                },
+                "as": "opening",
+                "effects": [
+                  {
+                    "op": "foreach",
+                    "query": {
+                      "expr": "[var.opening] if grid.get('rule:state.cover', var.opening) < 3 and grid.get('rule:state.mines', var.opening) == 0 else []"
+                    },
+                    "as": "openable",
+                    "effects": [
+                      {
+                        "op": "grid.set",
+                        "state": "rule:state.cover",
+                        "coordinate": {
+                          "expr": "var.openable"
+                        },
+                        "value": {
+                          "expr": "3"
+                        }
+                      },
+                      {
+                        "op": "state.increment",
+                        "target": {
+                          "expr": "'rule:state.opened_count'"
+                        },
+                        "value": {
+                          "expr": "1"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "op": "foreach",
+                "query": {
+                  "expr": "[param.coordinate] if state.get('rule:state.opened_count') == 90 else []"
+                },
+                "as": "completed",
+                "effects": [
+                  {
+                    "op": "state.set",
+                    "target": {
+                      "expr": "'rule:state.result'"
+                    },
+                    "value": {
+                      "expr": "2"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "timing": {
+          "phase": "rule:phase.play"
+        },
+        "encoding": {
+          "kind": "parameter_product"
+        }
+      }
+    ],
+    "systems": [
+      {
+        "id": "rule:system.timer",
+        "name": "Advance the first-opening timer until win or loss",
+        "phase": "rule:phase.play",
+        "priority": 100,
+        "trigger": {
+          "kind": "tick",
+          "every": 1
+        },
+        "condition": {
+          "expr": "state.get('rule:state.timer_active') == 1 and state.get('rule:state.result') == 0"
+        },
+        "effects": [
+          {
+            "op": "state.increment",
+            "target": {
+              "expr": "'rule:state.timer_ticks'"
+            },
+            "value": {
+              "expr": "1"
+            }
+          },
+          {
+            "op": "foreach",
+            "query": {
+              "expr": "[0] if state.get('rule:state.timer_ticks') >= 60 else []"
+            },
+            "as": "elapsed_second",
+            "effects": [
+              {
+                "op": "state.set",
+                "target": {
+                  "expr": "'rule:state.timer_ticks'"
+                },
+                "value": {
+                  "expr": "0"
+                }
+              },
+              {
+                "op": "state.increment",
+                "target": {
+                  "expr": "'rule:state.seconds'"
+                },
+                "value": {
+                  "expr": "1"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "flow": {
+      "model": "fixed_tick",
+      "phases": [
+        {
+          "id": "rule:phase.play",
+          "order": 100
+        }
+      ],
+      "initial_phase": "rule:phase.play",
+      "scheduler": {
+        "clock": "fixed_tick",
+        "tick_hz": 60,
+        "ordering": "phase_priority_id"
+      }
+    },
+    "random_streams": [
+      {
+        "id": "rule:random.mines",
+        "name": "Initial placement and first-click relocation",
+        "algorithm": "cubeengine.pcg32/1",
+        "seed_policy": "session"
+      }
+    ],
+    "goals": [
+      {
+        "id": "rule:goal.clear_safe_cells",
+        "name": "Open all 90 safe tiles"
+      }
+    ],
+    "outcomes": [
+      {
+        "id": "rule:outcome.loss",
+        "name": "Mine opened",
+        "priority": 100,
+        "condition": {
+          "expr": "state.get('rule:state.result') == 1"
+        },
+        "result": {
+          "status": "loss",
+          "terminal": true,
+          "losers": [
+            {
+              "expr": "'rule:participant.player'"
+            }
+          ]
+        }
+      },
+      {
+        "id": "rule:outcome.win",
+        "name": "All safe tiles opened",
+        "priority": 90,
+        "condition": {
+          "expr": "state.get('rule:state.result') == 2"
+        },
+        "result": {
+          "status": "win",
+          "terminal": true,
+          "winners": [
+            {
+              "expr": "'rule:participant.player'"
+            }
+          ]
+        }
+      }
+    ],
+    "modes": [
+      {
+        "id": "rule:mode.basic",
+        "name": "Basic: 10×10, ten mines",
+        "overrides": []
+      }
+    ],
+    "invariants": [
+      {
+        "id": "rule:invariant.flags",
+        "name": "Flag count stays within board bounds",
+        "condition": {
+          "expr": "state.get('rule:state.flags') >= 0 and state.get('rule:state.flags') <= 100"
+        },
+        "severity": "error"
+      },
+      {
+        "id": "rule:invariant.mines",
+        "name": "Exactly ten mines remain after relocation",
+        "condition": {
+          "expr": "grid.count_equal('rule:state.mines', 1) == 10"
+        },
+        "severity": "error"
+      }
+    ],
+    "extensions": {},
+    "unresolved": [
+      {
+        "path": "/state/information_model",
+        "reason": "This backend exposes authoritative state to local clients. Covered mines can be concealed visually, but secure hidden observations for agents or remote clients are unavailable.",
+        "required": false,
+        "owner": "extension"
+      },
+      {
+        "path": "/goals/high_scores",
+        "reason": "The source saves winning times to a persistent JSON high-score file; Rule commands cannot perform filesystem persistence. This does not affect the executable board rules.",
+        "required": false,
+        "owner": "extension"
+      },
+      {
+        "path": "/actions/reveal/first_click_relocation",
+        "reason": "The source retries random row-and-column pairs. Shuffling sites and selecting the first eligible destination preserves the uniform destination distribution but not the exact random-number sequence.",
+        "required": false,
+        "owner": "llm"
+      }
+    ]
+  },
+  "evidence": [
+    "run_game.py:1-17@0d9c1899014279d13615849458126254a3fac9e54d7cd28aef6c7fb41aa3d03a",
+    "minesweeper/__main__.py:1-168@c734448d03ecdb6ef6693a03e5d711ec2d27145d13ba38b6455271c50677cd5a",
+    "minesweeper/core/board.py:1-172@5bdaff08d676549c480c95374f212bc54a013cc2ac787a686c5279291d883970",
+    "minesweeper/core/board_tile.py:1-64@2d5927094f88c3c03e6ae64ae5a47e63ed4226769caf21998a77a13850233345",
+    "minesweeper/user_interface_board.py:1-152@1e552aa64378928d6297a68abee49dc425b20e6bd240a9752b92f549589c89fc",
+    "minesweeper/user_interface_score.py:1-76@eda7fdfc4640dbca70aebbe0278a70ea60c9867ad48371e6650d87250455fa1e",
+    "minesweeper/util.py:1-53@595760f06122d94027d3c06800ab890831203e6f1aaeb66203ea0bd9fe2bf97e"
+  ],
+  "behavior_tests": [
+    {
+      "name": "Right-click flags an unopened tile",
+      "steps": [
+        {
+          "action": "rule:action.cycle_mark",
+          "parameters": {
+            "coordinate": [
+              0,
+              0
+            ]
+          },
+          "accepted": true
+        }
+      ],
+      "expect": {
+        "cells": [
+          {
+            "state": "rule:state.cover",
+            "coordinate": [
+              0,
+              0
+            ],
+            "value": 1
+          }
+        ],
+        "terminal": false
+      }
+    },
+    {
+      "name": "A flagged tile cannot be directly revealed",
+      "steps": [
+        {
+          "action": "rule:action.cycle_mark",
+          "parameters": {
+            "coordinate": [
+              0,
+              0
+            ]
+          },
+          "accepted": true
+        },
+        {
+          "action": "rule:action.reveal",
+          "parameters": {
+            "coordinate": [
+              0,
+              0
+            ]
+          },
+          "accepted": false
+        }
+      ],
+      "expect": {
+        "cells": [
+          {
+            "state": "rule:state.cover",
+            "coordinate": [
+              0,
+              0
+            ],
+            "value": 1
+          }
+        ],
+        "terminal": false
+      }
+    },
+    {
+      "name": "Left-click clears a question mark without opening",
+      "steps": [
+        {
+          "action": "rule:action.cycle_mark",
+          "parameters": {
+            "coordinate": [
+              0,
+              0
+            ]
+          },
+          "accepted": true
+        },
+        {
+          "action": "rule:action.cycle_mark",
+          "parameters": {
+            "coordinate": [
+              0,
+              0
+            ]
+          },
+          "accepted": true
+        },
+        {
+          "action": "rule:action.clear_question",
+          "parameters": {
+            "coordinate": [
+              0,
+              0
+            ]
+          },
+          "accepted": true
+        }
+      ],
+      "expect": {
+        "cells": [
+          {
+            "state": "rule:state.cover",
+            "coordinate": [
+              0,
+              0
+            ],
+            "value": 0
+          }
+        ],
+        "terminal": false
+      }
+    },
+    {
+      "name": "Opening a mine after the first opening loses and blocks further moves",
+      "fixture": {
+        "cells": [
+          {
+            "state": "rule:state.mines",
+            "coordinate": [
+              0,
+              0
+            ],
+            "value": 1
+          },
+          {
+            "state": "rule:state.number",
+            "coordinate": [
+              0,
+              0
+            ],
+            "value": 9
+          }
+        ],
+        "globals": {
+          "rule:state.opened_count": 1,
+          "rule:state.timer_active": 1
+        }
+      },
+      "steps": [
+        {
+          "action": "rule:action.reveal",
+          "parameters": {
+            "coordinate": [
+              0,
+              0
+            ]
+          },
+          "accepted": true
+        },
+        {
+          "action": "rule:action.cycle_mark",
+          "parameters": {
+            "coordinate": [
+              0,
+              1
+            ]
+          },
+          "accepted": false
+        }
+      ],
+      "expect": {
+        "cells": [
+          {
+            "state": "rule:state.cover",
+            "coordinate": [
+              0,
+              0
+            ],
+            "value": 4
+          }
+        ],
+        "terminal": true
+      }
+    }
+  ],
+  "assumptions": [
+    "The launcher forces basic difficulty, so this Rule topology is fixed at 10×10.",
+    "The displayed timer is approximated by 60 simulation ticks per second rather than sampling wall-clock time.",
+    "Mine cells use 9 in the count grid; safe cells have at most eight neighboring mines.",
+    "Flood opening follows the core board's unopened tiles: a flag or question mark in a zero region can be opened without decrementing the UI's flag counter."
+  ]
+}

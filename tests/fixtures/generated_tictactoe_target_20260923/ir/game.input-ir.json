@@ -1,0 +1,286 @@
+{
+  "ir_version": "cubeengine.input-ir/2.0-alpha.1",
+  "document_id": "input:game.tic.tac.toe.target",
+  "revision": 1,
+  "content_hash": "d80da4c195bea31507cb2c69397f1ffc10cb33daae80c4929b24eef46bf9d667",
+  "metadata": {
+    "title": "3D Tic Tac Toe controls",
+    "description": "Click a selectable cell to place the current mark. Press R to restart the full session, including after a win or draw; press Escape to close the player.",
+    "source_project_hash": "126c97294df6f4b2a889959917e957431d88431bb27df44d4dd743854058392a"
+  },
+  "dependencies": {
+    "rule_ir": {
+      "document_id": "rule:game.tic.tac.toe.target",
+      "content_hash": "c8c50266f03a192b32be1fe44bd930d0eddc5d99b73c25742291c111c1494ea7"
+    },
+    "extensions": []
+  },
+  "contexts": [
+    {
+      "id": "input:context.game",
+      "name": "Game lifecycle controls",
+      "priority": 100,
+      "enabled_by_default": true,
+      "focus": "global",
+      "consume_policy": "binding",
+      "exclusive_group": null
+    },
+    {
+      "id": "input:context.board",
+      "name": "Board selection",
+      "priority": 100,
+      "enabled_by_default": true,
+      "focus": "viewport",
+      "consume_policy": "binding",
+      "exclusive_group": null
+    }
+  ],
+  "intents": [
+    {
+      "id": "input:intent.place",
+      "name": "Place current mark at selected cell",
+      "value_type": "pointer",
+      "required": true,
+      "target": {
+        "kind": "rule_action",
+        "action": "rule:action.place",
+        "parameters": {
+          "coordinate": {
+            "source": "event_data",
+            "value_type": "core:coord",
+            "key": "rule_coordinate"
+          }
+        }
+      }
+    },
+    {
+      "id": "input:intent.restart",
+      "name": "Restart full game session",
+      "value_type": "digital",
+      "required": true,
+      "target": {
+        "kind": "host_command",
+        "command": "restart"
+      }
+    },
+    {
+      "id": "input:intent.quit",
+      "name": "Close game player",
+      "value_type": "digital",
+      "required": true,
+      "target": {
+        "kind": "host_command",
+        "command": "quit"
+      }
+    }
+  ],
+  "bindings": [
+    {
+      "id": "input:binding.place",
+      "name": "Primary-click board cell",
+      "context": "input:context.board",
+      "intent": "input:intent.place",
+      "priority": 100,
+      "enabled": true,
+      "consume": true,
+      "rebindable": true,
+      "slot": "primary",
+      "accessibility_label": "Click a board cell to place the current mark",
+      "trigger": {
+        "kind": "control",
+        "device": "mouse",
+        "control": "mouse.button.primary",
+        "phase": "press",
+        "modifiers": [],
+        "modifier_policy": "at_least"
+      },
+      "processing": {
+        "dead_zone": 0,
+        "sensitivity_numerator": 1,
+        "sensitivity_denominator": 1,
+        "invert": false,
+        "clamp_min": 0,
+        "clamp_max": 1
+      }
+    },
+    {
+      "id": "input:binding.restart",
+      "name": "R to restart",
+      "context": "input:context.game",
+      "intent": "input:intent.restart",
+      "priority": 100,
+      "enabled": true,
+      "consume": true,
+      "rebindable": true,
+      "slot": "primary",
+      "accessibility_label": "Press R to restart, even after the game ends",
+      "trigger": {
+        "kind": "control",
+        "device": "keyboard",
+        "control": "keyboard.key.r",
+        "phase": "press",
+        "modifiers": [],
+        "modifier_policy": "at_least"
+      },
+      "processing": {
+        "dead_zone": 0,
+        "sensitivity_numerator": 1,
+        "sensitivity_denominator": 1,
+        "invert": false,
+        "clamp_min": 0,
+        "clamp_max": 1
+      }
+    },
+    {
+      "id": "input:binding.quit",
+      "name": "Escape to quit",
+      "context": "input:context.game",
+      "intent": "input:intent.quit",
+      "priority": 100,
+      "enabled": true,
+      "consume": true,
+      "rebindable": true,
+      "slot": "primary",
+      "accessibility_label": "Press Escape to close the game",
+      "trigger": {
+        "kind": "control",
+        "device": "keyboard",
+        "control": "keyboard.key.escape",
+        "phase": "press",
+        "modifiers": [],
+        "modifier_policy": "at_least"
+      },
+      "processing": {
+        "dead_zone": 0,
+        "sensitivity_numerator": 1,
+        "sensitivity_denominator": 1,
+        "invert": false,
+        "clamp_min": 0,
+        "clamp_max": 1
+      }
+    }
+  ],
+  "provenance": {
+    "patch_history": [
+      {
+        "base_revision": 0,
+        "base_content_hash": "7e3f7eab57540316f980e19ff3b1ac7a4c8ab4b18947ef54d787b525991bb7f9",
+        "evidence": [
+          {
+            "evidence_id": "main.py:1-86@fe934e578327e76620ffd7588aca5c05b35bffc81c3fd6cc4c4d59f637964003",
+            "path": "main.py",
+            "file_sha256": "fe934e578327e76620ffd7588aca5c05b35bffc81c3fd6cc4c4d59f637964003",
+            "span": {
+              "line_start": 1,
+              "line_end": 86
+            },
+            "supports": "/input_ir"
+          },
+          {
+            "evidence_id": "ev:binding.0",
+            "path": "main.py",
+            "file_sha256": "fe934e578327e76620ffd7588aca5c05b35bffc81c3fd6cc4c4d59f637964003",
+            "kind": "static",
+            "span": {
+              "line_start": 58,
+              "line_end": 58
+            },
+            "supports": "/input_ir/bindings",
+            "topic": "direction_input",
+            "confidence": 0.8
+          },
+          {
+            "evidence_id": "ev:binding.1",
+            "path": "main.py",
+            "file_sha256": "fe934e578327e76620ffd7588aca5c05b35bffc81c3fd6cc4c4d59f637964003",
+            "kind": "static",
+            "span": {
+              "line_start": 60,
+              "line_end": 60
+            },
+            "supports": "/input_ir/bindings",
+            "topic": "direction_input",
+            "confidence": 0.8
+          },
+          {
+            "evidence_id": "ev:binding.2",
+            "path": "main.py",
+            "file_sha256": "fe934e578327e76620ffd7588aca5c05b35bffc81c3fd6cc4c4d59f637964003",
+            "kind": "static",
+            "span": {
+              "line_start": 62,
+              "line_end": 62
+            },
+            "supports": "/input_ir/bindings",
+            "topic": "direction_input",
+            "confidence": 0.8
+          }
+        ],
+        "assumptions": [
+          "The scene's selectable topology-site collider supplies event_data.rule_coordinate on a primary click."
+        ],
+        "operation_count": 6
+      },
+      {
+        "base_revision": 0,
+        "base_content_hash": "7c2eb9fa6cef77bc2726cd9e87ba629341ce1431a108fad86e96f4bcb79a5673",
+        "evidence": [
+          {
+            "evidence_id": "main.py:1-86@fe934e578327e76620ffd7588aca5c05b35bffc81c3fd6cc4c4d59f637964003",
+            "path": "main.py",
+            "file_sha256": "fe934e578327e76620ffd7588aca5c05b35bffc81c3fd6cc4c4d59f637964003",
+            "span": {
+              "line_start": 1,
+              "line_end": 86
+            },
+            "supports": "/input_ir"
+          },
+          {
+            "evidence_id": "ev:binding.0",
+            "path": "main.py",
+            "file_sha256": "fe934e578327e76620ffd7588aca5c05b35bffc81c3fd6cc4c4d59f637964003",
+            "kind": "static",
+            "span": {
+              "line_start": 58,
+              "line_end": 58
+            },
+            "supports": "/input_ir/bindings",
+            "topic": "direction_input",
+            "confidence": 0.8
+          },
+          {
+            "evidence_id": "ev:binding.1",
+            "path": "main.py",
+            "file_sha256": "fe934e578327e76620ffd7588aca5c05b35bffc81c3fd6cc4c4d59f637964003",
+            "kind": "static",
+            "span": {
+              "line_start": 60,
+              "line_end": 60
+            },
+            "supports": "/input_ir/bindings",
+            "topic": "direction_input",
+            "confidence": 0.8
+          },
+          {
+            "evidence_id": "ev:binding.2",
+            "path": "main.py",
+            "file_sha256": "fe934e578327e76620ffd7588aca5c05b35bffc81c3fd6cc4c4d59f637964003",
+            "kind": "static",
+            "span": {
+              "line_start": 62,
+              "line_end": 62
+            },
+            "supports": "/input_ir/bindings",
+            "topic": "direction_input",
+            "confidence": 0.8
+          }
+        ],
+        "assumptions": [
+          "The scene's selectable topology-site colliders supply event_data.rule_coordinate on a primary click."
+        ],
+        "operation_count": 6
+      }
+    ]
+  },
+  "unresolved": []
+}

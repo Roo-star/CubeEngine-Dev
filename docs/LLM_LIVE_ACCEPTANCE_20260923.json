@@ -1,0 +1,48 @@
+{
+  "started_at": "2026-09-23T11:41:57.458263+00:00",
+  "authorized_total_http_limit": 8,
+  "http_automatic_retries": 0,
+  "semantic_repair_retries": 0,
+  "http_requests": [
+    {
+      "number": 1,
+      "phase": "source",
+      "status": "received",
+      "usage": {
+        "input_tokens": 29484,
+        "output_tokens": 3909,
+        "cost": 0.1127985
+      },
+      "duration_seconds": 46.765
+    },
+    {
+      "number": 2,
+      "phase": "source",
+      "status": "received",
+      "usage": {
+        "input_tokens": 23752,
+        "output_tokens": 1148,
+        "cost": 0.0672544
+      },
+      "duration_seconds": 16.547
+    }
+  ],
+  "status": "source_blocked",
+  "model": "openai/gpt-6-sol",
+  "source_file": "srtp/reference_games/pygame_tictactoe/main.py",
+  "note": "Real model definitions only. Approval here is labelled engineering verification, not designer quality acceptance.",
+  "source": {
+    "ok": false,
+    "output_dir": "E:\\CubeEngine\\CubeEngine-SRTP\\.cubeengine_llm\\tic.tac.toe\\source.failed\\141ca1d4cd934cfcad13c58dccb783c4",
+    "diagnostics": [
+      "input_ir: Input IR has required unresolved semantics or no executable bindings"
+    ],
+    "api_usage": {
+      "http_requests": 2,
+      "input_tokens": 53236,
+      "output_tokens": 5057,
+      "reported_cost_usd": 0.18005290000000002
+    }
+  },
+  "finished_at": "2026-09-23T11:43:01.710153+00:00"
+}

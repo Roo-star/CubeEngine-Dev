@@ -634,6 +634,7 @@ class RuleRuntime:
         extension_session: Any = None,
     ) -> None:
         self.document = deepcopy(dict(document))
+        self.initial_random_sources = deepcopy(dict(random_sources or {}))
         self.type_registry = RuleTypeRegistry(self.document.get("types", []))
         self.configuration: ResolvedRuleConfiguration = resolve_rule_configuration(
             self.document, mode_id=mode_id, overrides=parameter_values,
@@ -1823,7 +1824,9 @@ def _core_functions(runtime: RuleRuntime) -> Dict[str, FunctionSpec]:
                     return component.get("default", {}).get("value")
         raise ExpressionError("no state value is mapped to participant {0}".format(participant))
 
+    from .sequence_functions import sequence_function_specs
     return {
+        **sequence_function_specs(runtime),
         "core:parameter.get": FunctionSpec("core:parameter.get", parameter_get, "core:any", ("core:string",)),
         "core:state.get": FunctionSpec("core:state.get", state_get, "core:any", ("core:any",), variadic=True),
         "core:entity.component": FunctionSpec("core:entity.component", entity_component, "core:any", ("core:entity_id", "core:string")),

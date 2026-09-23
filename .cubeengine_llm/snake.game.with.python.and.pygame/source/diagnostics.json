@@ -2,9 +2,22 @@
   "ok": true,
   "stage": "source_four_ir",
   "diagnostics": [],
-  "unresolved_summary": [],
+  "unresolved_summary": [
+    {
+      "path": "/assets",
+      "reason": "Asset entry dropped, asset:role.food.texture: role missing resource reference.",
+      "required": false,
+      "owner": "llm"
+    },
+    {
+      "path": "/provenance/llm",
+      "reason": "LLM proposal has not been designer-approved.",
+      "required": true,
+      "owner": "designer"
+    }
+  ],
   "provider": "gemini",
   "model": "gemini-3.6-flash",
-  "attempts": 3,
+  "attempts": 2,
   "compile_ready": false
 }

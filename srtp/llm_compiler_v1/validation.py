@@ -29,7 +29,7 @@ _VALIDATORS = {
     "input_ir": validate_input_ir,
 }
 _PATCH_ERRORS = (
-    RuleIRPatchError, SceneIRPatchError, AssetIRPatchError, InputIRPatchError, ValueError,
+    RuleIRPatchError, SceneIRPatchError, AssetIRPatchError, InputIRPatchError, ValueError, TypeError,
 )
 
 

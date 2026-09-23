@@ -1,0 +1,844 @@
+{
+  "ir_version": "cubeengine.rule-ir/2.0-alpha.1",
+  "document_id": "rule:game.tic.tac.toe.target",
+  "revision": 1,
+  "content_hash": "c8c50266f03a192b32be1fe44bd930d0eddc5d99b73c25742291c111c1494ea7",
+  "metadata": {
+    "title": "3D Tic Tac Toe",
+    "description": "Alternating X and O on a 3×3×3 board. Three matching marks on any straight 3D line wins; a full board without a winner draws.",
+    "source_project_hash": "126c97294df6f4b2a889959917e957431d88431bb27df44d4dd743854058392a",
+    "determinism": "deterministic"
+  },
+  "dependencies": {
+    "scene_ir": null,
+    "asset_ir": null,
+    "input_ir": null,
+    "extensions": []
+  },
+  "parameters": [],
+  "types": [],
+  "participants": [
+    {
+      "id": "rule:participant.human",
+      "name": "Local player controlling both alternating marks",
+      "kind": "human"
+    }
+  ],
+  "topologies": [
+    {
+      "id": "rule:topology.board",
+      "name": "3×3×3 board",
+      "kind": "rect_grid",
+      "anchor": "cell",
+      "axes": [
+        {
+          "name": "x",
+          "extent": 3,
+          "boundary": "bounded"
+        },
+        {
+          "name": "y",
+          "extent": 3,
+          "boundary": "bounded"
+        },
+        {
+          "name": "z",
+          "extent": 3,
+          "boundary": "bounded"
+        }
+      ],
+      "neighborhoods": []
+    }
+  ],
+  "state": {
+    "variables": [
+      {
+        "id": "rule:state.board",
+        "name": "Board cell: empty, X or O",
+        "type": "core:int",
+        "scope": "topology_site",
+        "topology": "rule:topology.board",
+        "initial": {
+          "op": "literal",
+          "value": 0
+        }
+      },
+      {
+        "id": "rule:state.current_player",
+        "name": "Mark whose turn it is",
+        "type": "core:int",
+        "scope": "global",
+        "initial": {
+          "op": "literal",
+          "value": 1
+        }
+      },
+      {
+        "id": "rule:state.winner",
+        "name": "Winning mark, or zero",
+        "type": "core:int",
+        "scope": "global",
+        "initial": {
+          "op": "literal",
+          "value": 0
+        }
+      },
+      {
+        "id": "rule:state.draw",
+        "name": "Whether the game is drawn",
+        "type": "core:bool",
+        "scope": "global",
+        "initial": {
+          "op": "literal",
+          "value": false
+        }
+      }
+    ],
+    "entity_types": [],
+    "initial_effects": [],
+    "information_model": "perfect"
+  },
+  "queries": [],
+  "events": [
+    {
+      "id": "rule:event.placed",
+      "name": "Mark placed",
+      "payload": []
+    }
+  ],
+  "actions": [
+    {
+      "id": "rule:action.place",
+      "name": "Place the current mark in any empty cell",
+      "actor": {
+        "op": "literal",
+        "value": "rule:participant.human"
+      },
+      "parameters": [
+        {
+          "name": "coordinate",
+          "type": "core:coord",
+          "domain": {
+            "op": "call",
+            "function": "core:topology.sites",
+            "args": [
+              {
+                "op": "literal",
+                "value": "rule:topology.board"
+              }
+            ]
+          }
+        }
+      ],
+      "precondition": {
+        "op": "and",
+        "args": [
+          {
+            "op": "eq",
+            "args": [
+              {
+                "op": "call",
+                "function": "core:state.get",
+                "args": [
+                  {
+                    "op": "literal",
+                    "value": "rule:state.winner"
+                  }
+                ]
+              },
+              {
+                "op": "literal",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "op": "eq",
+            "args": [
+              {
+                "op": "call",
+                "function": "core:state.get",
+                "args": [
+                  {
+                    "op": "literal",
+                    "value": "rule:state.draw"
+                  }
+                ]
+              },
+              {
+                "op": "literal",
+                "value": false
+              }
+            ]
+          },
+          {
+            "op": "call",
+            "function": "core:topology.contains",
+            "args": [
+              {
+                "op": "literal",
+                "value": "rule:topology.board"
+              },
+              {
+                "op": "param",
+                "name": "coordinate"
+              }
+            ]
+          },
+          {
+            "op": "eq",
+            "args": [
+              {
+                "op": "call",
+                "function": "core:grid.get",
+                "args": [
+                  {
+                    "op": "literal",
+                    "value": "rule:state.board"
+                  },
+                  {
+                    "op": "param",
+                    "name": "coordinate"
+                  }
+                ]
+              },
+              {
+                "op": "literal",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      "effects": [
+        {
+          "op": "grid.set",
+          "state": "rule:state.board",
+          "coordinate": {
+            "op": "param",
+            "name": "coordinate"
+          },
+          "value": {
+            "op": "call",
+            "function": "core:state.get",
+            "args": [
+              {
+                "op": "literal",
+                "value": "rule:state.current_player"
+              }
+            ]
+          }
+        },
+        {
+          "op": "event.emit",
+          "event": "rule:event.placed"
+        }
+      ],
+      "timing": {
+        "phase": "rule:phase.input"
+      },
+      "encoding": {
+        "kind": "parameter_product"
+      }
+    }
+  ],
+  "systems": [
+    {
+      "id": "rule:system.win",
+      "name": "Detect any straight three-cell 3D line",
+      "phase": "rule:phase.input",
+      "priority": 100,
+      "trigger": {
+        "kind": "event",
+        "event": "rule:event.placed"
+      },
+      "condition": {
+        "op": "call",
+        "function": "core:grid.has_line",
+        "args": [
+          {
+            "op": "literal",
+            "value": "rule:state.board"
+          },
+          {
+            "op": "call",
+            "function": "core:state.get",
+            "args": [
+              {
+                "op": "literal",
+                "value": "rule:state.current_player"
+              }
+            ]
+          },
+          {
+            "op": "literal",
+            "value": 3
+          }
+        ]
+      },
+      "effects": [
+        {
+          "op": "state.set",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.winner"
+          },
+          "value": {
+            "op": "call",
+            "function": "core:state.get",
+            "args": [
+              {
+                "op": "literal",
+                "value": "rule:state.current_player"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "rule:system.draw",
+      "name": "Detect a full board without a winner",
+      "phase": "rule:phase.input",
+      "priority": 200,
+      "trigger": {
+        "kind": "event",
+        "event": "rule:event.placed"
+      },
+      "condition": {
+        "op": "and",
+        "args": [
+          {
+            "op": "eq",
+            "args": [
+              {
+                "op": "call",
+                "function": "core:state.get",
+                "args": [
+                  {
+                    "op": "literal",
+                    "value": "rule:state.winner"
+                  }
+                ]
+              },
+              {
+                "op": "literal",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "op": "eq",
+            "args": [
+              {
+                "op": "call",
+                "function": "core:grid.count_equal",
+                "args": [
+                  {
+                    "op": "literal",
+                    "value": "rule:state.board"
+                  },
+                  {
+                    "op": "literal",
+                    "value": 0
+                  }
+                ]
+              },
+              {
+                "op": "literal",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      "effects": [
+        {
+          "op": "state.set",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.draw"
+          },
+          "value": {
+            "op": "literal",
+            "value": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "rule:system.next_player",
+      "name": "Alternate marks unless the game ended",
+      "phase": "rule:phase.input",
+      "priority": 300,
+      "trigger": {
+        "kind": "event",
+        "event": "rule:event.placed"
+      },
+      "condition": {
+        "op": "and",
+        "args": [
+          {
+            "op": "eq",
+            "args": [
+              {
+                "op": "call",
+                "function": "core:state.get",
+                "args": [
+                  {
+                    "op": "literal",
+                    "value": "rule:state.winner"
+                  }
+                ]
+              },
+              {
+                "op": "literal",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "op": "eq",
+            "args": [
+              {
+                "op": "call",
+                "function": "core:state.get",
+                "args": [
+                  {
+                    "op": "literal",
+                    "value": "rule:state.draw"
+                  }
+                ]
+              },
+              {
+                "op": "literal",
+                "value": false
+              }
+            ]
+          }
+        ]
+      },
+      "effects": [
+        {
+          "op": "state.set",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.current_player"
+          },
+          "value": {
+            "op": "sub",
+            "args": [
+              {
+                "op": "literal",
+                "value": 3
+              },
+              {
+                "op": "call",
+                "function": "core:state.get",
+                "args": [
+                  {
+                    "op": "literal",
+                    "value": "rule:state.current_player"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "flow": {
+    "model": "event_driven",
+    "phases": [
+      {
+        "id": "rule:phase.input",
+        "order": 100
+      }
+    ],
+    "initial_phase": "rule:phase.input",
+    "scheduler": {
+      "clock": "event_queue",
+      "tick_hz": null,
+      "ordering": "phase_priority_id"
+    }
+  },
+  "random_streams": [],
+  "goals": [
+    {
+      "id": "rule:goal.three_in_line",
+      "name": "Complete three marks along an axis, a plane diagonal, or a space diagonal"
+    }
+  ],
+  "outcomes": [
+    {
+      "id": "rule:outcome.win",
+      "name": "X or O wins",
+      "priority": 100,
+      "condition": {
+        "op": "ne",
+        "args": [
+          {
+            "op": "call",
+            "function": "core:state.get",
+            "args": [
+              {
+                "op": "literal",
+                "value": "rule:state.winner"
+              }
+            ]
+          },
+          {
+            "op": "literal",
+            "value": 0
+          }
+        ]
+      },
+      "result": {
+        "status": "win",
+        "terminal": true,
+        "winners": [
+          {
+            "op": "call",
+            "function": "core:state.get",
+            "args": [
+              {
+                "op": "literal",
+                "value": "rule:state.winner"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "rule:outcome.draw",
+      "name": "Full board without a winner",
+      "priority": 200,
+      "condition": {
+        "op": "eq",
+        "args": [
+          {
+            "op": "call",
+            "function": "core:state.get",
+            "args": [
+              {
+                "op": "literal",
+                "value": "rule:state.draw"
+              }
+            ]
+          },
+          {
+            "op": "literal",
+            "value": true
+          }
+        ]
+      },
+      "result": {
+        "status": "draw",
+        "terminal": true
+      }
+    }
+  ],
+  "modes": [
+    {
+      "id": "rule:mode.default",
+      "name": "Default",
+      "overrides": []
+    }
+  ],
+  "invariants": [
+    {
+      "id": "rule:invariant.current_player",
+      "name": "Current mark is X or O",
+      "condition": {
+        "op": "or",
+        "args": [
+          {
+            "op": "eq",
+            "args": [
+              {
+                "op": "call",
+                "function": "core:state.get",
+                "args": [
+                  {
+                    "op": "literal",
+                    "value": "rule:state.current_player"
+                  }
+                ]
+              },
+              {
+                "op": "literal",
+                "value": 1
+              }
+            ]
+          },
+          {
+            "op": "eq",
+            "args": [
+              {
+                "op": "call",
+                "function": "core:state.get",
+                "args": [
+                  {
+                    "op": "literal",
+                    "value": "rule:state.current_player"
+                  }
+                ]
+              },
+              {
+                "op": "literal",
+                "value": 2
+              }
+            ]
+          }
+        ]
+      },
+      "severity": "error"
+    },
+    {
+      "id": "rule:invariant.cell_values",
+      "name": "All 27 cells are empty, X or O",
+      "condition": {
+        "op": "eq",
+        "args": [
+          {
+            "op": "add",
+            "args": [
+              {
+                "op": "add",
+                "args": [
+                  {
+                    "op": "call",
+                    "function": "core:grid.count_equal",
+                    "args": [
+                      {
+                        "op": "literal",
+                        "value": "rule:state.board"
+                      },
+                      {
+                        "op": "literal",
+                        "value": 0
+                      }
+                    ]
+                  },
+                  {
+                    "op": "call",
+                    "function": "core:grid.count_equal",
+                    "args": [
+                      {
+                        "op": "literal",
+                        "value": "rule:state.board"
+                      },
+                      {
+                        "op": "literal",
+                        "value": 1
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "op": "call",
+                "function": "core:grid.count_equal",
+                "args": [
+                  {
+                    "op": "literal",
+                    "value": "rule:state.board"
+                  },
+                  {
+                    "op": "literal",
+                    "value": 2
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "op": "literal",
+            "value": 27
+          }
+        ]
+      },
+      "severity": "error"
+    }
+  ],
+  "extensions": {},
+  "provenance": {
+    "patch_history": [
+      {
+        "base_revision": 0,
+        "base_content_hash": "436d5bc1feb22cc27a469f2405441e606f590090b093f5df01198014a80cba35",
+        "evidence": [
+          {
+            "evidence_id": "ev:param.source_grid_x.0",
+            "path": "main.py",
+            "file_sha256": "fe934e578327e76620ffd7588aca5c05b35bffc81c3fd6cc4c4d59f637964003",
+            "kind": "static",
+            "span": {
+              "line_start": 21,
+              "line_end": 21
+            },
+            "supports": "/rule_ir/flow",
+            "topic": "movement",
+            "confidence": 0.8,
+            "detail": "Source grid X"
+          },
+          {
+            "evidence_id": "ev:param.source_grid_y.0",
+            "path": "main.py",
+            "file_sha256": "fe934e578327e76620ffd7588aca5c05b35bffc81c3fd6cc4c4d59f637964003",
+            "kind": "static",
+            "span": {
+              "line_start": 21,
+              "line_end": 21
+            },
+            "supports": "/rule_ir/flow",
+            "topic": "movement",
+            "confidence": 0.8,
+            "detail": "Source grid Y"
+          },
+          {
+            "evidence_id": "ev:param.source_grid_x.1",
+            "path": "main.py",
+            "file_sha256": "fe934e578327e76620ffd7588aca5c05b35bffc81c3fd6cc4c4d59f637964003",
+            "kind": "static",
+            "span": {
+              "line_start": 32,
+              "line_end": 32
+            },
+            "supports": "/rule_ir/flow",
+            "topic": "movement",
+            "confidence": 0.8,
+            "detail": "Source grid X"
+          },
+          {
+            "evidence_id": "ev:param.source_grid_y.1",
+            "path": "main.py",
+            "file_sha256": "fe934e578327e76620ffd7588aca5c05b35bffc81c3fd6cc4c4d59f637964003",
+            "kind": "static",
+            "span": {
+              "line_start": 32,
+              "line_end": 32
+            },
+            "supports": "/rule_ir/flow",
+            "topic": "movement",
+            "confidence": 0.8,
+            "detail": "Source grid Y"
+          },
+          {
+            "evidence_id": "ev:param.source_connect_n.0",
+            "path": "main.py",
+            "file_sha256": "fe934e578327e76620ffd7588aca5c05b35bffc81c3fd6cc4c4d59f637964003",
+            "kind": "static",
+            "span": {
+              "line_start": 8,
+              "line_end": 8
+            },
+            "supports": "/rule_ir/flow",
+            "topic": "movement",
+            "confidence": 0.8,
+            "detail": "Winning line length"
+          },
+          {
+            "evidence_id": "ev:input.1",
+            "path": "main.py",
+            "file_sha256": "fe934e578327e76620ffd7588aca5c05b35bffc81c3fd6cc4c4d59f637964003",
+            "kind": "static",
+            "span": {
+              "line_start": 60,
+              "line_end": 60
+            },
+            "supports": "/input_ir/bindings",
+            "topic": "direction_input",
+            "confidence": 0.8,
+            "detail": "1"
+          },
+          {
+            "evidence_id": "ev:input.2",
+            "path": "main.py",
+            "file_sha256": "fe934e578327e76620ffd7588aca5c05b35bffc81c3fd6cc4c4d59f637964003",
+            "kind": "static",
+            "span": {
+              "line_start": 62,
+              "line_end": 62
+            },
+            "supports": "/input_ir/bindings",
+            "topic": "direction_input",
+            "confidence": 0.8,
+            "detail": "2"
+          }
+        ],
+        "assumptions": [
+          "One local human participant supplies clicks for both marks, as in the source UI; current_player identifies the alternating mark.",
+          "The registered grid.has_line function checks rows, columns and both diagonals of the bounded two-dimensional board."
+        ],
+        "operation_count": 18
+      },
+      {
+        "base_revision": 0,
+        "base_content_hash": "86f16d1da60134863dfc5635dab3a778b64b88a260c6a3d5e6be587a49c183f3",
+        "evidence": [
+          {
+            "evidence_id": "main.py:1-86@fe934e578327e76620ffd7588aca5c05b35bffc81c3fd6cc4c4d59f637964003",
+            "path": "main.py",
+            "file_sha256": "fe934e578327e76620ffd7588aca5c05b35bffc81c3fd6cc4c4d59f637964003",
+            "span": {
+              "line_start": 1,
+              "line_end": 86
+            },
+            "supports": "/rule_ir"
+          },
+          {
+            "evidence_id": "ev:param.source_connect_n.0",
+            "path": "main.py",
+            "file_sha256": "fe934e578327e76620ffd7588aca5c05b35bffc81c3fd6cc4c4d59f637964003",
+            "kind": "static",
+            "span": {
+              "line_start": 8,
+              "line_end": 8
+            },
+            "supports": "/rule_ir/flow",
+            "topic": "movement",
+            "confidence": 0.8,
+            "detail": "Winning line length"
+          },
+          {
+            "evidence_id": "ev:input.1",
+            "path": "main.py",
+            "file_sha256": "fe934e578327e76620ffd7588aca5c05b35bffc81c3fd6cc4c4d59f637964003",
+            "kind": "static",
+            "span": {
+              "line_start": 60,
+              "line_end": 60
+            },
+            "supports": "/input_ir/bindings",
+            "topic": "direction_input",
+            "confidence": 0.8,
+            "detail": "1"
+          },
+          {
+            "evidence_id": "ev:input.2",
+            "path": "main.py",
+            "file_sha256": "fe934e578327e76620ffd7588aca5c05b35bffc81c3fd6cc4c4d59f637964003",
+            "kind": "static",
+            "span": {
+              "line_start": 62,
+              "line_end": 62
+            },
+            "supports": "/input_ir/bindings",
+            "topic": "direction_input",
+            "confidence": 0.8,
+            "detail": "2"
+          }
+        ],
+        "assumptions": [
+          "The registered grid.has_line function checks straight lines across all axes of a rectangular grid; at length three on a 3×3×3 grid, there are 27 axis-aligned lines, 18 plane diagonals and four space diagonals.",
+          "As in the source interface, one local human controls both alternating marks. Full-game restart belongs to the host_command restart input target, not a Rule action; the existing Input IR must be rebuilt accordingly."
+        ],
+        "operation_count": 18
+      }
+    ]
+  },
+  "unresolved": []
+}

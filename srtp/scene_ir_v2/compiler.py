@@ -466,6 +466,7 @@ class SceneProjectionSession:
             raise SceneProjectionError("projection mode must be runtime or editor")
         self.scene = scene
         self.mode = mode
+        self._last_state_hash = None
         self._properties: Dict[Tuple[str, Optional[str], str], Any] = {}
         self._entities: Dict[str, Dict[str, Dict[str, Any]]] = {
             key: {} for key in scene.entity_visualizers
@@ -473,10 +474,12 @@ class SceneProjectionSession:
 
     def synchronize(self, rule_state: Any) -> SceneDelta:
         before_hash = rule_state.state_hash()
+        self._verify_state(rule_state)
+        if before_hash == self._last_state_hash:
+            return SceneDelta(self.scene.document_id, int(rule_state.revision), before_hash, ())
         previous_properties = deepcopy(self._properties)
         previous_entities = deepcopy(self._entities)
         try:
-            self._verify_state(rule_state)
             commands: List[SceneCommand] = []
             self._synchronize_entities(rule_state, commands)
             for binding in self.scene.bindings:
@@ -506,6 +509,7 @@ class SceneProjectionSession:
             self._properties = previous_properties
             self._entities = previous_entities
             raise
+        self._last_state_hash = after_hash
         return SceneDelta(
             scene_document_id=self.scene.document_id,
             rule_revision=int(rule_state.revision),
@@ -687,6 +691,7 @@ def _validate_compiled_target(
 
 
 def _validate_component_property(component: Mapping[str, Any], property_name: str) -> None:
+    from .component_contracts import BINDABLE
     kind = str(component["type"])
     properties = component.get("properties", {})
     dynamic = {
@@ -695,9 +700,10 @@ def _validate_component_property(component: Mapping[str, Any], property_name: st
         "light": {"enabled", "color", "intensity", "range", "spot_angle"},
         "collider": {"enabled", "selectable", "is_trigger"},
         "ui_canvas": {"visible", "text", "color", "value"},
+        "audio_source": {"playing", "volume", "trigger", "clip", "loop"},
         "authoring_marker": {"visible", "selected", "label"},
     }.get(kind, set())
-    if property_name not in properties and property_name not in dynamic:
+    if property_name not in properties and property_name not in dynamic and property_name not in BINDABLE.get(kind, ()):
         raise SceneCompileError(
             "component {0} has no bindable property {1}".format(kind, property_name)
         )

@@ -92,7 +92,7 @@
       "required": ["id", "type", "enabled", "properties"],
       "properties": {
         "id": {"$ref": "#/$defs/localId"},
-        "type": {"enum": ["renderer", "camera", "light", "collider", "topology_visualizer", "rule_entity_visualizer", "ui_canvas", "authoring_marker"]},
+          "type": {"enum": ["renderer", "camera", "light", "collider", "topology_visualizer", "rule_entity_visualizer", "ui_canvas", "audio_source", "authoring_marker"]},
         "enabled": {"type": "boolean"},
         "properties": {"type": "object"}
       },

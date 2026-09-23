@@ -286,6 +286,11 @@ def _validate_intents(value: Any, diagnostics: List[InputIRDiagnostic]) -> bool:
         if kind == "semantic":
             if set(target) != {"kind"}:
                 diagnostics.append(_error("intent.semantic_fields", path + "/target", "Semantic target contains unsupported fields."))
+        elif kind == 'host_command':
+            if set(target)!={'kind','command'} or target.get('command') not in INPUT_COMPILER_CAPABILITIES['host_commands']:
+                diagnostics.append(_error('intent.host_command',path+'/target','Host command must be quit or restart, without arbitrary arguments.'))
+            if item.get('value_type')!='digital':
+                diagnostics.append(_error('intent.host_value_type',path+'/value_type','Host commands require digital input.'))
         elif kind == "rule_action":
             direct_rule_targets = True
             action = target.get("action")
@@ -301,7 +306,7 @@ def _validate_intents(value: Any, diagnostics: List[InputIRDiagnostic]) -> bool:
                         diagnostics.append(_error("intent.parameter_name", parameter_path, "Rule parameter name is invalid."))
                     _validate_parameter_source(source, parameter_path, item.get("value_type"), diagnostics)
         else:
-            diagnostics.append(_error("intent.target_kind", path + "/target/kind", "Intent target must be semantic or rule_action."))
+            diagnostics.append(_error("intent.target_kind", path + "/target/kind", "Intent target must be semantic, rule_action or host_command."))
     return direct_rule_targets
 
 

@@ -1,6 +1,7 @@
 """Controller tests for the fidelity-first SRTP Function 1 Workbench."""
 
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 from srtp.source_runner import OriginalGameProcess
@@ -11,7 +12,7 @@ from srtp.workbench import REFERENCE_GAMES, SrtpWorkbench
 class FakeDpg:
     def __init__(self):
         self.values = {
-            "srtp_reference_selector": next(iter(REFERENCE_GAMES)),
+            "srtp_reference_selector": "Snake · Complete Pygame source",
             "srtp_source_path": "",
             "srtp_target_x": 4,
             "srtp_target_y": 4,
@@ -108,6 +109,45 @@ class FailingImporter:
 
 
 class SrtpWorkbenchTests(unittest.TestCase):
+    def test_standalone_manifest_is_a_conversion_input(self):
+        controller = SrtpWorkbench(FakeDpg())
+        self.addCleanup(controller.close)
+        path = Path(__file__).resolve().parents[1]/'artifacts/tictactoe_source/project.manifest.json'
+        controller.dpg.set_value('srtp_source_path', str(path))
+        controller.import_source()
+        self.assertEqual(controller.package.runtime.kind, 'project_ir')
+        self.assertEqual(controller._pending_llm_source_dir, path.parent)
+        self.assertEqual(controller.package.transformation.target_dimensions, {'x':3,'y':3,'z':3})
+        self.assertIsNotNone(controller.core_controller)
+
+    def test_generated_target_is_used_instead_of_adapter(self):
+        from types import SimpleNamespace
+        from unittest.mock import Mock
+        runner = Mock()
+        runner.launch_project.return_value = TransformedGameProcess(None)
+        controller = SrtpWorkbench(FakeDpg(), transformed_runner=runner)
+        controller.load_selected_reference()
+        with patch.object(Path, 'is_file', return_value=True), \
+             patch('srtp.llm_compiler_v1.compiler.load_compile_report_from_bundle', return_value=SimpleNamespace(source_package_hash='same')), \
+             patch('srtp.llm_compiler_v1.evidence.build_evidence_pack', return_value={'source_package_hash': 'same'}):
+            controller.open_transformed_preview()
+        runner.launch_project.assert_called_once()
+        runner.launch.assert_not_called()
+
+    def test_stale_target_does_not_fall_back_to_adapter(self):
+        from types import SimpleNamespace
+        from unittest.mock import Mock
+        runner = Mock()
+        controller = SrtpWorkbench(FakeDpg(), transformed_runner=runner)
+        controller.load_selected_reference()
+        with patch.object(Path, 'is_file', return_value=True), \
+             patch('srtp.llm_compiler_v1.compiler.load_compile_report_from_bundle', return_value=SimpleNamespace(source_package_hash='old')), \
+             patch('srtp.llm_compiler_v1.evidence.build_evidence_pack', return_value={'source_package_hash': 'new'}):
+            controller.open_transformed_preview()
+        runner.launch_project.assert_not_called()
+        runner.launch.assert_not_called()
+        self.assertIn('different source version', controller.dpg.values['srtp_status'])
+
     def test_failed_project_import_clears_previous_game_instead_of_reusing_its_adapter(self):
         dpg = FakeDpg()
         good = SrtpWorkbench(dpg)
@@ -168,7 +208,8 @@ class SrtpWorkbenchTests(unittest.TestCase):
         controller.load_selected_reference()
         dpg.values["srtp_preview_mode"] = "Transformed 3D"
 
-        controller.open_transformed_preview()
+        with patch.object(Path, "is_file", return_value=False):
+            controller.open_transformed_preview()
 
         self.assertEqual(len(transformed_runner.calls), 1)
         self.assertEqual(controller.package.transformation.adapter_id, "snake")

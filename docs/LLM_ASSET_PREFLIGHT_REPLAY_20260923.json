@@ -1,0 +1,22 @@
+{
+  "failed_job": "4bd3e28219784599a1426e1dfb8f24bf",
+  "verification": "offline replay; no generated replacement game or successful end-to-end API claim",
+  "findings": [
+    {
+      "original_asset_attempt": 1,
+      "citation_and_schema_valid": true,
+      "preserved_blocker": "Asset IR has required unresolved semantics: /assets/font: The source requests Pygame's runtime default font with pygame.font.Font(None, 36) and pygame.font.Font(None, 25). No font file is included in the project, so the exact font cannot be imported as a project asset without access to the runtime font resource.; /assets/font: The exact runtime-provided Pygame default font is not available as a project asset."
+    },
+    {
+      "original_asset_attempt": 3,
+      "citation_and_schema_valid": true,
+      "preserved_blocker": "Asset IR has required unresolved semantics: /assets/font: The source requests Pygame's default font at sizes 36 and 25 but provides no font file. Its exact glyphs cannot be imported as a project asset.; /assets/font: The exact Pygame default font is not available as a project asset."
+    },
+    {
+      "paid_rule_cache_revalidated": true,
+      "behavior_checks": 3,
+      "api_requests": 0,
+      "next_stage": "asset_ir"
+    }
+  ]
+}

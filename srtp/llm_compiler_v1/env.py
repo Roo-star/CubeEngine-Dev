@@ -1,4 +1,4 @@
-"""Load repo-root ``.env`` so FreeFlow can read GEMINI_API_KEY / GROQ_API_KEY."""
+"""Load the single repository-root OpenRouter configuration."""
 
 from __future__ import annotations
 
@@ -8,14 +8,11 @@ import os
 from pathlib import Path
 from typing import Any, List, Optional
 
-_PROVIDER_ENV = {
-    "gemini": "GEMINI_API_KEY",
-    "groq": "GROQ_API_KEY",
-}
+_PROVIDER_ENV = {"openrouter": "OPENROUTER_API_KEY"}
 
 
 def repo_root() -> Path:
-    """CubeEngine-Dev root (``srtp/llm_compiler_v1/env.py`` → parents[2])."""
+    """CubeEngine repository root (``srtp/llm_compiler_v1/env.py`` → parents[2])."""
 
     return Path(__file__).resolve().parents[2]
 
@@ -35,8 +32,8 @@ def parse_api_keys(value: Optional[str]) -> List[str]:
     """Parse a single key, comma-separated keys, JSON array, or Python list literal.
 
     ``.env`` must use JSON double quotes for arrays. Python-style
-    ``['k1', 'k2']`` is accepted as a compatibility fallback so FreeFlow does
-    not send mangled keys (leading ``['``) to the provider.
+    Retained for reading old configuration tooling; production requires one
+    OPENROUTER_API_KEY and does not rotate keys to work around project quotas.
     """
 
     if value is None:
@@ -74,6 +71,18 @@ def provider_api_keys(provider: str) -> List[str]:
     return parse_api_keys(os.environ.get(env_name))
 
 
+def openrouter_api_key() -> str:
+    from .client import LLMTransportError
+    raw = (os.environ.get('OPENROUTER_API_KEY') or '').strip()
+    keys = parse_api_keys(raw)
+    if len(keys) != 1 or raw.startswith('[') or ',' in raw:
+        raise LLMTransportError('Set one OPENROUTER_API_KEY in the repository-root .env; key lists are not supported.')
+    key = keys[0]
+    if key.lower() in {'your-key-here', 'replace_me', 'paste_your_openrouter_api_key_here'} or any(c.isspace() for c in key):
+        raise LLMTransportError('Replace the OPENROUTER_API_KEY placeholder in the repository-root .env before compiling.')
+    return key
+
+
 def load_compiler_env(
     *,
     dotenv_path: Optional[Path] = None,
@@ -81,8 +90,8 @@ def load_compiler_env(
 ) -> Optional[Path]:
     """Load repo-root ``.env`` into ``os.environ``.
 
-    Provider keys default to ``override=True`` so a stale single-key process
-    env (shell / IDE) cannot hide a multi-key list in ``.env``.
+    Defaults to ``override=True`` so a stale shell / IDE configuration cannot
+    hide the current repository-root key and model settings.
     """
 
     path = Path(dotenv_path) if dotenv_path is not None else default_dotenv_path()

@@ -80,6 +80,11 @@
       "oneOf": [
         {
           "type": "object", "additionalProperties": false,
+          "required": ["kind", "command"],
+          "properties": {"kind": {"const": "host_command"}, "command": {"enum": ["quit", "restart"]}}
+        },
+        {
+          "type": "object", "additionalProperties": false,
           "required": ["kind"],
           "properties": {"kind": {"const": "semantic"}}
         },

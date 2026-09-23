@@ -1,0 +1,45 @@
+{
+  "manifest_version": "cubeengine.project-manifest/2.0-alpha.2",
+  "project_id": "project:tic.tac.toe.llm.source.target",
+  "revision": 1,
+  "content_hash": "f37c2a3a12bd1c37a86e4f4e06e287daaa78164c6df269fd0a237e291e0300bc",
+  "metadata": {
+    "title": "Tic Tac Toe",
+    "description": ""
+  },
+  "variant": "target",
+  "source_manifest": {
+    "project_id": "project:tic.tac.toe.llm.source",
+    "content_hash": "078d25e7451cd8ae1b9dc566827f1b64ba55af8beda16ded740b5c213b091bd5"
+  },
+  "documents": {
+    "rule_ir": {
+      "document_id": "rule:game.tic.tac.toe.target",
+      "ir_version": "cubeengine.rule-ir/2.0-alpha.1",
+      "content_hash": "b5b54bafb4c097d7c7c2ec1bdfd115452fbfe345856dbd95e0881e23a58daf0a"
+    },
+    "scene_ir": {
+      "document_id": "scene:game.tic.tac.toe.target",
+      "ir_version": "cubeengine.scene-ir/2.0-alpha.1",
+      "content_hash": "933df4ea94e0175a76442c4c34888d0acb7217d405ec7e9618cef454f0d4aca0"
+    },
+    "asset_ir": {
+      "document_id": "asset:game.tic.tac.toe.target",
+      "ir_version": "cubeengine.asset-ir/2.0-alpha.1",
+      "content_hash": "495be11b15ec13ba076475da08b9ab801dc70f972a2152d10e707b07f93bf31a"
+    },
+    "input_ir": {
+      "document_id": "input:game.tic.tac.toe.target",
+      "ir_version": "cubeengine.input-ir/2.0-alpha.1",
+      "content_hash": "f737cd679d4e1fd3f6f9eb281f3b0b6e220d19e73ab9f67dffe7e1265f5aaa98"
+    }
+  },
+  "extensions": [],
+  "provenance": {
+    "llm_proposal_id": "proposal:job.30815d8113aa4f00.rule_ir",
+    "prompt_template_version": "cubeengine.srtp/llm-prompt/2.0",
+    "designer_approved": true,
+    "approved_by": "workbench"
+  },
+  "unresolved": []
+}

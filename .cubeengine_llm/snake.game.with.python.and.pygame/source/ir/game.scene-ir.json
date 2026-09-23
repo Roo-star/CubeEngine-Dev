@@ -2,20 +2,20 @@
   "ir_version": "cubeengine.scene-ir/2.0-alpha.1",
   "document_id": "scene:game.snake.game.with.python.and.pygame.source",
   "revision": 1,
-  "content_hash": "4306ad8a535056a7b69bfa2932006b034aa604f8fdfcb7953b81655dee2c22d7",
+  "content_hash": "39560ba3224e6162eb23c93e591cd9d6cc46c4f2c775e917fce6c86492e4e239",
   "metadata": {
     "title": "Snake Game with Python and Pygame",
     "description": "LLM compiler bootstrap shell. Semantics must be filled by evidence-backed patches.",
-    "source_project_hash": "6bbf008a8c81a818a748c0c6d58bb2457c311dc3efed88f516d073cecfbb756c"
+    "source_project_hash": "5e6c01f21edd4537d785e7258b03bb92cb90549bd37e58594257f836a2d92d58"
   },
   "dependencies": {
     "rule_ir": {
       "document_id": "rule:game.snake.game.with.python.and.pygame.source",
-      "content_hash": "1c1da6817ca2ab7ad8760e3e50fae9861bfed5da4e0aa9e9954d870cde538be8"
+      "content_hash": "30daf4ad407234604d6456d71a7f500d75bc28d73e34e76a089574e96ba52616"
     },
     "asset_ir": {
       "document_id": "asset:game.snake.game.with.python.and.pygame.source",
-      "content_hash": "3588e8efbbd8f043e365f1d14b720fe3058d6731232edfef6ae4fd9f664dc43a"
+      "content_hash": "e82d4fe32d8bca6248f3dc99a8c121a88ee2907160baba2f7dba7878cbd0a5c7"
     },
     "extensions": []
   },
@@ -32,7 +32,7 @@
   "prefabs": [
     {
       "id": "scene:prefab.cell",
-      "name": "Cell",
+      "name": "Cell Prefab",
       "root": {
         "local_id": "root",
         "name": "Cell",
@@ -98,8 +98,8 @@
           "enabled": true,
           "properties": {
             "topology": "rule:topology.board",
-            "rule_topology": "rule:topology.board",
             "prefab": "scene:prefab.cell",
+            "rule_topology": "rule:topology.board",
             "index_to_world": [
               1.0,
               0.0,
@@ -124,11 +124,50 @@
       "children": [],
       "parent": null,
       "layer": "scene:layer.runtime"
+    },
+    {
+      "id": "scene:node.camera",
+      "name": "Main Camera",
+      "active": true,
+      "transform": {
+        "translation": [
+          10.0,
+          10.0,
+          20.0
+        ],
+        "rotation_euler_deg": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "components": [
+        {
+          "id": "camera",
+          "type": "camera",
+          "enabled": true,
+          "properties": {
+            "projection": "orthographic",
+            "near_clip": 0.1,
+            "far_clip": 1000.0,
+            "active": true,
+            "orthographic_size": 12.0
+          }
+        }
+      ],
+      "children": [],
+      "parent": null,
+      "layer": "scene:layer.runtime"
     }
   ],
   "bindings": [
     {
-      "id": "scene:binding.cell_variant",
+      "id": "scene:binding.cell.variant",
       "name": "Cell Variant",
       "source": {
         "kind": "state",
@@ -169,25 +208,23 @@
     "patch_history": [
       {
         "base_revision": 0,
-        "base_content_hash": "a1f0564a545d31b8627986984079d2885587f6ae1d3ca68dec50ee9b06adb26f",
+        "base_content_hash": "80a7701598eb9d33b1bfff9414cdd1449c8a8b8d0d27decc07e4cf71bbe24e9d",
         "evidence": [
           {
-            "evidence_id": "ev:param.source_tick_ms.0",
-            "path": "snake.py",
-            "file_sha256": "085015d8aaa06f484df9ce0361fa4438981aecd8e1dc14ea0ba3ba744583b7dd",
+            "evidence_id": "ev:asset.font_poetsenone_regular_ttf",
+            "path": "Font/PoetsenOne-Regular.ttf",
             "kind": "static",
+            "supports": "/scene_ir/nodes",
+            "confidence": 0.7,
+            "file_sha256": "85b9c540b6e59c75c3eea602d9256ec5eb386f49c982d86ced4b7c161aac2a2f",
             "span": {
-              "line_start": 277,
-              "line_end": 277
-            },
-            "supports": "/rule_ir/flow",
-            "topic": "movement",
-            "confidence": 0.8,
-            "detail": "Movement interval (milliseconds)"
+              "byte_start": 0,
+              "byte_end": 64
+            }
           }
         ],
         "assumptions": [],
-        "operation_count": 2
+        "operation_count": 4
       }
     ]
   },

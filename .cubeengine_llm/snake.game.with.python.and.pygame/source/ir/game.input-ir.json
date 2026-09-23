@@ -2,16 +2,16 @@
   "ir_version": "cubeengine.input-ir/2.0-alpha.1",
   "document_id": "input:game.snake.game.with.python.and.pygame.source",
   "revision": 1,
-  "content_hash": "5c19fed3c2d1fc1b69f8c34d9115be91881ff861bfe130e441007c4cdae4a9e4",
+  "content_hash": "44786814d153313a106557d4d89ee46f671a259ccc0ad82319deea815d445394",
   "metadata": {
     "title": "Snake Game with Python and Pygame",
     "description": "LLM compiler bootstrap shell. Semantics must be filled by evidence-backed patches.",
-    "source_project_hash": "6bbf008a8c81a818a748c0c6d58bb2457c311dc3efed88f516d073cecfbb756c"
+    "source_project_hash": "5e6c01f21edd4537d785e7258b03bb92cb90549bd37e58594257f836a2d92d58"
   },
   "dependencies": {
     "rule_ir": {
       "document_id": "rule:game.snake.game.with.python.and.pygame.source",
-      "content_hash": "1c1da6817ca2ab7ad8760e3e50fae9861bfed5da4e0aa9e9954d870cde538be8"
+      "content_hash": "30daf4ad407234604d6456d71a7f500d75bc28d73e34e76a089574e96ba52616"
     },
     "extensions": []
   },
@@ -34,7 +34,7 @@
       "required": true,
       "target": {
         "kind": "rule_action",
-        "action": "rule:action.change_direction_up",
+        "action": "rule:action.move_up",
         "parameters": {}
       }
     },
@@ -45,7 +45,7 @@
       "required": true,
       "target": {
         "kind": "rule_action",
-        "action": "rule:action.change_direction_down",
+        "action": "rule:action.move_down",
         "parameters": {}
       }
     },
@@ -56,7 +56,7 @@
       "required": true,
       "target": {
         "kind": "rule_action",
-        "action": "rule:action.change_direction_left",
+        "action": "rule:action.move_left",
         "parameters": {}
       }
     },
@@ -67,7 +67,7 @@
       "required": true,
       "target": {
         "kind": "rule_action",
-        "action": "rule:action.change_direction_right",
+        "action": "rule:action.move_right",
         "parameters": {}
       }
     }
@@ -190,21 +190,19 @@
     "patch_history": [
       {
         "base_revision": 0,
-        "base_content_hash": "d409f0cf52ba79eb2a58cbfe40a57ae5fa96560f83d69ba54637437932d99d27",
+        "base_content_hash": "0deffaecc52d11368b6410f6ad31df7a6b081093e98495cb36e14c94b19270bf",
         "evidence": [
           {
             "evidence_id": "ev:input.0",
             "path": "snake.py",
-            "file_sha256": "085015d8aaa06f484df9ce0361fa4438981aecd8e1dc14ea0ba3ba744583b7dd",
             "kind": "static",
+            "supports": "/input_ir/bindings",
+            "confidence": 0.8,
+            "file_sha256": "085015d8aaa06f484df9ce0361fa4438981aecd8e1dc14ea0ba3ba744583b7dd",
             "span": {
               "line_start": 288,
               "line_end": 288
-            },
-            "supports": "/input_ir/bindings",
-            "topic": "direction_input",
-            "confidence": 0.8,
-            "detail": "0"
+            }
           }
         ],
         "assumptions": [],

@@ -46,6 +46,7 @@ else:
 PACKAGE_DIR = Path(__file__).resolve().parent
 VIEWPORT_TITLE = "CubeEngine SRTP — Spatial Rule Workbench"
 REFERENCE_GAMES = {
+    "Tic Tac Toe · Complete Pygame source": PACKAGE_DIR / "reference_games" / "pygame_tictactoe" / "main.py",
     "Snake · Complete Pygame source": PACKAGE_DIR / "reference_games" / "pygame_snake" / "snake.py",
     "Minesweeper · Classic Pygame source": PACKAGE_DIR / "reference_games" / "pygame_minesweeper" / "run_game.py",
     "Connect Four · Turtle complete": PACKAGE_DIR / "reference_games" / "turtle_connect_complete" / "connect_complete.py",
@@ -60,6 +61,7 @@ class SrtpWorkbench:
         transformed_runner: Optional[TransformedGameRunner] = None,
         variant_builder: Optional[SourceVariantBuilder] = None,
         core_controller: Optional[IRAcceptanceController] = None,
+        asynchronous_jobs: bool = False,
     ) -> None:
         self.dpg = dpg
         self.importer = importer or SourceGameImporter()
@@ -72,6 +74,10 @@ class SrtpWorkbench:
         self.core_controller = core_controller
         self.core_source: Optional[Path] = None
         self.core_last_result: Mapping[str, Any] = {}
+        from srtp.conversion_jobs import ConversionJobs
+        self.conversion_jobs = ConversionJobs()
+        self.asynchronous_jobs = asynchronous_jobs
+        self._source_generation = 0
 
     def load_selected_reference(self, sender=None, app_data=None, user_data=None) -> None:
         path = REFERENCE_GAMES.get(self.dpg.get_value("srtp_reference_selector"))
@@ -96,6 +102,8 @@ class SrtpWorkbench:
             self.import_source()
 
     def import_source(self) -> None:
+        self.conversion_jobs.cancel()
+        self._source_generation += 1
         raw_path = self.dpg.get_value("srtp_source_path")
         if not isinstance(raw_path, str) or not raw_path.strip():
             self._message("Choose a game project or runnable entry point.")
@@ -115,6 +123,10 @@ class SrtpWorkbench:
         self.package = imported
         self.dpg.set_value("srtp_preview_mode", "Source 2D")
         self._render_package()
+
+        if imported.runtime.kind == 'project_ir':
+            self._pending_llm_source_dir = imported.entrypoint.parent
+            self.open_project_manifest(imported.entrypoint)
 
     def _clear_package_views(self) -> None:
         values = {
@@ -154,8 +166,7 @@ class SrtpWorkbench:
                 self._render_viewport()
                 self._message(
                     "Project Session is ready. Use arrow keys (PageUp/PageDown for Z if bound) "
-                    "in this viewport. Ursina Transformed 3D is a separate adapter demo — "
-                    "not the LLM IR path."
+                    "in this diagnostic viewport. Select Transformed 3D and PLAY to run the approved Target in Ursina."
                 )
             else:
                 self._render_viewport()
@@ -235,9 +246,10 @@ class SrtpWorkbench:
                     "data": data or {},
                     "timestamp": int(time.time() * 1000),
                 }
-                Path(__file__).resolve().parents[1].joinpath("debug-3d9e82.log").open(
+                with Path(__file__).resolve().parents[1].joinpath("debug-3d9e82.log").open(
                     "a", encoding="utf-8",
-                ).write(json.dumps(payload, ensure_ascii=False) + "\n")
+                ) as handle:
+                    handle.write(json.dumps(payload, ensure_ascii=False) + "\n")
             except Exception:
                 pass
         # #endregion
@@ -386,8 +398,8 @@ class SrtpWorkbench:
                     fingerprint = None
                 if before is not None and fingerprint == before:
                     message = (
-                        "{0} (board grid unchanged — this Project may be an LLM draft "
-                        "without move effects; try artifacts/snake_playable)".format(message)
+                        "{0} (board unchanged; this input may update direction, selection "
+                        "or another state instead)".format(message)
                     )
                 if fingerprint is not None:
                     self._core_last_grid_fingerprint = fingerprint
@@ -475,6 +487,25 @@ class SrtpWorkbench:
             return
         self.apply_transform_target(silent=True)
         self.stop_preview(quiet=True)
+        target = PACKAGE_DIR.parent / ".cubeengine_llm" / slugify(self.package.title) / "target" / "project.manifest.json"
+        attached = getattr(self, "_attached_target", None)
+        explicit_target = bool(attached and attached[0] == str(self.package.entrypoint.resolve()))
+        if explicit_target:
+            target = attached[1]
+        if target.is_file():
+            try:
+                from srtp.llm_compiler_v1.compiler import load_compile_report_from_bundle
+                from srtp.llm_compiler_v1.evidence import build_evidence_pack
+                report = load_compile_report_from_bundle(target.parent)
+                if not explicit_target and report.source_package_hash != build_evidence_pack(self.package)["source_package_hash"]:
+                    raise ValueError("Generated Target belongs to a different source version. Recompile and approve first.")
+                self.transformed_process = self.transformed_runner.launch_project(target, Path(self.package.root))
+            except (OSError, RuntimeError, ValueError) as error:
+                self._message("Generated Target could not open: {0}".format(error), error=True)
+                return
+            self._set_play_label("STOP")
+            self._message("Ursina is running the approved Target through Project IR: {0}. Game rules come from this bundle.".format(target))
+            return
         if not self.package.transformation.adapter_id:
             self._message(
                 "3D compilation is not available for this source yet. The original project was imported, "
@@ -488,7 +519,7 @@ class SrtpWorkbench:
             self._message("3D Play Mode failed: {0}".format(error), error=True)
             return
         self._set_play_label("STOP")
-        self._message("3D Play Mode is running in an Ursina window with source-specific mechanics.")
+        self._message("3D Play Mode: built-in adapter demo in Ursina; no generated LLM Target was loaded.")
 
     def stop_preview(self, quiet: bool = False) -> None:
         stopped = False
@@ -521,6 +552,7 @@ class SrtpWorkbench:
             self._set_play_label("PLAY")
 
     def close(self) -> None:
+        self.conversion_jobs.close()
         self.stop_preview(quiet=True)
         if self.core_controller is not None:
             self.core_controller.close()
@@ -535,6 +567,12 @@ class SrtpWorkbench:
             self._message("Target X, Y and Z must each be an integer of 2 or more.", error=True)
             return
         source = self.package.transformation.source_dimensions
+        dimensions = {"x": x, "y": y, "z": z}
+        if (dimensions != self.package.transformation.target_dimensions
+                and self.conversion_jobs.active is not None
+                and self.conversion_jobs.active['tag']['kind'] == 'target'):
+            self.conversion_jobs.cancel()
+            self._source_generation += 1
         self.package.transformation.preserve_x = x == source.get("x")
         self.package.transformation.preserve_y = y == source.get("y")
         self.package.transformation.target_dimensions = {"x": x, "y": y, "z": z}
@@ -593,17 +631,78 @@ class SrtpWorkbench:
             return
         self._message("Analysis package saved. The source project remains unchanged.")
 
+    def _compiler_progress(self, event) -> None:
+        names = {'rule_ir': 'rules and behavior', 'asset_ir': 'original assets',
+                 'scene_ir': '3D presentation', 'input_ir': 'controls'}
+        self._message('Compiling {0} — {1} {2}'.format(
+            names.get(event['stage'], event['stage']),
+            'checking saved stage' if event.get('cached') else 'attempt', event['attempt']))
+
+    def _start_conversion_job(self, kind, out_dir, *, source_dir=None, intent=''):
+        from copy import deepcopy
+        package = deepcopy(self.package)
+        tag = {'kind':kind,'out_dir':out_dir,'generation':self._source_generation}
+        def worker(progress, token):
+            compiler=SourceToIRCompiler(progress=progress,cancel_token=token)
+            if kind=='source':
+                return compiler.compile(package,out_dir=out_dir)
+            return compiler.compile_spatial_lift(package,source_bundle_dir=source_dir,
+                intent_text=intent,target_dimensions=dict(package.transformation.target_dimensions),out_dir=out_dir)
+        if not self.conversion_jobs.submit(tag,worker):
+            self._message('A conversion is still running. Cancel it or wait for it to finish.',error=True)
+
+    def cancel_conversion(self, sender=None, app_data=None, user_data=None):
+        if self.conversion_jobs.cancel():
+            self._message('Cancellation requested. No new stage or result will be published; an in-flight API request may need to time out.')
+        elif self.conversion_jobs.active:
+            self._message('The result is already being published; waiting for completion.')
+        else:
+            self._message('No conversion is running.')
+
+    def intent_changed(self, sender=None, app_data=None, user_data=None):
+        active = self.conversion_jobs.active
+        if active and active['tag']['kind'] == 'target':
+            self.conversion_jobs.cancel()
+            self._source_generation += 1
+            self._message('Design Intent changed; the previous conversion result will not be attached.')
+
+    def poll_conversion(self):
+        # All GUI changes occur in the Workbench thread, never in the worker.
+        for event in self.conversion_jobs.poll():
+            tag=event['tag']
+            if tag['generation']!=self._source_generation:
+                continue
+            if event['kind']=='progress':
+                self._compiler_progress(event['value'])
+            elif event['kind']=='complete':
+                finish=self._finish_source_compilation if tag['kind']=='source' else self._finish_spatial_lift
+                finish(event['value'],tag['out_dir'])
+            elif event['kind']=='cancelled':
+                self._message('Conversion cancelled. The previous successful bundle is unchanged.')
+            else:
+                self._message('Conversion failed: '+str(event['value']),error=True)
+
     def compile_llm_source_to_ir(self, sender=None, app_data=None, user_data=None) -> None:
+        if self.conversion_jobs.active:
+            self._message('A conversion is already running; duplicate requests are ignored.',error=True)
+            return
         if self.package is None:
             self._message("Import a source game before running the LLM compiler.", error=True)
+            return
+        if self.package.runtime.kind == 'project_ir':
+            self.open_project_manifest(self.package.entrypoint)
+            self._message('Supplied Source IR is already available. Set Inspector dimensions and RUN SPATIAL LIFT.')
             return
         repo_root = PACKAGE_DIR.parent
         out_dir = repo_root / ".cubeengine_llm" / slugify(self.package.title) / "source"
         self._pending_llm_source_dir = out_dir
         self._pending_llm_manifest = None
         self._message("Running LLM Source→four-IR (no Spatial Lift yet)…")
+        if self.asynchronous_jobs:
+            self._start_conversion_job('source',out_dir)
+            return
         try:
-            report = SourceToIRCompiler().compile(
+            report = SourceToIRCompiler(progress=self._compiler_progress).compile(
                 self.package,
                 out_dir=out_dir,
                 intent_text=None,
@@ -615,6 +714,9 @@ class SrtpWorkbench:
             self._message("LLM compiler failed: {0}".format(error), error=True)
             return
 
+        self._finish_source_compilation(report, out_dir)
+
+    def _finish_source_compilation(self, report, out_dir):
         lines = [
             "LLM stage: {0}".format(report.stage),
             "ok={0} compile_ready={1} attempts={2}".format(
@@ -635,24 +737,22 @@ class SrtpWorkbench:
             status = approval_status(report.manifest)
             if status.get("can_approve"):
                 self._message(
-                    "Source draft ready (LLM draft — not artifacts/snake_playable). "
-                    "APPROVE LLM MANIFEST, then RUN SPATIAL LIFT with Design Intent.",
+                    "Source draft ready. APPROVE LLM MANIFEST, set Inspector dimensions "
+                    "and optionally Design Intent, then RUN SPATIAL LIFT.",
                 )
                 if self.dpg.does_item_exist("srtp_core_activity"):
                     self.dpg.set_value(
                         "srtp_core_activity",
                         (
                             "LLM Source four-IR draft at:\n{0}\n\n"
-                            "This is not the playable step-snake fixture.\n"
                             "1) APPROVE LLM MANIFEST\n"
-                            "2) Enter Design Intent\n"
+                            "2) Set Inspector dimensions; Design Intent is optional\n"
                             "3) RUN SPATIAL LIFT\n"
-                            "4) Approve Target → Project Session\n"
-                            "For a known-good moving snake, attach artifacts/snake_playable."
+                            "4) Approve Target → Transformed 3D → PLAY"
                         ).format(report.output_dir or out_dir),
                     )
             elif report.compile_ready:
-                self._message("Source compile_ready. Enter Design Intent and RUN SPATIAL LIFT.")
+                self._message("Source ready. Set Inspector dimensions and RUN SPATIAL LIFT; Design Intent is optional.")
             else:
                 self._message(
                     "Source draft has required unresolved items (not only approval). See Diagnostics.",
@@ -665,6 +765,9 @@ class SrtpWorkbench:
             )
 
     def run_spatial_lift(self, sender=None, app_data=None, user_data=None) -> None:
+        if self.conversion_jobs.active:
+            self._message('A conversion is already running; duplicate requests are ignored.',error=True)
+            return
         if self.package is None:
             self._message("Import a source game before Spatial Lift.", error=True)
             return
@@ -673,9 +776,6 @@ class SrtpWorkbench:
             raw = self.dpg.get_value("srtp_llm_intent")
             if isinstance(raw, str):
                 intent = raw.strip()
-        if not intent:
-            self._message("Enter a Design Intent before RUN SPATIAL LIFT.", error=True)
-            return
         source_dir = getattr(self, "_pending_llm_source_dir", None)
         if source_dir is None:
             source_dir = PACKAGE_DIR.parent / ".cubeengine_llm" / slugify(self.package.title) / "source"
@@ -703,11 +803,15 @@ class SrtpWorkbench:
         out_dir = repo_root / ".cubeengine_llm" / slugify(self.package.title) / "target"
         self._message("Running Spatial Lift from approved Source…")
         self._pending_llm_manifest = None
+        if self.asynchronous_jobs:
+            self._start_conversion_job('target',out_dir,source_dir=Path(source_dir),intent=intent)
+            return
         try:
-            report = SourceToIRCompiler().compile_spatial_lift(
+            report = SourceToIRCompiler(progress=self._compiler_progress).compile_spatial_lift(
                 self.package,
                 source_bundle_dir=Path(source_dir),
                 intent_text=intent,
+                target_dimensions=dict(self.package.transformation.target_dimensions),
                 out_dir=out_dir,
             )
         except LLMClientError as error:
@@ -717,6 +821,9 @@ class SrtpWorkbench:
             self._message("Spatial Lift failed: {0}".format(error), error=True)
             return
 
+        self._finish_spatial_lift(report, out_dir)
+
+    def _finish_spatial_lift(self, report, out_dir):
         lines = [
             "LLM stage: {0}".format(report.stage),
             "ok={0} compile_ready={1}".format(report.ok, report.compile_ready),
@@ -725,21 +832,25 @@ class SrtpWorkbench:
         if report.diagnostics:
             lines.append("diagnostics:")
             lines.extend("- {0}".format(item) for item in report.diagnostics[:20])
+        quality=report.compilation_trace.get('quality_assessment',{})
+        if quality and not quality.get('product_ready'):
+            lines.append('Product quality: NOT YET ACCEPTED (see quality.assessment.json)')
+            lines.extend('- '+item['id']+': '+item['status'] for item in quality.get('checks',[])
+                         if item['status'] in ('fail','pending'))
         self.dpg.set_value("srtp_diagnostics", "\n".join(lines))
         if report.ok and report.manifest is not None:
             manifest_path = Path(report.output_dir or out_dir) / "project.manifest.json"
             self._pending_llm_manifest = manifest_path
             self._message(
-                "Target draft ready. APPROVE LLM MANIFEST then open Project Session. "
-                "If Accepted keys do not change the board, attach artifacts/snake_playable.",
+                "Target compiled; gameplay/visual acceptance pending. APPROVE LLM MANIFEST, then Transformed 3D → PLAY.",
             )
             if self.dpg.does_item_exist("srtp_core_activity"):
                 self.dpg.set_value(
                     "srtp_core_activity",
                     (
                         "Target 3D four-IR draft at:\n{0}\n\n"
-                        "Approve the Target manifest, then Project Session + arrow keys.\n"
-                        "LLM draft ≠ playable fixture. Transformed 3D PLAY is Ursina only."
+                        "Approve the Target manifest, then Transformed 3D → PLAY.\n"
+                        "Rule, assets, scene and input were built by the same conversion job."
                     ).format(report.output_dir or out_dir),
                 )
         else:
@@ -773,8 +884,12 @@ class SrtpWorkbench:
 
     def open_project_manifest(self, path: Path, *, after_approval: bool = False) -> None:
         if self.package is None:
-            self._message("Import the source game before attaching its Project Manifest.", error=True)
-            return
+            try:
+                self.package = self.importer.import_path(Path(path))
+                self._render_package()
+            except (OSError, ValueError) as error:
+                self._message("Project input could not load: {0}".format(error), error=True)
+                return
         try:
             manifest = load_project_manifest(Path(path))
         except Exception as error:  # noqa: BLE001
@@ -806,7 +921,15 @@ class SrtpWorkbench:
             self._message("Project bundle could not open: {0}".format(error), error=True)
             return
         self._attach_core_to_current_source()
+        if manifest.get("variant") == "target":
+            self._attached_target = (str(self.package.entrypoint.resolve()), Path(path).resolve())
+        else:
+            self._pending_llm_source_dir = Path(path).resolve().parent
         self._activate_core_mode("Sealed Project Manifest compiled into a live Project Session.")
+        if after_approval and manifest.get("variant") == "target":
+            self.dpg.set_value("srtp_preview_mode", "Transformed 3D")
+            self._render_viewport()
+            self._message("Target approved. Press PLAY to run this generated Target in Ursina. RUN SPATIAL LIFT generates a new Target.")
 
     def _render_package(self) -> None:
         assert self.package is not None
@@ -1295,8 +1418,9 @@ def main() -> None:
     except ModuleNotFoundError as error:
         raise SystemExit("Dear PyGui is required for SRTP Workbench.") from error
 
-    controller = SrtpWorkbench(dpg)
+    controller = SrtpWorkbench(dpg, asynchronous_jobs=True)
     dpg.create_context()
+    dpg.configure_app(manual_callback_management=True)
     dpg.create_viewport(title=VIEWPORT_TITLE, width=1440, height=880, min_width=1180, min_height=720, resizable=True)
     dpg.bind_theme(_build_theme(dpg))
 
@@ -1383,6 +1507,7 @@ def main() -> None:
                     )
                     dpg.add_input_text(
                         tag="srtp_llm_intent",
+                        callback=controller.intent_changed,
                         hint="Design Intent for 3D lift (after Source approved)",
                         width=-1,
                     )
@@ -1390,6 +1515,7 @@ def main() -> None:
                         label="RUN SPATIAL LIFT → TARGET", width=-1,
                         callback=controller.run_spatial_lift,
                     )
+                    dpg.add_button(label="CANCEL CONVERSION", width=-1, callback=controller.cancel_conversion)
                     dpg.add_button(
                         label="ATTACH PROJECT MANIFEST...", width=-1,
                         callback=lambda: dpg.show_item("srtp_project_manifest_dialog"),
@@ -1519,7 +1645,9 @@ def main() -> None:
         return
     frame = 0
     while dpg.is_dearpygui_running():
+        dpg.run_callbacks(dpg.get_callback_queue())
         dpg.render_dearpygui_frame()
+        controller.poll_conversion()
         frame += 1
         if frame % 30 == 0:
             controller.poll_processes()

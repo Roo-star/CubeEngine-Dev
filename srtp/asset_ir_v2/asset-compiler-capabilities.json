@@ -1,7 +1,8 @@
 {
   "capability_id": "cubeengine.asset-compiler/2.0-alpha.1",
   "asset_ir_version": "cubeengine.asset-ir/2.0-alpha.1",
-  "source_schemes": ["project"],
+  "source_schemes": ["project", "runtime"],
+  "runtime_resources": ["runtime://pygame/default-font"],
   "importers": {
     "cubeengine.raw-file": ["1.0"],
     "cubeengine.image": ["1.0"],

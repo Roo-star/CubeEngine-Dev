@@ -1,8 +1,8 @@
 {
   "manifest_version": "cubeengine.project-manifest/2.0-alpha.2",
   "project_id": "project:snake.game.with.python.and.pygame.llm.source",
-  "revision": 0,
-  "content_hash": "6797fea5313478f04f9ce43086eacb8126c886ab61063b8305fa799fc5efa472",
+  "revision": 1,
+  "content_hash": "e0b39ef20649e5a1ddc6a0387e0e82c635499779697a3bd7e321dc1462f384f2",
   "metadata": {
     "title": "Snake Game with Python and Pygame",
     "description": ""
@@ -13,35 +13,30 @@
     "rule_ir": {
       "document_id": "rule:game.snake.game.with.python.and.pygame.source",
       "ir_version": "cubeengine.rule-ir/2.0-alpha.1",
-      "content_hash": "1c1da6817ca2ab7ad8760e3e50fae9861bfed5da4e0aa9e9954d870cde538be8"
+      "content_hash": "30daf4ad407234604d6456d71a7f500d75bc28d73e34e76a089574e96ba52616"
     },
     "scene_ir": {
       "document_id": "scene:game.snake.game.with.python.and.pygame.source",
       "ir_version": "cubeengine.scene-ir/2.0-alpha.1",
-      "content_hash": "4306ad8a535056a7b69bfa2932006b034aa604f8fdfcb7953b81655dee2c22d7"
+      "content_hash": "39560ba3224e6162eb23c93e591cd9d6cc46c4f2c775e917fce6c86492e4e239"
     },
     "asset_ir": {
       "document_id": "asset:game.snake.game.with.python.and.pygame.source",
       "ir_version": "cubeengine.asset-ir/2.0-alpha.1",
-      "content_hash": "3588e8efbbd8f043e365f1d14b720fe3058d6731232edfef6ae4fd9f664dc43a"
+      "content_hash": "e82d4fe32d8bca6248f3dc99a8c121a88ee2907160baba2f7dba7878cbd0a5c7"
     },
     "input_ir": {
       "document_id": "input:game.snake.game.with.python.and.pygame.source",
       "ir_version": "cubeengine.input-ir/2.0-alpha.1",
-      "content_hash": "5c19fed3c2d1fc1b69f8c34d9115be91881ff861bfe130e441007c4cdae4a9e4"
+      "content_hash": "44786814d153313a106557d4d89ee46f671a259ccc0ad82319deea815d445394"
     }
   },
   "extensions": [],
   "provenance": {
-    "llm_proposal_id": "proposal:cf248c465671",
-    "prompt_template_version": "cubeengine.srtp/llm-prompt/2.0"
+    "llm_proposal_id": "proposal:4cb67a9f29c0",
+    "prompt_template_version": "cubeengine.srtp/llm-prompt/2.0",
+    "designer_approved": true,
+    "approved_by": "workbench"
   },
-  "unresolved": [
-    {
-      "path": "/provenance/llm",
-      "reason": "LLM proposal has not been designer-approved.",
-      "required": true,
-      "owner": "designer"
-    }
-  ]
+  "unresolved": []
 }

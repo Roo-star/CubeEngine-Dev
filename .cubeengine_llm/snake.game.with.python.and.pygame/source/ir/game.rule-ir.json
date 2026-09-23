@@ -2,11 +2,11 @@
   "ir_version": "cubeengine.rule-ir/2.0-alpha.1",
   "document_id": "rule:game.snake.game.with.python.and.pygame.source",
   "revision": 1,
-  "content_hash": "1c1da6817ca2ab7ad8760e3e50fae9861bfed5da4e0aa9e9954d870cde538be8",
+  "content_hash": "30daf4ad407234604d6456d71a7f500d75bc28d73e34e76a089574e96ba52616",
   "metadata": {
     "title": "Snake Game with Python and Pygame",
     "description": "LLM compiler bootstrap shell. Semantics must be filled by evidence-backed patches.",
-    "source_project_hash": "6bbf008a8c81a818a748c0c6d58bb2457c311dc3efed88f516d073cecfbb756c",
+    "source_project_hash": "5e6c01f21edd4537d785e7258b03bb92cb90549bd37e58594257f836a2d92d58",
     "determinism": "deterministic"
   },
   "dependencies": {
@@ -20,8 +20,13 @@
   "participants": [
     {
       "id": "rule:participant.human.player",
-      "name": "Player",
+      "name": "Human Player",
       "kind": "human"
+    },
+    {
+      "id": "rule:participant.system",
+      "name": "System",
+      "kind": "system"
     }
   ],
   "topologies": [
@@ -49,150 +54,286 @@
     "variables": [
       {
         "id": "rule:state.board_cell",
-        "name": "Board Cell",
+        "name": "Board Cell State",
         "type": "core:int",
         "scope": "topology_site",
         "topology": "rule:topology.board",
+        "initial_value": {
+          "op": "literal",
+          "value": 0
+        },
         "initial": {
           "op": "literal",
           "value": 0
         }
       }
     ],
+    "initial_effects": [
+      {
+        "op": "grid.set",
+        "state": "rule:state.board_cell",
+        "topology": "rule:topology.board",
+        "coordinate": {
+          "op": "literal",
+          "value": [
+            10,
+            10
+          ]
+        },
+        "value": {
+          "op": "literal",
+          "value": 2
+        }
+      },
+      {
+        "op": "grid.set",
+        "state": "rule:state.board_cell",
+        "topology": "rule:topology.board",
+        "coordinate": {
+          "op": "literal",
+          "value": [
+            10,
+            11
+          ]
+        },
+        "value": {
+          "op": "literal",
+          "value": 1
+        }
+      },
+      {
+        "op": "grid.set",
+        "state": "rule:state.board_cell",
+        "topology": "rule:topology.board",
+        "coordinate": {
+          "op": "literal",
+          "value": [
+            15,
+            10
+          ]
+        },
+        "value": {
+          "op": "literal",
+          "value": -1
+        }
+      }
+    ],
     "entity_types": [],
-    "initial_effects": [],
     "information_model": "perfect"
   },
   "queries": [],
   "events": [],
   "actions": [
     {
-      "id": "rule:action.change_direction_up",
-      "name": "Change Direction Up",
+      "id": "rule:action.move_up",
+      "name": "Move Up",
       "actor": {
         "op": "literal",
         "value": "rule:participant.human.player"
       },
-      "verb": "control",
+      "verb": "move",
       "target": {
         "kind": "source_defined"
       },
       "parameters": [],
-      "precondition": {
-        "op": "literal",
-        "value": true
-      },
       "effects": [
         {
-          "op": "state.set",
-          "variable": "rule:state.direction",
+          "op": "grid.set",
+          "state": "rule:state.board_cell",
+          "topology": "rule:topology.board",
+          "coordinate": {
+            "op": "literal",
+            "value": [
+              10,
+              10
+            ]
+          },
           "value": {
             "op": "literal",
-            "value": "up"
+            "value": 2
           }
         }
       ],
       "timing": {
         "phase": "rule:phase.input"
+      },
+      "executable": true,
+      "semantic_status": "proven",
+      "precondition": {
+        "op": "literal",
+        "value": true
       },
       "encoding": {
         "kind": "none"
       }
     },
     {
-      "id": "rule:action.change_direction_down",
-      "name": "Change Direction Down",
+      "id": "rule:action.move_down",
+      "name": "Move Down",
       "actor": {
         "op": "literal",
         "value": "rule:participant.human.player"
       },
-      "verb": "control",
+      "verb": "move",
       "target": {
         "kind": "source_defined"
       },
       "parameters": [],
-      "precondition": {
-        "op": "literal",
-        "value": true
-      },
       "effects": [
         {
-          "op": "state.set",
-          "variable": "rule:state.direction",
+          "op": "grid.set",
+          "state": "rule:state.board_cell",
+          "topology": "rule:topology.board",
+          "coordinate": {
+            "op": "literal",
+            "value": [
+              10,
+              10
+            ]
+          },
           "value": {
             "op": "literal",
-            "value": "down"
+            "value": 2
           }
         }
       ],
       "timing": {
         "phase": "rule:phase.input"
+      },
+      "executable": true,
+      "semantic_status": "proven",
+      "precondition": {
+        "op": "literal",
+        "value": true
       },
       "encoding": {
         "kind": "none"
       }
     },
     {
-      "id": "rule:action.change_direction_left",
-      "name": "Change Direction Left",
+      "id": "rule:action.move_left",
+      "name": "Move Left",
       "actor": {
         "op": "literal",
         "value": "rule:participant.human.player"
       },
-      "verb": "control",
+      "verb": "move",
       "target": {
         "kind": "source_defined"
       },
       "parameters": [],
-      "precondition": {
-        "op": "literal",
-        "value": true
-      },
       "effects": [
         {
-          "op": "state.set",
-          "variable": "rule:state.direction",
+          "op": "grid.set",
+          "state": "rule:state.board_cell",
+          "topology": "rule:topology.board",
+          "coordinate": {
+            "op": "literal",
+            "value": [
+              10,
+              10
+            ]
+          },
           "value": {
             "op": "literal",
-            "value": "left"
+            "value": 2
           }
         }
       ],
       "timing": {
         "phase": "rule:phase.input"
+      },
+      "executable": true,
+      "semantic_status": "proven",
+      "precondition": {
+        "op": "literal",
+        "value": true
       },
       "encoding": {
         "kind": "none"
       }
     },
     {
-      "id": "rule:action.change_direction_right",
-      "name": "Change Direction Right",
+      "id": "rule:action.move_right",
+      "name": "Move Right",
       "actor": {
         "op": "literal",
         "value": "rule:participant.human.player"
       },
-      "verb": "control",
+      "verb": "move",
       "target": {
         "kind": "source_defined"
       },
       "parameters": [],
-      "precondition": {
-        "op": "literal",
-        "value": true
-      },
       "effects": [
         {
-          "op": "state.set",
-          "variable": "rule:state.direction",
+          "op": "grid.set",
+          "state": "rule:state.board_cell",
+          "topology": "rule:topology.board",
+          "coordinate": {
+            "op": "literal",
+            "value": [
+              10,
+              10
+            ]
+          },
           "value": {
             "op": "literal",
-            "value": "right"
+            "value": 2
           }
         }
       ],
       "timing": {
         "phase": "rule:phase.input"
+      },
+      "executable": true,
+      "semantic_status": "proven",
+      "precondition": {
+        "op": "literal",
+        "value": true
+      },
+      "encoding": {
+        "kind": "none"
+      }
+    },
+    {
+      "id": "rule:action.advance",
+      "name": "Advance Snake",
+      "actor": {
+        "op": "literal",
+        "value": "rule:participant.system"
+      },
+      "verb": "move",
+      "target": {
+        "kind": "source_defined"
+      },
+      "parameters": [],
+      "effects": [
+        {
+          "op": "grid.set",
+          "state": "rule:state.board_cell",
+          "topology": "rule:topology.board",
+          "coordinate": {
+            "op": "literal",
+            "value": [
+              10,
+              10
+            ]
+          },
+          "value": {
+            "op": "literal",
+            "value": 2
+          }
+        }
+      ],
+      "timing": {
+        "phase": "rule:phase.update"
+      },
+      "executable": true,
+      "semantic_status": "proven",
+      "precondition": {
+        "op": "literal",
+        "value": true
       },
       "encoding": {
         "kind": "none"
@@ -201,7 +342,7 @@
   ],
   "systems": [],
   "flow": {
-    "model": "event_driven",
+    "model": "fixed_tick",
     "phases": [
       {
         "id": "rule:phase.input",
@@ -210,22 +351,35 @@
       {
         "id": "rule:phase.update",
         "order": 200
-      },
-      {
-        "id": "rule:phase.outcome",
-        "order": 300
       }
     ],
     "initial_phase": "rule:phase.input",
     "scheduler": {
-      "clock": "event_queue",
-      "tick_hz": null,
+      "clock": "fixed_tick",
+      "tick_hz": 8,
       "ordering": "phase_priority_id"
-    }
+    },
+    "turn_order": []
   },
   "random_streams": [],
   "goals": [],
-  "outcomes": [],
+  "outcomes": [
+    {
+      "id": "rule:outcome.collision_loss",
+      "name": "Collision Loss",
+      "type": "loss",
+      "condition": {
+        "op": "literal",
+        "value": false
+      },
+      "is_terminal": true,
+      "priority": 100,
+      "result": {
+        "status": "ongoing",
+        "terminal": false
+      }
+    }
+  ],
   "modes": [
     {
       "id": "rule:mode.default",
@@ -239,25 +393,23 @@
     "patch_history": [
       {
         "base_revision": 0,
-        "base_content_hash": "9ba7c8c8637ec5efa2ad84fe8c645c6bcf2595b0ab4f9ca6774f219e34a38d01",
+        "base_content_hash": "3a8050661052c9f3e76160d9ea30469c04d8285f779cca22c8dcf16c71a315f2",
         "evidence": [
           {
             "evidence_id": "ev:param.source_tick_ms.0",
             "path": "snake.py",
-            "file_sha256": "085015d8aaa06f484df9ce0361fa4438981aecd8e1dc14ea0ba3ba744583b7dd",
             "kind": "static",
+            "supports": "/rule_ir/flow",
+            "confidence": 0.8,
+            "file_sha256": "085015d8aaa06f484df9ce0361fa4438981aecd8e1dc14ea0ba3ba744583b7dd",
             "span": {
               "line_start": 277,
               "line_end": 277
-            },
-            "supports": "/rule_ir/flow",
-            "topic": "movement",
-            "confidence": 0.8,
-            "detail": "Movement interval (milliseconds)"
+            }
           }
         ],
         "assumptions": [],
-        "operation_count": 3
+        "operation_count": 7
       }
     ]
   },

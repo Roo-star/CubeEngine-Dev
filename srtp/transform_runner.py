@@ -39,6 +39,23 @@ class TransformedGameProcess:
 
 
 class TransformedGameRunner:
+    def launch_project(self, manifest: Path, source_root: Path) -> TransformedGameProcess:
+        from .llm_compiler_v1.compiler import load_compile_report_from_bundle
+        report = load_compile_report_from_bundle(manifest.parent, manifest_path=manifest)
+        if not report.compile_ready:
+            raise RuntimeError("Approve the generated Target before 3D Play.")
+        root = Path(__file__).resolve().parents[1]
+        process = subprocess.Popen(
+            [sys.executable, "-m", "srtp.project_viewer", "--manifest", str(manifest.resolve()),
+             "--source-root", str(source_root.resolve())], cwd=str(root),
+            stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+            text=True, encoding="utf-8", errors="replace",
+        )
+        result = TransformedGameProcess(process)
+        if sys.platform == "win32":
+            threading.Thread(target=self._focus_later, args=(result,), daemon=True).start()
+        return result
+
     def launch(self, package: SourceGamePackage) -> TransformedGameProcess:
         plan = package.transformation
         dimensions = plan.target_dimensions

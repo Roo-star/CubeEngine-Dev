@@ -91,6 +91,7 @@ class InteractionResult:
     transition_count: int
     scene_command_count: int
     state: ProjectViewState
+    host_commands: Tuple[str, ...] = ()
 
     def to_mapping(self) -> Dict[str, Any]:
         return {
@@ -102,6 +103,7 @@ class InteractionResult:
             "transition_count": self.transition_count,
             "scene_command_count": self.scene_command_count,
             "state": self.state.to_mapping(),
+            "host_commands": list(self.host_commands),
         }
 
 
@@ -272,7 +274,8 @@ class IRAcceptanceController:
             scene=documents["scene_ir"],
             asset=documents["asset_ir"],
             input=documents["input_ir"],
-            asset_project_root=Path(asset_project_root).resolve() if asset_project_root else root,
+            asset_project_root=(root / 'resources' if (root / 'asset.resources.json').is_file()
+                                else Path(asset_project_root).resolve() if asset_project_root else root),
         )
         if "loaded" in self.sessions:
             self.sessions.pop("loaded").close()
@@ -318,8 +321,12 @@ class IRAcceptanceController:
             self.sequence[selected], "mouse", "mouse.button.primary", "press",
             position=(0, 0), data={"rule_coordinate": list(coord)},
         ))
-        accepted = bool(result.transitions) and not result.rejections
-        if accepted:
+        accepted = bool(result.transitions or result.host_commands) and not result.rejections
+        if accepted and result.host_commands:
+            if 'restart' in result.host_commands: self.reset(selected)
+            code='host_command'
+            message='Host command: '+', '.join(result.host_commands)
+        elif accepted:
             code = "transition_committed"
             message = "Accepted {0}; Rule revision is now {1}.".format(
                 coord, session.rule_runtime.state.revision,
@@ -338,7 +345,7 @@ class IRAcceptanceController:
         return InteractionResult(
             selected, coord, accepted, code, message,
             len(result.transitions), len(result.scene_delta.commands),
-            self.snapshot(selected),
+            self.snapshot(selected), result.host_commands,
         )
 
     def dispatch_physical(
@@ -355,9 +362,13 @@ class IRAcceptanceController:
             raise IRAcceptanceError("Unknown Workbench project: " + str(selected))
         session = self.sessions[selected]
         result = session.handle_input(event, focus=focus)
-        accepted = bool(result.transitions) and not result.rejections
+        accepted = bool(result.transitions or result.host_commands) and not result.rejections
         label = getattr(event, "control", "input")
-        if accepted:
+        if accepted and result.host_commands:
+            if 'restart' in result.host_commands: self.reset(selected)
+            code='host_command'
+            message='Host command: '+', '.join(result.host_commands)
+        elif accepted:
             code = "transition_committed"
             message = "Accepted {0}; Rule revision is now {1}.".format(
                 label, session.rule_runtime.state.revision,
@@ -376,7 +387,7 @@ class IRAcceptanceController:
         return InteractionResult(
             selected, (), accepted, code, message,
             len(result.transitions), len(result.scene_delta.commands),
-            self.snapshot(selected),
+            self.snapshot(selected), result.host_commands,
         )
 
     def snapshot(self, key: Optional[str] = None) -> ProjectViewState:
@@ -476,7 +487,8 @@ class IRAcceptanceController:
         selected = key or self.active_key
         session = self.sessions[selected]
         trace = tuple(item.to_mapping() for item in session.rule_runtime.export_replay_trace())
-        replay = replay_rule_ir(self.projects[selected].rule, trace)
+        replay = replay_rule_ir(self.projects[selected].rule, trace,
+            random_sources=session.rule_runtime.initial_random_sources)
         try:
             expected = session.rule_runtime.state.state_hash()
             actual = replay.state.state_hash()

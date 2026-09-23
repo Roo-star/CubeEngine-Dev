@@ -194,7 +194,7 @@ class LlmSnakeVerticalSliceTests(unittest.TestCase):
 
             package = SourceGameImporter().import_path(SNAKE)
             chat = _ScriptedChat([])
-            report = SourceToIRCompiler(chat_fn=chat, max_repairs=0).compile_spatial_lift(
+            report = SourceToIRCompiler(staged=False, chat_fn=chat, max_repairs=0).compile_spatial_lift(
                 package,
                 source_bundle_dir=source_dir,
                 intent_text="Add Z=3 volume preserving XY snake rules",
@@ -280,7 +280,7 @@ class LlmSnakeVerticalSliceTests(unittest.TestCase):
                 }]
 
             chat = _ScriptedChat([design_intent, lift_payload])
-            report = SourceToIRCompiler(chat_fn=chat, max_repairs=0).compile_spatial_lift(
+            report = SourceToIRCompiler(staged=False, chat_fn=chat, max_repairs=0).compile_spatial_lift(
                 package,
                 source_bundle_dir=source_dir,
                 intent_text=intent_text,

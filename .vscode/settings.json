@@ -1,4 +1,6 @@
 {
-    "python-envs.defaultEnvManager": "ms-python.python:conda",
-    "python-envs.defaultPackageManager": "ms-python.python:conda"
+    "python.defaultInterpreterPath": "C:\\Users\\Yingr\\.pyenv\\pyenv-win\\versions\\3.9.1\\python.exe",
+    "python.analysis.extraPaths": [
+        "${workspaceFolder}"
+    ]
 }

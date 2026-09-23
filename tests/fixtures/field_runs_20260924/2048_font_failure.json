@@ -1,0 +1,14 @@
+{
+  "job_id": "job:2ead2d3007db45f9",
+  "diagnostics": [
+    "asset_ir: Asset IR has required unresolved semantics: /assets/font: Gameplay text and menu labels use bold Verdana through pygame.font.SysFont. Neither a Verdana file nor an indexed runtime Verdana font is available; substituting another font would change the authored typography."
+  ],
+  "unresolved_summary": [
+    {
+      "path": "/assets/font",
+      "reason": "Gameplay text and menu labels use bold Verdana through pygame.font.SysFont. Neither a Verdana file nor an indexed runtime Verdana font is available; substituting another font would change the authored typography.",
+      "required": true,
+      "owner": "importer"
+    }
+  ]
+}

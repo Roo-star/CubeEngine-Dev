@@ -126,7 +126,9 @@ def is_asset_ir_compile_ready(document: Mapping[str, Any]) -> bool:
     if any(item.severity == "error" for item in validate_asset_ir(document)):
         return False
     unresolved = document.get("unresolved", [])
-    return bool(document.get("assets") or document.get("derivations")) and not any(
+    # A source may draw every visual procedurally. An explicitly resolved
+    # empty catalog is valid; the new draft's required /assets blocker remains.
+    return not any(
         isinstance(item, Mapping) and item.get("required") is True
         for item in unresolved if isinstance(unresolved, list)
     )
@@ -251,7 +253,8 @@ def _validate_assets(value: Any, diagnostics: List[AssetIRDiagnostic]) -> None:
             _required_keys(source, ("uri", "content_hash", "byte_size"), path + "/source", diagnostics)
             uri = source.get("uri")
             try:
-                relative = project_uri_relative_path(uri)
+                from srtp.runtime_assets import resource_relative_path
+                relative = resource_relative_path(uri)
             except ValueError as exc:
                 diagnostics.append(_error("source.uri", path + "/source/uri", str(exc)))
             else:

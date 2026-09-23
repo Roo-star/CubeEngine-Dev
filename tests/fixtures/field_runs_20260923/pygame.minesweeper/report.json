@@ -1,0 +1,1192 @@
+{
+  "ok": false,
+  "stage": "source_four_ir",
+  "job_id": "job:eadc1d2651704e4a",
+  "project_id": "project:pygame.minesweeper.llm.source",
+  "source_package_hash": "711faede56c844d8c40612a1a285087c2ee39f1b4832974ac3e742125f9bd930",
+  "provider": "openrouter",
+  "model": "openai/gpt-6-sol",
+  "attempts": 3,
+  "prompt_template_version": "cubeengine.srtp/llm-prompt/2.0",
+  "diagnostics": [
+    "rule_ir: OpenRouter output is not one complete JSON object: Extra data: line 1 column 243 (char 242)"
+  ],
+  "compile_ready": false,
+  "output_dir": "E:\\CubeEngine\\CubeEngine-SRTP\\.cubeengine_llm\\pygame.minesweeper\\source.failed\\8e36d7cb6b6944fab8d6c15f58fecc07",
+  "unresolved_summary": [],
+  "proposal_id": null,
+  "manifest_project_id": null,
+  "compilation_trace": {
+    "stages": [
+      {
+        "stage": "rule_ir",
+        "attempt": 1,
+        "passed": false,
+        "diagnostics": [
+          "source_requests must contain 1 to 4 file ranges"
+        ]
+      },
+      {
+        "stage": "rule_ir",
+        "attempt": 2,
+        "passed": false,
+        "diagnostics": [
+          "Rule IR contains required unresolved semantics or no executable mechanic"
+        ],
+        "ignored_engine_fields": [],
+        "rejected_definition": {
+          "definition": {
+            "metadata": {
+              "title": "Pygame Minesweeper",
+              "description": "Basic 10×10 game launched by run_game.py. This definition implements initial mine placement and the source's three-state right-click marking cycle; revealing, first-click safety, flood opening, terminal results and the timer remain unresolved.",
+              "source_project_hash": "711faede56c844d8c40612a1a285087c2ee39f1b4832974ac3e742125f9bd930",
+              "determinism": "seeded"
+            },
+            "parameters": [],
+            "types": [],
+            "participants": [
+              {
+                "id": "rule:participant.player",
+                "name": "Player",
+                "kind": "human"
+              }
+            ],
+            "topologies": [
+              {
+                "id": "rule:topology.board",
+                "name": "Basic board",
+                "kind": "rect_grid",
+                "anchor": "cell",
+                "axes": [
+                  {
+                    "name": "row",
+                    "extent": 10,
+                    "boundary": "bounded"
+                  },
+                  {
+                    "name": "column",
+                    "extent": 10,
+                    "boundary": "bounded"
+                  }
+                ],
+                "neighborhoods": []
+              }
+            ],
+            "state": {
+              "variables": [
+                {
+                  "id": "rule:state.mines",
+                  "name": "Mine locations (hidden in the source game)",
+                  "type": "core:int",
+                  "scope": "topology_site",
+                  "topology": "rule:topology.board",
+                  "initial": {
+                    "expr": "0"
+                  }
+                },
+                {
+                  "id": "rule:state.cover",
+                  "name": "Cover: 0 unopened, 1 flag, 2 question mark",
+                  "type": "core:int",
+                  "scope": "topology_site",
+                  "topology": "rule:topology.board",
+                  "initial": {
+                    "expr": "0"
+                  }
+                },
+                {
+                  "id": "rule:state.flags",
+                  "name": "Flag count",
+                  "type": "core:int",
+                  "scope": "global",
+                  "initial": {
+                    "expr": "0"
+                  }
+                }
+              ],
+              "entity_types": [],
+              "initial_effects": [
+                {
+                  "op": "random.draw",
+                  "stream": "rule:random.mines",
+                  "distribution": {
+                    "kind": "shuffle",
+                    "values": {
+                      "expr": "topology.sites('rule:topology.board')"
+                    }
+                  },
+                  "as": "shuffled"
+                },
+                {
+                  "op": "foreach",
+                  "query": {
+                    "expr": "sequence.slice(var.shuffled, 0, 10)"
+                  },
+                  "as": "mine_site",
+                  "effects": [
+                    {
+                      "op": "grid.set",
+                      "state": "rule:state.mines",
+                      "coordinate": {
+                        "expr": "var.mine_site"
+                      },
+                      "value": {
+                        "expr": "1"
+                      }
+                    }
+                  ]
+                }
+              ],
+              "information_model": "perfect"
+            },
+            "queries": [],
+            "events": [],
+            "actions": [
+              {
+                "id": "rule:action.cycle_mark",
+                "name": "Cycle unopened → flag → question mark → unopened",
+                "actor": {
+                  "expr": "'rule:participant.player'"
+                },
+                "parameters": [
+                  {
+                    "name": "coordinate",
+                    "type": "core:coord",
+                    "domain": {
+                      "expr": "topology.sites('rule:topology.board')"
+                    }
+                  }
+                ],
+                "precondition": {
+                  "expr": "topology.contains('rule:topology.board', param.coordinate) and (grid.get('rule:state.cover', param.coordinate) == 0 or grid.get('rule:state.cover', param.coordinate) == 1 or grid.get('rule:state.cover', param.coordinate) == 2)"
+                },
+                "effects": [
+                  {
+                    "op": "state.set",
+                    "target": {
+                      "expr": "'rule:state.flags'"
+                    },
+                    "value": {
+                      "expr": "state.get('rule:state.flags') + (1 if grid.get('rule:state.cover', param.coordinate) == 0 else (-1 if grid.get('rule:state.cover', param.coordinate) == 1 else 0))"
+                    }
+                  },
+                  {
+                    "op": "grid.set",
+                    "state": "rule:state.cover",
+                    "coordinate": {
+                      "expr": "param.coordinate"
+                    },
+                    "value": {
+                      "expr": "(grid.get('rule:state.cover', param.coordinate) + 1) % 3"
+                    }
+                  }
+                ],
+                "timing": {
+                  "phase": "rule:phase.input"
+                },
+                "encoding": {
+                  "kind": "parameter_product"
+                }
+              },
+              {
+                "id": "rule:action.clear_question",
+                "name": "Left-click a question mark to return it to unopened",
+                "actor": {
+                  "expr": "'rule:participant.player'"
+                },
+                "parameters": [
+                  {
+                    "name": "coordinate",
+                    "type": "core:coord",
+                    "domain": {
+                      "expr": "topology.sites('rule:topology.board')"
+                    }
+                  }
+                ],
+                "precondition": {
+                  "expr": "topology.contains('rule:topology.board', param.coordinate) and grid.get('rule:state.cover', param.coordinate) == 2"
+                },
+                "effects": [
+                  {
+                    "op": "grid.set",
+                    "state": "rule:state.cover",
+                    "coordinate": {
+                      "expr": "param.coordinate"
+                    },
+                    "value": {
+                      "expr": "0"
+                    }
+                  }
+                ],
+                "timing": {
+                  "phase": "rule:phase.input"
+                },
+                "encoding": {
+                  "kind": "parameter_product"
+                }
+              }
+            ],
+            "systems": [],
+            "flow": {
+              "model": "event_driven",
+              "phases": [
+                {
+                  "id": "rule:phase.input",
+                  "order": 100
+                }
+              ],
+              "initial_phase": "rule:phase.input",
+              "scheduler": {
+                "clock": "event_queue",
+                "tick_hz": null,
+                "ordering": "phase_priority_id"
+              }
+            },
+            "random_streams": [
+              {
+                "id": "rule:random.mines",
+                "name": "Mine placement",
+                "algorithm": "cubeengine.pcg32/1",
+                "seed_policy": "session"
+              }
+            ],
+            "goals": [
+              {
+                "id": "rule:goal.clear_safe_cells",
+                "name": "Reveal every non-mine cell"
+              }
+            ],
+            "outcomes": [],
+            "modes": [
+              {
+                "id": "rule:mode.basic",
+                "name": "Basic 10×10, 10 mines",
+                "overrides": []
+              }
+            ],
+            "invariants": [
+              {
+                "id": "rule:invariant.flags",
+                "name": "Flag count stays within board capacity",
+                "condition": {
+                  "expr": "state.get('rule:state.flags') >= 0 and state.get('rule:state.flags') <= 100"
+                },
+                "severity": "error"
+              },
+              {
+                "id": "rule:invariant.cover",
+                "name": "All cover values are unopened, flagged or questioned",
+                "condition": {
+                  "expr": "grid.values_in_type('rule:state.cover', 'core:int')"
+                },
+                "severity": "warning"
+              }
+            ],
+            "extensions": {},
+            "unresolved": [
+              {
+                "path": "/actions/reveal",
+                "reason": "The source relocates mines out of the clicked 3×3 area on the first opening, recomputes adjacent counts, and recursively opens zero-valued areas. No equivalent executable reveal action is supplied: omitting these algorithms or opening without first-click safety would change the game.",
+                "required": true,
+                "owner": "importer_or_llm"
+              },
+              {
+                "path": "/outcomes",
+                "reason": "The source ends in a loss on opening a mine and wins after all non-mine tiles have opened. Neither result can be implemented correctly until reveal and its opened-cell count are implemented.",
+                "required": true,
+                "owner": "importer_or_llm"
+              },
+              {
+                "path": "/state/information_model",
+                "reason": "The source conceals mine locations. The executable backend supports only perfect information, so rule:state.mines does not preserve the source's hidden-information boundary.",
+                "required": true,
+                "owner": "extension"
+              },
+              {
+                "path": "/state/variables/timer",
+                "reason": "The source displays wall-clock seconds since the first opening, frozen at win or loss; the timer and its first-open lifecycle are not implemented.",
+                "required": true,
+                "owner": "importer_or_llm"
+              },
+              {
+                "path": "/actions/cycle_mark",
+                "reason": "The source prohibits marking revealed tiles and all board interaction after a result. Those restrictions cannot be completed or tested until revealed state and terminal outcomes exist.",
+                "required": true,
+                "owner": "importer_or_llm"
+              }
+            ]
+          },
+          "evidence": [
+            "run_game.py:1-17@0d9c1899014279d13615849458126254a3fac9e54d7cd28aef6c7fb41aa3d03a",
+            "minesweeper/__main__.py:1-168@c734448d03ecdb6ef6693a03e5d711ec2d27145d13ba38b6455271c50677cd5a",
+            "minesweeper/core/board.py:1-172@5bdaff08d676549c480c95374f212bc54a013cc2ac787a686c5279291d883970",
+            "minesweeper/core/board_tile.py:1-64@2d5927094f88c3c03e6ae64ae5a47e63ed4226769caf21998a77a13850233345",
+            "minesweeper/user_interface_board.py:1-152@1e552aa64378928d6297a68abee49dc425b20e6bd240a9752b92f549589c89fc",
+            "minesweeper/user_interface.py:1-70@3eda8eaeb4b8e12b397e397e305f662a027911d38c649d80f8f6b32d0f67f23a",
+            "minesweeper/user_interface_face.py:1-88@9ffe4fbb299b21934f4ad01b2b4075beb09af5e37bd72ed970e90464f9f10f97",
+            "minesweeper/user_interface_score.py:1-76@eda7fdfc4640dbca70aebbe0278a70ea60c9867ad48371e6650d87250455fa1e"
+          ],
+          "behavior_tests": [
+            {
+              "name": "Right-click flags an unopened cell",
+              "steps": [
+                {
+                  "action": "rule:action.cycle_mark",
+                  "parameters": {
+                    "coordinate": [
+                      0,
+                      0
+                    ]
+                  },
+                  "accepted": true
+                }
+              ],
+              "expect": {
+                "cells": [
+                  {
+                    "state": "rule:state.cover",
+                    "coordinate": [
+                      0,
+                      0
+                    ],
+                    "value": 1
+                  }
+                ],
+                "terminal": false
+              }
+            },
+            {
+              "name": "Right-click cycles through question mark and back",
+              "steps": [
+                {
+                  "action": "rule:action.cycle_mark",
+                  "parameters": {
+                    "coordinate": [
+                      0,
+                      0
+                    ]
+                  },
+                  "accepted": true
+                },
+                {
+                  "action": "rule:action.cycle_mark",
+                  "parameters": {
+                    "coordinate": [
+                      0,
+                      0
+                    ]
+                  },
+                  "accepted": true
+                },
+                {
+                  "action": "rule:action.cycle_mark",
+                  "parameters": {
+                    "coordinate": [
+                      0,
+                      0
+                    ]
+                  },
+                  "accepted": true
+                }
+              ],
+              "expect": {
+                "cells": [
+                  {
+                    "state": "rule:state.cover",
+                    "coordinate": [
+                      0,
+                      0
+                    ],
+                    "value": 0
+                  }
+                ],
+                "terminal": false
+              }
+            },
+            {
+              "name": "Cannot clear a question mark on an unopened tile",
+              "steps": [
+                {
+                  "action": "rule:action.clear_question",
+                  "parameters": {
+                    "coordinate": [
+                      0,
+                      0
+                    ]
+                  },
+                  "accepted": false
+                }
+              ],
+              "expect": {
+                "cells": [
+                  {
+                    "state": "rule:state.cover",
+                    "coordinate": [
+                      0,
+                      0
+                    ],
+                    "value": 0
+                  }
+                ],
+                "terminal": false
+              }
+            }
+          ],
+          "assumptions": [
+            "Shuffling all 100 sites and taking ten yields a uniformly distributed ten-mine placement, matching the source's initial random.sample distribution, though not its random-number sequence.",
+            "Coordinates use the source board's row, column order."
+          ]
+        }
+      },
+      {
+        "stage": "rule_ir",
+        "attempt": 3,
+        "passed": false,
+        "diagnostics": [
+          "OpenRouter output is not one complete JSON object: Extra data: line 1 column 243 (char 242)"
+        ],
+        "ignored_engine_fields": [],
+        "rejected_definition": {
+          "definition": {
+            "metadata": {
+              "title": "Pygame Minesweeper",
+              "description": "Basic 10×10 game launched by run_game.py. This definition implements initial mine placement and the source's three-state right-click marking cycle; revealing, first-click safety, flood opening, terminal results and the timer remain unresolved.",
+              "source_project_hash": "711faede56c844d8c40612a1a285087c2ee39f1b4832974ac3e742125f9bd930",
+              "determinism": "seeded"
+            },
+            "parameters": [],
+            "types": [],
+            "participants": [
+              {
+                "id": "rule:participant.player",
+                "name": "Player",
+                "kind": "human"
+              }
+            ],
+            "topologies": [
+              {
+                "id": "rule:topology.board",
+                "name": "Basic board",
+                "kind": "rect_grid",
+                "anchor": "cell",
+                "axes": [
+                  {
+                    "name": "row",
+                    "extent": 10,
+                    "boundary": "bounded"
+                  },
+                  {
+                    "name": "column",
+                    "extent": 10,
+                    "boundary": "bounded"
+                  }
+                ],
+                "neighborhoods": []
+              }
+            ],
+            "state": {
+              "variables": [
+                {
+                  "id": "rule:state.mines",
+                  "name": "Mine locations (hidden in the source game)",
+                  "type": "core:int",
+                  "scope": "topology_site",
+                  "topology": "rule:topology.board",
+                  "initial": {
+                    "expr": "0"
+                  }
+                },
+                {
+                  "id": "rule:state.cover",
+                  "name": "Cover: 0 unopened, 1 flag, 2 question mark",
+                  "type": "core:int",
+                  "scope": "topology_site",
+                  "topology": "rule:topology.board",
+                  "initial": {
+                    "expr": "0"
+                  }
+                },
+                {
+                  "id": "rule:state.flags",
+                  "name": "Flag count",
+                  "type": "core:int",
+                  "scope": "global",
+                  "initial": {
+                    "expr": "0"
+                  }
+                }
+              ],
+              "entity_types": [],
+              "initial_effects": [
+                {
+                  "op": "random.draw",
+                  "stream": "rule:random.mines",
+                  "distribution": {
+                    "kind": "shuffle",
+                    "values": {
+                      "expr": "topology.sites('rule:topology.board')"
+                    }
+                  },
+                  "as": "shuffled"
+                },
+                {
+                  "op": "foreach",
+                  "query": {
+                    "expr": "sequence.slice(var.shuffled, 0, 10)"
+                  },
+                  "as": "mine_site",
+                  "effects": [
+                    {
+                      "op": "grid.set",
+                      "state": "rule:state.mines",
+                      "coordinate": {
+                        "expr": "var.mine_site"
+                      },
+                      "value": {
+                        "expr": "1"
+                      }
+                    }
+                  ]
+                }
+              ],
+              "information_model": "perfect"
+            },
+            "queries": [],
+            "events": [],
+            "actions": [
+              {
+                "id": "rule:action.cycle_mark",
+                "name": "Cycle unopened → flag → question mark → unopened",
+                "actor": {
+                  "expr": "'rule:participant.player'"
+                },
+                "parameters": [
+                  {
+                    "name": "coordinate",
+                    "type": "core:coord",
+                    "domain": {
+                      "expr": "topology.sites('rule:topology.board')"
+                    }
+                  }
+                ],
+                "precondition": {
+                  "expr": "topology.contains('rule:topology.board', param.coordinate) and (grid.get('rule:state.cover', param.coordinate) == 0 or grid.get('rule:state.cover', param.coordinate) == 1 or grid.get('rule:state.cover', param.coordinate) == 2)"
+                },
+                "effects": [
+                  {
+                    "op": "state.set",
+                    "target": {
+                      "expr": "'rule:state.flags'"
+                    },
+                    "value": {
+                      "expr": "state.get('rule:state.flags') + (1 if grid.get('rule:state.cover', param.coordinate) == 0 else (-1 if grid.get('rule:state.cover', param.coordinate) == 1 else 0))"
+                    }
+                  },
+                  {
+                    "op": "grid.set",
+                    "state": "rule:state.cover",
+                    "coordinate": {
+                      "expr": "param.coordinate"
+                    },
+                    "value": {
+                      "expr": "(grid.get('rule:state.cover', param.coordinate) + 1) % 3"
+                    }
+                  }
+                ],
+                "timing": {
+                  "phase": "rule:phase.input"
+                },
+                "encoding": {
+                  "kind": "parameter_product"
+                }
+              },
+              {
+                "id": "rule:action.clear_question",
+                "name": "Left-click a question mark to return it to unopened",
+                "actor": {
+                  "expr": "'rule:participant.player'"
+                },
+                "parameters": [
+                  {
+                    "name": "coordinate",
+                    "type": "core:coord",
+                    "domain": {
+                      "expr": "topology.sites('rule:topology.board')"
+                    }
+                  }
+                ],
+                "precondition": {
+                  "expr": "topology.contains('rule:topology.board', param.coordinate) and grid.get('rule:state.cover', param.coordinate) == 2"
+                },
+                "effects": [
+                  {
+                    "op": "grid.set",
+                    "state": "rule:state.cover",
+                    "coordinate": {
+                      "expr": "param.coordinate"
+                    },
+                    "value": {
+                      "expr": "0"
+                    }
+                  }
+                ],
+                "timing": {
+                  "phase": "rule:phase.input"
+                },
+                "encoding": {
+                  "kind": "parameter_product"
+                }
+              }
+            ],
+            "systems": [],
+            "flow": {
+              "model": "event_driven",
+              "phases": [
+                {
+                  "id": "rule:phase.input",
+                  "order": 100
+                }
+              ],
+              "initial_phase": "rule:phase.input",
+              "scheduler": {
+                "clock": "event_queue",
+                "tick_hz": null,
+                "ordering": "phase_priority_id"
+              }
+            },
+            "random_streams": [
+              {
+                "id": "rule:random.mines",
+                "name": "Mine placement",
+                "algorithm": "cubeengine.pcg32/1",
+                "seed_policy": "session"
+              }
+            ],
+            "goals": [
+              {
+                "id": "rule:goal.clear_safe_cells",
+                "name": "Reveal every non-mine cell"
+              }
+            ],
+            "outcomes": [],
+            "modes": [
+              {
+                "id": "rule:mode.basic",
+                "name": "Basic 10×10, 10 mines",
+                "overrides": []
+              }
+            ],
+            "invariants": [
+              {
+                "id": "rule:invariant.flags",
+                "name": "Flag count stays within board capacity",
+                "condition": {
+                  "expr": "state.get('rule:state.flags') >= 0 and state.get('rule:state.flags') <= 100"
+                },
+                "severity": "error"
+              },
+              {
+                "id": "rule:invariant.cover",
+                "name": "All cover values are unopened, flagged or questioned",
+                "condition": {
+                  "expr": "grid.values_in_type('rule:state.cover', 'core:int')"
+                },
+                "severity": "warning"
+              }
+            ],
+            "extensions": {},
+            "unresolved": [
+              {
+                "path": "/actions/reveal",
+                "reason": "The source relocates mines out of the clicked 3×3 area on the first opening, recomputes adjacent counts, and recursively opens zero-valued areas. No equivalent executable reveal action is supplied: omitting these algorithms or opening without first-click safety would change the game.",
+                "required": true,
+                "owner": "importer_or_llm"
+              },
+              {
+                "path": "/outcomes",
+                "reason": "The source ends in a loss on opening a mine and wins after all non-mine tiles have opened. Neither result can be implemented correctly until reveal and its opened-cell count are implemented.",
+                "required": true,
+                "owner": "importer_or_llm"
+              },
+              {
+                "path": "/state/information_model",
+                "reason": "The source conceals mine locations. The executable backend supports only perfect information, so rule:state.mines does not preserve the source's hidden-information boundary.",
+                "required": true,
+                "owner": "extension"
+              },
+              {
+                "path": "/state/variables/timer",
+                "reason": "The source displays wall-clock seconds since the first opening, frozen at win or loss; the timer and its first-open lifecycle are not implemented.",
+                "required": true,
+                "owner": "importer_or_llm"
+              },
+              {
+                "path": "/actions/cycle_mark",
+                "reason": "The source prohibits marking revealed tiles and all board interaction after a result. Those restrictions cannot be completed or tested until revealed state and terminal outcomes exist.",
+                "required": true,
+                "owner": "importer_or_llm"
+              }
+            ]
+          },
+          "evidence": [
+            "run_game.py:1-17@0d9c1899014279d13615849458126254a3fac9e54d7cd28aef6c7fb41aa3d03a",
+            "minesweeper/__main__.py:1-168@c734448d03ecdb6ef6693a03e5d711ec2d27145d13ba38b6455271c50677cd5a",
+            "minesweeper/core/board.py:1-172@5bdaff08d676549c480c95374f212bc54a013cc2ac787a686c5279291d883970",
+            "minesweeper/core/board_tile.py:1-64@2d5927094f88c3c03e6ae64ae5a47e63ed4226769caf21998a77a13850233345",
+            "minesweeper/user_interface_board.py:1-152@1e552aa64378928d6297a68abee49dc425b20e6bd240a9752b92f549589c89fc",
+            "minesweeper/user_interface.py:1-70@3eda8eaeb4b8e12b397e397e305f662a027911d38c649d80f8f6b32d0f67f23a",
+            "minesweeper/user_interface_face.py:1-88@9ffe4fbb299b21934f4ad01b2b4075beb09af5e37bd72ed970e90464f9f10f97",
+            "minesweeper/user_interface_score.py:1-76@eda7fdfc4640dbca70aebbe0278a70ea60c9867ad48371e6650d87250455fa1e"
+          ],
+          "behavior_tests": [
+            {
+              "name": "Right-click flags an unopened cell",
+              "steps": [
+                {
+                  "action": "rule:action.cycle_mark",
+                  "parameters": {
+                    "coordinate": [
+                      0,
+                      0
+                    ]
+                  },
+                  "accepted": true
+                }
+              ],
+              "expect": {
+                "cells": [
+                  {
+                    "state": "rule:state.cover",
+                    "coordinate": [
+                      0,
+                      0
+                    ],
+                    "value": 1
+                  }
+                ],
+                "terminal": false
+              }
+            },
+            {
+              "name": "Right-click cycles through question mark and back",
+              "steps": [
+                {
+                  "action": "rule:action.cycle_mark",
+                  "parameters": {
+                    "coordinate": [
+                      0,
+                      0
+                    ]
+                  },
+                  "accepted": true
+                },
+                {
+                  "action": "rule:action.cycle_mark",
+                  "parameters": {
+                    "coordinate": [
+                      0,
+                      0
+                    ]
+                  },
+                  "accepted": true
+                },
+                {
+                  "action": "rule:action.cycle_mark",
+                  "parameters": {
+                    "coordinate": [
+                      0,
+                      0
+                    ]
+                  },
+                  "accepted": true
+                }
+              ],
+              "expect": {
+                "cells": [
+                  {
+                    "state": "rule:state.cover",
+                    "coordinate": [
+                      0,
+                      0
+                    ],
+                    "value": 0
+                  }
+                ],
+                "terminal": false
+              }
+            },
+            {
+              "name": "Cannot clear a question mark on an unopened tile",
+              "steps": [
+                {
+                  "action": "rule:action.clear_question",
+                  "parameters": {
+                    "coordinate": [
+                      0,
+                      0
+                    ]
+                  },
+                  "accepted": false
+                }
+              ],
+              "expect": {
+                "cells": [
+                  {
+                    "state": "rule:state.cover",
+                    "coordinate": [
+                      0,
+                      0
+                    ],
+                    "value": 0
+                  }
+                ],
+                "terminal": false
+              }
+            }
+          ],
+          "assumptions": [
+            "Shuffling all 100 sites and taking ten yields a uniformly distributed ten-mine placement, matching the source's initial random.sample distribution, though not its random-number sequence.",
+            "Coordinates use the source board's row, column order."
+          ]
+        }
+      }
+    ],
+    "source_inspection": {
+      "tool_turns": 3,
+      "source_chars_read": 44662,
+      "reads": [
+        {
+          "path": "run_game.py",
+          "file_sha256": "0d9c1899014279d13615849458126254a3fac9e54d7cd28aef6c7fb41aa3d03a",
+          "start_line": 1,
+          "end_line": 17,
+          "total_lines": 17,
+          "complete_file": true,
+          "truncated": false,
+          "citation": {
+            "evidence_id": "run_game.py:1-17@0d9c1899014279d13615849458126254a3fac9e54d7cd28aef6c7fb41aa3d03a",
+            "path": "run_game.py",
+            "file_sha256": "0d9c1899014279d13615849458126254a3fac9e54d7cd28aef6c7fb41aa3d03a",
+            "span": {
+              "line_start": 1,
+              "line_end": 17
+            },
+            "supports": "/"
+          }
+        },
+        {
+          "path": "run_game.py",
+          "file_sha256": "0d9c1899014279d13615849458126254a3fac9e54d7cd28aef6c7fb41aa3d03a",
+          "start_line": 1,
+          "end_line": 17,
+          "total_lines": 17,
+          "complete_file": true,
+          "truncated": false,
+          "citation": {
+            "evidence_id": "run_game.py:1-17@0d9c1899014279d13615849458126254a3fac9e54d7cd28aef6c7fb41aa3d03a",
+            "path": "run_game.py",
+            "file_sha256": "0d9c1899014279d13615849458126254a3fac9e54d7cd28aef6c7fb41aa3d03a",
+            "span": {
+              "line_start": 1,
+              "line_end": 17
+            },
+            "supports": "/"
+          }
+        },
+        {
+          "path": "minesweeper/core/board.py",
+          "file_sha256": "5bdaff08d676549c480c95374f212bc54a013cc2ac787a686c5279291d883970",
+          "start_line": 1,
+          "end_line": 172,
+          "total_lines": 172,
+          "complete_file": true,
+          "truncated": false,
+          "citation": {
+            "evidence_id": "minesweeper/core/board.py:1-172@5bdaff08d676549c480c95374f212bc54a013cc2ac787a686c5279291d883970",
+            "path": "minesweeper/core/board.py",
+            "file_sha256": "5bdaff08d676549c480c95374f212bc54a013cc2ac787a686c5279291d883970",
+            "span": {
+              "line_start": 1,
+              "line_end": 172
+            },
+            "supports": "/"
+          }
+        },
+        {
+          "path": "minesweeper/core/board_tile.py",
+          "file_sha256": "2d5927094f88c3c03e6ae64ae5a47e63ed4226769caf21998a77a13850233345",
+          "start_line": 1,
+          "end_line": 64,
+          "total_lines": 64,
+          "complete_file": true,
+          "truncated": false,
+          "citation": {
+            "evidence_id": "minesweeper/core/board_tile.py:1-64@2d5927094f88c3c03e6ae64ae5a47e63ed4226769caf21998a77a13850233345",
+            "path": "minesweeper/core/board_tile.py",
+            "file_sha256": "2d5927094f88c3c03e6ae64ae5a47e63ed4226769caf21998a77a13850233345",
+            "span": {
+              "line_start": 1,
+              "line_end": 64
+            },
+            "supports": "/"
+          }
+        },
+        {
+          "path": "minesweeper/user_interface_board.py",
+          "file_sha256": "1e552aa64378928d6297a68abee49dc425b20e6bd240a9752b92f549589c89fc",
+          "start_line": 1,
+          "end_line": 152,
+          "total_lines": 152,
+          "complete_file": true,
+          "truncated": false,
+          "citation": {
+            "evidence_id": "minesweeper/user_interface_board.py:1-152@1e552aa64378928d6297a68abee49dc425b20e6bd240a9752b92f549589c89fc",
+            "path": "minesweeper/user_interface_board.py",
+            "file_sha256": "1e552aa64378928d6297a68abee49dc425b20e6bd240a9752b92f549589c89fc",
+            "span": {
+              "line_start": 1,
+              "line_end": 152
+            },
+            "supports": "/"
+          }
+        },
+        {
+          "path": "minesweeper/__main__.py",
+          "file_sha256": "c734448d03ecdb6ef6693a03e5d711ec2d27145d13ba38b6455271c50677cd5a",
+          "start_line": 1,
+          "end_line": 168,
+          "total_lines": 168,
+          "complete_file": true,
+          "truncated": false,
+          "citation": {
+            "evidence_id": "minesweeper/__main__.py:1-168@c734448d03ecdb6ef6693a03e5d711ec2d27145d13ba38b6455271c50677cd5a",
+            "path": "minesweeper/__main__.py",
+            "file_sha256": "c734448d03ecdb6ef6693a03e5d711ec2d27145d13ba38b6455271c50677cd5a",
+            "span": {
+              "line_start": 1,
+              "line_end": 168
+            },
+            "supports": "/"
+          }
+        },
+        {
+          "path": "minesweeper/user_interface.py",
+          "file_sha256": "3eda8eaeb4b8e12b397e397e305f662a027911d38c649d80f8f6b32d0f67f23a",
+          "start_line": 1,
+          "end_line": 70,
+          "total_lines": 70,
+          "complete_file": true,
+          "truncated": false,
+          "citation": {
+            "evidence_id": "minesweeper/user_interface.py:1-70@3eda8eaeb4b8e12b397e397e305f662a027911d38c649d80f8f6b32d0f67f23a",
+            "path": "minesweeper/user_interface.py",
+            "file_sha256": "3eda8eaeb4b8e12b397e397e305f662a027911d38c649d80f8f6b32d0f67f23a",
+            "span": {
+              "line_start": 1,
+              "line_end": 70
+            },
+            "supports": "/"
+          }
+        },
+        {
+          "path": "minesweeper/user_interface_face.py",
+          "file_sha256": "9ffe4fbb299b21934f4ad01b2b4075beb09af5e37bd72ed970e90464f9f10f97",
+          "start_line": 1,
+          "end_line": 88,
+          "total_lines": 88,
+          "complete_file": true,
+          "truncated": false,
+          "citation": {
+            "evidence_id": "minesweeper/user_interface_face.py:1-88@9ffe4fbb299b21934f4ad01b2b4075beb09af5e37bd72ed970e90464f9f10f97",
+            "path": "minesweeper/user_interface_face.py",
+            "file_sha256": "9ffe4fbb299b21934f4ad01b2b4075beb09af5e37bd72ed970e90464f9f10f97",
+            "span": {
+              "line_start": 1,
+              "line_end": 88
+            },
+            "supports": "/"
+          }
+        },
+        {
+          "path": "minesweeper/user_interface_score.py",
+          "file_sha256": "eda7fdfc4640dbca70aebbe0278a70ea60c9867ad48371e6650d87250455fa1e",
+          "start_line": 1,
+          "end_line": 76,
+          "total_lines": 76,
+          "complete_file": true,
+          "truncated": false,
+          "citation": {
+            "evidence_id": "minesweeper/user_interface_score.py:1-76@eda7fdfc4640dbca70aebbe0278a70ea60c9867ad48371e6650d87250455fa1e",
+            "path": "minesweeper/user_interface_score.py",
+            "file_sha256": "eda7fdfc4640dbca70aebbe0278a70ea60c9867ad48371e6650d87250455fa1e",
+            "span": {
+              "line_start": 1,
+              "line_end": 76
+            },
+            "supports": "/"
+          }
+        },
+        {
+          "path": "run_game.py",
+          "file_sha256": "0d9c1899014279d13615849458126254a3fac9e54d7cd28aef6c7fb41aa3d03a",
+          "start_line": 1,
+          "end_line": 17,
+          "total_lines": 17,
+          "complete_file": true,
+          "truncated": false,
+          "citation": {
+            "evidence_id": "run_game.py:1-17@0d9c1899014279d13615849458126254a3fac9e54d7cd28aef6c7fb41aa3d03a",
+            "path": "run_game.py",
+            "file_sha256": "0d9c1899014279d13615849458126254a3fac9e54d7cd28aef6c7fb41aa3d03a",
+            "span": {
+              "line_start": 1,
+              "line_end": 17
+            },
+            "supports": "/"
+          }
+        },
+        {
+          "path": "minesweeper/core/board.py",
+          "file_sha256": "5bdaff08d676549c480c95374f212bc54a013cc2ac787a686c5279291d883970",
+          "start_line": 1,
+          "end_line": 172,
+          "total_lines": 172,
+          "complete_file": true,
+          "truncated": false,
+          "citation": {
+            "evidence_id": "minesweeper/core/board.py:1-172@5bdaff08d676549c480c95374f212bc54a013cc2ac787a686c5279291d883970",
+            "path": "minesweeper/core/board.py",
+            "file_sha256": "5bdaff08d676549c480c95374f212bc54a013cc2ac787a686c5279291d883970",
+            "span": {
+              "line_start": 1,
+              "line_end": 172
+            },
+            "supports": "/"
+          }
+        },
+        {
+          "path": "minesweeper/core/board_tile.py",
+          "file_sha256": "2d5927094f88c3c03e6ae64ae5a47e63ed4226769caf21998a77a13850233345",
+          "start_line": 1,
+          "end_line": 64,
+          "total_lines": 64,
+          "complete_file": true,
+          "truncated": false,
+          "citation": {
+            "evidence_id": "minesweeper/core/board_tile.py:1-64@2d5927094f88c3c03e6ae64ae5a47e63ed4226769caf21998a77a13850233345",
+            "path": "minesweeper/core/board_tile.py",
+            "file_sha256": "2d5927094f88c3c03e6ae64ae5a47e63ed4226769caf21998a77a13850233345",
+            "span": {
+              "line_start": 1,
+              "line_end": 64
+            },
+            "supports": "/"
+          }
+        },
+        {
+          "path": "minesweeper/user_interface_board.py",
+          "file_sha256": "1e552aa64378928d6297a68abee49dc425b20e6bd240a9752b92f549589c89fc",
+          "start_line": 1,
+          "end_line": 152,
+          "total_lines": 152,
+          "complete_file": true,
+          "truncated": false,
+          "citation": {
+            "evidence_id": "minesweeper/user_interface_board.py:1-152@1e552aa64378928d6297a68abee49dc425b20e6bd240a9752b92f549589c89fc",
+            "path": "minesweeper/user_interface_board.py",
+            "file_sha256": "1e552aa64378928d6297a68abee49dc425b20e6bd240a9752b92f549589c89fc",
+            "span": {
+              "line_start": 1,
+              "line_end": 152
+            },
+            "supports": "/"
+          }
+        },
+        {
+          "path": "minesweeper/__main__.py",
+          "file_sha256": "c734448d03ecdb6ef6693a03e5d711ec2d27145d13ba38b6455271c50677cd5a",
+          "start_line": 1,
+          "end_line": 168,
+          "total_lines": 168,
+          "complete_file": true,
+          "truncated": false,
+          "citation": {
+            "evidence_id": "minesweeper/__main__.py:1-168@c734448d03ecdb6ef6693a03e5d711ec2d27145d13ba38b6455271c50677cd5a",
+            "path": "minesweeper/__main__.py",
+            "file_sha256": "c734448d03ecdb6ef6693a03e5d711ec2d27145d13ba38b6455271c50677cd5a",
+            "span": {
+              "line_start": 1,
+              "line_end": 168
+            },
+            "supports": "/"
+          }
+        }
+      ],
+      "indexed_files": 24
+    },
+    "quality_assessment": {
+      "version": "cubeengine.product-quality/1",
+      "pattern_version": "cubeengine.presentation-patterns/1",
+      "scope": "source",
+      "product_ready": false,
+      "checks": [
+        {
+          "id": "executable_four_ir",
+          "status": "fail",
+          "evidence": []
+        },
+        {
+          "id": "explicit_visual_roles",
+          "status": "pass",
+          "evidence": {
+            "missing_roles": [],
+            "reason": "No automatic flattening of content into grid containers."
+          }
+        },
+        {
+          "id": "source_behavior_equivalence",
+          "status": "pending",
+          "evidence": "Needs independent original-source oracle traces, including terminal/reset and rejected input."
+        },
+        {
+          "id": "spatial_rule_equivalence",
+          "status": "not_applicable",
+          "evidence": "Needs independent lifted-rule cases (all directions/neighbors/merges as applicable); not one self-generated win."
+        },
+        {
+          "id": "source_appearance_fidelity",
+          "status": "pending",
+          "evidence": "Needs state-to-asset/font/palette evidence and rendered-frame comparison; asset loading alone is insufficient."
+        },
+        {
+          "id": "visible_interactive_states",
+          "status": "pending",
+          "evidence": "Needs rendered initial/hover/occupied/terminal frames, internal-cell ray picks, orbit/reset and legible HUD."
+        },
+        {
+          "id": "lifecycle_and_controls",
+          "status": "pending",
+          "evidence": "Needs source feature inventory, menus/pause/restart/undo/AI where required; unsupported features cannot be omitted silently."
+        },
+        {
+          "id": "performance",
+          "status": "pending",
+          "evidence": "Needs measured update/render/input latency for the produced scene at target dimensions."
+        },
+        {
+          "id": "fresh_pipeline_provenance",
+          "status": "pending",
+          "evidence": "Needs new Source and Lift HTTP receipts with no accepted-stage cache, unchanged approved artifact hashes, and its own render capture."
+        }
+      ],
+      "statement": "Compile success is not native-reference parity. Pending evidence is not a pass."
+    },
+    "api_usage": {
+      "http_requests": 6,
+      "input_tokens": 193356,
+      "output_tokens": 4093,
+      "reported_cost_usd": 0.2995067
+    },
+    "verification": "stage execution and generated behavior tests; independent source equivalence not yet certified"
+  }
+}

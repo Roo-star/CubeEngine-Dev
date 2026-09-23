@@ -1,4 +1,4 @@
-"""Versioned prompt templates for the freeflow-backed compiler.
+"""Versioned prompt templates for the OpenRouter-backed compiler.
 
 Keep prompts short: oversized payloads cause finish_reason=length and truncated JSON.
 Mechanical IR fields are filled by compiler coercion — do not restate full schemas here.
@@ -27,6 +27,7 @@ Hard compactness (CRITICAL — responses truncate at ~8k tokens):
 Schema traps (compiler coerces many; still emit correct shapes when possible):
 - Expressions use "op" never "kind": {"op":"literal","value":0}
 - Types: core:int|core:bool|core:string|core:fixed — not integer/bool
+- Coordinate parameters use core:coord (not core:coordinate); parameter expressions use {"op":"param","name":"coordinate"}. Declare board cells in state.variables with scope=topology_site, not state.cell_states or state.grids. Preserve alternating players, legality and winning/draw outcomes from complete game source.
 - Topology: kind rect_grid|hex_grid|…, anchor cell|vertex|edge|free, axes[{name,extent,boundary}]
 - Scene IDs: scene:node.board (one colon). Component ids LOCAL only: sites, camera (never scene:component.*)
 - Prefabs: {id,name,root:{local_id,name,active,transform,components,children}}
@@ -39,6 +40,7 @@ Schema traps (compiler coerces many; still emit correct shapes when possible):
 - Patch evidence must be an ARRAY of objects (one is enough), never a bare evidence object
 - Patch unresolved items are objects {path,reason,required,owner}, never bare strings
 - flow.phases are objects [{id:"rule:phase.input",order:100},…] never string names; timing uses {phase:"rule:phase.input"} not trigger aliases
+- flow.scheduler.clock must be turn|event_queue|fixed_tick|real_time, never timer. For an explicitly fixed_tick or real_time flow, use that same clock and a positive integer tick_hz supported by source evidence; do not invent a tick rate.
 - Actions require precondition expression (e.g. {"op":"literal","value":true}) — not preconditions:[]
 - Never invent evidence; cite evidence_pack ids with real source path/span/supports for each patch
 """
@@ -60,6 +62,8 @@ SYSTEM_SPATIAL_LIFT = """Output one JSON object {plan, proposal}.
 plan = spatial-lift-plan/1.0; proposal = llm-proposal/2.0 with compact target patches.
 Preserve source X/Y legality. Make Z consequences explicit (topology axis, neighborhood, input).
 Target actions must keep non-empty effects; wire input intents to rule_action.
+Each action requires actor as an AST object (e.g. {"op":"literal","value":"rule:participant.EXISTING_ID"}) and timing.phase referencing a declared phase. Preserve ownership from source_ir_excerpt; distinguish player input from system updates.
+grid.set requires state, topology, coordinate AST, and value AST. A delta alone is not a valid grid.set effect. Use existing state expressions for movement; never substitute fixed coordinates for relative movement.
 Keep proposal small — truncation fails the job. Never invent evidence.
 patches MUST be an OBJECT keyed by rule_ir|scene_ir|asset_ir|input_ir (never a top-level array).
 Each IR value is an array of patch envelopes: {document_id,base_revision,base_content_hash,operations,evidence,assumptions,unresolved}.
@@ -115,7 +119,7 @@ def source_to_ir_messages(
         "playability_hints": [
             "Input intents for playable actions must use target.kind=rule_action with action=rule:action.*",
             "Board/snake games MUST include grid.set effects on rule:state.board_cell that change the board; state.set-only direction flags are NOT enough for Project Session",
-            "Also patch /state/initial_effects with non-empty grid.set placements (head/body/food); empty initial_effects leave a blank Session grid",
+            "Preserve source initialization. Empty initial boards are valid for placement games such as Tic Tac Toe; only place pieces/food/mines when source evidence requires them.",
             "Never omit actor/precondition/flow when evidence supports them; otherwise required unresolved",
             "Directional games: keyboard.key.arrow_* bindings to DISTINCT move/turn actions; placement games: mouse.button.primary + event_data.rule_coordinate",
             "Do not invent mechanics from the game title; cite evidence_pack.evidence ids",
@@ -138,7 +142,7 @@ def source_to_ir_messages(
         elif playability_repair:
             user_payload["instruction"] = (
                 "Previous proposal lacked Project Session playability. Repair by patching rule_ir: "
-                "(1) /state/initial_effects with grid.set on rule:state.board_cell for head/body/food, "
+                "(1) source-evidenced state initialization (an empty placement board is valid), "
                 "(2) at least one player action whose effects include grid.set that moves/updates "
                 "board_cell (not only state.set on a direction flag). Keep four-IR patches non-empty."
             )
@@ -220,11 +224,14 @@ def spatial_lift_messages(
     if repair_diagnostics:
         payload["repair_diagnostics"] = list(repair_diagnostics)
         payload["instruction"] = (
-            "Previous target could not be designer-approved because new actions have empty effects. "
-            "Return a compact plan+proposal. For every repair_diagnostics path, put a non-empty "
-            "effects array on that action: op grid.set, state rule:state.board_cell, topology "
-            "rule:topology.board, coordinate literal including Z, value literal. "
-            "Do not leave effect_ops as a substitute for effects. Keep the Z axis and existing XY actions."
+            "Previous target failed validation. Repair every repair_diagnostics path and return "
+            "a complete compact plan+proposal against the unchanged base documents, not a patch "
+            "against the rejected attempt. Use source_ir_excerpt for existing participant IDs, "
+            "actor ASTs, timing phases, state and actual effects. Do not confuse player and system actions. "
+            "Each grid.set requires state, topology, coordinate AST and value AST; delta or effect_ops "
+            "alone is insufficient. Preserve relative movement semantics and upgrade coordinate rank "
+            "for Z. Do not invent missing mechanics; report required unresolved instead. "
+            "Keep the requested Z extent and existing XY behavior."
         )
     return [
         {"role": "system", "content": SYSTEM_SPATIAL_LIFT},

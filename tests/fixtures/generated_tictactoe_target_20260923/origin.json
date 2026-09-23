@@ -1,0 +1,20 @@
+{
+  "origin": "Actual user-generated and approved target, 2026-09-23; unchanged model output, not authored test definitions",
+  "manifest_sha256": "5682a6b23f70b4649ab40d031a079d56bea05f5870733684a789fb57bab1563a",
+  "files": {
+    "acceptance_trace.json": "af766d75c4d8a10241a31d8ce473b29c029224286cf977cb08c722918226ff50",
+    "asset.resources.json": "8102a2f4d20af95dc94573cf66cbe5469ef11197ea5b91aab99b73ce4d57f17d",
+    "design_intent.json": "b3b0cd5daa2cbc9f7b45b42848e5f0a96f61a5366460711fa1d2661fc049f846",
+    "diagnostics.json": "7ffb032128e19857f3fbe291966516635a327b06f4f5e3eb56f46b7f072daa08",
+    "project.manifest.json": "5682a6b23f70b4649ab40d031a079d56bea05f5870733684a789fb57bab1563a",
+    "proposal.json": "72c37b4b15277ee667b5f1fa18dc1118d62c92c676c50eabf8662c047dab8ad6",
+    "report.json": "675ba749bb73d521c5571a6c5da8791b0c7d37dcf23e94d75d5f59377ba5fe18",
+    "source.manifest.json": "a8cfc4aed80b87e409825293f021897d535f1cb5d33696428a44358552a249a3",
+    "spatial_lift_plan.json": "e5d1578808c04e0ccf4f24e8eb54e982ef5c5e411753ac482ffa4f076654704f",
+    "ir/game.asset-ir.json": "15048b6947deb05b03c0f3d5eb8a4c820a945db07d997e7fe808186a892e2e0e",
+    "ir/game.input-ir.json": "8012a244253bdc7b6db9602b3df1e2343aef55ea6900c52e9ec240fa2e4db066",
+    "ir/game.rule-ir.json": "54881a382993b7d4ff5bd4979a41a4bc4964855f98a28ae8a958031ca90abb2d",
+    "ir/game.scene-ir.json": "d6026c49738ab7ecc6e5cfcdf739975c247b64088b2147d970f59a870c7770b3",
+    "resources/_runtime/pygame/default-font.ttf": "bf9251269f11e4b35582a99376096deee3d0c4973a459cbd97b0bebc01f440ad"
+  }
+}

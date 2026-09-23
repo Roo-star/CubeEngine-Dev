@@ -1,0 +1,18 @@
+{
+  "topology": "Bounded, cell-anchored 3×3×3 rectangular grid with all 27 sites in the placement domain.",
+  "source_xy_policy": "Preserve three X and three Y positions, cell placement and X/O alternation.",
+  "target_z": "Add three bounded Z layers, indexed 0–2.",
+  "neighborhood": "Winning lines use every straight 3D direction, not movement adjacency.",
+  "movement": "Place directly in any empty site without gravity; reject occupied, out-of-bounds and post-terminal moves.",
+  "outcomes": "Any of 49 straight lines wins before the full-board draw check; a draw requires 27 occupied cells without a winner.",
+  "presentation": "Preserve source slate cells, blue crosses, amber rings and turn/result messages across three visible layers.",
+  "input": "Route selection to rule:action.place with event_data.rule_coordinate; use host_command restart for R and host_command quit for Escape. Camera controls must not maintain gameplay state.",
+  "z_equals_one_tests": "Check the eight source winning lines, occupied-cell rejection, alternation and nine-cell draw when Z has one layer.",
+  "z_gt_one_tests": "Check all 49 lines, center selection, no gravity, occupied-cell rejection, full-volume draw and post-terminal rejection.",
+  "alternatives": [],
+  "unresolved": [],
+  "plan_version": "cubeengine.srtp/spatial-lift-plan/1.0",
+  "plan_id": "lift:job.6faa293082a94ea4",
+  "source_manifest_hash": "ba66ac9a11c9a14e9f2503ae56af2d6a74363ad23423901b290c581fa0fbd131",
+  "design_intent_id": "intent:tic-tac-toe-3d"
+}

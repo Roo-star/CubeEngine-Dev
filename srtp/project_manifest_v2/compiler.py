@@ -16,6 +16,7 @@ from srtp.input_ir_v2 import (
     canonical_input_ir_hash,
 )
 from srtp.ir_v2 import canonical_rule_ir_hash, compile_rule_ir
+from srtp.session_random import session_sources
 from srtp.scene_ir_v2 import canonical_scene_ir_hash, compile_scene_ir
 
 from .manifest import (
@@ -47,6 +48,7 @@ class ProjectInputResult:
     transitions: Tuple[Any, ...]
     rejections: Tuple[ProjectInputRejection, ...]
     scene_delta: Any
+    host_commands: Tuple[str, ...] = ()
 
     def to_mapping(self) -> Dict[str, Any]:
         return {
@@ -54,6 +56,7 @@ class ProjectInputResult:
             "transitions": [_transition_to_mapping(item) for item in self.transitions],
             "rejections": [item.to_mapping() for item in self.rejections],
             "scene_delta": self.scene_delta.to_mapping(),
+            "host_commands": list(self.host_commands),
         }
 
 
@@ -90,8 +93,10 @@ class CompiledProjectBundle:
                 context={"project_id": self.project_id, "project_revision": self.revision},
             ).start()
         try:
+            import secrets
             runtime = compile_rule_ir(
                 self._rule_document, extension_session=extension_session,
+                random_sources=session_sources(self._rule_document, secrets.randbits(64)),
             )
         except Exception:
             if extension_session is not None:
@@ -132,7 +137,11 @@ class ProjectSession:
         )
         transitions = []
         rejections = []
+        host_commands = []
         for intent in dispatch.intents:
+            if intent.target_kind=='host_command':
+                host_commands.append(str(self.input_map.intents_by_id[intent.intent_id].target['command']))
+                continue
             request = intent.rule_action_request
             if request is None:
                 continue
@@ -154,7 +163,7 @@ class ProjectSession:
             ))
         scene_delta = self.scene_projection.synchronize(self.rule_runtime.state)
         return ProjectInputResult(
-            dispatch, tuple(transitions), tuple(rejections), scene_delta,
+            dispatch, tuple(transitions), tuple(rejections), scene_delta, tuple(host_commands),
         )
 
 
@@ -254,6 +263,7 @@ def compile_project_manifest(
             ).start()
         compiled_rule = compile_rule_ir(
             rule_document, extension_session=extension_session,
+            random_sources=session_sources(rule_document),
         )
         compiled_rule.close()
         extension_session = None

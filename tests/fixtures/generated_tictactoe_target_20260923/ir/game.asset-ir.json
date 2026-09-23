@@ -1,0 +1,100 @@
+{
+  "ir_version": "cubeengine.asset-ir/2.0-alpha.1",
+  "document_id": "asset:game.tic.tac.toe.target",
+  "revision": 1,
+  "content_hash": "9ceec33717761c1e5534cba4587e40c2d2318257cf57b74c1d9e1e4357f39216",
+  "metadata": {
+    "title": "Tic Tac Toe",
+    "description": "The board, X and O marks, and background are drawn in source code and need no image assets. Status and instructions use Pygame’s bundled default font at source sizes 36 and 25.",
+    "source_project_hash": "126c97294df6f4b2a889959917e957431d88431bb27df44d4dd743854058392a"
+  },
+  "assets": [
+    {
+      "id": "asset:font.pygame_default",
+      "name": "Pygame bundled default font",
+      "kind": "font",
+      "media_type": "font/ttf",
+      "source": {
+        "uri": "runtime://pygame/default-font",
+        "content_hash": "bf9251269f11e4b35582a99376096deee3d0c4973a459cbd97b0bebc01f440ad",
+        "byte_size": 98600
+      },
+      "license": {
+        "spdx_id": "LicenseRef-Pygame-Bundled-Font",
+        "attribution": "Pygame bundled freesansbold.ttf",
+        "source_uri": null,
+        "redistribution": "unknown"
+      },
+      "importer": {
+        "capability": "cubeengine.raw-file",
+        "version": "1.0",
+        "settings": {}
+      },
+      "metadata": {
+        "source_usage": [
+          {
+            "text": "status",
+            "size": 36
+          },
+          {
+            "text": "instructions",
+            "size": 25
+          }
+        ]
+      }
+    }
+  ],
+  "derivations": [],
+  "roles": [
+    {
+      "id": "asset:role.ui_font",
+      "name": "Status and instruction font",
+      "semantic": "ui_font",
+      "resource": "asset:font.pygame_default",
+      "usage": "ui_font",
+      "required": true
+    }
+  ],
+  "presentation_mappings": [],
+  "provenance": {
+    "patch_history": [
+      {
+        "base_revision": 0,
+        "base_content_hash": "00cd9bbc4a60d2bf95ce8155c6b82e07998341208ee3222cd8787a862882cbac",
+        "evidence": [
+          {
+            "evidence_id": "main.py:1-86@fe934e578327e76620ffd7588aca5c05b35bffc81c3fd6cc4c4d59f637964003",
+            "path": "main.py",
+            "file_sha256": "fe934e578327e76620ffd7588aca5c05b35bffc81c3fd6cc4c4d59f637964003",
+            "span": {
+              "line_start": 1,
+              "line_end": 86
+            },
+            "supports": "/"
+          }
+        ],
+        "assumptions": [],
+        "operation_count": 6
+      },
+      {
+        "base_revision": 0,
+        "base_content_hash": "e7f09bde9ee3f9b24cbe9126126e6f1cf4e81c2902881c707a41bba7c7f124e2",
+        "evidence": [
+          {
+            "evidence_id": "main.py:1-86@fe934e578327e76620ffd7588aca5c05b35bffc81c3fd6cc4c4d59f637964003",
+            "path": "main.py",
+            "file_sha256": "fe934e578327e76620ffd7588aca5c05b35bffc81c3fd6cc4c4d59f637964003",
+            "span": {
+              "line_start": 1,
+              "line_end": 86
+            },
+            "supports": "/asset_ir"
+          }
+        ],
+        "assumptions": [],
+        "operation_count": 6
+      }
+    ]
+  },
+  "unresolved": []
+}

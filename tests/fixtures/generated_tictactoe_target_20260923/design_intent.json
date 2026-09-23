@@ -1,0 +1,46 @@
+{
+  "intent_version": "cubeengine.srtp/design-intent/1.0",
+  "intent_id": "intent:tic-tac-toe-3d",
+  "conversation_id": "unspecified",
+  "turn_id": "unspecified",
+  "project_id": "project:tic.tac.toe.llm.source",
+  "source_manifest_hash": "ba66ac9a11c9a14e9f2503ae56af2d6a74363ad23423901b290c581fa0fbd131",
+  "original_text": "Convert this complete 2D Tic-Tac-Toe game into a playable 3D Tic-Tac-Toe game.Keep the original 3×3 board dimensions on X and Y, and add a Z axis with 3 layers, producing a 3×3×3 board.Preserve alternating X/O turns. Each turn, the player may select any empty cell in the entire volume. There is no gravity. Occupied cells cannot be played again.A player wins by placing three matching marks along any straight line in 3D: an axis-aligned line, a diagonal within any plane, or a space diagonal. All 49 winning lines must be supported. Declare a draw only when all 27 cells are occupied and neither player has won. Stop accepting moves after a win or draw, and allow restarting the game.Present the generated game as an interactive 3D board in the Workbench's Transformed 3D view using Ursina. All three layers must be visible and selectable, including the center cell. Allow camera orbit and zoom.Preserve the source game's colors, X/O visual identity, turn indicator, result messages, and restart interaction. Adapt their layout for clear 3D play.",
+  "language": "en",
+  "operation": "transform",
+  "scope": [
+    "rule",
+    "scene",
+    "asset",
+    "input"
+  ],
+  "preserve": [
+    "The original 3×3 X/Y board dimensions.",
+    "Alternating X/O turns.",
+    "The source game's colors, X/O visual identity, turn indicator, result messages, and restart interaction."
+  ],
+  "changes": [
+    "Add a Z axis with 3 layers to make a playable 3×3×3 board.",
+    "Allow each player to select any empty cell in the volume, with no gravity; reject moves in occupied cells.",
+    "Recognize three matching marks on any straight 3D line, including axis-aligned lines, diagonals within planes, and space diagonals; support all 49 winning lines.",
+    "Declare a draw only when all 27 cells are occupied without a winner.",
+    "Stop accepting moves after a win or draw, and allow restarting.",
+    "Present the game as an interactive 3D board in the Workbench's Transformed 3D view using Ursina.",
+    "Make all three layers visible and selectable, including the center cell, and allow camera orbit and zoom.",
+    "Adapt the preserved interface elements' layout for clear 3D play."
+  ],
+  "constraints": [
+    "A win takes precedence over a draw.",
+    "Do not accept moves after a win or draw until the game is restarted."
+  ],
+  "resolved_references": [],
+  "assumptions": [],
+  "conflicts": [],
+  "unresolved": [
+    "The source game's actual colors, X/O visuals, indicator, messages, and restart interaction must be inspected before they can be preserved.",
+    "Conversation and turn identifiers were not supplied."
+  ],
+  "requires_confirmation": false,
+  "status": "needs_resolution",
+  "target_base": null
+}

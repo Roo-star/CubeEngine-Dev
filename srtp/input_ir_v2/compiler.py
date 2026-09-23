@@ -391,7 +391,10 @@ def compile_input_ir(
         first = errors[0]
         raise InputCompileError("Input IR is invalid at {0}: {1}".format(first.path, first.message))
     if not is_input_ir_compile_ready(document):
-        raise InputCompileError("Input IR has required unresolved semantics or no executable bindings")
+        unresolved=['{0}: {1}'.format(item.get('path','?'),item.get('reason','Unresolved'))
+            for item in document.get('unresolved',[]) if isinstance(item,Mapping) and item.get('required')]
+        detail=('; '+ '; '.join(unresolved)) if unresolved else ''
+        raise InputCompileError("Input IR has required unresolved semantics or no executable bindings"+detail)
     if document.get("content_hash") != canonical_input_ir_hash(document):
         raise InputCompileError("Input IR must be sealed with its canonical content hash")
     if document.get("dependencies", {}).get("extensions"):

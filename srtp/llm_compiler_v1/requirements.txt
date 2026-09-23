@@ -1,0 +1,17 @@
+# CubeEngine LLM Compiler v1 — Python dependencies
+# Backend: official OpenRouter Responses API (HTTPS)
+
+# --- Core LLM compiler ---
+python-dotenv>=1.0.0         # Load repo-root .env into os.environ
+httpx>=0.27,<1               # Direct OpenRouter Responses transport
+
+# --- srtp package transitive dependencies (imported by compiler) ---
+numpy>=1.24.0                # Used by srtp.alphazero_v1 (Rule IR conformance)
+Pillow>=10.0.0               # Used by srtp.asset_ir_v2 / presentation_bridge
+
+# --- Optional: SRTP Workbench GUI ---
+# dearpygui>=1.11.0          # Dear PyGui desktop workbench (srtp/workbench.py)
+
+# --- Optional: reference game runtimes ---
+# pygame>=2.5.0              # Pygame reference games (Snake, Minesweeper, 2048)
+# ursina>=7.0.0              # Ursina 3D transformed previews

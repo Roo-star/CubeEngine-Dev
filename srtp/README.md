@@ -152,9 +152,9 @@ C:\Users\Yingr\.pyenv\pyenv-win\versions\3.9.1\python.exe -m srtp.ir_acceptance_
 See `docs/IR_V2_ACCEPTANCE_WORKBENCH.md`. The shared LLM implementation plan is
 `docs/LLM_SOURCE_TO_IR_COMPILER_FRAMEWORK.md`.
 
-## LLM Source-to-IR compiler (freeflow-llm)
+## LLM Source-to-IR compiler (OpenRouter)
 
-Function 2 now has a thin freeflow-llm backed compiler that reads
+Function 2 uses the OpenRouter Responses API. Its compiler reads
 `source-project-llm-handoff-v2`, proposes `llm-proposal/2.0` patches, and writes
 artifacts for Project Session attachment:
 
@@ -163,5 +163,6 @@ pip install -r requirements.txt
 python -m srtp.llm_compiler_v1 --source srtp\reference_games\pygame_snake\snake.py --out .cubeengine_llm\snake
 ```
 
-See `docs/LLM_COMPILER_V1_FREEFLOW.md`. In the V1 Workbench, use
+Set `OPENROUTER_API_KEY` in the repository-root `.env`. See
+`docs/OPENROUTER_MIGRATION_20260923.md`. In the V1 Workbench, use
 **COMPILE LLM → IR...** under Project Session Core.
