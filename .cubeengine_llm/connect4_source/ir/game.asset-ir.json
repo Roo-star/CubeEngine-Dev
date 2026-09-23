@@ -1,0 +1,63 @@
+{
+  "ir_version": "cubeengine.asset-ir/2.0-alpha.1",
+  "document_id": "asset:game.complete.turtle.connect.four.reference.used.for.srtp.outcome.acceptance.source",
+  "revision": 1,
+  "content_hash": "26247fa05af213dd3ac9dd0ab914ec4ea4076cfb3f0ae4383a9bee5b7b50f1ea",
+  "metadata": {
+    "title": "Complete Turtle Connect Four reference used for SRTP outcome acceptance",
+    "description": "LLM compiler bootstrap shell. Semantics must be filled by evidence-backed patches.",
+    "source_project_hash": "3761ba1112e07186521eb39136e53a59c5db165ea83c1bd15ef4793cea1dfbec"
+  },
+  "assets": [],
+  "derivations": [
+    {
+      "id": "asset:derivation.board.mesh",
+      "type": "procedural_mesh",
+      "inputs": [],
+      "parameters": {
+        "primitive": "cube"
+      },
+      "name": "derivation.board_mesh",
+      "kind": "model",
+      "media_type": "application/vnd.cubeengine.presentation+json",
+      "strategy": "procedural_mesh",
+      "settings": {
+        "primitive": "cube",
+        "dimensions": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    }
+  ],
+  "roles": [],
+  "presentation_mappings": [],
+  "provenance": {
+    "patch_history": [
+      {
+        "base_revision": 0,
+        "base_content_hash": "5b6aab37f70893ca01dc41ebef3162deca37ebf17d75d72240258a8d496bc686",
+        "evidence": [
+          {
+            "evidence_id": "ev:param.source_grid_x.0",
+            "path": "connect_complete.py",
+            "kind": "static",
+            "supports": "/asset_ir",
+            "confidence": 0.8,
+            "file_sha256": "de234ef4f3881eba0d1dbb36975aa7944facae9a5b340e1b9a178f5366283636",
+            "span": {
+              "line_start": 45,
+              "line_end": 45
+            }
+          }
+        ],
+        "assumptions": [],
+        "operation_count": 3
+      }
+    ]
+  },
+  "unresolved": []
+}

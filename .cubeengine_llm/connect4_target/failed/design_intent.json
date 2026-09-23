@@ -1,0 +1,38 @@
+{
+  "intent_version": "cubeengine.srtp/design-intent/1.0",
+  "intent_id": "intent-001",
+  "conversation_id": "conv-001",
+  "turn_id": "turn-001",
+  "project_id": "project:complete.turtle.connect.four.reference.used.for.srtp.outcome.acceptance.llm.source",
+  "source_manifest_hash": "7b8b6b6a0e02e679976166c828b5da73088e4ff3b77701984db2ce5b7e9f9374",
+  "original_text": "Preserve the source 7 columns on X and 6 rows on Y, the yellow/red turn order and gravity toward Y=0. Add a Z depth axis of extent 4. A piece is placed by selecting a cell and must land on the lowest empty Y of its (X,Z) column. Connecting 4 pieces along any of the 13 straight 3D directions wins; a full board is a draw.",
+  "language": "en",
+  "operation": "transform",
+  "scope": [
+    "rule",
+    "scene"
+  ],
+  "preserve": [
+    "7 columns on X",
+    "6 rows on Y",
+    "Yellow/red turn order",
+    "Gravity toward Y=0"
+  ],
+  "changes": [
+    "Add Z depth axis of extent 4",
+    "Piece drops to lowest empty Y in selected (X,Z) column",
+    "Win condition: 4 connected pieces along any of the 13 straight 3D directions",
+    "Draw condition: full board"
+  ],
+  "constraints": [
+    "Board grid dimensions: X=7, Y=6, Z=4",
+    "Gravity acts along Y axis toward Y=0"
+  ],
+  "resolved_references": [],
+  "assumptions": [],
+  "conflicts": [],
+  "unresolved": [],
+  "requires_confirmation": false,
+  "status": "resolved",
+  "target_base": null
+}

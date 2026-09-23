@@ -1,0 +1,19 @@
+{
+  "ok": false,
+  "stage": "spatial_lift",
+  "job_id": "job:b1de99c0a5f14ae6",
+  "project_id": "project:complete.turtle.connect.four.reference.used.for.srtp.outcome.acceptance.llm.source",
+  "source_package_hash": "3761ba1112e07186521eb39136e53a59c5db165ea83c1bd15ef4793cea1dfbec",
+  "provider": "gemini",
+  "model": "gemini-3.6-flash",
+  "attempts": 3,
+  "prompt_template_version": "cubeengine.srtp/llm-prompt/2.0",
+  "diagnostics": [
+    "FreeFlow LLM request failed: All providers exhausted. Attempts:\n  - gemini: gemini: This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.\n\nLast error: gemini: This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later."
+  ],
+  "compile_ready": true,
+  "output_dir": "C:\\repo\\CubeEngine-Dev\\.cubeengine_llm\\connect4_source",
+  "unresolved_summary": [],
+  "proposal_id": "proposal:87b09a39a3b6",
+  "manifest_project_id": "project:complete.turtle.connect.four.reference.used.for.srtp.outcome.acceptance.llm.source"
+}

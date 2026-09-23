@@ -6,10 +6,11 @@ import json
 import os
 import sys
 from pathlib import Path
-from typing import Any, Mapping, Optional, Sequence, Tuple
+from typing import Any, List, Mapping, Optional, Sequence, Tuple
 
 if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from srtp.core_board_view import camera_aligned_arrow_control, draw_board, pick_cell
     from srtp.source_game import SourceGamePackage
     from srtp.source_importer import SourceGameImporter
     from srtp.source_runner import OriginalGameProcess, SourceGameRunner
@@ -26,6 +27,7 @@ if __package__ in (None, ""):
     from srtp.llm_compiler_v1.client import LLMClientError
     from srtp.project_manifest_v2 import load_project_manifest
 else:
+    from .core_board_view import camera_aligned_arrow_control, draw_board, pick_cell
     from .source_game import SourceGamePackage
     from .source_importer import SourceGameImporter
     from .source_runner import OriginalGameProcess, SourceGameRunner
@@ -72,6 +74,12 @@ class SrtpWorkbench:
         self.core_controller = core_controller
         self.core_source: Optional[Path] = None
         self.core_last_result: Mapping[str, Any] = {}
+        self._core_cam_yaw = 0.72
+        self._core_cam_pitch = 0.58
+        self._core_cam_zoom = 1.0
+        self._core_hit_cells: List[Tuple[Tuple[int, ...], float, float, float]] = []
+        self._core_orbit_dragging = False
+        self._core_orbit_last: Optional[Tuple[float, float]] = None
 
     def load_selected_reference(self, sender=None, app_data=None, user_data=None) -> None:
         path = REFERENCE_GAMES.get(self.dpg.get_value("srtp_reference_selector"))
@@ -221,53 +229,14 @@ class SrtpWorkbench:
     def handle_core_key(self, sender=None, app_data=None, user_data=None) -> None:
         """Map Dear PyGui key presses to Input IR physical keyboard events."""
 
-        # #region agent log
-        def _dbg(hypothesis_id, message, data=None):
-            try:
-                import json, time
-                from pathlib import Path
-                payload = {
-                    "sessionId": "3d9e82",
-                    "runId": "post-fix",
-                    "hypothesisId": hypothesis_id,
-                    "location": "workbench.py:handle_core_key",
-                    "message": message,
-                    "data": data or {},
-                    "timestamp": int(time.time() * 1000),
-                }
-                Path(__file__).resolve().parents[1].joinpath("debug-3d9e82.log").open(
-                    "a", encoding="utf-8",
-                ).write(json.dumps(payload, ensure_ascii=False) + "\n")
-            except Exception:
-                pass
-        # #endregion
-
-        mode = self._preview_mode()
-        has_project = bool(
-            self.core_controller is not None and self.core_controller.has_active_project
-        )
-        if mode != "Project Session":
-            # #region agent log
-            _dbg("H2", "key ignored: not Project Session", {
-                "mode": mode, "app_data": repr(app_data),
-            })
-            # #endregion
+        if self._preview_mode() != "Project Session":
             return
         if self.core_controller is None or not self.core_controller.has_active_project:
-            # #region agent log
-            _dbg("H2", "key ignored: no active project", {
-                "has_controller": self.core_controller is not None,
-                "app_data": repr(app_data),
-            })
-            # #endregion
             return
         key = app_data
         try:
             key = int(key)
         except (TypeError, ValueError):
-            # #region agent log
-            _dbg("H1", "key not int", {"app_data": repr(app_data)})
-            # #endregion
             return
         mapping = {
             getattr(self.dpg, "mvKey_Up", -1): "keyboard.key.arrow_up",
@@ -284,18 +253,12 @@ class SrtpWorkbench:
         }
         control = mapping.get(key)
         if control is None:
-            # #region agent log
-            _dbg("H1", "unmapped key", {
-                "key": key,
-                "mvKey_Prior": getattr(self.dpg, "mvKey_Prior", None),
-                "mvKey_Next": getattr(self.dpg, "mvKey_Next", None),
-                "mvKey_Up": getattr(self.dpg, "mvKey_Up", None),
-            })
-            # #endregion
             # R resets the Project Session.
             if key == getattr(self.dpg, "mvKey_R", None):
                 self.reset_core()
             return
+        if control.startswith("keyboard.key.arrow_"):
+            control = camera_aligned_arrow_control(control, self._core_cam_yaw)
         from srtp.input_ir_v2 import PhysicalInputEvent
         selected = self.core_controller.active_key
         self.core_controller.sequence[selected] = self.core_controller.sequence.get(selected, 0) + 1
@@ -305,78 +268,11 @@ class SrtpWorkbench:
             control,
             "press",
         )
-        # #region agent log
-        food_before = None
-        head_before = None
-        try:
-            selected_key = self.core_controller.active_key
-            sess = self.core_controller.sessions.get(selected_key)
-            if sess is not None:
-                gg = sess.rule_runtime.state.globals
-                food_before = {
-                    "x": gg.get("rule:state.food_x"),
-                    "y": gg.get("rule:state.food_y"),
-                    "z": gg.get("rule:state.food_z"),
-                    "score": gg.get("rule:state.score"),
-                }
-                head_before = {
-                    "x": gg.get("rule:state.head_x"),
-                    "y": gg.get("rule:state.head_y"),
-                    "z": gg.get("rule:state.head_z"),
-                }
-        except Exception as err:
-            food_before = {"error": str(err)}
-        _dbg("H3", "dispatching mapped key", {
-            "key": key, "control": control, "food_before": food_before, "head_before": head_before,
-        })
-        # #endregion
         try:
             result = self.core_controller.dispatch_physical(event)
             self.core_last_result = result.to_mapping()
             self._render_core_scene()
             message = result.message
-            # #region agent log
-            food_after = None
-            food_cells = None
-            try:
-                selected_key = self.core_controller.active_key
-                sess = self.core_controller.sessions.get(selected_key)
-                if sess is not None:
-                    rt = sess.rule_runtime
-                    gl = rt.state.globals
-                    board = rt.state.grids.get("rule:state.board_cell")
-                    food_after = {
-                        "x": gl.get("rule:state.food_x"),
-                        "y": gl.get("rule:state.food_y"),
-                        "z": gl.get("rule:state.food_z"),
-                        "score": gl.get("rule:state.score"),
-                        "head": [
-                            gl.get("rule:state.head_x"),
-                            gl.get("rule:state.head_y"),
-                            gl.get("rule:state.head_z"),
-                        ],
-                    }
-                    if board is not None:
-                        import numpy as np
-                        coords = list(zip(*np.where(np.asarray(board) == -1)))
-                        food_cells = [tuple(int(c) for c in item) for item in coords[:8]]
-                        fx, fy, fz = food_after["x"], food_after["y"], food_after["z"]
-                        if fz is None:
-                            painted = int(board[fx, fy]) if fx is not None else None
-                        else:
-                            painted = int(board[fx, fy, fz])
-                        food_after["painted_cell"] = painted
-            except Exception as err:
-                food_after = {"error": str(err)}
-            _dbg("H3/H4/H5", "dispatch result", {
-                "control": control,
-                "accepted": bool(result.accepted),
-                "message": message,
-                "food_after": food_after,
-                "food_cells_on_grid": food_cells,
-                "score_before": food_before.get("score") if isinstance(food_before, dict) else None,
-            })
-            # #endregion
             if result.accepted:
                 before = getattr(self, "_core_last_grid_fingerprint", None)
                 try:
@@ -393,17 +289,94 @@ class SrtpWorkbench:
                     self._core_last_grid_fingerprint = fingerprint
             self._message(message, error=not result.accepted)
         except (IRAcceptanceError, ValueError) as error:
-            # #region agent log
-            _dbg("H3", "dispatch IRAcceptanceError", {"error": str(error), "control": control})
-            # #endregion
             self._message(str(error), error=True)
         except Exception as error:  # noqa: BLE001 — surface Rule Runtime failures in console
-            # #region agent log
-            _dbg("H3", "dispatch Exception", {
-                "error": "{0}: {1}".format(type(error).__name__, error), "control": control,
-            })
-            # #endregion
             self._message("Input handling failed: {0}: {1}".format(type(error).__name__, error), error=True)
+
+    def _core_drawlist_ready(self) -> bool:
+        exists = getattr(self.dpg, "does_item_exist", None)
+        if exists is None:
+            return False
+        try:
+            return bool(exists("srtp_core_drawlist"))
+        except Exception:  # noqa: BLE001
+            return False
+
+    def handle_core_board_wheel(self, sender=None, app_data=None, user_data=None) -> None:
+        if self._preview_mode() != "Project Session":
+            return
+        if not self._core_drawlist_ready():
+            return
+        if not self.dpg.is_item_hovered("srtp_core_drawlist"):
+            return
+        delta = float(app_data or 0)
+        self._core_cam_zoom = max(0.45, min(2.8, self._core_cam_zoom + delta * 0.08))
+        self._render_core_scene()
+
+    def handle_core_board_drag(self, sender=None, app_data=None, user_data=None) -> None:
+        if self._preview_mode() != "Project Session":
+            return
+        if not self._core_drawlist_ready():
+            return
+        if not self.dpg.is_item_hovered("srtp_core_drawlist") and not self._core_orbit_dragging:
+            return
+        try:
+            mouse = self.dpg.get_mouse_pos(local=False)
+            mx, my = float(mouse[0]), float(mouse[1])
+        except Exception:  # noqa: BLE001
+            return
+        if self._core_orbit_last is None:
+            self._core_orbit_last = (mx, my)
+            self._core_orbit_dragging = True
+            return
+        dx = mx - self._core_orbit_last[0]
+        dy = my - self._core_orbit_last[1]
+        self._core_orbit_last = (mx, my)
+        self._core_orbit_dragging = True
+        if abs(dx) < 0.01 and abs(dy) < 0.01:
+            return
+        self._core_cam_yaw += dx * 0.01
+        self._core_cam_pitch = max(0.18, min(1.35, self._core_cam_pitch + dy * 0.01))
+        self._render_core_scene()
+
+    def handle_core_board_drag_release(self, sender=None, app_data=None, user_data=None) -> None:
+        self._core_orbit_dragging = False
+        self._core_orbit_last = None
+
+    def handle_core_board_click(self, sender=None, app_data=None, user_data=None) -> None:
+        if self._preview_mode() != "Project Session":
+            return
+        if self.core_controller is None or not self.core_controller.has_active_project:
+            return
+        if not self._core_drawlist_ready():
+            return
+        if not self.dpg.is_item_hovered("srtp_core_drawlist"):
+            return
+        left = getattr(self.dpg, "mvMouseButton_Left", 0)
+        try:
+            button = int(app_data) if not isinstance(app_data, (list, tuple)) else int(app_data[0])
+        except (TypeError, ValueError):
+            button = left
+        if button != left:
+            return
+        mouse = self.dpg.get_mouse_pos(local=False)
+        try:
+            origin = self.dpg.get_item_rect_min("srtp_core_drawlist")
+            local_x = float(mouse[0] - origin[0])
+            local_y = float(mouse[1] - origin[1])
+        except Exception:  # noqa: BLE001
+            return
+        coord = pick_cell(self._core_hit_cells, local_x, local_y)
+        if coord is None:
+            return
+        self.click_core_cell(user_data=coord)
+
+    def reset_core_camera(self, sender=None, app_data=None, user_data=None) -> None:
+        self._core_cam_yaw = 0.72
+        self._core_cam_pitch = 0.58
+        self._core_cam_zoom = 1.0
+        if self._preview_mode() == "Project Session":
+            self._render_core_scene()
 
     def reset_core(self, sender=None, app_data=None, user_data=None) -> None:
         if self.core_controller is None:
@@ -991,10 +964,9 @@ class SrtpWorkbench:
         )
         self.dpg.set_value(
             "srtp_core_scene_help",
-            "Clicks are physical Input IR events for placement games. Arrow keys "
-            "drive XY Input IR bindings; PageUp/PageDown drive Z when bound "
-            "(for example Step Snake). "
-            "Rule Runtime owns legality, state and outcome; Scene IR projects the result.",
+            "3D volume grid (X×Y×Z). Right-drag orbit · wheel zoom · click to pick. "
+            "Arrow keys move on the board plane relative to the camera; "
+            "PageUp/PageDown move Z when bound.",
         )
         self.dpg.set_value("srtp_core_activity", core.activity_text())
         self.dpg.set_value("srtp_core_activity_view", core.activity_text())
@@ -1003,45 +975,39 @@ class SrtpWorkbench:
             json.dumps(core.rule_summary(), ensure_ascii=False, indent=2),
         )
         self._render_core_inspector(state)
-        if not all(hasattr(self.dpg, name) for name in ("delete_item", "add_text", "add_button")):
+        if not all(hasattr(self.dpg, name) for name in ("delete_item", "add_text", "add_drawlist")):
             return
         self.dpg.delete_item("srtp_core_scene_layers", children_only=True)
-        legal = set(core.legal_coordinates())
+        legal = list(core.legal_coordinates())
         dimensions = state.dimensions
         if len(dimensions) not in (2, 3):
             self.dpg.add_text(
-                "This compact viewport supports rectangular 2D/3D topology grids. "
+                "This viewport supports rectangular 2D/3D topology grids. "
                 "The compiled Project Session remains valid for another renderer.",
                 parent="srtp_core_scene_layers", color=(238, 105, 105),
             )
+            self._core_hit_cells = []
             return
-        x_size, y_size = dimensions[0], dimensions[1]
-        z_values = range(dimensions[2]) if len(dimensions) == 3 else (None,)
-        with self.dpg.group(parent="srtp_core_scene_layers", horizontal=True):
-            for z_value in z_values:
-                width = max(178, x_size * 54 + 22)
-                with self.dpg.child_window(
-                    width=width, height=max(238, y_size * 54 + 65), border=True,
-                ):
-                    self.dpg.add_text(
-                        "SOURCE PLANE" if z_value is None else "Z LAYER  {0}".format(z_value),
-                        color=(112, 169, 232),
-                    )
-                    for y_value in range(y_size):
-                        with self.dpg.group(horizontal=True):
-                            for x_value in range(x_size):
-                                coordinate = (
-                                    (x_value, y_value) if z_value is None
-                                    else (x_value, y_value, z_value)
-                                )
-                                value = _core_grid_value(state.grid, coordinate)
-                                label, theme = _core_cell_style(value, coordinate in legal)
-                                item = self.dpg.add_button(
-                                    label=label, width=48, height=48,
-                                    callback=self.click_core_cell, user_data=coordinate,
-                                )
-                                if hasattr(self.dpg, "bind_item_theme"):
-                                    self.dpg.bind_item_theme(item, theme)
+        try:
+            self._core_hit_cells = draw_board(
+                self.dpg,
+                "srtp_core_scene_layers",
+                grid=state.grid,
+                dimensions=dimensions,
+                legal=legal,
+                yaw=self._core_cam_yaw,
+                pitch=self._core_cam_pitch,
+                zoom=self._core_cam_zoom,
+                canvas_width=760,
+                canvas_height=460,
+                tag="srtp_core_drawlist",
+            )
+        except Exception as error:  # noqa: BLE001
+            self._core_hit_cells = []
+            self.dpg.add_text(
+                "3D board preview failed: {0}".format(error),
+                parent="srtp_core_scene_layers", color=(238, 105, 105),
+            )
 
     def _render_core_inspector(self, state: ProjectViewState) -> None:
         outcome = state.outcome_status.upper()
@@ -1425,6 +1391,10 @@ def main() -> None:
                                 callback=controller.select_core_project,
                             )
                             dpg.add_button(label="RESET", width=72, callback=controller.reset_core)
+                            dpg.add_button(
+                                label="RESET VIEW", width=92,
+                                callback=controller.reset_core_camera,
+                            )
                             dpg.add_button(label="VERIFY REPLAY", width=118, callback=controller.verify_core_replay)
                             dpg.add_button(
                                 label="CORE SELF-TEST", width=118,
@@ -1443,7 +1413,7 @@ def main() -> None:
                             tag="srtp_core_scene_help", wrap=750, color=(145, 155, 172),
                         )
                         dpg.add_separator()
-                        with dpg.child_window(tag="srtp_core_scene_layers", height=390, border=False):
+                        with dpg.child_window(tag="srtp_core_scene_layers", height=480, border=False):
                             pass
                         dpg.add_separator()
                         dpg.add_text("PROJECT EVENT LOG", color=(132, 142, 160))
@@ -1510,6 +1480,19 @@ def main() -> None:
     dpg.show_viewport()
     with dpg.handler_registry():
         dpg.add_key_press_handler(callback=controller.handle_core_key)
+        dpg.add_mouse_wheel_handler(callback=controller.handle_core_board_wheel)
+        dpg.add_mouse_drag_handler(
+            button=getattr(dpg, "mvMouseButton_Right", 1),
+            callback=controller.handle_core_board_drag,
+        )
+        dpg.add_mouse_release_handler(
+            button=getattr(dpg, "mvMouseButton_Right", 1),
+            callback=controller.handle_core_board_drag_release,
+        )
+        dpg.add_mouse_click_handler(
+            button=getattr(dpg, "mvMouseButton_Left", 0),
+            callback=controller.handle_core_board_click,
+        )
     controller.load_selected_reference()
     if os.environ.get("CUBEENGINE_SRTP_WORKBENCH_SMOKE") == "1":
         controller.close()

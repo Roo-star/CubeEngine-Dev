@@ -2,16 +2,16 @@
   "ir_version": "cubeengine.asset-ir/2.0-alpha.1",
   "document_id": "asset:game.snake.game.with.python.and.pygame.source",
   "revision": 1,
-  "content_hash": "98f9a663d7a05f90b74865eeaf3e5121279e03bcaf17a0ebf25d4d62b32a2a06",
+  "content_hash": "5a36007e7871ae9bcf8ce8728fb368a15feb2603faa01f7863bf7eb17e5ef645",
   "metadata": {
     "title": "Snake Game with Python and Pygame",
     "description": "LLM compiler bootstrap shell. Semantics must be filled by evidence-backed patches.",
-    "source_project_hash": "6bbf008a8c81a818a748c0c6d58bb2457c311dc3efed88f516d073cecfbb756c"
+    "source_project_hash": "fb4489a2a7ea119934c40fd9c809fb7a7c74bfbe9470adea0162f39ffc53f35e"
   },
   "assets": [
     {
-      "id": "asset:graphics.apple",
-      "name": "Apple Graphics",
+      "id": "asset:image.apple",
+      "name": "Apple",
       "kind": "image",
       "source": {
         "uri": "project://Graphics/apple.png",
@@ -31,167 +31,6 @@
         "settings": {}
       },
       "metadata": {}
-    },
-    {
-      "id": "asset:graphics.head.up",
-      "name": "Head Up",
-      "kind": "image",
-      "source": {
-        "uri": "project://Graphics/head_up.png",
-        "content_hash": "8abfe032ab851705fe382c451d82be65fed055d70e1070ce67a79e0f8c3f8dad",
-        "byte_size": 688
-      },
-      "media_type": "image/png",
-      "license": {
-        "spdx_id": "NOASSERTION",
-        "attribution": "",
-        "source_uri": null,
-        "redistribution": "unknown"
-      },
-      "importer": {
-        "capability": "cubeengine.image",
-        "version": "1.0",
-        "settings": {}
-      },
-      "metadata": {}
-    },
-    {
-      "id": "asset:graphics.head.down",
-      "name": "Head Down",
-      "kind": "image",
-      "source": {
-        "uri": "project://Graphics/head_down.png",
-        "content_hash": "ae033f886353caf898c3309fc9f5d4feeda9fbad447e25094776c05427388f84",
-        "byte_size": 680
-      },
-      "media_type": "image/png",
-      "license": {
-        "spdx_id": "NOASSERTION",
-        "attribution": "",
-        "source_uri": null,
-        "redistribution": "unknown"
-      },
-      "importer": {
-        "capability": "cubeengine.image",
-        "version": "1.0",
-        "settings": {}
-      },
-      "metadata": {}
-    },
-    {
-      "id": "asset:graphics.head.left",
-      "name": "Head Left",
-      "kind": "image",
-      "source": {
-        "uri": "project://Graphics/head_left.png",
-        "content_hash": "8b4ce7eb7e49595627a3915cc5f24f5d91a96bf3e84991f0827be47899d46922",
-        "byte_size": 711
-      },
-      "media_type": "image/png",
-      "license": {
-        "spdx_id": "NOASSERTION",
-        "attribution": "",
-        "source_uri": null,
-        "redistribution": "unknown"
-      },
-      "importer": {
-        "capability": "cubeengine.image",
-        "version": "1.0",
-        "settings": {}
-      },
-      "metadata": {}
-    },
-    {
-      "id": "asset:graphics.head.right",
-      "name": "Head Right",
-      "kind": "image",
-      "source": {
-        "uri": "project://Graphics/head_right.png",
-        "content_hash": "b45dae4793f7f107fa4ea880c0067667dd08217ed15965f1cc5cdcd2b7eba2f1",
-        "byte_size": 671
-      },
-      "media_type": "image/png",
-      "license": {
-        "spdx_id": "NOASSERTION",
-        "attribution": "",
-        "source_uri": null,
-        "redistribution": "unknown"
-      },
-      "importer": {
-        "capability": "cubeengine.image",
-        "version": "1.0",
-        "settings": {}
-      },
-      "metadata": {}
-    },
-    {
-      "id": "asset:graphics.body.horizontal",
-      "name": "Body Horizontal",
-      "kind": "image",
-      "source": {
-        "uri": "project://Graphics/body_horizontal.png",
-        "content_hash": "de9ce13b2c69b5df20b7f0649e5989fe41520e78640c2c72e3b33753162077eb",
-        "byte_size": 165
-      },
-      "media_type": "image/png",
-      "license": {
-        "spdx_id": "NOASSERTION",
-        "attribution": "",
-        "source_uri": null,
-        "redistribution": "unknown"
-      },
-      "importer": {
-        "capability": "cubeengine.image",
-        "version": "1.0",
-        "settings": {}
-      },
-      "metadata": {}
-    },
-    {
-      "id": "asset:graphics.body.vertical",
-      "name": "Body Vertical",
-      "kind": "image",
-      "source": {
-        "uri": "project://Graphics/body_vertical.png",
-        "content_hash": "45623c677e1e5fb9be6c67025834380a99df9c468ed273b76ae57a0e2c2c0605",
-        "byte_size": 171
-      },
-      "media_type": "image/png",
-      "license": {
-        "spdx_id": "NOASSERTION",
-        "attribution": "",
-        "source_uri": null,
-        "redistribution": "unknown"
-      },
-      "importer": {
-        "capability": "cubeengine.image",
-        "version": "1.0",
-        "settings": {}
-      },
-      "metadata": {}
-    },
-    {
-      "id": "asset:font.poetsenone",
-      "name": "PoetsenOne Font",
-      "kind": "font",
-      "source": {
-        "uri": "project://Font/PoetsenOne-Regular.ttf",
-        "content_hash": "85b9c540b6e59c75c3eea602d9256ec5eb386f49c982d86ced4b7c161aac2a2f",
-        "byte_size": 172456
-      },
-      "media_type": "font/ttf",
-      "license": {
-        "spdx_id": "NOASSERTION",
-        "attribution": "",
-        "source_uri": null,
-        "redistribution": "unknown"
-      },
-      "importer": {
-        "capability": "cubeengine.raw-file",
-        "version": "1.0",
-        "settings": {}
-      },
-      "metadata": {}
     }
   ],
   "derivations": [],
@@ -201,7 +40,7 @@
     "patch_history": [
       {
         "base_revision": 0,
-        "base_content_hash": "3db9e5c9530bc2a03c2b597cd35c31d49371b99d9d3054d9f13675a6e60870b0",
+        "base_content_hash": "283341ada89552c2a17614d9e6b9201b2b68e32924c6690954afea82b2e82bbf",
         "evidence": [
           {
             "evidence_id": "ev:asset.font_poetsenone_regular_ttf",
@@ -217,7 +56,7 @@
           }
         ],
         "assumptions": [],
-        "operation_count": 3
+        "operation_count": 2
       }
     ]
   },

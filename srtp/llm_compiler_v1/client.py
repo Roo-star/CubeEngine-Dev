@@ -39,7 +39,21 @@ def _resolve_chat_retries() -> int:
 
 
 class LLMClientError(RuntimeError):
-    """Raised when the model transport or JSON payload fails closed."""
+    """Raised when the model transport or JSON payload fails closed.
+
+    When the model did answer, ``provider``/``model``/``finish_reason`` and the
+    ``raw_text`` it returned travel with the error so a failed run stays diagnosable.
+    """
+
+    def __init__(
+        self, message: str, *, provider: str = "", model: str = "",
+        finish_reason: Optional[str] = None, raw_text: Optional[str] = None,
+    ) -> None:
+        super().__init__(message)
+        self.provider = provider
+        self.model = model
+        self.finish_reason = finish_reason
+        self.raw_text = raw_text
 
 
 @dataclass(frozen=True)
@@ -204,18 +218,25 @@ class FreeFlowLLMClient:
             model = str(getattr(response, "model", self.model or "") or "default")
             finish_reason = _response_finish_reason(response)
 
+        context = {"provider": provider, "model": model, "finish_reason": finish_reason, "raw_text": content}
         try:
             parsed = extract_json_object(content)
         except LLMClientError as error:
-            if finish_reason == "length":
+            if _is_length_stop(finish_reason):
                 raise LLMClientError(
-                    "model response truncated (finish_reason=length); "
+                    "model response truncated (finish_reason={0}); "
                     "return a smaller llm-proposal/2.0 with fewer patch operations. "
-                    "Original parse error: {0}".format(error)
+                    "Original parse error: {1}".format(finish_reason, error),
+                    **context,
                 ) from error
-            raise
+            raise LLMClientError(
+                "{0} [{1} chars from {2}/{3}, finish_reason={4}]".format(
+                    error, len(content), provider or "?", model or "?", finish_reason or "not reported",
+                ),
+                **context,
+            ) from error
         except Exception as error:  # noqa: BLE001
-            raise LLMClientError("model response is not valid JSON: {0}".format(error)) from error
+            raise LLMClientError("model response is not valid JSON: {0}".format(error), **context) from error
         return LLMChatResult(content=content, provider=provider, model=model, parsed=parsed)
 
 
@@ -289,6 +310,12 @@ def _extract_balanced_object(text: str) -> Optional[str]:
             if depth == 0:
                 return text[start:index + 1]
     return None
+
+
+def _is_length_stop(finish_reason: Optional[str]) -> bool:
+    """OpenAI-style ``length`` and Gemini-style ``MAX_TOKENS`` both mean the output budget ran out."""
+
+    return str(finish_reason or "").strip().lower() in {"length", "max_tokens"}
 
 
 def _response_finish_reason(response: Any) -> Optional[str]:

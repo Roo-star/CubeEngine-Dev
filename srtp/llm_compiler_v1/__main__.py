@@ -18,7 +18,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     )
     parser.add_argument(
         "--source", required=True,
-        help="Source game file or project directory",
+        help="Source game file or project directory (also required with --lift-from: the game is re-imported for evidence)",
     )
     parser.add_argument(
         "--out", required=True,

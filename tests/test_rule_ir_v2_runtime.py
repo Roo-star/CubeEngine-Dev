@@ -307,5 +307,155 @@ def _tick_document():
     return document
 
 
+
+class CoordinateFunctionTests(unittest.TestCase):
+    """core:coord.get reads one integer component of a coordinate."""
+
+    def setUp(self):
+        self.runtime = compile_rule_ir(load_rule_ir(PLACEMENT))
+        self.evaluator = self.runtime.evaluator
+
+    def _call(self, coordinate, index):
+        expression = {"op": "call", "function": "core:coord.get", "args": [
+            {"op": "param", "name": "c"}, {"op": "literal", "value": index},
+        ]}
+        context = EvaluationContext(parameters={"c": coordinate}, functions=self.evaluator.functions)
+        return self.evaluator.evaluate(expression, context)
+
+    def test_reads_each_component_of_any_rank(self):
+        self.assertEqual([self._call((3, 4), index) for index in (0, 1)], [3, 4])
+        self.assertEqual([self._call((7, 8, 9), index) for index in (0, 1, 2)], [7, 8, 9])
+        self.assertEqual(self._call([5], 0), 5)
+
+    def test_rejects_out_of_range_and_non_integer_arguments(self):
+        for coordinate, index in (((3, 4), 2), ((3, 4), -1), ((3, 4), True), ((3, 4), "0"), ((3.5, 4), 0), ("34", 0), (7, 0)):
+            with self.subTest(coordinate=coordinate, index=index):
+                with self.assertRaises(ExpressionError):
+                    self._call(coordinate, index)
+
+    def test_type_inference_yields_int_and_checks_operand_types(self):
+        vector = {"op": "vector", "items": [{"op": "literal", "value": 1}, {"op": "literal", "value": 2}]}
+        call = lambda *args: {"op": "call", "function": "core:coord.get", "args": list(args)}
+        one = {"op": "literal", "value": 1}
+        self.assertEqual(self.evaluator.infer_type(call(vector, one), {}), "core:int")
+        with self.assertRaises(ExpressionError):
+            self.evaluator.infer_type(call(one, one), {})      # first argument must be a coordinate
+        with self.assertRaises(ExpressionError):
+            self.evaluator.infer_type(call(vector, vector), {})  # index must be an int
+        with self.assertRaises(ExpressionError):
+            self.evaluator.infer_type(call(vector), {})          # arity
+
+
+class GravityPlacementTests(unittest.TestCase):
+    """Stacking games are expressible: a cell is playable when the cell below is filled or it is on the edge."""
+
+    COLUMNS, ROWS, BOARD = 7, 6, "rule:state.board_cell"
+
+    @staticmethod
+    def _lit(value):
+        return {"op": "literal", "value": value}
+
+    def _document(self):
+        lit, board = self._lit, self.BOARD
+        target = {"op": "param", "name": "target"}
+        component = lambda index: {"op": "call", "function": "core:coord.get", "args": [target, lit(index)]}
+        below = {"op": "vector", "items": [component(0), {"op": "sub", "args": [component(1), lit(1)]}]}
+        supported = {
+            "op": "if",
+            "condition": {"op": "eq", "args": [component(1), lit(0)]},
+            "then": lit(True),
+            "else": {"op": "ne", "args": [
+                {"op": "call", "function": "core:grid.get", "args": [lit(board), below]}, lit(0),
+            ]},
+        }
+        empty = {"op": "call", "function": "core:grid.equals", "args": [lit(board), target, lit(0)]}
+        players = ("rule:participant.a", "rule:participant.b")
+        actor = {"op": "ref", "path": "flow.current_actor"}
+        line = lambda value, winner, loser: {
+            "id": "rule:outcome.{0}_win".format(winner.rsplit(".", 1)[-1]), "name": "Win", "priority": 100,
+            "condition": {"op": "call", "function": "core:grid.has_line", "args": [lit(board), lit(value), lit(4)]},
+            "result": {"status": "win", "terminal": True, "winners": [lit(winner)], "losers": [lit(loser)]},
+        }
+        document = deepcopy(load_rule_ir(ROOT / "srtp" / "examples" / "rule_ir_v2" / "tictactoe_3d.rule-ir.json"))
+        document["topologies"][0]["axes"] = [
+            {"name": "x", "extent": self.COLUMNS, "boundary": "bounded"},
+            {"name": "y", "extent": self.ROWS, "boundary": "bounded"},
+        ]
+        document["topologies"][0]["neighborhoods"] = []
+        document["participants"] = [{"id": item, "name": item, "kind": "human"} for item in players]
+        document["flow"]["turn_order"] = list(players)
+        document["state"]["entity_types"] = []
+        document["state"]["variables"][0]["type"] = "core:int"
+        document["invariants"] = []
+        action = document["actions"][0]
+        action["precondition"] = {"op": "and", "args": [empty, supported]}
+        action["effects"][0]["value"] = {
+            "op": "if",
+            "condition": {"op": "eq", "args": [actor, lit(players[0])]},
+            "then": lit(1), "else": lit(2),
+        }
+        document["outcomes"] = [line(1, players[0], players[1]), line(2, players[1], players[0])]
+        return document
+
+    def setUp(self):
+        self.runtime = compile_rule_ir(self._document())
+
+    def _legal(self):
+        return {(index // self.ROWS, index % self.ROWS) for index in self._legal_indexes()}
+
+    def _legal_indexes(self):
+        return [index for index, allowed in enumerate(self.runtime.legal_action_mask()) if allowed]
+
+    def _drop(self, column):
+        grid = self.runtime.state.grids[self.BOARD]
+        row = next(y for y in range(self.ROWS) if int(grid[column, y]) == 0)
+        self.runtime.apply_action(column * self.ROWS + row)
+
+    def test_unevaluable_actions_separates_broken_legality_from_ordinary_illegality(self):
+        self.assertEqual(self.runtime.unevaluable_actions(), ())
+        self.assertEqual(len(self._legal()), self.COLUMNS)  # most cells are merely illegal, not broken
+
+        broken = self._document()
+        below = broken["actions"][0]["precondition"]["args"][1]["else"]["args"][0]["args"][1]
+        below["items"].append({"op": "literal", "value": 0})  # rank-3 coordinate on a rank-2 grid
+        runtime = compile_rule_ir(broken)
+        failures = runtime.unevaluable_actions()
+        self.assertEqual(len(failures), self.COLUMNS * (self.ROWS - 1))  # every cell above the bottom row
+        self.assertIn("outside the grid", failures[0][1])
+        # legal_actions keeps treating them as illegal, so the game silently stops offering them.
+        self.assertEqual(len(runtime.legal_actions()), self.COLUMNS)
+
+    def test_only_the_lowest_empty_cell_of_each_column_is_legal(self):
+        self.assertEqual(self.runtime.action_count, self.COLUMNS * self.ROWS)
+        self.assertEqual(self._legal(), {(x, 0) for x in range(self.COLUMNS)})
+        self._drop(3)
+        self.assertEqual(self._legal(), {(x, 0) for x in range(self.COLUMNS) if x != 3} | {(3, 1)})
+
+    def test_floating_and_occupied_cells_are_rejected(self):
+        self._drop(3)
+        for cell in ((3, 4), (3, 0)):
+            with self.subTest(cell=cell), self.assertRaises(IllegalActionError):
+                self.runtime.apply_action(cell[0] * self.ROWS + cell[1])
+
+    def test_a_full_column_has_no_legal_cell(self):
+        for _ in range(self.ROWS):
+            self._drop(3)
+        self.assertEqual([cell for cell in self._legal() if cell[0] == 3], [])
+
+    def test_vertical_and_diagonal_lines_of_four_win(self):
+        for _ in range(3):
+            self._drop(0)
+            self._drop(1)
+        self._drop(0)
+        outcome = self.runtime.evaluate_outcome()
+        self.assertEqual((outcome.status, outcome.winners), ("win", ("rule:participant.a",)))
+
+        self.runtime = compile_rule_ir(self._document())
+        for column in (0, 1, 1, 2, 2, 3, 2, 3, 3, 6, 3):  # A completes the diagonal (0,0)-(3,3)
+            self._drop(column)
+        outcome = self.runtime.evaluate_outcome()
+        self.assertEqual((outcome.status, outcome.winners), ("win", ("rule:participant.a",)))
+
+
 if __name__ == "__main__":
     unittest.main()

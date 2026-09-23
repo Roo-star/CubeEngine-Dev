@@ -1,0 +1,14 @@
+{
+  "commit": "1feefe6cd3de795511e2075f54767cade750a26d",
+  "provider": "gemini",
+  "model": "gemini-3.6-flash",
+  "prompt_template_version": "cubeengine.srtp/llm-prompt/2.0",
+  "stage": "spatial_lift",
+  "ok": false,
+  "compile_ready": true,
+  "diagnostics": [
+    "FreeFlow LLM request failed: All providers exhausted. Attempts:\n  - gemini: gemini: This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.\n\nLast error: gemini: This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later."
+  ],
+  "rate_limit_or_error": "FreeFlow LLM request failed: All providers exhausted. Attempts:\n  - gemini: gemini: This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.\n\nLast error: gemini: This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.",
+  "output_dir": ".cubeengine_llm\\connect4_target\\failed"
+}

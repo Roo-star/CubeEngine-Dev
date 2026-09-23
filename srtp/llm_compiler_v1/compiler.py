@@ -11,8 +11,9 @@ import uuid
 from copy import deepcopy
 from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
-from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple
+from typing import Any, Callable, Dict, Iterator, List, Mapping, Optional, Sequence, Set, Tuple
 
+from srtp.ir_v2 import compile_rule_ir, seal_rule_ir, validate_rule_ir
 from srtp.project_manifest_v2 import (
     is_project_manifest_compile_ready,
     new_project_manifest,
@@ -306,8 +307,6 @@ def _playability_repair_diagnostics(documents: Mapping[str, Mapping[str, Any]]) 
         for item in ((rule.get("state") or {}).get("variables") or [])
         if isinstance(item, Mapping) and item.get("scope") == "topology_site" and item.get("id")
     ]
-    if not site_vars:
-        return []
     messages: List[str] = []
     for item in rule.get("unresolved") or []:
         if not isinstance(item, Mapping) or item.get("required") is not True:
@@ -316,9 +315,62 @@ def _playability_repair_diagnostics(documents: Mapping[str, Mapping[str, Any]]) 
             continue
         path = str(item.get("path") or "")
         reason = str(item.get("reason") or "")
-        if path in {"/actions", "/state/initial_effects"}:
+        wrong_scope = path == "/state/variables" and reason.startswith(_GRID_SCOPE_GAP_PREFIX)
+        if wrong_scope or (site_vars and path in {"/actions", "/state/initial_effects"}):
             messages.append("{0}: {1}".format(path, reason))
     return messages
+
+
+def _invalid_rule_diagnostics(documents: Mapping[str, Mapping[str, Any]]) -> List[str]:
+    """Errors in the Rule IR as it stands after Session wiring.
+
+    Wiring rewrites documents after the proposal was validated, so the final
+    document must be re-checked instead of trusted.
+    """
+
+    rule = documents.get("rule_ir")
+    if not isinstance(rule, Mapping):
+        return []
+    errors = [
+        "rule_ir after session wiring: {0}: {1}".format(item.path, item.message)
+        for item in validate_rule_ir(rule)
+        if item.severity == "error"
+    ][:8]
+    return errors or _rule_dry_run_diagnostics(rule)
+
+
+def _rule_dry_run_diagnostics(rule: Mapping[str, Any]) -> List[str]:
+    """Execute the Rule IR once: compile the runtime and evaluate every action's legality.
+
+    Structural validation cannot see errors that only occur when expressions run
+    (a coordinate of the wrong rank, an unknown state id, a bad parameter name),
+    yet those make the whole game unplayable. Required-unresolved items are set
+    aside for the probe, because the runtime deliberately refuses to run them.
+    """
+
+    if not rule.get("actions") or not rule.get("topologies"):
+        # Nothing claims to be executable yet; the missing mechanic is already a
+        # required-unresolved gap, which is the honest way to report it.
+        return []
+    probe = deepcopy(dict(rule))
+    probe["unresolved"] = [
+        item for item in probe.get("unresolved") or []
+        if isinstance(item, Mapping) and item.get("required") is not True
+    ]
+    try:
+        runtime = compile_rule_ir(seal_rule_ir(probe, revision=int(probe.get("revision") or 0)))
+        failures = runtime.unevaluable_actions()
+    except Exception as error:  # noqa: BLE001 - any failure to execute is a finding
+        return ["rule_ir dry run failed: {0}: {1}".format(type(error).__name__, error)]
+    if not failures:
+        return []
+    instance, reason = failures[0]
+    return [
+        "rule_ir dry run failed: legality of {0} of {1} actions cannot be evaluated "
+        "(first: {2} {3} -> {4})".format(
+            len(failures), runtime.action_count, instance.action_id, dict(instance.parameters), reason,
+        )
+    ]
 
 
 @dataclass
@@ -340,6 +392,8 @@ class CompileReport:
     output_dir: Optional[str] = None
     compile_ready: bool = False
     unresolved_summary: List[Any] = field(default_factory=list)
+    # Raw model text of attempts that failed to parse; written beside the report, not part of it.
+    raw_responses: List[str] = field(default_factory=list)
 
     def to_mapping(self) -> Dict[str, Any]:
         return {
@@ -528,6 +582,7 @@ class SourceToIRCompiler:
         ok = False
         best_proposal: Optional[Dict[str, Any]] = None
         best_diagnostics: List[str] = []
+        raw_responses: List[str] = []
 
         while attempts < self.max_repairs + 1:
             attempts += 1
@@ -539,6 +594,10 @@ class SourceToIRCompiler:
             except LLMClientError as error:
                 diagnostics = [str(error)]
                 repair = diagnostics
+                provider = error.provider or provider
+                model = error.model or model
+                if error.raw_text:
+                    raw_responses.append(error.raw_text)
                 continue
             provider = result.provider
             model = result.model
@@ -571,7 +630,7 @@ class SourceToIRCompiler:
                     repair = diagnostics
                     continue
                 candidate_docs = _pin_cross_ir_dependencies(
-                    applied.documents,
+                    _materialize_vector_presentation_asset(applied.documents, evidence),
                     source_hints={
                         "adapter_id": getattr(
                             getattr(package, "transformation", None), "adapter_id", None,
@@ -579,7 +638,12 @@ class SourceToIRCompiler:
                         "title": getattr(package, "title", None),
                     },
                 )
-                playability = _playability_repair_diagnostics(candidate_docs)
+                invalid = _invalid_rule_diagnostics(candidate_docs)
+                playability = invalid + _playability_repair_diagnostics(candidate_docs)
+                if invalid and attempts > self.max_repairs:
+                    diagnostics = list(invalid)
+                    repair = diagnostics
+                    break
                 # Repair while attempts remain; on the final attempt seal with gaps
                 # so compile_ready=false is visible instead of looping forever.
                 if playability and attempts <= self.max_repairs:
@@ -645,6 +709,7 @@ class SourceToIRCompiler:
             attempts=attempts,
             compile_ready=compile_ready,
             unresolved_summary=unresolved[:50],
+            raw_responses=raw_responses,
         )
 
     def _compile_lift_stage(
@@ -928,7 +993,10 @@ class SourceToIRCompiler:
             documents = applied.documents if applied.ok else target_docs
             if ok:
                 documents = _pin_cross_ir_dependencies(documents)
-            effect_gaps = _empty_effect_repair_diagnostics(documents) if ok else []
+            effect_gaps = (
+                _empty_effect_repair_diagnostics(documents) + _invalid_rule_diagnostics(documents)
+                if ok else []
+            )
             if effect_gaps and lift_attempt <= self.max_repairs:
                 repair_lift = effect_gaps
                 continue
@@ -1133,6 +1201,65 @@ def _should_apply_snake_step_overlay(
     return False
 
 
+_VECTOR_PRESENTATION_STRATEGY = "source_vector_shape_to_3d_primitive"
+
+
+def _materialize_vector_presentation_asset(
+    documents: Mapping[str, Mapping[str, Any]], evidence_pack: Optional[Mapping[str, Any]],
+) -> Dict[str, Dict[str, Any]]:
+    """Give a source that ships no asset files the primitive its presentation strategy names.
+
+    Asset IR is only compilable with at least one resource. When Function 1 found no
+    asset files *and* chose ``source_vector_shape_to_3d_primitive`` (the game is drawn
+    with vector shapes, no generative 3D needed), that strategy is realised by one
+    procedural cube plus the ``board.cell`` role. This is added only when both facts
+    are present and the proposal supplied no resource of its own; the importer-owned
+    "no asset inventory" gap is then answered and released.
+    """
+
+    result = {key: dict(value) for key, value in documents.items()}
+    pack = evidence_pack if isinstance(evidence_pack, Mapping) else {}
+    inventory = pack.get("inventory") if isinstance(pack.get("inventory"), Mapping) else {}
+    hints = (pack.get("partial_schema") or {}).get("ui_hints") if isinstance(pack.get("partial_schema"), Mapping) else None
+    mapping = hints.get("presentation_mapping") if isinstance(hints, Mapping) else None
+    if (
+        "assets" not in inventory or inventory["assets"]
+        or not isinstance(mapping, Mapping)
+        or mapping.get("strategy") != _VECTOR_PRESENTATION_STRATEGY
+        or mapping.get("requires_generative_3d")
+    ):
+        return result
+    asset = result.get("asset_ir")
+    if not isinstance(asset, dict) or asset.get("assets") or asset.get("derivations"):
+        return result
+
+    resource_id, role_id = "asset:model.cell_primitive", "asset:role.board_cell"
+    asset["derivations"] = [{
+        "id": resource_id,
+        "name": "Cell Primitive",
+        "kind": "model",
+        "media_type": "application/vnd.cubeengine.presentation+json",
+        "strategy": "procedural_mesh",
+        "inputs": [],
+        "settings": {"primitive": "cube", "dimensions": [1.0, 1.0, 1.0]},
+        "expected_content_hash": "",
+        "license_policy": "inherit",
+    }]
+    asset["roles"] = list(asset.get("roles") or []) + [{
+        "id": role_id,
+        "name": "Board Cell",
+        "semantic": "board.cell",
+        "resource": resource_id,
+        "usage": "world_mesh",
+        "required": True,
+    }]
+    asset["unresolved"] = [
+        item for item in asset.get("unresolved") or []
+        if not (isinstance(item, Mapping) and item.get("path") == "/assets" and item.get("owner") == "importer")
+    ]
+    return result
+
+
 def _mark_missing_semantics_unresolved(
     document: Mapping[str, Any],
 ) -> Dict[str, Any]:
@@ -1202,6 +1329,17 @@ def _mark_missing_semantics_unresolved(
             "/participants",
             "Participants are missing; do not invent actor=player.",
         )
+
+    outcomes = result.get("outcomes")
+    if isinstance(outcomes, list):
+        for index, outcome in enumerate(outcomes):
+            condition = outcome.get("condition") if isinstance(outcome, Mapping) else None
+            if isinstance(condition, Mapping) and condition.get("op") == "literal":
+                require(
+                    "/outcomes/{0}/condition".format(index),
+                    "Outcome condition is a constant literal and never reacts to game state; "
+                    "do not invent an outcome rule.",
+                )
 
     result["unresolved"] = unresolved
     return result
@@ -1399,12 +1537,7 @@ def _wire_scene_state_bindings(
         source = item.get("source") if isinstance(item.get("source"), Mapping) else {}
         if source.get("variable") == variable:
             return document
-    cases = [
-        {"equals": 0, "value": "empty"},
-        {"equals": 1, "value": "body"},
-        {"equals": 2, "value": "head"},
-        {"equals": -1, "value": "food"},
-    ]
+    cases, default = _cell_variant_cases(rule, variable)
     bindings.append({
         "id": "scene:binding.cell_variant",
         "name": "Cell Variant",
@@ -1420,13 +1553,184 @@ def _wire_scene_state_bindings(
             "component": "renderer",
             "property": "variant",
         },
-        "transform": {"kind": "map", "cases": cases},
+        "transform": {"kind": "map", "cases": cases, "default": default},
     })
     return document
 
 
+def _cell_variant_cases(
+    rule: Mapping[str, Any], variable: str,
+) -> Tuple[List[Dict[str, Any]], str]:
+    """Neutral renderer-variant cases for a site variable, derived from the Rule IR.
+
+    The Scene must not invent what a value means (body, head, yellow piece...),
+    so the variable's empty marker is ``empty``, every other literal the rules
+    write is ``value_<n>``, and anything computed at runtime falls to the default.
+    """
+
+    empty = _site_empty_values(rule).get(variable, 0)
+    written: List[Any] = []
+    effects = list(_walk_effects((rule.get("state") or {}).get("initial_effects")))
+    for action in rule.get("actions") or []:
+        if isinstance(action, Mapping):
+            effects.extend(_walk_effects(action.get("effects")))
+    for effect in effects:
+        value = effect.get("value")
+        if (
+            effect.get("op") == "grid.set"
+            and effect.get("state") == variable
+            and isinstance(value, Mapping)
+            and value.get("op") == "literal"
+        ):
+            literal = value.get("value")
+            if literal != empty and literal not in written and isinstance(literal, (int, str)):
+                written.append(literal)
+    cases: List[Dict[str, Any]] = [{"equals": empty, "value": "empty"}]
+    for literal in sorted(written, key=lambda item: (isinstance(item, str), str(item))):
+        label = re.sub(r"[^a-z0-9]+", "_", str(literal).lower().replace("-", "neg_")).strip("_")
+        cases.append({"equals": literal, "value": "value_{0}".format(label or "x")})
+    return cases, "occupied"
+
+
+def _walk_effects(effects: Any) -> Iterator[Mapping[str, Any]]:
+    """Yield every effect, descending into ``foreach`` bodies."""
+
+    if not isinstance(effects, (list, tuple)):
+        return
+    for effect in effects:
+        if not isinstance(effect, Mapping):
+            continue
+        yield effect
+        if effect.get("op") == "foreach":
+            for nested in _walk_effects(effect.get("effects")):
+                yield nested
+
+
+def _expression_param_names(expression: Any) -> Set[str]:
+    """Names of every action parameter an expression tree reads."""
+
+    names: Set[str] = set()
+    if isinstance(expression, Mapping):
+        if expression.get("op") == "param" and isinstance(expression.get("name"), str):
+            names.add(str(expression["name"]))
+        for value in expression.values():
+            names |= _expression_param_names(value)
+    elif isinstance(expression, (list, tuple)):
+        for value in expression:
+            names |= _expression_param_names(value)
+    return names
+
+
+def _site_empty_values(rule: Mapping[str, Any]) -> Dict[str, Any]:
+    """Empty-cell marker per topology_site variable (its literal initial value, else 0)."""
+
+    empties: Dict[str, Any] = {}
+    for item in (rule.get("state") or {}).get("variables") or []:
+        if not isinstance(item, Mapping) or item.get("scope") != "topology_site" or not item.get("id"):
+            continue
+        initial = item.get("initial", item.get("initial_value"))
+        if isinstance(initial, Mapping):
+            initial = initial.get("value") if initial.get("op") == "literal" else 0
+        empties[str(item["id"])] = 0 if initial is None else initial
+    return empties
+
+
+def _effect_marks_cell(effect: Mapping[str, Any], empties: Mapping[str, Any]) -> bool:
+    """True when a grid.set can leave a cell different from that variable's empty marker."""
+
+    value = effect.get("value")
+    if isinstance(value, Mapping) and value.get("op") == "literal":
+        literal = value.get("value")
+        return (
+            literal is not None
+            and literal is not False
+            and literal != empties.get(str(effect.get("state")), 0)
+        )
+    return value is not None
+
+
+def _pointer_placement_actions(
+    rule: Mapping[str, Any],
+    input_doc: Mapping[str, Any],
+    empties: Mapping[str, Any],
+) -> Set[str]:
+    """Rule actions through which the player's pointer fills empty grid cells.
+
+    A game may legitimately start with a blank board when input lets the player
+    choose a cell and an action writes a non-empty value there (tic-tac-toe,
+    Connect Four, Go, ...). That is: an enabled Input binding feeds an action
+    parameter from pointer event data, and the action's grid.set coordinate
+    depends on that parameter.
+    """
+
+    intent_targets = {
+        str(item.get("id")): item.get("target")
+        for item in (input_doc.get("intents") or [])
+        if isinstance(item, Mapping) and item.get("id")
+    }
+    pointer_params: Dict[str, Set[str]] = {}
+    for binding in input_doc.get("bindings") or []:
+        if not isinstance(binding, Mapping) or binding.get("enabled") is False:
+            continue
+        target = intent_targets.get(str(binding.get("intent")))
+        if not isinstance(target, Mapping) or target.get("kind") != "rule_action" or not target.get("action"):
+            continue
+        params = target.get("parameters") if isinstance(target.get("parameters"), Mapping) else {}
+        names = {
+            str(name) for name, spec in params.items()
+            if isinstance(spec, Mapping) and spec.get("source") == "event_data"
+        }
+        if names:
+            pointer_params.setdefault(str(target["action"]), set()).update(names)
+
+    placing: Set[str] = set()
+    for action in rule.get("actions") or []:
+        if not isinstance(action, Mapping):
+            continue
+        fed = pointer_params.get(str(action.get("id")))
+        if not fed:
+            continue
+        for effect in _walk_effects(action.get("effects")):
+            if (
+                effect.get("op") == "grid.set"
+                and str(effect.get("state")) in empties
+                and _expression_param_names(effect.get("coordinate")) & fed
+                and _effect_marks_cell(effect, empties)
+            ):
+                placing.add(str(action["id"]))
+                break
+    return placing
+
+
+_GRID_SCOPE_GAP_PREFIX = "Grid state "
+
+
+def _grid_state_with_wrong_scope(rule: Mapping[str, Any]) -> Optional[Tuple[str, str]]:
+    """(id, scope) of a variable that grid.set writes but that is not a topology_site grid."""
+
+    scopes = {
+        str(item["id"]): str(item.get("scope"))
+        for item in (rule.get("state") or {}).get("variables") or []
+        if isinstance(item, Mapping) and item.get("id")
+    }
+    effects = list(_walk_effects((rule.get("state") or {}).get("initial_effects")))
+    for action in rule.get("actions") or []:
+        if isinstance(action, Mapping):
+            effects.extend(_walk_effects(action.get("effects")))
+    for effect in effects:
+        state_id = str(effect.get("state"))
+        if effect.get("op") == "grid.set" and state_id in scopes:
+            return state_id, scopes[state_id]
+    return None
+
+
 def _validate_playable_session(documents: Mapping[str, Mapping[str, Any]]) -> None:
-    """Promote missing board-play semantics to required unresolved (no silent success)."""
+    """Promote missing board-play semantics to required unresolved (no silent success).
+
+    The checks are structural and game-agnostic: a Session needs a grid, an
+    action that writes it, an input binding that reaches an action, and a
+    board that is not blank without any way for the game to populate it.
+    """
 
     rule = documents.get("rule_ir")
     if not isinstance(rule, dict):
@@ -1450,62 +1754,47 @@ def _validate_playable_session(documents: Mapping[str, Mapping[str, Any]]) -> No
         })
         existing.add(path)
 
-    site_vars = [
-        str(item.get("id"))
-        for item in ((rule.get("state") or {}).get("variables") or [])
-        if isinstance(item, Mapping) and item.get("scope") == "topology_site" and item.get("id")
-    ]
+    empties = _site_empty_values(rule)
+    site_vars = list(empties)
     if not site_vars:
+        wrong_scope = _grid_state_with_wrong_scope(rule)
         require(
             "/state/variables",
-            "No topology_site grid state; Project Session cannot show a board.",
+            "{0}{1} has scope '{2}'; state written by grid.set must have scope topology_site "
+            "and a topology id.".format(_GRID_SCOPE_GAP_PREFIX, *wrong_scope)
+            if wrong_scope
+            else "No topology_site grid state; Project Session cannot show a board.",
         )
 
-    mutates_grid = False
-    for action in rule.get("actions") or []:
-        if not isinstance(action, Mapping):
-            continue
-        for effect in action.get("effects") or []:
-            if not isinstance(effect, Mapping):
-                continue
-            if effect.get("op") == "grid.set" and effect.get("state") in site_vars:
-                mutates_grid = True
-                break
-            if effect.get("op") == "foreach":
-                for nested in effect.get("effects") or []:
-                    if (
-                        isinstance(nested, Mapping)
-                        and nested.get("op") == "grid.set"
-                        and nested.get("state") in site_vars
-                    ):
-                        mutates_grid = True
-                        break
-        if mutates_grid:
-            break
+    mutates_grid = any(
+        effect.get("op") == "grid.set" and effect.get("state") in empties
+        for action in rule.get("actions") or []
+        if isinstance(action, Mapping)
+        for effect in _walk_effects(action.get("effects"))
+    )
     if site_vars and not mutates_grid:
         require(
             "/actions",
             "No action mutates a topology_site grid (grid.set); Session keys will not move pieces.",
         )
 
-    initial = (rule.get("state") or {}).get("initial_effects") or []
-    has_placement = False
-    for effect in initial:
-        if not isinstance(effect, Mapping):
-            continue
-        if effect.get("op") == "grid.set" and effect.get("state") in site_vars:
-            value = effect.get("value")
-            if isinstance(value, Mapping) and value.get("op") == "literal":
-                if value.get("value") not in (None, 0, False):
-                    has_placement = True
-                    break
-            else:
-                has_placement = True
-                break
-    if site_vars and not has_placement:
+    # A blank start is only a gap when nothing can ever fill the board: either
+    # the source places pieces up front, or the player places them through input.
+    has_initial_placement = any(
+        effect.get("op") == "grid.set"
+        and effect.get("state") in empties
+        and _effect_marks_cell(effect, empties)
+        for effect in _walk_effects((rule.get("state") or {}).get("initial_effects"))
+    )
+    if (
+        site_vars
+        and not has_initial_placement
+        and not _pointer_placement_actions(rule, input_doc, empties)
+    ):
         require(
             "/state/initial_effects",
-            "No non-empty initial board placement; Session grid starts blank.",
+            "Board starts blank: no non-empty initial placement, and no input-bound "
+            "action lets the player place a piece at a chosen cell.",
         )
 
     intent_targets = {
@@ -1514,26 +1803,35 @@ def _validate_playable_session(documents: Mapping[str, Mapping[str, Any]]) -> No
         if isinstance(item, Mapping) and item.get("id")
     }
     enabled_rule_bindings = 0
-    distinct_actions = set()
+    distinct_actions: Set[str] = set()
+    intent_signatures: Dict[str, str] = {}
     for binding in input_doc.get("bindings") or []:
         if not isinstance(binding, Mapping) or binding.get("enabled") is False:
             continue
-        target = intent_targets.get(str(binding.get("intent")))
+        intent_id = str(binding.get("intent"))
+        target = intent_targets.get(intent_id)
         if isinstance(target, Mapping) and target.get("kind") == "rule_action":
             enabled_rule_bindings += 1
             action_id = target.get("action")
             if action_id:
                 distinct_actions.add(str(action_id))
+            intent_signatures[intent_id] = json.dumps(
+                target.get("parameters") or {}, sort_keys=True, default=str,
+            )
     if enabled_rule_bindings == 0:
         require(
             "/bindings",
             "No enabled Input binding targets a rule_action; Session keys will not resolve.",
         )
-    elif len(distinct_actions) == 1 and enabled_rule_bindings > 1:
+    elif (
+        len(distinct_actions) == 1
+        and len(intent_signatures) > 1
+        and len(set(intent_signatures.values())) == 1
+    ):
         require(
             "/intents",
-            "Multiple directional bindings share one rule_action without distinct parameters; "
-            "movement will not differ by key.",
+            "Several intents share one rule_action with identical parameters; "
+            "they would all do the same thing.",
         )
 
     rule["unresolved"] = unresolved
@@ -1751,52 +2049,7 @@ def _ensure_rule_session_contract(rule: Mapping[str, Any]) -> Dict[str, Any]:
                     "kind": "human",
                 })
                 ids.add(pid)
-    document = _ensure_topology_site_grid(document)
     document = _upgrade_coordinates_to_topology_rank(document)
-    return document
-
-
-def _ensure_topology_site_grid(rule: Mapping[str, Any]) -> Dict[str, Any]:
-    """Workbench Project Session needs a topology_site grid to render cells."""
-
-    document = dict(rule)
-    topologies = [
-        item for item in (document.get("topologies") or [])
-        if isinstance(item, dict) and item.get("kind") == "rect_grid" and item.get("id")
-    ]
-    if not topologies:
-        return document
-    state = document.get("state")
-    if not isinstance(state, dict):
-        state = {
-            "variables": [],
-            "entity_types": [],
-            "initial_effects": [],
-            "information_model": "perfect",
-        }
-        document["state"] = state
-    variables = state.get("variables")
-    if not isinstance(variables, list):
-        variables = []
-        state["variables"] = variables
-    has_site = any(
-        isinstance(item, dict) and item.get("scope") == "topology_site"
-        for item in variables
-    )
-    if has_site:
-        return document
-    topology_ids = [str(item["id"]) for item in topologies]
-    topology_id = (
-        "rule:topology.board" if "rule:topology.board" in topology_ids else topology_ids[0]
-    )
-    variables.append({
-        "id": "rule:state.board_cell",
-        "name": "Board Cell",
-        "type": "core:int",
-        "scope": "topology_site",
-        "topology": topology_id,
-        "initial": {"op": "literal", "value": 0},
-    })
     return document
 
 
@@ -2042,6 +2295,7 @@ def deepcopy_report(report: CompileReport) -> CompileReport:
         output_dir=report.output_dir,
         compile_ready=report.compile_ready,
         unresolved_summary=list(report.unresolved_summary),
+        raw_responses=list(report.raw_responses),
     )
 
 
@@ -2406,6 +2660,8 @@ def _lift_legacy_ir_patch_fields(
         if isinstance(existing, list) and existing:
             continue
         legacy = proposal.get(legacy_key)
+        if isinstance(legacy, Mapping) and isinstance(legacy.get("operations"), list):
+            legacy = [dict(legacy)]  # one envelope written where a list of envelopes belongs
         if not isinstance(legacy, list) or not legacy:
             continue
         if all(isinstance(item, dict) and isinstance(item.get("operations"), list) for item in legacy):

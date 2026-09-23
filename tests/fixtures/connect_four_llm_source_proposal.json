@@ -1,0 +1,775 @@
+{
+  "proposal_version": "cubeengine.srtp/llm-proposal/2.0",
+  "patches": {
+    "rule_ir": [
+      {
+        "target_document": "rule:game.complete.turtle.connect.four.reference.used.for.srtp.outcome.acceptance.source",
+        "ir_kind": "rule_ir",
+        "operations": [
+          {
+            "op": "replace",
+            "path": "/topologies",
+            "value": [
+              {
+                "id": "rule:topology.board",
+                "kind": "rect_grid",
+                "anchor": "cell",
+                "axes": [
+                  {
+                    "name": "x",
+                    "extent": 7,
+                    "boundary": "bounded"
+                  },
+                  {
+                    "name": "y",
+                    "extent": 6,
+                    "boundary": "bounded"
+                  }
+                ],
+                "neighborhoods": [],
+                "name": "Board"
+              }
+            ]
+          },
+          {
+            "op": "replace",
+            "path": "/participants",
+            "value": [
+              {
+                "id": "rule:participant.a",
+                "name": "Player 1",
+                "kind": "human"
+              },
+              {
+                "id": "rule:participant.b",
+                "name": "Player 2",
+                "kind": "human"
+              }
+            ]
+          },
+          {
+            "op": "replace",
+            "path": "/state",
+            "value": {
+              "variables": [
+                {
+                  "id": "rule:state.board_cell",
+                  "name": "Board Cell",
+                  "type": "core:int",
+                  "scope": "topology_site",
+                  "topology": "rule:topology.board",
+                  "initial": {
+                    "op": "literal",
+                    "value": 0
+                  }
+                }
+              ],
+              "initial_effects": [],
+              "entity_types": [],
+              "information_model": "perfect"
+            }
+          },
+          {
+            "op": "replace",
+            "path": "/flow",
+            "value": {
+              "model": "turn_based",
+              "phases": [
+                {
+                  "id": "rule:phase.input",
+                  "order": 100
+                },
+                {
+                  "id": "rule:phase.outcome",
+                  "order": 200
+                }
+              ],
+              "initial_phase": "rule:phase.input",
+              "scheduler": {
+                "clock": "turn",
+                "tick_hz": null,
+                "ordering": "phase_priority_id"
+              },
+              "turn_order": [
+                "rule:participant.a",
+                "rule:participant.b"
+              ]
+            }
+          },
+          {
+            "op": "replace",
+            "path": "/actions",
+            "value": [
+              {
+                "id": "rule:action.place",
+                "name": "Place",
+                "actor": {
+                  "op": "ref",
+                  "path": "flow.current_actor"
+                },
+                "parameters": [
+                  {
+                    "name": "target",
+                    "type": "core:coord",
+                    "domain": {
+                      "op": "call",
+                      "function": "core:topology.sites",
+                      "args": [
+                        {
+                          "op": "literal",
+                          "value": "rule:topology.board"
+                        }
+                      ]
+                    }
+                  }
+                ],
+                "precondition": {
+                  "op": "and",
+                  "args": [
+                    {
+                      "op": "call",
+                      "function": "core:grid.equals",
+                      "args": [
+                        {
+                          "op": "literal",
+                          "value": "rule:state.board_cell"
+                        },
+                        {
+                          "op": "param",
+                          "name": "target"
+                        },
+                        {
+                          "op": "literal",
+                          "value": 0
+                        }
+                      ]
+                    },
+                    {
+                      "op": "if",
+                      "condition": {
+                        "op": "eq",
+                        "args": [
+                          {
+                            "op": "call",
+                            "function": "core:coord.get",
+                            "args": [
+                              {
+                                "op": "param",
+                                "name": "target"
+                              },
+                              {
+                                "op": "literal",
+                                "value": 1
+                              }
+                            ]
+                          },
+                          {
+                            "op": "literal",
+                            "value": 0
+                          }
+                        ]
+                      },
+                      "then": {
+                        "op": "literal",
+                        "value": true
+                      },
+                      "else": {
+                        "op": "ne",
+                        "args": [
+                          {
+                            "op": "call",
+                            "function": "core:grid.get",
+                            "args": [
+                              {
+                                "op": "literal",
+                                "value": "rule:state.board_cell"
+                              },
+                              {
+                                "op": "vector",
+                                "items": [
+                                  {
+                                    "op": "call",
+                                    "function": "core:coord.get",
+                                    "args": [
+                                      {
+                                        "op": "param",
+                                        "name": "target"
+                                      },
+                                      {
+                                        "op": "literal",
+                                        "value": 0
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "op": "sub",
+                                    "args": [
+                                      {
+                                        "op": "call",
+                                        "function": "core:coord.get",
+                                        "args": [
+                                          {
+                                            "op": "param",
+                                            "name": "target"
+                                          },
+                                          {
+                                            "op": "literal",
+                                            "value": 1
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "op": "literal",
+                                        "value": 1
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "op": "literal",
+                            "value": 0
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                },
+                "effects": [
+                  {
+                    "op": "grid.set",
+                    "state": "rule:state.board_cell",
+                    "topology": "rule:topology.board",
+                    "coordinate": {
+                      "op": "param",
+                      "name": "target"
+                    },
+                    "value": {
+                      "op": "if",
+                      "condition": {
+                        "op": "eq",
+                        "args": [
+                          {
+                            "op": "ref",
+                            "path": "flow.current_actor"
+                          },
+                          {
+                            "op": "literal",
+                            "value": "rule:participant.a"
+                          }
+                        ]
+                      },
+                      "then": {
+                        "op": "literal",
+                        "value": 1
+                      },
+                      "else": {
+                        "op": "literal",
+                        "value": 2
+                      }
+                    }
+                  }
+                ],
+                "timing": {
+                  "phase": "rule:phase.input"
+                },
+                "encoding": {
+                  "kind": "parameter_product",
+                  "parameters": [
+                    "target"
+                  ],
+                  "ordering": "lexicographic"
+                }
+              }
+            ]
+          },
+          {
+            "op": "replace",
+            "path": "/outcomes",
+            "value": [
+              {
+                "id": "rule:outcome.a_win",
+                "name": "Player A wins",
+                "priority": 100,
+                "condition": {
+                  "op": "call",
+                  "function": "core:grid.has_line",
+                  "args": [
+                    {
+                      "op": "literal",
+                      "value": "rule:state.board_cell"
+                    },
+                    {
+                      "op": "literal",
+                      "value": 1
+                    },
+                    {
+                      "op": "literal",
+                      "value": 4
+                    }
+                  ]
+                },
+                "result": {
+                  "status": "win",
+                  "terminal": true,
+                  "winners": [
+                    {
+                      "op": "literal",
+                      "value": "rule:participant.a"
+                    }
+                  ],
+                  "losers": [
+                    {
+                      "op": "literal",
+                      "value": "rule:participant.b"
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "rule:outcome.b_win",
+                "name": "Player B wins",
+                "priority": 100,
+                "condition": {
+                  "op": "call",
+                  "function": "core:grid.has_line",
+                  "args": [
+                    {
+                      "op": "literal",
+                      "value": "rule:state.board_cell"
+                    },
+                    {
+                      "op": "literal",
+                      "value": 2
+                    },
+                    {
+                      "op": "literal",
+                      "value": 4
+                    }
+                  ]
+                },
+                "result": {
+                  "status": "win",
+                  "terminal": true,
+                  "winners": [
+                    {
+                      "op": "literal",
+                      "value": "rule:participant.b"
+                    }
+                  ],
+                  "losers": [
+                    {
+                      "op": "literal",
+                      "value": "rule:participant.a"
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "rule:outcome.draw",
+                "name": "Draw",
+                "priority": 10,
+                "condition": {
+                  "op": "call",
+                  "function": "core:grid.none_equal",
+                  "args": [
+                    {
+                      "op": "literal",
+                      "value": "rule:state.board_cell"
+                    },
+                    {
+                      "op": "literal",
+                      "value": 0
+                    }
+                  ]
+                },
+                "result": {
+                  "status": "draw",
+                  "terminal": true
+                }
+              }
+            ]
+          },
+          {
+            "op": "replace",
+            "path": "/unresolved",
+            "value": []
+          }
+        ],
+        "evidence": [
+          {
+            "evidence_id": "ev:param.source_grid_x.0",
+            "path": "connect_complete.py",
+            "kind": "static",
+            "supports": "/rule_ir",
+            "confidence": 0.8,
+            "file_sha256": "de234ef4f3881eba0d1dbb36975aa7944facae9a5b340e1b9a178f5366283636",
+            "span": {
+              "line_start": 45,
+              "line_end": 45
+            }
+          }
+        ],
+        "unresolved": [],
+        "document_id": "rule:game.complete.turtle.connect.four.reference.used.for.srtp.outcome.acceptance.source",
+        "base_revision": 0,
+        "base_content_hash": "caad4a3d1567704235ae063a1bdabf9f6be8c811adc815b4eeebd7fbabf1714b",
+        "assumptions": []
+      }
+    ],
+    "scene_ir": [
+      {
+        "target_document": "scene:game.complete.turtle.connect.four.reference.used.for.srtp.outcome.acceptance.source",
+        "ir_kind": "scene_ir",
+        "operations": [
+          {
+            "op": "replace",
+            "path": "/nodes",
+            "value": [
+              {
+                "id": "scene:node.board",
+                "name": "Board",
+                "active": true,
+                "transform": {
+                  "translation": [
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  "rotation_euler_deg": [
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  "scale": [
+                    1.0,
+                    1.0,
+                    1.0
+                  ]
+                },
+                "components": [
+                  {
+                    "id": "sites",
+                    "type": "topology_visualizer",
+                    "enabled": true,
+                    "properties": {
+                      "topology": "rule:topology.board",
+                      "rule_topology": "rule:topology.board",
+                      "prefab": "scene:prefab.cell",
+                      "index_to_world": [
+                        1.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        1.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        1.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        1.0
+                      ]
+                    }
+                  }
+                ],
+                "children": [],
+                "parent": null,
+                "layer": "scene:layer.runtime"
+              }
+            ]
+          },
+          {
+            "op": "replace",
+            "path": "/prefabs",
+            "value": [
+              {
+                "id": "scene:prefab.cell",
+                "name": "Cell",
+                "root": {
+                  "local_id": "root",
+                  "name": "Cell",
+                  "active": true,
+                  "transform": {
+                    "translation": [
+                      0.0,
+                      0.0,
+                      0.0
+                    ],
+                    "rotation_euler_deg": [
+                      0.0,
+                      0.0,
+                      0.0
+                    ],
+                    "scale": [
+                      1.0,
+                      1.0,
+                      1.0
+                    ]
+                  },
+                  "components": [
+                    {
+                      "id": "renderer",
+                      "type": "renderer",
+                      "enabled": true,
+                      "properties": {
+                        "geometry": "builtin:cube",
+                        "visible": true
+                      }
+                    }
+                  ],
+                  "children": []
+                }
+              }
+            ]
+          },
+          {
+            "op": "replace",
+            "path": "/bindings",
+            "value": [
+              {
+                "id": "scene:binding.cell.variant",
+                "name": "Cell Variant",
+                "source": {
+                  "kind": "state",
+                  "scope": "topology_site",
+                  "variable": "rule:state.board_cell"
+                },
+                "target": {
+                  "selector": "topology_sites",
+                  "node": "scene:node.board",
+                  "visualizer": "sites",
+                  "component": "renderer",
+                  "property": "variant"
+                },
+                "transform": {
+                  "kind": "map",
+                  "cases": [
+                    {
+                      "equals": 0,
+                      "value": "empty"
+                    },
+                    {
+                      "equals": 1,
+                      "value": "value_1"
+                    },
+                    {
+                      "equals": 2,
+                      "value": "value_2"
+                    }
+                  ],
+                  "default": "occupied"
+                }
+              }
+            ]
+          },
+          {
+            "op": "replace",
+            "path": "/unresolved",
+            "value": []
+          }
+        ],
+        "evidence": [
+          {
+            "evidence_id": "ev:param.source_grid_x.0",
+            "path": "connect_complete.py",
+            "kind": "static",
+            "supports": "/scene_ir/nodes",
+            "confidence": 0.8,
+            "file_sha256": "de234ef4f3881eba0d1dbb36975aa7944facae9a5b340e1b9a178f5366283636",
+            "span": {
+              "line_start": 45,
+              "line_end": 45
+            }
+          }
+        ],
+        "unresolved": [],
+        "document_id": "scene:game.complete.turtle.connect.four.reference.used.for.srtp.outcome.acceptance.source",
+        "base_revision": 0,
+        "base_content_hash": "b8b053ff2f5ddcf85ae2b224b3f17758202502a1a59e17f5686b2919594d9744",
+        "assumptions": []
+      }
+    ],
+    "asset_ir": [
+      {
+        "target_document": "asset:game.complete.turtle.connect.four.reference.used.for.srtp.outcome.acceptance.source",
+        "ir_kind": "asset_ir",
+        "operations": [
+          {
+            "op": "replace",
+            "path": "/assets",
+            "value": []
+          },
+          {
+            "op": "replace",
+            "path": "/derivations",
+            "value": []
+          }
+        ],
+        "evidence": [
+          {
+            "evidence_id": "ev:param.source_grid_x.0",
+            "path": "connect_complete.py",
+            "kind": "static",
+            "supports": "/asset_ir",
+            "confidence": 0.8,
+            "file_sha256": "de234ef4f3881eba0d1dbb36975aa7944facae9a5b340e1b9a178f5366283636",
+            "span": {
+              "line_start": 45,
+              "line_end": 45
+            }
+          }
+        ],
+        "unresolved": [],
+        "document_id": "asset:game.complete.turtle.connect.four.reference.used.for.srtp.outcome.acceptance.source",
+        "base_revision": 0,
+        "base_content_hash": "5b6aab37f70893ca01dc41ebef3162deca37ebf17d75d72240258a8d496bc686",
+        "assumptions": []
+      }
+    ],
+    "input_ir": [
+      {
+        "target_document": "input:game.complete.turtle.connect.four.reference.used.for.srtp.outcome.acceptance.source",
+        "ir_kind": "input_ir",
+        "operations": [
+          {
+            "op": "replace",
+            "path": "/contexts",
+            "value": [
+              {
+                "id": "input:context.play",
+                "name": "Play",
+                "priority": 100,
+                "enabled_by_default": true,
+                "focus": "viewport",
+                "consume_policy": "first_match",
+                "exclusive_group": "runtime_mode"
+              }
+            ]
+          },
+          {
+            "op": "replace",
+            "path": "/intents",
+            "value": [
+              {
+                "id": "input:action.intent.place",
+                "name": "Place",
+                "value_type": "digital",
+                "required": true,
+                "target": {
+                  "kind": "rule_action",
+                  "action": "rule:action.place",
+                  "parameters": {
+                    "target": {
+                      "source": "event_data",
+                      "key": "rule_coordinate",
+                      "value_type": "core:coord"
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "op": "replace",
+            "path": "/bindings",
+            "value": [
+              {
+                "id": "input:binding.place",
+                "name": "Place",
+                "context": "input:context.play",
+                "intent": "input:action.intent.place",
+                "priority": 100,
+                "enabled": true,
+                "consume": true,
+                "rebindable": true,
+                "slot": "primary",
+                "accessibility_label": "Place",
+                "trigger": {
+                  "kind": "control",
+                  "device": "mouse",
+                  "control": "mouse.button.primary",
+                  "phase": "press",
+                  "modifiers": [],
+                  "modifier_policy": "exact"
+                },
+                "processing": {
+                  "dead_zone": 0,
+                  "sensitivity_numerator": 1,
+                  "sensitivity_denominator": 1,
+                  "invert": false,
+                  "clamp_min": -32768,
+                  "clamp_max": 32767
+                }
+              }
+            ]
+          },
+          {
+            "op": "replace",
+            "path": "/unresolved",
+            "value": []
+          }
+        ],
+        "evidence": [
+          {
+            "evidence_id": "ev:input.0",
+            "path": "connect_complete.py",
+            "kind": "static",
+            "supports": "/input_ir/bindings",
+            "confidence": 0.8,
+            "file_sha256": "de234ef4f3881eba0d1dbb36975aa7944facae9a5b340e1b9a178f5366283636",
+            "span": {
+              "line_start": 128,
+              "line_end": 128
+            }
+          }
+        ],
+        "unresolved": [],
+        "document_id": "input:game.complete.turtle.connect.four.reference.used.for.srtp.outcome.acceptance.source",
+        "base_revision": 0,
+        "base_content_hash": "31a2797aa4ac251da61934dfa14a5318ee56a8250b52f372521d77b850b984f1",
+        "assumptions": []
+      }
+    ]
+  },
+  "claims": [],
+  "tests": [],
+  "extension_proposals": [],
+  "proposal_id": "proposal:ef414ef07b20",
+  "job_id": "job:89fed50e7fcb4065",
+  "stage": "source_rule_semantics",
+  "source_package_hash": "3761ba1112e07186521eb39136e53a59c5db165ea83c1bd15ef4793cea1dfbec",
+  "design_intent": null,
+  "base_documents": {
+    "rule_ir": {
+      "document_id": "rule:game.complete.turtle.connect.four.reference.used.for.srtp.outcome.acceptance.source",
+      "revision": 0,
+      "content_hash": "caad4a3d1567704235ae063a1bdabf9f6be8c811adc815b4eeebd7fbabf1714b"
+    },
+    "scene_ir": {
+      "document_id": "scene:game.complete.turtle.connect.four.reference.used.for.srtp.outcome.acceptance.source",
+      "revision": 0,
+      "content_hash": "b8b053ff2f5ddcf85ae2b224b3f17758202502a1a59e17f5686b2919594d9744"
+    },
+    "asset_ir": {
+      "document_id": "asset:game.complete.turtle.connect.four.reference.used.for.srtp.outcome.acceptance.source",
+      "revision": 0,
+      "content_hash": "5b6aab37f70893ca01dc41ebef3162deca37ebf17d75d72240258a8d496bc686"
+    },
+    "input_ir": {
+      "document_id": "input:game.complete.turtle.connect.four.reference.used.for.srtp.outcome.acceptance.source",
+      "revision": 0,
+      "content_hash": "31a2797aa4ac251da61934dfa14a5318ee56a8250b52f372521d77b850b984f1"
+    }
+  },
+  "spatial_lift_options": [],
+  "assumptions": [],
+  "unresolved": [],
+  "clarification_questions": []
+}

@@ -1,0 +1,421 @@
+{
+  "ir_version": "cubeengine.rule-ir/2.0-alpha.1",
+  "document_id": "rule:game.complete.turtle.connect.four.reference.used.for.srtp.outcome.acceptance.source",
+  "revision": 1,
+  "content_hash": "f29047031b73a6cce25c1d29578745bc4eb5e7cde19233be4ae6da0a83a0fcdf",
+  "metadata": {
+    "title": "Complete Turtle Connect Four reference used for SRTP outcome acceptance",
+    "description": "LLM compiler bootstrap shell. Semantics must be filled by evidence-backed patches.",
+    "source_project_hash": "3761ba1112e07186521eb39136e53a59c5db165ea83c1bd15ef4793cea1dfbec",
+    "determinism": "deterministic"
+  },
+  "dependencies": {
+    "scene_ir": null,
+    "asset_ir": null,
+    "input_ir": null,
+    "extensions": []
+  },
+  "parameters": [],
+  "types": [],
+  "participants": [
+    {
+      "id": "rule:participant.player1",
+      "name": "Player 1",
+      "kind": "human"
+    },
+    {
+      "id": "rule:participant.player2",
+      "name": "Player 2",
+      "kind": "human"
+    }
+  ],
+  "topologies": [
+    {
+      "id": "rule:topology.board",
+      "kind": "rect_grid",
+      "anchor": "cell",
+      "axes": [
+        {
+          "name": "x",
+          "extent": 7,
+          "boundary": "bounded"
+        },
+        {
+          "name": "y",
+          "extent": 6,
+          "boundary": "bounded"
+        }
+      ],
+      "neighborhoods": [],
+      "name": "Board"
+    }
+  ],
+  "state": {
+    "variables": [
+      {
+        "id": "rule:state.board_cell",
+        "name": "Board Cell",
+        "type": "core:int",
+        "scope": "topology_site",
+        "topology": "rule:topology.board",
+        "initial": {
+          "op": "literal",
+          "value": 0
+        }
+      }
+    ],
+    "initial_effects": [],
+    "entity_types": [],
+    "information_model": "perfect"
+  },
+  "queries": [],
+  "events": [],
+  "actions": [
+    {
+      "id": "rule:action.place",
+      "name": "Place",
+      "actor": {
+        "op": "ref",
+        "path": "flow.current_actor"
+      },
+      "parameters": [
+        {
+          "name": "target",
+          "type": "core:coord",
+          "domain": {
+            "op": "call",
+            "function": "core:topology.sites",
+            "args": [
+              {
+                "op": "literal",
+                "value": "rule:topology.board"
+              }
+            ]
+          }
+        }
+      ],
+      "precondition": {
+        "op": "and",
+        "args": [
+          {
+            "op": "call",
+            "function": "core:grid.equals",
+            "args": [
+              {
+                "op": "literal",
+                "value": "rule:state.board_cell"
+              },
+              {
+                "op": "param",
+                "name": "target"
+              },
+              {
+                "op": "literal",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "op": "if",
+            "condition": {
+              "op": "eq",
+              "args": [
+                {
+                  "op": "call",
+                  "function": "core:coord.get",
+                  "args": [
+                    {
+                      "op": "param",
+                      "name": "target"
+                    },
+                    {
+                      "op": "literal",
+                      "value": 1
+                    }
+                  ]
+                },
+                {
+                  "op": "literal",
+                  "value": 0
+                }
+              ]
+            },
+            "then": {
+              "op": "literal",
+              "value": true
+            },
+            "else": {
+              "op": "ne",
+              "args": [
+                {
+                  "op": "call",
+                  "function": "core:grid.get",
+                  "args": [
+                    {
+                      "op": "literal",
+                      "value": "rule:state.board_cell"
+                    },
+                    {
+                      "op": "vector",
+                      "items": [
+                        {
+                          "op": "call",
+                          "function": "core:coord.get",
+                          "args": [
+                            {
+                              "op": "param",
+                              "name": "target"
+                            },
+                            {
+                              "op": "literal",
+                              "value": 0
+                            }
+                          ]
+                        },
+                        {
+                          "op": "sub",
+                          "args": [
+                            {
+                              "op": "call",
+                              "function": "core:coord.get",
+                              "args": [
+                                {
+                                  "op": "param",
+                                  "name": "target"
+                                },
+                                {
+                                  "op": "literal",
+                                  "value": 1
+                                }
+                              ]
+                            },
+                            {
+                              "op": "literal",
+                              "value": 1
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "op": "literal",
+                  "value": 0
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "effects": [
+        {
+          "op": "grid.set",
+          "state": "rule:state.board_cell",
+          "topology": "rule:topology.board",
+          "coordinate": {
+            "op": "param",
+            "name": "target"
+          },
+          "value": {
+            "op": "if",
+            "condition": {
+              "op": "eq",
+              "args": [
+                {
+                  "op": "ref",
+                  "path": "flow.current_actor"
+                },
+                {
+                  "op": "literal",
+                  "value": "rule:participant.player1"
+                }
+              ]
+            },
+            "then": {
+              "op": "literal",
+              "value": 1
+            },
+            "else": {
+              "op": "literal",
+              "value": 2
+            }
+          }
+        }
+      ],
+      "timing": {
+        "phase": "rule:phase.input"
+      },
+      "encoding": {
+        "kind": "parameter_product",
+        "parameters": [
+          "target"
+        ],
+        "ordering": "lexicographic"
+      }
+    }
+  ],
+  "systems": [],
+  "flow": {
+    "model": "turn_based",
+    "phases": [
+      {
+        "id": "rule:phase.input",
+        "order": 100
+      },
+      {
+        "id": "rule:phase.outcome",
+        "order": 200
+      }
+    ],
+    "initial_phase": "rule:phase.input",
+    "scheduler": {
+      "clock": "turn",
+      "tick_hz": null,
+      "ordering": "phase_priority_id"
+    },
+    "turn_order": [
+      "rule:participant.player1",
+      "rule:participant.player2"
+    ]
+  },
+  "random_streams": [],
+  "goals": [],
+  "outcomes": [
+    {
+      "id": "rule:outcome.p1_win",
+      "name": "Player 1 wins",
+      "priority": 100,
+      "condition": {
+        "op": "call",
+        "function": "core:grid.has_line",
+        "args": [
+          {
+            "op": "literal",
+            "value": "rule:state.board_cell"
+          },
+          {
+            "op": "literal",
+            "value": 1
+          },
+          {
+            "op": "literal",
+            "value": 4
+          }
+        ]
+      },
+      "result": {
+        "status": "win",
+        "terminal": true,
+        "winners": [
+          {
+            "op": "literal",
+            "value": "rule:participant.player1"
+          }
+        ],
+        "losers": [
+          {
+            "op": "literal",
+            "value": "rule:participant.player2"
+          }
+        ]
+      }
+    },
+    {
+      "id": "rule:outcome.p2_win",
+      "name": "Player 2 wins",
+      "priority": 100,
+      "condition": {
+        "op": "call",
+        "function": "core:grid.has_line",
+        "args": [
+          {
+            "op": "literal",
+            "value": "rule:state.board_cell"
+          },
+          {
+            "op": "literal",
+            "value": 2
+          },
+          {
+            "op": "literal",
+            "value": 4
+          }
+        ]
+      },
+      "result": {
+        "status": "win",
+        "terminal": true,
+        "winners": [
+          {
+            "op": "literal",
+            "value": "rule:participant.player2"
+          }
+        ],
+        "losers": [
+          {
+            "op": "literal",
+            "value": "rule:participant.player1"
+          }
+        ]
+      }
+    },
+    {
+      "id": "rule:outcome.draw",
+      "name": "Draw",
+      "priority": 10,
+      "condition": {
+        "op": "call",
+        "function": "core:grid.none_equal",
+        "args": [
+          {
+            "op": "literal",
+            "value": "rule:state.board_cell"
+          },
+          {
+            "op": "literal",
+            "value": 0
+          }
+        ]
+      },
+      "result": {
+        "status": "draw",
+        "terminal": true
+      }
+    }
+  ],
+  "modes": [
+    {
+      "id": "rule:mode.default",
+      "name": "Default",
+      "overrides": []
+    }
+  ],
+  "invariants": [],
+  "extensions": {},
+  "provenance": {
+    "patch_history": [
+      {
+        "base_revision": 0,
+        "base_content_hash": "caad4a3d1567704235ae063a1bdabf9f6be8c811adc815b4eeebd7fbabf1714b",
+        "evidence": [
+          {
+            "evidence_id": "ev:param.source_grid_x.0",
+            "path": "connect_complete.py",
+            "kind": "static",
+            "supports": "/rule_ir",
+            "confidence": 0.8,
+            "file_sha256": "de234ef4f3881eba0d1dbb36975aa7944facae9a5b340e1b9a178f5366283636",
+            "span": {
+              "line_start": 45,
+              "line_end": 45
+            }
+          }
+        ],
+        "assumptions": [],
+        "operation_count": 7
+      }
+    ]
+  },
+  "unresolved": []
+}

@@ -2,7 +2,7 @@
   "manifest_version": "cubeengine.project-manifest/2.0-alpha.2",
   "project_id": "project:snake.game.with.python.and.pygame.llm.source",
   "revision": 1,
-  "content_hash": "781e7f923108307993d997da678f706435347b4114597e3088624cbcb93e809e",
+  "content_hash": "fa001d000e66a29e0b47133bbc9cba8180fc95bb9f8d21c00a7a103a2f94f668",
   "metadata": {
     "title": "Snake Game with Python and Pygame",
     "description": ""
@@ -13,27 +13,27 @@
     "rule_ir": {
       "document_id": "rule:game.snake.game.with.python.and.pygame.source",
       "ir_version": "cubeengine.rule-ir/2.0-alpha.1",
-      "content_hash": "edf1ad213ad04fa672c9e036b2b4263e43d260f2fcfd85e8eefdfc9681a358fe"
+      "content_hash": "679750ba075ccc96c45a80118e06dfd6217b8e77f399b6cf3c3f00e6dcb49f6b"
     },
     "scene_ir": {
       "document_id": "scene:game.snake.game.with.python.and.pygame.source",
       "ir_version": "cubeengine.scene-ir/2.0-alpha.1",
-      "content_hash": "a00c81b972c9af97e13ff82bd52b9ef745b43a3cf68c99218ac5b1e62d1a4071"
+      "content_hash": "272a86893b75474c9be73ae1c87a1b4165d81b444f44836b43eb8f35400f5d0f"
     },
     "asset_ir": {
       "document_id": "asset:game.snake.game.with.python.and.pygame.source",
       "ir_version": "cubeengine.asset-ir/2.0-alpha.1",
-      "content_hash": "98f9a663d7a05f90b74865eeaf3e5121279e03bcaf17a0ebf25d4d62b32a2a06"
+      "content_hash": "5a36007e7871ae9bcf8ce8728fb368a15feb2603faa01f7863bf7eb17e5ef645"
     },
     "input_ir": {
       "document_id": "input:game.snake.game.with.python.and.pygame.source",
       "ir_version": "cubeengine.input-ir/2.0-alpha.1",
-      "content_hash": "a925e4bda454c2b5a4dff50206f39017c5a284256ff4c033acf7c80dcb2a300d"
+      "content_hash": "5e29d7df2ece39374db0f1219fab836d15d5deca3cc7c68108ecc97c5687f304"
     }
   },
   "extensions": [],
   "provenance": {
-    "llm_proposal_id": "proposal:b3565516ba24",
+    "llm_proposal_id": "proposal:f49a25b6900b",
     "prompt_template_version": "cubeengine.srtp/llm-prompt/2.0",
     "designer_approved": true,
     "approved_by": "cli"

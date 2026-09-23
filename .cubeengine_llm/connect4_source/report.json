@@ -1,12 +1,12 @@
 {
   "ok": true,
   "stage": "source_four_ir",
-  "job_id": "job:1500b990321449f0",
-  "project_id": "project:snake.game.with.python.and.pygame.llm.source",
-  "source_package_hash": "fb4489a2a7ea119934c40fd9c809fb7a7c74bfbe9470adea0162f39ffc53f35e",
+  "job_id": "job:b1de99c0a5f14ae6",
+  "project_id": "project:complete.turtle.connect.four.reference.used.for.srtp.outcome.acceptance.llm.source",
+  "source_package_hash": "3761ba1112e07186521eb39136e53a59c5db165ea83c1bd15ef4793cea1dfbec",
   "provider": "gemini",
   "model": "gemini-3.6-flash",
-  "attempts": 2,
+  "attempts": 3,
   "prompt_template_version": "cubeengine.srtp/llm-prompt/2.0",
   "diagnostics": [],
   "compile_ready": false,
@@ -19,6 +19,6 @@
       "owner": "designer"
     }
   ],
-  "proposal_id": "proposal:f49a25b6900b",
-  "manifest_project_id": "project:snake.game.with.python.and.pygame.llm.source"
+  "proposal_id": "proposal:87b09a39a3b6",
+  "manifest_project_id": "project:complete.turtle.connect.four.reference.used.for.srtp.outcome.acceptance.llm.source"
 }

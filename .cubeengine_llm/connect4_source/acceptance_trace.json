@@ -8,5 +8,5 @@
   "compile_ready": false,
   "diagnostics": [],
   "rate_limit_or_error": null,
-  "output_dir": ".cubeengine_llm\\round4_snake_source"
+  "output_dir": ".cubeengine_llm\\connect4_source"
 }

@@ -12,6 +12,6 @@
   ],
   "provider": "gemini",
   "model": "gemini-3.6-flash",
-  "attempts": 2,
+  "attempts": 3,
   "compile_ready": false
 }

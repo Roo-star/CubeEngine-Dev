@@ -1,0 +1,42 @@
+{
+  "manifest_version": "cubeengine.project-manifest/2.0-alpha.2",
+  "project_id": "project:complete.turtle.connect.four.reference.used.for.srtp.outcome.acceptance.llm.source",
+  "revision": 1,
+  "content_hash": "7b8b6b6a0e02e679976166c828b5da73088e4ff3b77701984db2ce5b7e9f9374",
+  "metadata": {
+    "title": "Complete Turtle Connect Four reference used for SRTP outcome acceptance",
+    "description": ""
+  },
+  "variant": "source",
+  "source_manifest": null,
+  "documents": {
+    "rule_ir": {
+      "document_id": "rule:game.complete.turtle.connect.four.reference.used.for.srtp.outcome.acceptance.source",
+      "ir_version": "cubeengine.rule-ir/2.0-alpha.1",
+      "content_hash": "f29047031b73a6cce25c1d29578745bc4eb5e7cde19233be4ae6da0a83a0fcdf"
+    },
+    "scene_ir": {
+      "document_id": "scene:game.complete.turtle.connect.four.reference.used.for.srtp.outcome.acceptance.source",
+      "ir_version": "cubeengine.scene-ir/2.0-alpha.1",
+      "content_hash": "5e190b3f20256535b4dcd6a8e64f18b3d483060191e7c21abb5a7df19b5d6da4"
+    },
+    "asset_ir": {
+      "document_id": "asset:game.complete.turtle.connect.four.reference.used.for.srtp.outcome.acceptance.source",
+      "ir_version": "cubeengine.asset-ir/2.0-alpha.1",
+      "content_hash": "26247fa05af213dd3ac9dd0ab914ec4ea4076cfb3f0ae4383a9bee5b7b50f1ea"
+    },
+    "input_ir": {
+      "document_id": "input:game.complete.turtle.connect.four.reference.used.for.srtp.outcome.acceptance.source",
+      "ir_version": "cubeengine.input-ir/2.0-alpha.1",
+      "content_hash": "1069d39294475c89965119c3a38fbe4608731678204c9139d2324a84dc364bb5"
+    }
+  },
+  "extensions": [],
+  "provenance": {
+    "llm_proposal_id": "proposal:87b09a39a3b6",
+    "prompt_template_version": "cubeengine.srtp/llm-prompt/2.0",
+    "designer_approved": true,
+    "approved_by": "cli"
+  },
+  "unresolved": []
+}

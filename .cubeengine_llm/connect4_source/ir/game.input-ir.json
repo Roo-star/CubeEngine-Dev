@@ -1,0 +1,103 @@
+{
+  "ir_version": "cubeengine.input-ir/2.0-alpha.1",
+  "document_id": "input:game.complete.turtle.connect.four.reference.used.for.srtp.outcome.acceptance.source",
+  "revision": 1,
+  "content_hash": "1069d39294475c89965119c3a38fbe4608731678204c9139d2324a84dc364bb5",
+  "metadata": {
+    "title": "Complete Turtle Connect Four reference used for SRTP outcome acceptance",
+    "description": "LLM compiler bootstrap shell. Semantics must be filled by evidence-backed patches.",
+    "source_project_hash": "3761ba1112e07186521eb39136e53a59c5db165ea83c1bd15ef4793cea1dfbec"
+  },
+  "dependencies": {
+    "rule_ir": {
+      "document_id": "rule:game.complete.turtle.connect.four.reference.used.for.srtp.outcome.acceptance.source",
+      "content_hash": "f29047031b73a6cce25c1d29578745bc4eb5e7cde19233be4ae6da0a83a0fcdf"
+    },
+    "extensions": []
+  },
+  "contexts": [
+    {
+      "id": "input:context.play",
+      "name": "Play Context",
+      "priority": 100,
+      "enabled_by_default": true,
+      "focus": "viewport",
+      "consume_policy": "first_match",
+      "exclusive_group": "runtime_mode"
+    }
+  ],
+  "intents": [
+    {
+      "id": "input:action.intent.place",
+      "name": "Place",
+      "value_type": "digital",
+      "required": true,
+      "target": {
+        "kind": "rule_action",
+        "action": "rule:action.place",
+        "parameters": {
+          "target": {
+            "source": "event_data",
+            "key": "rule_coordinate",
+            "value_type": "core:coord"
+          }
+        }
+      }
+    }
+  ],
+  "bindings": [
+    {
+      "id": "input:binding.click.place",
+      "name": "Click Place",
+      "context": "input:context.play",
+      "intent": "input:action.intent.place",
+      "priority": 100,
+      "enabled": true,
+      "consume": true,
+      "rebindable": true,
+      "slot": "primary",
+      "accessibility_label": "Place piece",
+      "trigger": {
+        "kind": "control",
+        "device": "mouse",
+        "control": "mouse.button.primary",
+        "phase": "press",
+        "modifiers": [],
+        "modifier_policy": "exact"
+      },
+      "processing": {
+        "dead_zone": 0,
+        "sensitivity_numerator": 1,
+        "sensitivity_denominator": 1,
+        "invert": false,
+        "clamp_min": -32768,
+        "clamp_max": 32767
+      }
+    }
+  ],
+  "provenance": {
+    "patch_history": [
+      {
+        "base_revision": 0,
+        "base_content_hash": "31a2797aa4ac251da61934dfa14a5318ee56a8250b52f372521d77b850b984f1",
+        "evidence": [
+          {
+            "evidence_id": "ev:input.0",
+            "path": "connect_complete.py",
+            "kind": "static",
+            "supports": "/input_ir/bindings",
+            "confidence": 0.8,
+            "file_sha256": "de234ef4f3881eba0d1dbb36975aa7944facae9a5b340e1b9a178f5366283636",
+            "span": {
+              "line_start": 128,
+              "line_end": 128
+            }
+          }
+        ],
+        "assumptions": [],
+        "operation_count": 4
+      }
+    ]
+  },
+  "unresolved": []
+}

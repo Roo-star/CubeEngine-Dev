@@ -731,6 +731,27 @@ class RuleRuntime:
         except (ExpressionError, RuleRuntimeError, KeyError, TypeError, ValueError):
             return False
 
+    def unevaluable_actions(self) -> Tuple[Tuple[ActionInstance, str], ...]:
+        """Actions whose actor or precondition cannot be evaluated in the current state.
+
+        ``legal_actions`` deliberately reports an expression error as "illegal", which is
+        safe for play but hides authoring mistakes (a coordinate of the wrong rank, an
+        unguarded out-of-grid read): the game just silently stops offering those moves.
+        This separates "not allowed now" from "cannot be evaluated at all".
+        """
+
+        failures = []
+        for instance in self._catalogue:
+            try:
+                definition = self._actions_by_id[instance.action_id]
+                context = self._context(instance.parameters)
+                self.evaluator.evaluate(definition["actor"], context)
+                if not isinstance(self.evaluator.evaluate(definition["precondition"], context), bool):
+                    raise RuleRuntimeError("precondition must evaluate to a boolean")
+            except (ExpressionError, RuleRuntimeError, KeyError, TypeError, ValueError) as error:
+                failures.append((instance, "{0}: {1}".format(type(error).__name__, error)))
+        return tuple(failures)
+
     def _is_legal_nonterminal(self, instance: ActionInstance) -> bool:
         try:
             definition = self._actions_by_id[instance.action_id]
@@ -1706,6 +1727,20 @@ def _core_functions(runtime: RuleRuntime) -> Dict[str, FunctionSpec]:
             raise ExpressionError("unknown grid state: {0}".format(args[0]))
         return value
 
+    def coord_get(args: Tuple[Any, ...], context: EvaluationContext):
+        coordinate, index = args
+        if isinstance(coordinate, (str, bytes)) or not isinstance(coordinate, Sequence) or not all(
+            isinstance(item, int) and not isinstance(item, bool) for item in coordinate
+        ):
+            raise ExpressionError("core:coord.get requires a coordinate of integers")
+        if isinstance(index, bool) or not isinstance(index, int):
+            raise ExpressionError("core:coord.get index must be an integer")
+        if not 0 <= index < len(coordinate):
+            raise ExpressionError(
+                "core:coord.get index {0} is outside a rank-{1} coordinate".format(index, len(coordinate))
+            )
+        return coordinate[index]
+
     def state_get(args: Tuple[Any, ...], context: EvaluationContext):
         if len(args) not in (1, 2):
             raise ExpressionError("core:state.get expects state ID and optional scope key")
@@ -1826,6 +1861,7 @@ def _core_functions(runtime: RuleRuntime) -> Dict[str, FunctionSpec]:
     return {
         "core:parameter.get": FunctionSpec("core:parameter.get", parameter_get, "core:any", ("core:string",)),
         "core:state.get": FunctionSpec("core:state.get", state_get, "core:any", ("core:any",), variadic=True),
+        "core:coord.get": FunctionSpec("core:coord.get", coord_get, "core:int", ("core:coord", "core:int")),
         "core:entity.component": FunctionSpec("core:entity.component", entity_component, "core:any", ("core:entity_id", "core:string")),
         "core:entity.exists": FunctionSpec("core:entity.exists", entity_exists, "core:bool", ("core:entity_id",)),
         "core:topology.sites": FunctionSpec("core:topology.sites", topology_sites, "core:any", ("core:string",)),

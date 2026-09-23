@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ast
 import hashlib
 import json
 import re
@@ -15,6 +16,9 @@ PROMPT_TEMPLATE_VERSION = "cubeengine.srtp/llm-prompt/2.0"
 EVIDENCE_PACK_VERSION = "cubeengine.srtp/evidence-pack/2.0"
 DEFAULT_MAX_CHARS = 14000
 _SNIPPET_MAX = 160
+_SYMBOL_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*$")
+_SYMBOL_SCAN_MAX_FILES = 200
+_SYMBOL_SCAN_MAX_BYTES = 512 * 1024
 _TOPIC_ALIASES = {
     "direction": "direction_input",
     "direction_input": "direction_input",
@@ -33,7 +37,7 @@ _TOPIC_ALIASES = {
     "wall": "collision",
     "death": "death",
     "game_over": "death",
-    "outcome": "death",
+    "outcome": "outcome",
     "asset": "asset_load",
     "assets": "asset_load",
     "asset_load": "asset_load",
@@ -151,6 +155,7 @@ def collect_evidence_items(
     root = Path(package_root)
     items: List[Dict[str, Any]] = []
     seen: set = set()
+    seen_spans: set = set()
 
     def add(
         *,
@@ -170,8 +175,15 @@ def collect_evidence_items(
         if resolved is None:
             return
         rel = _relpath(root, resolved)
-        digest = file_sha256(resolved)
         span = _normalize_span(line_start, line_end)
+        if span is not None:
+            # Two rows citing the same lines for the same IR path add no evidence
+            # but would crowd a bounded pack.
+            span_key = (rel, span["line_start"], span["line_end"], supports)
+            if span_key in seen_spans:
+                return
+            seen_spans.add(span_key)
+        digest = file_sha256(resolved)
         if span is None and line_start is None:
             # Path-only assets still need a byte span covering the whole file start.
             span = {"byte_start": 0, "byte_end": min(64, resolved.stat().st_size)}
@@ -201,10 +213,13 @@ def collect_evidence_items(
         path = str(source.get("path") or control.get("path") or "")
         line = source.get("line", control.get("line"))
         label = str(control.get("id") or control.get("action") or control.get("key") or index)
-        topic = "direction_input"
-        name = str(control.get("name") or control.get("label") or label).lower()
-        if any(token in name for token in ("quit", "pause", "escape", "space")):
-            topic = "direction_input"
+        name = str(control.get("name") or control.get("label") or control.get("input") or label).lower()
+        topic = (
+            "direction_input"
+            if str(control.get("device") or "keyboard").lower() == "keyboard"
+            and any(token in name for token in ("arrow", "direction"))
+            else "input"
+        )
         add(
             evidence_id="ev:input.{0}".format(_slug(label)),
             rel_path=path,
@@ -229,7 +244,7 @@ def collect_evidence_items(
             line_start=int(line) if isinstance(line, int) else None,
             line_end=int(line) if isinstance(line, int) else None,
             supports="/input_ir/bindings",
-            topic="direction_input",
+            topic="input",
         )
 
     for param in parameters[:40]:
@@ -237,9 +252,10 @@ def collect_evidence_items(
             continue
         locations = param.get("locations") if isinstance(param.get("locations"), list) else []
         param_id = str(param.get("id") or "param")
-        topic = "movement" if any(
+        flow_like = any(
             token in param_id.lower() for token in ("tick", "move", "speed", "interval")
-        ) else "movement"
+        )
+        topic = "movement" if flow_like else "parameter"
         for loc_index, loc in enumerate(locations[:4]):
             if not isinstance(loc, Mapping):
                 continue
@@ -249,7 +265,7 @@ def collect_evidence_items(
                 rel_path=str(loc.get("path") or ""),
                 line_start=int(line) if isinstance(line, int) else None,
                 line_end=int(line) if isinstance(line, int) else None,
-                supports="/rule_ir/flow",
+                supports="/rule_ir/flow" if flow_like else "/rule_ir",
                 topic=topic,
                 detail=str(param.get("label") or param_id),
             )
@@ -276,20 +292,28 @@ def collect_evidence_items(
                 detail=str(event.get("id") or "randomness"),
             )
 
+    source_path = str(
+        partial_schema.get("source", {}).get("path") or ""
+        if isinstance(partial_schema.get("source"), Mapping) else ""
+    )
     for outcome in (partial_schema.get("outcomes") or [])[:12]:
         if not isinstance(outcome, Mapping):
             continue
-        source_ref = outcome.get("source_ref")
-        path, line = _parse_source_ref(source_ref)
-        topic = "death" if any(
-            token in str(outcome.get("id") or outcome.get("name") or "").lower()
-            for token in ("collision", "loss", "fail", "death", "over")
-        ) else "collision"
+        path, line, line_end = _resolve_source_ref(
+            root, outcome.get("source_ref"), preferred_path=source_path,
+        )
+        outcome_name = str(outcome.get("id") or outcome.get("name") or "").lower()
+        if any(token in outcome_name for token in ("collision", "loss", "fail", "death", "over")):
+            topic = "death"
+        elif any(token in outcome_name for token in ("win", "draw", "tie", "victory", "score", "goal")):
+            topic = "outcome"
+        else:
+            topic = "collision"
         add(
             evidence_id="ev:outcome.{0}".format(_slug(str(outcome.get("id") or "outcome"))),
-            rel_path=path or str(partial_schema.get("source", {}).get("path") or ""),
+            rel_path=path or source_path,
             line_start=line,
-            line_end=line,
+            line_end=line_end,
             supports="/rule_ir/outcomes",
             topic=topic,
             detail=str(outcome.get("name") or outcome.get("id") or ""),
@@ -299,17 +323,22 @@ def collect_evidence_items(
     for action in (partial_schema.get("actions") or [])[:16]:
         if not isinstance(action, Mapping):
             continue
-        path, line = _parse_source_ref(action.get("source_ref"))
+        path, line, line_end = _resolve_source_ref(
+            root, action.get("source_ref"), preferred_path=source_path,
+        )
         action_id = str(action.get("id") or action.get("name") or "action")
-        topic = "movement"
         lower = action_id.lower()
         if any(token in lower for token in ("direction", "control", "turn")):
             topic = "direction_input"
+        elif any(token in lower for token in ("move", "advance", "step", "tick", "slide")):
+            topic = "movement"
+        else:
+            topic = "action"
         add(
             evidence_id="ev:action.{0}".format(_slug(action_id)),
             rel_path=path or "",
             line_start=line,
-            line_end=line,
+            line_end=line_end,
             supports="/rule_ir/actions",
             topic=topic,
             detail=str(action.get("verb") or action_id),
@@ -609,6 +638,7 @@ def _prefer_topic_coverage(
         return [dict(item) for item in items if isinstance(item, Mapping)]
     priority = (
         "direction_input", "movement", "food_spawn", "collision", "death", "asset_load",
+        "input", "action", "outcome",
     )
     selected: List[Dict[str, Any]] = []
     seen_ids: set = set()
@@ -629,7 +659,7 @@ def _prefer_topic_coverage(
         if eid:
             seen_ids.add(eid)
 
-    for topic in priority:
+    for topic in list(priority) + sorted(set(by_topic) - set(priority)):
         rows = by_topic.get(topic) or []
         if rows:
             take(rows[0])
@@ -785,6 +815,94 @@ def _read_snippet(path: Path, span: Mapping[str, Any]) -> str:
     return ""
 
 
+def _resolve_source_ref(
+    root: Path, value: Any, *, preferred_path: str = "",
+) -> Tuple[Optional[str], Optional[int], Optional[int]]:
+    """Resolve a Function-1 ``source_ref`` to (path, line_start, line_end).
+
+    Refs come as ``path:line``, ``{path, line}`` or just a function/class name
+    (``tap``, ``Board.drop``). Bare names are located by AST in the package so
+    the whole definition becomes the cited span instead of the ref being lost.
+    """
+
+    path, line = _parse_source_ref(value)
+    if path and _resolve_source_file(root, path) is not None:
+        return path, line, line
+    symbol: Any = None
+    if isinstance(value, Mapping):
+        symbol = value.get("symbol") or value.get("function") or value.get("class") or path
+    elif isinstance(value, str):
+        symbol = value.strip()
+    if isinstance(symbol, str) and _SYMBOL_RE.match(symbol):
+        found = _find_symbol_definition(root, symbol, preferred_path=preferred_path)
+        if found is not None:
+            file_path, start, end = found
+            return _relpath(root, file_path).replace("\\", "/"), start, end
+    return path, line, line
+
+
+def _find_symbol_definition(
+    root: Path, symbol: str, *, preferred_path: str = "",
+) -> Optional[Tuple[Path, int, int]]:
+    """Locate ``def``/``class`` ``symbol`` (optionally ``Class.member``) in the package's Python files."""
+
+    root = Path(root).resolve()
+    try:
+        files = [item.resolve() for item in root.rglob("*.py") if item.is_file()]
+    except OSError:
+        return None
+    preferred = _resolve_source_file(root, preferred_path) if preferred_path else None
+
+    def rank(item: Path) -> Tuple[int, int, str]:
+        try:
+            rel = item.relative_to(root)
+        except ValueError:
+            rel = item
+        return (0 if preferred is not None and item == preferred else 1, len(rel.parts), str(rel))
+
+    parts = symbol.split(".")
+    for item in sorted(files, key=rank)[:_SYMBOL_SCAN_MAX_FILES]:
+        if "__pycache__" in item.parts:
+            continue
+        try:
+            if item.stat().st_size > _SYMBOL_SCAN_MAX_BYTES:
+                continue
+            tree = ast.parse(item.read_text(encoding="utf-8", errors="replace"))
+        except (OSError, SyntaxError, ValueError):
+            continue
+        node = _lookup_definition(tree, parts)
+        if node is not None and isinstance(getattr(node, "lineno", None), int):
+            end = getattr(node, "end_lineno", None)
+            return item, int(node.lineno), int(end if isinstance(end, int) else node.lineno)
+    return None
+
+
+_DEFINITIONS = (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)
+
+
+def _lookup_definition(tree: ast.AST, parts: Sequence[str]) -> Optional[ast.AST]:
+    scope: Any = tree
+    for index, name in enumerate(parts):
+        match = next(
+            (
+                child for child in getattr(scope, "body", [])
+                if isinstance(child, _DEFINITIONS) and child.name == name
+            ),
+            None,
+        )
+        if match is None:
+            if index == 0 and len(parts) == 1:
+                # A bare name may be a method or nested def; take the first by line.
+                nested = [
+                    node for node in ast.walk(tree)
+                    if isinstance(node, _DEFINITIONS) and node.name == name
+                ]
+                return min(nested, key=lambda node: node.lineno) if nested else None
+            return None
+        scope = match
+    return scope
+
+
 def _parse_source_ref(value: Any) -> Tuple[Optional[str], Optional[int]]:
     if isinstance(value, Mapping):
         path = value.get("path") or value.get("file") or value.get("class")
@@ -818,11 +936,15 @@ def _topic_from_key(key: str) -> str:
 def _supports_from_topic(topic: str) -> str:
     return {
         "direction_input": "/input_ir/bindings",
+        "input": "/input_ir/bindings",
         "movement": "/rule_ir/flow",
         "food_spawn": "/rule_ir/actions",
+        "action": "/rule_ir/actions",
         "collision": "/rule_ir/outcomes",
         "death": "/rule_ir/outcomes",
+        "outcome": "/rule_ir/outcomes",
         "asset_load": "/asset_ir/assets",
+        "parameter": "/rule_ir",
     }.get(topic, "/rule_ir")
 
 
