@@ -197,8 +197,12 @@ class OpenRouterLLMClient:
             if _response_finish_reason(response) == "length":
                 raise LLMClientError("model response truncated (finish_reason=length)")
             content = _response_content(response)
+            try:
+                parsed = extract_json_object(content)
+            except LLMClientError as error:
+                raise _with_content(error, content)
             return LLMChatResult(content, str(getattr(response, "provider", "mock") or "mock"),
-                str(getattr(response, "model", "mock") or "mock"), extract_json_object(content))
+                str(getattr(response, "model", "mock") or "mock"), parsed)
         if self._client is None:
             raise LLMTransportError("OpenRouterLLMClient must be used as a context manager")
         payload = {
@@ -245,7 +249,7 @@ class OpenRouterLLMClient:
             # headers, credentials or provider reasoning.
             failure.response_evidence={'response_id':body.get('id'),'content':content,
                 'message_channels':[m.get('channel') for m in messages]}
-            raise failure from error
+            raise _with_content(failure, content) from error
         return LLMChatResult(content, "openrouter", str(body.get("model") or self.model), parsed)
 
     def _request(self, payload):
@@ -312,6 +316,13 @@ class OpenRouterLLMClient:
             request_id = response.headers.get("x-request-id") or body.get("id", "")
             suffix = " Request ID: " + request_id if isinstance(request_id, str) and re.fullmatch(r"[a-zA-Z0-9_-]{1,100}", request_id) else ""
             raise LLMTransportError("OpenRouter HTTP {0}: {1} HTTP attempts: {2}.{3}".format(status, detail, attempt + 1, suffix))
+
+
+def _with_content(error: LLMClientError, content: str) -> LLMClientError:
+    """Keep the raw reply on parse failures so callers can show it back to the model."""
+
+    error.content = content  # type: ignore[attr-defined]
+    return error
 
 
 _FENCE_RE = re.compile(r"```(?:json)?\s*([\s\S]*?)\s*```", re.IGNORECASE)

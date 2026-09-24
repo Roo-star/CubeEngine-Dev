@@ -1019,6 +1019,7 @@ class SourceToIRCompiler:
                 proposal, base_pins,
                 source_root=Path(package.root),
                 evidence_pack=evidence,
+                base_documents=target_docs,
             )
             proposal["unresolved"] = _coerce_unresolved_list(proposal.get("unresolved"))
             _inherit_action_shells(proposal, target_docs)
@@ -1223,7 +1224,24 @@ def _pin_cross_ir_dependencies(
     docs["input_ir"] = seal_input_ir(
         input_doc, revision=int(input_doc.get("revision") or 0),
     )
+    unresolved_before = deepcopy(docs["rule_ir"].get("unresolved"))
     _validate_playable_session(docs)
+    if docs["rule_ir"].get("unresolved") != unresolved_before:
+        # New blockers changed Rule content after sealing: reseal and re-pin
+        # dependants, otherwise the stored content_hash no longer verifies.
+        docs["rule_ir"] = seal_rule_ir(
+            docs["rule_ir"], revision=int(docs["rule_ir"].get("revision") or 0),
+        )
+        rule_pin = {
+            "document_id": docs["rule_ir"]["document_id"],
+            "content_hash": docs["rule_ir"]["content_hash"],
+        }
+        for key, sealer in (("scene_ir", seal_scene_ir), ("input_ir", seal_input_ir)):
+            document = dict(docs[key])
+            dependencies = dict(document.get("dependencies") or {})
+            dependencies["rule_ir"] = dict(rule_pin)
+            document["dependencies"] = dependencies
+            docs[key] = sealer(document, revision=int(document.get("revision") or 0))
     return docs
 
 
@@ -1609,7 +1627,10 @@ def _validate_playable_session(documents: Mapping[str, Mapping[str, Any]]) -> No
         )
 
     initial = (rule.get("state") or {}).get("initial_effects") or []
-    has_placement = False
+    # Placement games (an action writes the grid at a player-chosen coordinate)
+    # legitimately start from an empty board; demanding a pre-placed piece
+    # would push the model to invent setup the source never performs.
+    has_placement = _places_at_parameter(rule, site_vars)
     for effect in initial:
         if not isinstance(effect, Mapping):
             continue
@@ -1654,6 +1675,32 @@ def _validate_playable_session(documents: Mapping[str, Mapping[str, Any]]) -> No
         )
 
     rule["unresolved"] = unresolved
+
+
+def _places_at_parameter(rule: Mapping[str, Any], site_vars: Sequence[str]) -> bool:
+    """True when some action sets a site grid at one of its core:coord parameters."""
+
+    for action in rule.get("actions") or []:
+        if not isinstance(action, Mapping):
+            continue
+        coord_params = {
+            str(item.get("name")) for item in action.get("parameters") or []
+            if isinstance(item, Mapping) and item.get("type") == "core:coord"
+        }
+        if not coord_params:
+            continue
+        for effect in action.get("effects") or []:
+            if not isinstance(effect, Mapping) or effect.get("op") != "grid.set":
+                continue
+            coordinate = effect.get("coordinate")
+            if (
+                effect.get("state") in site_vars
+                and isinstance(coordinate, Mapping)
+                and coordinate.get("op") == "param"
+                and coordinate.get("name") in coord_params
+            ):
+                return True
+    return False
 
 
 def _source_ir_excerpt_for_lift(documents: Mapping[str, Mapping[str, Any]]) -> Dict[str, Any]:
@@ -2445,6 +2492,7 @@ def _normalize_source_proposal(
     base_pins: Mapping[str, Mapping[str, Any]],
     source_root: Optional[Path] = None,
     evidence_pack: Optional[Mapping[str, Any]] = None,
+    base_documents: Optional[Mapping[str, Mapping[str, Any]]] = None,
 ) -> Dict[str, Any]:
     _coerce_proposal_version(proposal)
     proposal.setdefault("proposal_version", LLM_PROPOSAL_VERSION)
@@ -2468,6 +2516,7 @@ def _normalize_source_proposal(
         proposal.setdefault(key, [])
     _normalize_proposal_patches(
         proposal, base_pins, source_root=source_root, evidence_pack=evidence_pack,
+        base_documents=base_documents,
     )
     proposal["unresolved"] = _coerce_unresolved_list(proposal.get("unresolved"))
     return proposal
@@ -2616,8 +2665,13 @@ def _normalize_proposal_patches(
     *,
     source_root: Optional[Path] = None,
     evidence_pack: Optional[Mapping[str, Any]] = None,
+    base_documents: Optional[Mapping[str, Mapping[str, Any]]] = None,
 ) -> None:
-    """Shared Source/Lift patch bucket + envelope normalization."""
+    """Shared Source/Lift patch bucket + envelope normalization.
+
+    ``base_documents`` lets gap bookkeeping see what the base actually still
+    lacks; without it the base is assumed to be a bootstrap shell.
+    """
 
     _lift_patch_entries(proposal, base_pins, source_root=source_root)
     proposal["patches"] = _coerce_patches_object(proposal.get("patches"))
@@ -2653,6 +2707,7 @@ def _normalize_proposal_patches(
             entry = _normalize_patch_entry(
                 item, ir_key=key, source_root=source_root, pin=pin,
                 evidence_pack=evidence_pack,
+                base_unresolved=_unresolved_paths(base_documents, key),
             )
             # Do not copy evidence across IR patches. Missing per-patch evidence
             # must fail validation rather than borrowing unrelated citations.
@@ -2666,6 +2721,7 @@ def _normalize_patch_entry(
     *,
     pin: Optional[Mapping[str, Any]] = None,
     evidence_pack: Optional[Mapping[str, Any]] = None,
+    base_unresolved: Optional[set] = None,
 ) -> Any:
     if not isinstance(item, dict):
         return item
@@ -2741,11 +2797,24 @@ def _normalize_patch_entry(
             })
     elif ir_key == "input_ir":
         _coerce_input_ir_operations(operations)
-    _ensure_unresolved_cleared(item["operations"], ir_key)
+    _ensure_unresolved_cleared(item["operations"], ir_key, base_unresolved=base_unresolved)
     return item
 
 
-def _ensure_unresolved_cleared(operations: List[Any], ir_key: str) -> None:
+def _unresolved_paths(
+    documents: Optional[Mapping[str, Mapping[str, Any]]], key: str,
+) -> Optional[set]:
+    if not isinstance(documents, Mapping) or not isinstance(documents.get(key), Mapping):
+        return None
+    return {
+        str(item.get("path")) for item in documents[key].get("unresolved") or []
+        if isinstance(item, Mapping)
+    }
+
+
+def _ensure_unresolved_cleared(
+    operations: List[Any], ir_key: str, *, base_unresolved: Optional[set] = None,
+) -> None:
     """Release only bootstrap gap paths that this patch actually filled.
 
     Never wipe the whole ``/unresolved`` array just because one major field
@@ -2759,6 +2828,10 @@ def _ensure_unresolved_cleared(operations: List[Any], ir_key: str) -> None:
         return
 
     gaps = _BOOTSTRAP_UNRESOLVED_GAPS.get(ir_key) or []
+    if base_unresolved is not None:
+        # Only gaps the base still has can be kept or released; a filled base
+        # (e.g. the retargeted Source during Spatial Lift) must not regain them.
+        gaps = [gap for gap in gaps if gap.get("path") in base_unresolved]
     if not gaps:
         return
 
@@ -4748,6 +4821,10 @@ def _coerce_entity_component(component: Any, index: int) -> Dict[str, Any]:
     name = component.get("name", component.get("id", "field_{0}".format(index)))
     if not isinstance(name, str) or not name:
         component["name"] = "field_{0}".format(index)
+    elif _SCENE_LOCAL_ID.match(name):
+        # Already a valid local identifier. Runtime functions look components up
+        # by exact name (e.g. core:participant.state reads legacy_state_value).
+        component["name"] = name
     else:
         component["name"] = slugify(str(name), fallback="field_{0}".format(index)).replace(":", ".")
     type_ref = component.get("type")
