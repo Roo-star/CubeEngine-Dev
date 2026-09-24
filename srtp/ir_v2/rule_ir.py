@@ -434,7 +434,7 @@ def _validate_state(
                         diagnostics.append(_error("entity.component_duplicate", path + "/name", "Component name must be unique."))
                     else:
                         names.add(name)
-                    if component.get("type") not in declared_types:
+                    if not isinstance(component.get("type"), str) or component.get("type") not in declared_types:
                         diagnostics.append(_error("type.reference", path + "/type", "Unknown component type reference."))
                     _validate_expression(component.get("default"), path + "/default", diagnostics)
 
@@ -636,7 +636,7 @@ def _validate_expression(value: Any, path: str, diagnostics: List[RuleIRDiagnost
         diagnostics.append(_error("expression.type", path, "Expression must be an AST object."))
         return
     operation = value.get("op")
-    if operation not in _EXPRESSION_OPS:
+    if not isinstance(operation,str) or operation not in _EXPRESSION_OPS:
         diagnostics.append(_error("expression.op", path + "/op", "Unsupported expression operation."))
         return
     from .expression_contracts import expression_schema
@@ -683,7 +683,7 @@ def _validate_commands(
             diagnostics.append(_error("effect.type", item_path, "Effect must be a command object."))
             continue
         operation = command.get("op")
-        if operation not in _COMMAND_OPS:
+        if not isinstance(operation,str) or operation not in _COMMAND_OPS:
             diagnostics.append(_error("effect.op", item_path + "/op", "Unsupported effect operation."))
             continue
         for key,kind in missing_operands(command):

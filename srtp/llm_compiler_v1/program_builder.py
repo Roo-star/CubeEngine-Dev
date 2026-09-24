@@ -117,13 +117,32 @@ def expression(text: str):
                     if isinstance(child,(ast.Compare,ast.BoolOp)) or (isinstance(child,ast.UnaryOp) and isinstance(child.op,ast.Not)):
                         return {'op':'if','condition':result,'then':{'op':'literal','value':1},'else':{'op':'literal','value':0}}
                     return result
-                return {'op':operators[type(node.op)], 'args':[numeric(node.left),numeric(node.right)]}
+                left, right = numeric(node.left), numeric(node.right)
+                if isinstance(node.op, ast.FloorDiv):
+                    # Rule div deliberately requires exact division. Python //
+                    # floors, including negative values; preserve that meaning
+                    # without weakening the runtime's existing AST contract.
+                    remainder = {'op':'mod', 'args':[deepcopy(left),deepcopy(right)]}
+                    left = {'op':'sub', 'args':[left,remainder]}
+                return {'op':operators[type(node.op)], 'args':[left,right]}
         if isinstance(node, ast.UnaryOp) and isinstance(node.op, (ast.Not, ast.USub)):
             return {'op':'not' if isinstance(node.op, ast.Not) else 'neg', 'args':[emit(node.operand)]}
-        if isinstance(node, ast.Compare) and len(node.ops) == 1:
+        if isinstance(node, ast.Compare):
             operators = {ast.Eq:'eq', ast.NotEq:'ne', ast.Lt:'lt', ast.LtE:'lte', ast.Gt:'gt', ast.GtE:'gte'}
-            if type(node.ops[0]) in operators:
-                return {'op':operators[type(node.ops[0])], 'args':[emit(node.left),emit(node.comparators[0])]}
+            comparisons=[]
+            left=node.left
+            for operator,right in zip(node.ops,node.comparators):
+                if type(operator) in operators:
+                    comparison={'op':operators[type(operator)],'args':[emit(left),emit(right)]}
+                elif isinstance(operator,(ast.In,ast.NotIn)):
+                    comparison={'op':'contains','args':[emit(right),emit(left)]}
+                    if isinstance(operator,ast.NotIn): comparison={'op':'not','args':[comparison]}
+                else:
+                    raise ValueError('Unsupported comparison: '+type(operator).__name__)
+                comparisons.append(comparison); left=right
+            # All allowed expressions are pure. The IR and operator retains
+            # Python's short circuit semantics without evaluating later pairs.
+            return comparisons[0] if len(comparisons)==1 else {'op':'and','args':comparisons}
         if isinstance(node, ast.IfExp):
             return {'op':'if', 'condition':emit(node.test), 'then':emit(node.body), 'else':emit(node.orelse)}
         if isinstance(node, ast.Call) and not node.keywords:
@@ -168,6 +187,18 @@ def definition_proposal(payload, *, slot, documents, evidence_pack, job_id, desi
     definition = {key:deepcopy(value) for key,value in definition.items() if key not in ENGINE_OWNED_FIELDS}
     if not definition:
         raise ValueError('Compilation stage requires a nonempty semantic definition')
+    # Check the entire candidate's wire shape before semantic validators or
+    # source IO. Malformed IDs/collections must produce useful repair pointers,
+    # never an unhashable-dict/attribute error that hides the other mistakes.
+    if slot == 'asset_ir' and isinstance(definition.get('assets'), list):
+        for asset in definition['assets']:
+            if isinstance(asset, dict) and isinstance(asset.get('source'), str):
+                uri = asset['source']
+                asset['source'] = {'uri':uri if uri.startswith(('project://','runtime://')) else 'project://' + uri}
+    from srtp.ir_contracts import document_shape_errors
+    shape_issues = document_shape_errors(slot,dict(deepcopy(base),**definition),authoring=True)
+    if shape_issues:
+        raise DefinitionValidationError([slot+' invalid at '+issue for issue in shape_issues])
     citations = payload.get('evidence', [])
     catalog = {e['evidence_id']: e for e in evidence_pack.get('evidence', [])}
     expanded = []
@@ -270,15 +301,16 @@ def definition_proposal(payload, *, slot, documents, evidence_pack, job_id, desi
             candidate['dependencies']=deepcopy(base['dependencies'])
             for key in (('rule_ir','asset_ir') if slot=='scene_ir' else ('rule_ir',)):
                 candidate['dependencies'][key]={'document_id':documents[key]['document_id'],'content_hash':documents[key]['content_hash']}
-        errors=['{0} invalid at {1}: {2}'.format(slot,item.path,item.message)
-                for item in validators[slot](candidate) if item.severity=='error']
         from srtp.scene_ir_v2.component_contracts import backend_diagnostics as scene_errors
         from srtp.asset_ir_v2.recipe_contracts import backend_diagnostics as asset_errors
         from srtp.input_adapter_contract import backend_diagnostics as input_errors
-        try:
-            errors.extend({'asset_ir':asset_errors,'scene_ir':scene_errors,'input_ir':input_errors}[slot](candidate))
-        except (TypeError,KeyError,AttributeError):
-            if not errors: raise
+        # Backend operand shapes must be checked before domain code indexes
+        # their IDs. The wire schema intentionally leaves these objects open.
+        errors={'asset_ir':asset_errors,'scene_ir':scene_errors,'input_ir':input_errors}[slot](candidate)
+        if errors:
+            raise DefinitionValidationError(errors)
+        errors=['{0} invalid at {1}: {2}'.format(slot,item.path,item.message)
+                for item in validators[slot](candidate) if item.severity=='error']
         if errors:
             raise DefinitionValidationError(errors)
     operations = [{'op':'replace' if key in base else 'add', 'path':'/' + key, 'value': value} for key,value in definition.items()]

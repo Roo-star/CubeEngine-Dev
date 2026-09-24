@@ -1,0 +1,5702 @@
+{
+  "origin": "Saved live OpenRouter a1c79ab4aca046b19b919f750f9e269e; original responses unchanged",
+  "rejected_input": {
+    "source_requests": [],
+    "definition": {
+      "metadata": {
+        "title": "Pygame Minesweeper",
+        "description": "Right-click cycles tile marks; left-button release opens an unopened tile or clears a question mark. Escape quits. R is an added full-session restart fallback. Source face-click restart and drag cancellation remain unresolved.",
+        "source_project_hash": "711faede56c844d8c40612a1a285087c2ee39f1b4832974ac3e742125f9bd930"
+      },
+      "contexts": [
+        {
+          "id": "input:context.global",
+          "name": "Application controls",
+          "priority": 100,
+          "enabled_by_default": true,
+          "focus": "global",
+          "consume_policy": "first_match",
+          "exclusive_group": null
+        },
+        {
+          "id": "input:context.board",
+          "name": "Board pointer controls",
+          "priority": 10,
+          "enabled_by_default": true,
+          "focus": "viewport",
+          "consume_policy": "binding",
+          "exclusive_group": null
+        }
+      ],
+      "intents": [
+        {
+          "id": "input:intent.quit",
+          "name": "Quit player",
+          "value_type": "digital",
+          "required": true,
+          "target": {
+            "kind": "host_command",
+            "command": "quit"
+          }
+        },
+        {
+          "id": "input:intent.restart",
+          "name": "Restart entire game",
+          "value_type": "digital",
+          "required": true,
+          "target": {
+            "kind": "host_command",
+            "command": "restart"
+          }
+        },
+        {
+          "id": "input:intent.clear_question",
+          "name": "Clear a questioned tile",
+          "value_type": "digital",
+          "required": true,
+          "target": {
+            "kind": "rule_action",
+            "action": "rule:action.clear_question",
+            "parameters": {
+              "coordinate": {
+                "source": "event_data",
+                "value_type": "core:coord",
+                "key": "rule_coordinate"
+              }
+            }
+          }
+        },
+        {
+          "id": "input:intent.reveal",
+          "name": "Open an unopened tile",
+          "value_type": "digital",
+          "required": true,
+          "target": {
+            "kind": "rule_action",
+            "action": "rule:action.reveal",
+            "parameters": {
+              "coordinate": {
+                "source": "event_data",
+                "value_type": "core:coord",
+                "key": "rule_coordinate"
+              }
+            }
+          }
+        },
+        {
+          "id": "input:intent.cycle_mark",
+          "name": "Cycle a covered tile's mark",
+          "value_type": "digital",
+          "required": true,
+          "target": {
+            "kind": "rule_action",
+            "action": "rule:action.cycle_mark",
+            "parameters": {
+              "coordinate": {
+                "source": "event_data",
+                "value_type": "core:coord",
+                "key": "rule_coordinate"
+              }
+            }
+          }
+        }
+      ],
+      "bindings": [
+        {
+          "id": "input:binding.escape",
+          "name": "Escape quits",
+          "context": "input:context.global",
+          "intent": "input:intent.quit",
+          "priority": 100,
+          "enabled": true,
+          "consume": true,
+          "rebindable": true,
+          "slot": "primary",
+          "accessibility_label": "Press Escape to quit",
+          "trigger": {
+            "kind": "control",
+            "device": "keyboard",
+            "control": "keyboard.key.escape",
+            "phase": "press",
+            "modifiers": [],
+            "modifier_policy": "exact"
+          },
+          "processing": {
+            "dead_zone": 0,
+            "sensitivity_numerator": 1,
+            "sensitivity_denominator": 1,
+            "invert": false,
+            "clamp_min": 0,
+            "clamp_max": 1
+          }
+        },
+        {
+          "id": "input:binding.restart-key",
+          "name": "Keyboard restart fallback",
+          "context": "input:context.global",
+          "intent": "input:intent.restart",
+          "priority": 90,
+          "enabled": true,
+          "consume": true,
+          "rebindable": true,
+          "slot": "accessibility",
+          "accessibility_label": "Press R to start a new game, including after winning or losing",
+          "trigger": {
+            "kind": "control",
+            "device": "keyboard",
+            "control": "keyboard.key.r",
+            "phase": "press",
+            "modifiers": [],
+            "modifier_policy": "exact"
+          },
+          "processing": {
+            "dead_zone": 0,
+            "sensitivity_numerator": 1,
+            "sensitivity_denominator": 1,
+            "invert": false,
+            "clamp_min": 0,
+            "clamp_max": 1
+          }
+        },
+        {
+          "id": "input:binding.clear-question",
+          "name": "Left-button release clears a question mark",
+          "context": "input:context.board",
+          "intent": "input:intent.clear_question",
+          "priority": 200,
+          "enabled": true,
+          "consume": false,
+          "rebindable": true,
+          "slot": "primary",
+          "accessibility_label": "Release the left mouse button on a questioned tile to clear its question mark",
+          "trigger": {
+            "kind": "control",
+            "device": "mouse",
+            "control": "mouse.button.primary",
+            "phase": "release",
+            "modifiers": [],
+            "modifier_policy": "exact"
+          },
+          "processing": {
+            "dead_zone": 0,
+            "sensitivity_numerator": 1,
+            "sensitivity_denominator": 1,
+            "invert": false,
+            "clamp_min": 0,
+            "clamp_max": 1
+          }
+        },
+        {
+          "id": "input:binding.reveal",
+          "name": "Left-button release opens an unopened tile",
+          "context": "input:context.board",
+          "intent": "input:intent.reveal",
+          "priority": 100,
+          "enabled": true,
+          "consume": false,
+          "rebindable": true,
+          "slot": "secondary",
+          "accessibility_label": "Release the left mouse button on an unopened tile to reveal it",
+          "trigger": {
+            "kind": "control",
+            "device": "mouse",
+            "control": "mouse.button.primary",
+            "phase": "release",
+            "modifiers": [],
+            "modifier_policy": "exact"
+          },
+          "processing": {
+            "dead_zone": 0,
+            "sensitivity_numerator": 1,
+            "sensitivity_denominator": 1,
+            "invert": false,
+            "clamp_min": 0,
+            "clamp_max": 1
+          }
+        },
+        {
+          "id": "input:binding.mark",
+          "name": "Right-button press cycles a tile's mark",
+          "context": "input:context.board",
+          "intent": "input:intent.cycle_mark",
+          "priority": 100,
+          "enabled": true,
+          "consume": true,
+          "rebindable": true,
+          "slot": "primary",
+          "accessibility_label": "Right-click a covered tile to cycle flag, question mark, and no mark",
+          "trigger": {
+            "kind": "control",
+            "device": "mouse",
+            "control": "mouse.button.secondary",
+            "phase": "press",
+            "modifiers": [],
+            "modifier_policy": "exact"
+          },
+          "processing": {
+            "dead_zone": 0,
+            "sensitivity_numerator": 1,
+            "sensitivity_denominator": 1,
+            "invert": false,
+            "clamp_min": 0,
+            "clamp_max": 1
+          }
+        }
+      ],
+      "unresolved": [
+        {
+          "path": "/bindings/face-restart",
+          "reason": "The source restarts only after a primary-button press and release both on the face. This backend's Input bindings cannot filter for scene:face or require a same-target press and release. An unfiltered mouse-release restart would also restart on board clicks. R provides full-session restart but does not preserve the clickable face control.",
+          "required": true,
+          "owner": "adapter"
+        },
+        {
+          "path": "/bindings/primary-drag-cancel",
+          "reason": "The source cancels a tile click when the primary-button release addresses a different tile from the press. Input bindings cannot compare the two rule coordinates. Scene pressed feedback reverts visually but cannot prevent a release binding from attempting a Rule action.",
+          "required": true,
+          "owner": "adapter"
+        }
+      ]
+    },
+    "evidence": [
+      "minesweeper/__main__.py:1-168@c734448d03ecdb6ef6693a03e5d711ec2d27145d13ba38b6455271c50677cd5a",
+      "minesweeper/user_interface.py:1-70@3eda8eaeb4b8e12b397e397e305f662a027911d38c649d80f8f6b32d0f67f23a",
+      "minesweeper/user_interface_board.py:1-152@1e552aa64378928d6297a68abee49dc425b20e6bd240a9752b92f549589c89fc",
+      "minesweeper/user_interface_face.py:1-88@9ffe4fbb299b21934f4ad01b2b4075beb09af5e37bd72ed970e90464f9f10f97"
+    ],
+    "behavior_tests": [
+      {
+        "name": "Right press flags an unopened tile",
+        "steps": [
+          {
+            "control": "mouse.button.secondary",
+            "phase": "press",
+            "rule_coordinate": [
+              0,
+              0
+            ]
+          }
+        ],
+        "expect": {
+          "action": "rule:action.cycle_mark",
+          "coordinate": [
+            0,
+            0
+          ],
+          "cells": [
+            {
+              "state": "rule:state.cover",
+              "coordinate": [
+                0,
+                0
+              ],
+              "value": 1
+            }
+          ]
+        }
+      },
+      {
+        "name": "Left release opens an unopened tile",
+        "steps": [
+          {
+            "control": "mouse.button.primary",
+            "phase": "press",
+            "rule_coordinate": [
+              0,
+              0
+            ]
+          },
+          {
+            "control": "mouse.button.primary",
+            "phase": "release",
+            "rule_coordinate": [
+              0,
+              0
+            ]
+          }
+        ],
+        "expect": {
+          "accepted_action": "rule:action.reveal",
+          "rejected_action": "rule:action.clear_question"
+        }
+      },
+      {
+        "name": "Left release clears a question mark without opening",
+        "setup": {
+          "cells": [
+            {
+              "state": "rule:state.cover",
+              "coordinate": [
+                0,
+                0
+              ],
+              "value": 2
+            }
+          ]
+        },
+        "steps": [
+          {
+            "control": "mouse.button.primary",
+            "phase": "press",
+            "rule_coordinate": [
+              0,
+              0
+            ]
+          },
+          {
+            "control": "mouse.button.primary",
+            "phase": "release",
+            "rule_coordinate": [
+              0,
+              0
+            ]
+          }
+        ],
+        "expect": {
+          "accepted_action": "rule:action.clear_question",
+          "rejected_action": "rule:action.reveal",
+          "cells": [
+            {
+              "state": "rule:state.cover",
+              "coordinate": [
+                0,
+                0
+              ],
+              "value": 0
+            }
+          ]
+        }
+      },
+      {
+        "name": "Restart remains available after loss",
+        "setup": {
+          "globals": {
+            "rule:state.result": 1
+          }
+        },
+        "steps": [
+          {
+            "control": "keyboard.key.r",
+            "phase": "press"
+          }
+        ],
+        "expect": {
+          "host_command": "restart",
+          "new_session": true
+        }
+      },
+      {
+        "name": "Escape quits without a Rule action",
+        "steps": [
+          {
+            "control": "keyboard.key.escape",
+            "phase": "press"
+          }
+        ],
+        "expect": {
+          "host_command": "quit"
+        }
+      }
+    ],
+    "assumptions": [
+      "R is an added accessibility fallback, not a source control.",
+      "A picked topology cell supplies event_data.rule_coordinate. The two non-consuming primary-release bindings target mutually exclusive Rule preconditions: cover 2 permits clear_question, whereas cover 0 permits reveal."
+    ]
+  },
+  "documents": {
+    "rule_ir": {
+      "ir_version": "cubeengine.rule-ir/2.0-alpha.1",
+      "document_id": "rule:game.pygame.minesweeper.source",
+      "revision": 1,
+      "content_hash": "f5ebc1e26af13ede695a97fe8cd6cc6e05960530c489f2b51a21f5be7b05de0f",
+      "metadata": {
+        "title": "Pygame Minesweeper",
+        "description": "The launcher starts a 10×10 game with ten mines. Right-click cycles unopened tiles through flag, question mark, and unopened. Left-click clears a question mark or opens a tile. The first opening relocates mines out of its surrounding area; opening a mine loses, and opening all safe tiles wins.",
+        "source_project_hash": "711faede56c844d8c40612a1a285087c2ee39f1b4832974ac3e742125f9bd930",
+        "determinism": "seeded"
+      },
+      "dependencies": {
+        "scene_ir": null,
+        "asset_ir": null,
+        "input_ir": null,
+        "extensions": []
+      },
+      "parameters": [],
+      "types": [],
+      "participants": [
+        {
+          "id": "rule:participant.player",
+          "name": "Player",
+          "kind": "human"
+        }
+      ],
+      "topologies": [
+        {
+          "id": "rule:topology.board",
+          "name": "Basic board",
+          "kind": "rect_grid",
+          "anchor": "cell",
+          "axes": [
+            {
+              "name": "row",
+              "extent": 10,
+              "boundary": "bounded"
+            },
+            {
+              "name": "column",
+              "extent": 10,
+              "boundary": "bounded"
+            }
+          ],
+          "neighborhoods": [
+            {
+              "name": "adjacent_eight",
+              "diagonals": true
+            }
+          ]
+        }
+      ],
+      "state": {
+        "variables": [
+          {
+            "id": "rule:state.mines",
+            "name": "Mine locations",
+            "type": "core:int",
+            "scope": "topology_site",
+            "topology": "rule:topology.board",
+            "initial": {
+              "op": "literal",
+              "value": 0
+            }
+          },
+          {
+            "id": "rule:state.number",
+            "name": "Adjacent mine count, or 9 for a mine",
+            "type": "core:int",
+            "scope": "topology_site",
+            "topology": "rule:topology.board",
+            "initial": {
+              "op": "literal",
+              "value": 0
+            }
+          },
+          {
+            "id": "rule:state.cover",
+            "name": "0 unopened, 1 flagged, 2 questioned, 3 opened, 4 detonated, 5 incorrect flag, 6 exposed mine",
+            "type": "core:int",
+            "scope": "topology_site",
+            "topology": "rule:topology.board",
+            "initial": {
+              "op": "literal",
+              "value": 0
+            }
+          },
+          {
+            "id": "rule:state.flood",
+            "name": "Transient flood traversal value",
+            "type": "core:int",
+            "scope": "topology_site",
+            "topology": "rule:topology.board",
+            "initial": {
+              "op": "literal",
+              "value": 9
+            }
+          },
+          {
+            "id": "rule:state.flags",
+            "name": "Flags placed by the player",
+            "type": "core:int",
+            "scope": "global",
+            "initial": {
+              "op": "literal",
+              "value": 0
+            }
+          },
+          {
+            "id": "rule:state.opened_count",
+            "name": "Tiles opened by the core board",
+            "type": "core:int",
+            "scope": "global",
+            "initial": {
+              "op": "literal",
+              "value": 0
+            }
+          },
+          {
+            "id": "rule:state.result",
+            "name": "0 playing, 1 loss, 2 win",
+            "type": "core:int",
+            "scope": "global",
+            "initial": {
+              "op": "literal",
+              "value": 0
+            }
+          },
+          {
+            "id": "rule:state.pending",
+            "name": "First-opening relocation in progress",
+            "type": "core:int",
+            "scope": "global",
+            "initial": {
+              "op": "literal",
+              "value": 0
+            }
+          },
+          {
+            "id": "rule:state.adjacent_count",
+            "name": "Mine-counting accumulator",
+            "type": "core:int",
+            "scope": "global",
+            "initial": {
+              "op": "literal",
+              "value": 0
+            }
+          },
+          {
+            "id": "rule:state.timer_active",
+            "name": "First tile has been opened",
+            "type": "core:int",
+            "scope": "global",
+            "initial": {
+              "op": "literal",
+              "value": 0
+            }
+          },
+          {
+            "id": "rule:state.timer_ticks",
+            "name": "Timer ticks within the current second",
+            "type": "core:int",
+            "scope": "global",
+            "initial": {
+              "op": "literal",
+              "value": 0
+            }
+          },
+          {
+            "id": "rule:state.seconds",
+            "name": "Elapsed whole seconds, frozen at game end",
+            "type": "core:int",
+            "scope": "global",
+            "initial": {
+              "op": "literal",
+              "value": 0
+            }
+          }
+        ],
+        "entity_types": [],
+        "initial_effects": [
+          {
+            "op": "random.draw",
+            "stream": "rule:random.mines",
+            "distribution": {
+              "kind": "shuffle",
+              "values": {
+                "op": "call",
+                "function": "core:topology.sites",
+                "args": [
+                  {
+                    "op": "literal",
+                    "value": "rule:topology.board"
+                  }
+                ]
+              }
+            },
+            "as": "initial_shuffle"
+          },
+          {
+            "op": "foreach",
+            "query": {
+              "op": "call",
+              "function": "core:sequence.slice",
+              "args": [
+                {
+                  "op": "var",
+                  "name": "initial_shuffle"
+                },
+                {
+                  "op": "literal",
+                  "value": 0
+                },
+                {
+                  "op": "literal",
+                  "value": 10
+                }
+              ]
+            },
+            "as": "mine_site",
+            "effects": [
+              {
+                "op": "grid.set",
+                "state": "rule:state.mines",
+                "coordinate": {
+                  "op": "var",
+                  "name": "mine_site"
+                },
+                "value": {
+                  "op": "literal",
+                  "value": 1
+                }
+              }
+            ]
+          }
+        ],
+        "information_model": "perfect"
+      },
+      "queries": [],
+      "events": [],
+      "actions": [
+        {
+          "id": "rule:action.cycle_mark",
+          "name": "Cycle unopened → flag → question → unopened",
+          "actor": {
+            "op": "literal",
+            "value": "rule:participant.player"
+          },
+          "parameters": [
+            {
+              "name": "coordinate",
+              "type": "core:coord",
+              "domain": {
+                "op": "call",
+                "function": "core:topology.sites",
+                "args": [
+                  {
+                    "op": "literal",
+                    "value": "rule:topology.board"
+                  }
+                ]
+              }
+            }
+          ],
+          "precondition": {
+            "op": "and",
+            "args": [
+              {
+                "op": "eq",
+                "args": [
+                  {
+                    "op": "call",
+                    "function": "core:state.get",
+                    "args": [
+                      {
+                        "op": "literal",
+                        "value": "rule:state.result"
+                      }
+                    ]
+                  },
+                  {
+                    "op": "literal",
+                    "value": 0
+                  }
+                ]
+              },
+              {
+                "op": "call",
+                "function": "core:topology.contains",
+                "args": [
+                  {
+                    "op": "literal",
+                    "value": "rule:topology.board"
+                  },
+                  {
+                    "op": "param",
+                    "name": "coordinate"
+                  }
+                ]
+              },
+              {
+                "op": "gte",
+                "args": [
+                  {
+                    "op": "call",
+                    "function": "core:grid.get",
+                    "args": [
+                      {
+                        "op": "literal",
+                        "value": "rule:state.cover"
+                      },
+                      {
+                        "op": "param",
+                        "name": "coordinate"
+                      }
+                    ]
+                  },
+                  {
+                    "op": "literal",
+                    "value": 0
+                  }
+                ]
+              },
+              {
+                "op": "lt",
+                "args": [
+                  {
+                    "op": "call",
+                    "function": "core:grid.get",
+                    "args": [
+                      {
+                        "op": "literal",
+                        "value": "rule:state.cover"
+                      },
+                      {
+                        "op": "param",
+                        "name": "coordinate"
+                      }
+                    ]
+                  },
+                  {
+                    "op": "literal",
+                    "value": 3
+                  }
+                ]
+              }
+            ]
+          },
+          "effects": [
+            {
+              "op": "state.increment",
+              "target": {
+                "op": "literal",
+                "value": "rule:state.flags"
+              },
+              "value": {
+                "op": "if",
+                "condition": {
+                  "op": "eq",
+                  "args": [
+                    {
+                      "op": "call",
+                      "function": "core:grid.get",
+                      "args": [
+                        {
+                          "op": "literal",
+                          "value": "rule:state.cover"
+                        },
+                        {
+                          "op": "param",
+                          "name": "coordinate"
+                        }
+                      ]
+                    },
+                    {
+                      "op": "literal",
+                      "value": 0
+                    }
+                  ]
+                },
+                "then": {
+                  "op": "literal",
+                  "value": 1
+                },
+                "else": {
+                  "op": "if",
+                  "condition": {
+                    "op": "eq",
+                    "args": [
+                      {
+                        "op": "call",
+                        "function": "core:grid.get",
+                        "args": [
+                          {
+                            "op": "literal",
+                            "value": "rule:state.cover"
+                          },
+                          {
+                            "op": "param",
+                            "name": "coordinate"
+                          }
+                        ]
+                      },
+                      {
+                        "op": "literal",
+                        "value": 1
+                      }
+                    ]
+                  },
+                  "then": {
+                    "op": "neg",
+                    "args": [
+                      {
+                        "op": "literal",
+                        "value": 1
+                      }
+                    ]
+                  },
+                  "else": {
+                    "op": "literal",
+                    "value": 0
+                  }
+                }
+              }
+            },
+            {
+              "op": "grid.set",
+              "state": "rule:state.cover",
+              "coordinate": {
+                "op": "param",
+                "name": "coordinate"
+              },
+              "value": {
+                "op": "mod",
+                "args": [
+                  {
+                    "op": "add",
+                    "args": [
+                      {
+                        "op": "call",
+                        "function": "core:grid.get",
+                        "args": [
+                          {
+                            "op": "literal",
+                            "value": "rule:state.cover"
+                          },
+                          {
+                            "op": "param",
+                            "name": "coordinate"
+                          }
+                        ]
+                      },
+                      {
+                        "op": "literal",
+                        "value": 1
+                      }
+                    ]
+                  },
+                  {
+                    "op": "literal",
+                    "value": 3
+                  }
+                ]
+              }
+            }
+          ],
+          "timing": {
+            "phase": "rule:phase.play"
+          },
+          "encoding": {
+            "kind": "parameter_product"
+          }
+        },
+        {
+          "id": "rule:action.clear_question",
+          "name": "Left-click a question mark without opening the tile",
+          "actor": {
+            "op": "literal",
+            "value": "rule:participant.player"
+          },
+          "parameters": [
+            {
+              "name": "coordinate",
+              "type": "core:coord",
+              "domain": {
+                "op": "call",
+                "function": "core:topology.sites",
+                "args": [
+                  {
+                    "op": "literal",
+                    "value": "rule:topology.board"
+                  }
+                ]
+              }
+            }
+          ],
+          "precondition": {
+            "op": "and",
+            "args": [
+              {
+                "op": "eq",
+                "args": [
+                  {
+                    "op": "call",
+                    "function": "core:state.get",
+                    "args": [
+                      {
+                        "op": "literal",
+                        "value": "rule:state.result"
+                      }
+                    ]
+                  },
+                  {
+                    "op": "literal",
+                    "value": 0
+                  }
+                ]
+              },
+              {
+                "op": "call",
+                "function": "core:topology.contains",
+                "args": [
+                  {
+                    "op": "literal",
+                    "value": "rule:topology.board"
+                  },
+                  {
+                    "op": "param",
+                    "name": "coordinate"
+                  }
+                ]
+              },
+              {
+                "op": "eq",
+                "args": [
+                  {
+                    "op": "call",
+                    "function": "core:grid.get",
+                    "args": [
+                      {
+                        "op": "literal",
+                        "value": "rule:state.cover"
+                      },
+                      {
+                        "op": "param",
+                        "name": "coordinate"
+                      }
+                    ]
+                  },
+                  {
+                    "op": "literal",
+                    "value": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "effects": [
+            {
+              "op": "grid.set",
+              "state": "rule:state.cover",
+              "coordinate": {
+                "op": "param",
+                "name": "coordinate"
+              },
+              "value": {
+                "op": "literal",
+                "value": 0
+              }
+            }
+          ],
+          "timing": {
+            "phase": "rule:phase.play"
+          },
+          "encoding": {
+            "kind": "parameter_product"
+          }
+        },
+        {
+          "id": "rule:action.reveal",
+          "name": "Open an unopened tile",
+          "actor": {
+            "op": "literal",
+            "value": "rule:participant.player"
+          },
+          "parameters": [
+            {
+              "name": "coordinate",
+              "type": "core:coord",
+              "domain": {
+                "op": "call",
+                "function": "core:topology.sites",
+                "args": [
+                  {
+                    "op": "literal",
+                    "value": "rule:topology.board"
+                  }
+                ]
+              }
+            }
+          ],
+          "precondition": {
+            "op": "and",
+            "args": [
+              {
+                "op": "eq",
+                "args": [
+                  {
+                    "op": "call",
+                    "function": "core:state.get",
+                    "args": [
+                      {
+                        "op": "literal",
+                        "value": "rule:state.result"
+                      }
+                    ]
+                  },
+                  {
+                    "op": "literal",
+                    "value": 0
+                  }
+                ]
+              },
+              {
+                "op": "call",
+                "function": "core:topology.contains",
+                "args": [
+                  {
+                    "op": "literal",
+                    "value": "rule:topology.board"
+                  },
+                  {
+                    "op": "param",
+                    "name": "coordinate"
+                  }
+                ]
+              },
+              {
+                "op": "eq",
+                "args": [
+                  {
+                    "op": "call",
+                    "function": "core:grid.get",
+                    "args": [
+                      {
+                        "op": "literal",
+                        "value": "rule:state.cover"
+                      },
+                      {
+                        "op": "param",
+                        "name": "coordinate"
+                      }
+                    ]
+                  },
+                  {
+                    "op": "literal",
+                    "value": 0
+                  }
+                ]
+              }
+            ]
+          },
+          "effects": [
+            {
+              "op": "foreach",
+              "query": {
+                "op": "if",
+                "condition": {
+                  "op": "eq",
+                  "args": [
+                    {
+                      "op": "call",
+                      "function": "core:state.get",
+                      "args": [
+                        {
+                          "op": "literal",
+                          "value": "rule:state.opened_count"
+                        }
+                      ]
+                    },
+                    {
+                      "op": "literal",
+                      "value": 0
+                    }
+                  ]
+                },
+                "then": {
+                  "op": "list",
+                  "items": [
+                    {
+                      "op": "param",
+                      "name": "coordinate"
+                    }
+                  ]
+                },
+                "else": {
+                  "op": "list",
+                  "items": []
+                }
+              },
+              "as": "first_click",
+              "effects": [
+                {
+                  "op": "state.set",
+                  "target": {
+                    "op": "literal",
+                    "value": "rule:state.timer_active"
+                  },
+                  "value": {
+                    "op": "literal",
+                    "value": 1
+                  }
+                },
+                {
+                  "op": "foreach",
+                  "query": {
+                    "op": "call",
+                    "function": "core:sequence.concat",
+                    "args": [
+                      {
+                        "op": "list",
+                        "items": [
+                          {
+                            "op": "param",
+                            "name": "coordinate"
+                          }
+                        ]
+                      },
+                      {
+                        "op": "call",
+                        "function": "core:topology.neighbors",
+                        "args": [
+                          {
+                            "op": "literal",
+                            "value": "rule:topology.board"
+                          },
+                          {
+                            "op": "param",
+                            "name": "coordinate"
+                          },
+                          {
+                            "op": "literal",
+                            "value": true
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  "as": "protected_site",
+                  "effects": [
+                    {
+                      "op": "foreach",
+                      "query": {
+                        "op": "if",
+                        "condition": {
+                          "op": "eq",
+                          "args": [
+                            {
+                              "op": "call",
+                              "function": "core:grid.get",
+                              "args": [
+                                {
+                                  "op": "literal",
+                                  "value": "rule:state.mines"
+                                },
+                                {
+                                  "op": "var",
+                                  "name": "protected_site"
+                                }
+                              ]
+                            },
+                            {
+                              "op": "literal",
+                              "value": 1
+                            }
+                          ]
+                        },
+                        "then": {
+                          "op": "list",
+                          "items": [
+                            {
+                              "op": "var",
+                              "name": "protected_site"
+                            }
+                          ]
+                        },
+                        "else": {
+                          "op": "list",
+                          "items": []
+                        }
+                      },
+                      "as": "mine_to_move",
+                      "effects": [
+                        {
+                          "op": "state.set",
+                          "target": {
+                            "op": "literal",
+                            "value": "rule:state.pending"
+                          },
+                          "value": {
+                            "op": "literal",
+                            "value": 1
+                          }
+                        },
+                        {
+                          "op": "random.draw",
+                          "stream": "rule:random.mines",
+                          "distribution": {
+                            "kind": "shuffle",
+                            "values": {
+                              "op": "call",
+                              "function": "core:topology.sites",
+                              "args": [
+                                {
+                                  "op": "literal",
+                                  "value": "rule:topology.board"
+                                }
+                              ]
+                            }
+                          },
+                          "as": "relocation_order"
+                        },
+                        {
+                          "op": "foreach",
+                          "query": {
+                            "op": "var",
+                            "name": "relocation_order"
+                          },
+                          "as": "destination",
+                          "effects": [
+                            {
+                              "op": "foreach",
+                              "query": {
+                                "op": "if",
+                                "condition": {
+                                  "op": "and",
+                                  "args": [
+                                    {
+                                      "op": "eq",
+                                      "args": [
+                                        {
+                                          "op": "call",
+                                          "function": "core:state.get",
+                                          "args": [
+                                            {
+                                              "op": "literal",
+                                              "value": "rule:state.pending"
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "op": "literal",
+                                          "value": 1
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "op": "eq",
+                                      "args": [
+                                        {
+                                          "op": "call",
+                                          "function": "core:grid.get",
+                                          "args": [
+                                            {
+                                              "op": "literal",
+                                              "value": "rule:state.mines"
+                                            },
+                                            {
+                                              "op": "var",
+                                              "name": "destination"
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "op": "literal",
+                                          "value": 0
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "op": "ne",
+                                      "args": [
+                                        {
+                                          "op": "var",
+                                          "name": "destination"
+                                        },
+                                        {
+                                          "op": "param",
+                                          "name": "coordinate"
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "op": "not",
+                                      "args": [
+                                        {
+                                          "op": "contains",
+                                          "args": [
+                                            {
+                                              "op": "call",
+                                              "function": "core:topology.neighbors",
+                                              "args": [
+                                                {
+                                                  "op": "literal",
+                                                  "value": "rule:topology.board"
+                                                },
+                                                {
+                                                  "op": "param",
+                                                  "name": "coordinate"
+                                                },
+                                                {
+                                                  "op": "literal",
+                                                  "value": true
+                                                }
+                                              ]
+                                            },
+                                            {
+                                              "op": "var",
+                                              "name": "destination"
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                },
+                                "then": {
+                                  "op": "list",
+                                  "items": [
+                                    {
+                                      "op": "var",
+                                      "name": "destination"
+                                    }
+                                  ]
+                                },
+                                "else": {
+                                  "op": "list",
+                                  "items": []
+                                }
+                              },
+                              "as": "chosen_destination",
+                              "effects": [
+                                {
+                                  "op": "grid.set",
+                                  "state": "rule:state.mines",
+                                  "coordinate": {
+                                    "op": "var",
+                                    "name": "chosen_destination"
+                                  },
+                                  "value": {
+                                    "op": "literal",
+                                    "value": 1
+                                  }
+                                },
+                                {
+                                  "op": "grid.set",
+                                  "state": "rule:state.mines",
+                                  "coordinate": {
+                                    "op": "var",
+                                    "name": "mine_to_move"
+                                  },
+                                  "value": {
+                                    "op": "literal",
+                                    "value": 0
+                                  }
+                                },
+                                {
+                                  "op": "state.set",
+                                  "target": {
+                                    "op": "literal",
+                                    "value": "rule:state.pending"
+                                  },
+                                  "value": {
+                                    "op": "literal",
+                                    "value": 0
+                                  }
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "op": "foreach",
+                  "query": {
+                    "op": "call",
+                    "function": "core:topology.sites",
+                    "args": [
+                      {
+                        "op": "literal",
+                        "value": "rule:topology.board"
+                      }
+                    ]
+                  },
+                  "as": "numbered_site",
+                  "effects": [
+                    {
+                      "op": "state.set",
+                      "target": {
+                        "op": "literal",
+                        "value": "rule:state.adjacent_count"
+                      },
+                      "value": {
+                        "op": "literal",
+                        "value": 0
+                      }
+                    },
+                    {
+                      "op": "foreach",
+                      "query": {
+                        "op": "call",
+                        "function": "core:topology.neighbors",
+                        "args": [
+                          {
+                            "op": "literal",
+                            "value": "rule:topology.board"
+                          },
+                          {
+                            "op": "var",
+                            "name": "numbered_site"
+                          },
+                          {
+                            "op": "literal",
+                            "value": true
+                          }
+                        ]
+                      },
+                      "as": "neighbor",
+                      "effects": [
+                        {
+                          "op": "state.increment",
+                          "target": {
+                            "op": "literal",
+                            "value": "rule:state.adjacent_count"
+                          },
+                          "value": {
+                            "op": "call",
+                            "function": "core:grid.get",
+                            "args": [
+                              {
+                                "op": "literal",
+                                "value": "rule:state.mines"
+                              },
+                              {
+                                "op": "var",
+                                "name": "neighbor"
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "op": "grid.set",
+                      "state": "rule:state.number",
+                      "coordinate": {
+                        "op": "var",
+                        "name": "numbered_site"
+                      },
+                      "value": {
+                        "op": "if",
+                        "condition": {
+                          "op": "eq",
+                          "args": [
+                            {
+                              "op": "call",
+                              "function": "core:grid.get",
+                              "args": [
+                                {
+                                  "op": "literal",
+                                  "value": "rule:state.mines"
+                                },
+                                {
+                                  "op": "var",
+                                  "name": "numbered_site"
+                                }
+                              ]
+                            },
+                            {
+                              "op": "literal",
+                              "value": 1
+                            }
+                          ]
+                        },
+                        "then": {
+                          "op": "literal",
+                          "value": 9
+                        },
+                        "else": {
+                          "op": "call",
+                          "function": "core:state.get",
+                          "args": [
+                            {
+                              "op": "literal",
+                              "value": "rule:state.adjacent_count"
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "op": "foreach",
+              "query": {
+                "op": "if",
+                "condition": {
+                  "op": "eq",
+                  "args": [
+                    {
+                      "op": "call",
+                      "function": "core:grid.get",
+                      "args": [
+                        {
+                          "op": "literal",
+                          "value": "rule:state.mines"
+                        },
+                        {
+                          "op": "param",
+                          "name": "coordinate"
+                        }
+                      ]
+                    },
+                    {
+                      "op": "literal",
+                      "value": 1
+                    }
+                  ]
+                },
+                "then": {
+                  "op": "list",
+                  "items": [
+                    {
+                      "op": "param",
+                      "name": "coordinate"
+                    }
+                  ]
+                },
+                "else": {
+                  "op": "list",
+                  "items": []
+                }
+              },
+              "as": "detonated",
+              "effects": [
+                {
+                  "op": "state.increment",
+                  "target": {
+                    "op": "literal",
+                    "value": "rule:state.opened_count"
+                  },
+                  "value": {
+                    "op": "literal",
+                    "value": 1
+                  }
+                },
+                {
+                  "op": "grid.set",
+                  "state": "rule:state.cover",
+                  "coordinate": {
+                    "op": "param",
+                    "name": "coordinate"
+                  },
+                  "value": {
+                    "op": "literal",
+                    "value": 4
+                  }
+                },
+                {
+                  "op": "state.set",
+                  "target": {
+                    "op": "literal",
+                    "value": "rule:state.result"
+                  },
+                  "value": {
+                    "op": "literal",
+                    "value": 1
+                  }
+                },
+                {
+                  "op": "foreach",
+                  "query": {
+                    "op": "call",
+                    "function": "core:topology.sites",
+                    "args": [
+                      {
+                        "op": "literal",
+                        "value": "rule:topology.board"
+                      }
+                    ]
+                  },
+                  "as": "loss_site",
+                  "effects": [
+                    {
+                      "op": "foreach",
+                      "query": {
+                        "op": "if",
+                        "condition": {
+                          "op": "and",
+                          "args": [
+                            {
+                              "op": "eq",
+                              "args": [
+                                {
+                                  "op": "call",
+                                  "function": "core:grid.get",
+                                  "args": [
+                                    {
+                                      "op": "literal",
+                                      "value": "rule:state.mines"
+                                    },
+                                    {
+                                      "op": "var",
+                                      "name": "loss_site"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "op": "literal",
+                                  "value": 1
+                                }
+                              ]
+                            },
+                            {
+                              "op": "eq",
+                              "args": [
+                                {
+                                  "op": "call",
+                                  "function": "core:grid.get",
+                                  "args": [
+                                    {
+                                      "op": "literal",
+                                      "value": "rule:state.cover"
+                                    },
+                                    {
+                                      "op": "var",
+                                      "name": "loss_site"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "op": "literal",
+                                  "value": 0
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        "then": {
+                          "op": "list",
+                          "items": [
+                            {
+                              "op": "var",
+                              "name": "loss_site"
+                            }
+                          ]
+                        },
+                        "else": {
+                          "op": "list",
+                          "items": []
+                        }
+                      },
+                      "as": "unflagged_mine",
+                      "effects": [
+                        {
+                          "op": "grid.set",
+                          "state": "rule:state.cover",
+                          "coordinate": {
+                            "op": "var",
+                            "name": "unflagged_mine"
+                          },
+                          "value": {
+                            "op": "literal",
+                            "value": 6
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "op": "foreach",
+                      "query": {
+                        "op": "if",
+                        "condition": {
+                          "op": "and",
+                          "args": [
+                            {
+                              "op": "eq",
+                              "args": [
+                                {
+                                  "op": "call",
+                                  "function": "core:grid.get",
+                                  "args": [
+                                    {
+                                      "op": "literal",
+                                      "value": "rule:state.mines"
+                                    },
+                                    {
+                                      "op": "var",
+                                      "name": "loss_site"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "op": "literal",
+                                  "value": 0
+                                }
+                              ]
+                            },
+                            {
+                              "op": "eq",
+                              "args": [
+                                {
+                                  "op": "call",
+                                  "function": "core:grid.get",
+                                  "args": [
+                                    {
+                                      "op": "literal",
+                                      "value": "rule:state.cover"
+                                    },
+                                    {
+                                      "op": "var",
+                                      "name": "loss_site"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "op": "literal",
+                                  "value": 1
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        "then": {
+                          "op": "list",
+                          "items": [
+                            {
+                              "op": "var",
+                              "name": "loss_site"
+                            }
+                          ]
+                        },
+                        "else": {
+                          "op": "list",
+                          "items": []
+                        }
+                      },
+                      "as": "incorrect_flag",
+                      "effects": [
+                        {
+                          "op": "grid.set",
+                          "state": "rule:state.cover",
+                          "coordinate": {
+                            "op": "var",
+                            "name": "incorrect_flag"
+                          },
+                          "value": {
+                            "op": "literal",
+                            "value": 5
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "op": "foreach",
+              "query": {
+                "op": "if",
+                "condition": {
+                  "op": "eq",
+                  "args": [
+                    {
+                      "op": "call",
+                      "function": "core:grid.get",
+                      "args": [
+                        {
+                          "op": "literal",
+                          "value": "rule:state.mines"
+                        },
+                        {
+                          "op": "param",
+                          "name": "coordinate"
+                        }
+                      ]
+                    },
+                    {
+                      "op": "literal",
+                      "value": 0
+                    }
+                  ]
+                },
+                "then": {
+                  "op": "list",
+                  "items": [
+                    {
+                      "op": "param",
+                      "name": "coordinate"
+                    }
+                  ]
+                },
+                "else": {
+                  "op": "list",
+                  "items": []
+                }
+              },
+              "as": "safe_click",
+              "effects": [
+                {
+                  "op": "foreach",
+                  "query": {
+                    "op": "call",
+                    "function": "core:topology.sites",
+                    "args": [
+                      {
+                        "op": "literal",
+                        "value": "rule:topology.board"
+                      }
+                    ]
+                  },
+                  "as": "flood_site",
+                  "effects": [
+                    {
+                      "op": "grid.set",
+                      "state": "rule:state.flood",
+                      "coordinate": {
+                        "op": "var",
+                        "name": "flood_site"
+                      },
+                      "value": {
+                        "op": "if",
+                        "condition": {
+                          "op": "lt",
+                          "args": [
+                            {
+                              "op": "call",
+                              "function": "core:grid.get",
+                              "args": [
+                                {
+                                  "op": "literal",
+                                  "value": "rule:state.cover"
+                                },
+                                {
+                                  "op": "var",
+                                  "name": "flood_site"
+                                }
+                              ]
+                            },
+                            {
+                              "op": "literal",
+                              "value": 3
+                            }
+                          ]
+                        },
+                        "then": {
+                          "op": "call",
+                          "function": "core:grid.get",
+                          "args": [
+                            {
+                              "op": "literal",
+                              "value": "rule:state.number"
+                            },
+                            {
+                              "op": "var",
+                              "name": "flood_site"
+                            }
+                          ]
+                        },
+                        "else": {
+                          "op": "literal",
+                          "value": 9
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "op": "foreach",
+                  "query": {
+                    "op": "if",
+                    "condition": {
+                      "op": "eq",
+                      "args": [
+                        {
+                          "op": "call",
+                          "function": "core:grid.get",
+                          "args": [
+                            {
+                              "op": "literal",
+                              "value": "rule:state.number"
+                            },
+                            {
+                              "op": "param",
+                              "name": "coordinate"
+                            }
+                          ]
+                        },
+                        {
+                          "op": "literal",
+                          "value": 0
+                        }
+                      ]
+                    },
+                    "then": {
+                      "op": "call",
+                      "function": "core:grid.flood_region",
+                      "args": [
+                        {
+                          "op": "literal",
+                          "value": "rule:state.flood"
+                        },
+                        {
+                          "op": "param",
+                          "name": "coordinate"
+                        },
+                        {
+                          "op": "list",
+                          "items": [
+                            {
+                              "op": "literal",
+                              "value": 0
+                            }
+                          ]
+                        },
+                        {
+                          "op": "list",
+                          "items": [
+                            {
+                              "op": "literal",
+                              "value": 9
+                            }
+                          ]
+                        },
+                        {
+                          "op": "literal",
+                          "value": true
+                        },
+                        {
+                          "op": "literal",
+                          "value": true
+                        },
+                        {
+                          "op": "list",
+                          "items": []
+                        }
+                      ]
+                    },
+                    "else": {
+                      "op": "list",
+                      "items": [
+                        {
+                          "op": "param",
+                          "name": "coordinate"
+                        }
+                      ]
+                    }
+                  },
+                  "as": "opening",
+                  "effects": [
+                    {
+                      "op": "foreach",
+                      "query": {
+                        "op": "if",
+                        "condition": {
+                          "op": "and",
+                          "args": [
+                            {
+                              "op": "lt",
+                              "args": [
+                                {
+                                  "op": "call",
+                                  "function": "core:grid.get",
+                                  "args": [
+                                    {
+                                      "op": "literal",
+                                      "value": "rule:state.cover"
+                                    },
+                                    {
+                                      "op": "var",
+                                      "name": "opening"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "op": "literal",
+                                  "value": 3
+                                }
+                              ]
+                            },
+                            {
+                              "op": "eq",
+                              "args": [
+                                {
+                                  "op": "call",
+                                  "function": "core:grid.get",
+                                  "args": [
+                                    {
+                                      "op": "literal",
+                                      "value": "rule:state.mines"
+                                    },
+                                    {
+                                      "op": "var",
+                                      "name": "opening"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "op": "literal",
+                                  "value": 0
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        "then": {
+                          "op": "list",
+                          "items": [
+                            {
+                              "op": "var",
+                              "name": "opening"
+                            }
+                          ]
+                        },
+                        "else": {
+                          "op": "list",
+                          "items": []
+                        }
+                      },
+                      "as": "openable",
+                      "effects": [
+                        {
+                          "op": "grid.set",
+                          "state": "rule:state.cover",
+                          "coordinate": {
+                            "op": "var",
+                            "name": "openable"
+                          },
+                          "value": {
+                            "op": "literal",
+                            "value": 3
+                          }
+                        },
+                        {
+                          "op": "state.increment",
+                          "target": {
+                            "op": "literal",
+                            "value": "rule:state.opened_count"
+                          },
+                          "value": {
+                            "op": "literal",
+                            "value": 1
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "op": "foreach",
+                  "query": {
+                    "op": "if",
+                    "condition": {
+                      "op": "eq",
+                      "args": [
+                        {
+                          "op": "call",
+                          "function": "core:state.get",
+                          "args": [
+                            {
+                              "op": "literal",
+                              "value": "rule:state.opened_count"
+                            }
+                          ]
+                        },
+                        {
+                          "op": "literal",
+                          "value": 90
+                        }
+                      ]
+                    },
+                    "then": {
+                      "op": "list",
+                      "items": [
+                        {
+                          "op": "param",
+                          "name": "coordinate"
+                        }
+                      ]
+                    },
+                    "else": {
+                      "op": "list",
+                      "items": []
+                    }
+                  },
+                  "as": "completed",
+                  "effects": [
+                    {
+                      "op": "state.set",
+                      "target": {
+                        "op": "literal",
+                        "value": "rule:state.result"
+                      },
+                      "value": {
+                        "op": "literal",
+                        "value": 2
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "timing": {
+            "phase": "rule:phase.play"
+          },
+          "encoding": {
+            "kind": "parameter_product"
+          }
+        }
+      ],
+      "systems": [
+        {
+          "id": "rule:system.timer",
+          "name": "Advance the first-opening timer until win or loss",
+          "phase": "rule:phase.play",
+          "priority": 100,
+          "trigger": {
+            "kind": "tick",
+            "every": 1
+          },
+          "condition": {
+            "op": "and",
+            "args": [
+              {
+                "op": "eq",
+                "args": [
+                  {
+                    "op": "call",
+                    "function": "core:state.get",
+                    "args": [
+                      {
+                        "op": "literal",
+                        "value": "rule:state.timer_active"
+                      }
+                    ]
+                  },
+                  {
+                    "op": "literal",
+                    "value": 1
+                  }
+                ]
+              },
+              {
+                "op": "eq",
+                "args": [
+                  {
+                    "op": "call",
+                    "function": "core:state.get",
+                    "args": [
+                      {
+                        "op": "literal",
+                        "value": "rule:state.result"
+                      }
+                    ]
+                  },
+                  {
+                    "op": "literal",
+                    "value": 0
+                  }
+                ]
+              }
+            ]
+          },
+          "effects": [
+            {
+              "op": "state.increment",
+              "target": {
+                "op": "literal",
+                "value": "rule:state.timer_ticks"
+              },
+              "value": {
+                "op": "literal",
+                "value": 1
+              }
+            },
+            {
+              "op": "foreach",
+              "query": {
+                "op": "if",
+                "condition": {
+                  "op": "gte",
+                  "args": [
+                    {
+                      "op": "call",
+                      "function": "core:state.get",
+                      "args": [
+                        {
+                          "op": "literal",
+                          "value": "rule:state.timer_ticks"
+                        }
+                      ]
+                    },
+                    {
+                      "op": "literal",
+                      "value": 60
+                    }
+                  ]
+                },
+                "then": {
+                  "op": "list",
+                  "items": [
+                    {
+                      "op": "literal",
+                      "value": 0
+                    }
+                  ]
+                },
+                "else": {
+                  "op": "list",
+                  "items": []
+                }
+              },
+              "as": "elapsed_second",
+              "effects": [
+                {
+                  "op": "state.set",
+                  "target": {
+                    "op": "literal",
+                    "value": "rule:state.timer_ticks"
+                  },
+                  "value": {
+                    "op": "literal",
+                    "value": 0
+                  }
+                },
+                {
+                  "op": "state.increment",
+                  "target": {
+                    "op": "literal",
+                    "value": "rule:state.seconds"
+                  },
+                  "value": {
+                    "op": "literal",
+                    "value": 1
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "flow": {
+        "model": "fixed_tick",
+        "phases": [
+          {
+            "id": "rule:phase.play",
+            "order": 100
+          }
+        ],
+        "initial_phase": "rule:phase.play",
+        "scheduler": {
+          "clock": "fixed_tick",
+          "tick_hz": 60,
+          "ordering": "phase_priority_id"
+        }
+      },
+      "random_streams": [
+        {
+          "id": "rule:random.mines",
+          "name": "Initial placement and first-click relocation",
+          "algorithm": "cubeengine.pcg32/1",
+          "seed_policy": "session"
+        }
+      ],
+      "goals": [
+        {
+          "id": "rule:goal.clear_safe_cells",
+          "name": "Open all 90 safe tiles"
+        }
+      ],
+      "outcomes": [
+        {
+          "id": "rule:outcome.loss",
+          "name": "Mine opened",
+          "priority": 100,
+          "condition": {
+            "op": "eq",
+            "args": [
+              {
+                "op": "call",
+                "function": "core:state.get",
+                "args": [
+                  {
+                    "op": "literal",
+                    "value": "rule:state.result"
+                  }
+                ]
+              },
+              {
+                "op": "literal",
+                "value": 1
+              }
+            ]
+          },
+          "result": {
+            "status": "loss",
+            "terminal": true,
+            "losers": [
+              {
+                "op": "literal",
+                "value": "rule:participant.player"
+              }
+            ]
+          }
+        },
+        {
+          "id": "rule:outcome.win",
+          "name": "All safe tiles opened",
+          "priority": 90,
+          "condition": {
+            "op": "eq",
+            "args": [
+              {
+                "op": "call",
+                "function": "core:state.get",
+                "args": [
+                  {
+                    "op": "literal",
+                    "value": "rule:state.result"
+                  }
+                ]
+              },
+              {
+                "op": "literal",
+                "value": 2
+              }
+            ]
+          },
+          "result": {
+            "status": "win",
+            "terminal": true,
+            "winners": [
+              {
+                "op": "literal",
+                "value": "rule:participant.player"
+              }
+            ]
+          }
+        }
+      ],
+      "modes": [
+        {
+          "id": "rule:mode.basic",
+          "name": "Basic: 10×10, ten mines",
+          "overrides": []
+        }
+      ],
+      "invariants": [
+        {
+          "id": "rule:invariant.flags",
+          "name": "Flag count stays within board bounds",
+          "condition": {
+            "op": "and",
+            "args": [
+              {
+                "op": "gte",
+                "args": [
+                  {
+                    "op": "call",
+                    "function": "core:state.get",
+                    "args": [
+                      {
+                        "op": "literal",
+                        "value": "rule:state.flags"
+                      }
+                    ]
+                  },
+                  {
+                    "op": "literal",
+                    "value": 0
+                  }
+                ]
+              },
+              {
+                "op": "lte",
+                "args": [
+                  {
+                    "op": "call",
+                    "function": "core:state.get",
+                    "args": [
+                      {
+                        "op": "literal",
+                        "value": "rule:state.flags"
+                      }
+                    ]
+                  },
+                  {
+                    "op": "literal",
+                    "value": 100
+                  }
+                ]
+              }
+            ]
+          },
+          "severity": "error"
+        },
+        {
+          "id": "rule:invariant.mines",
+          "name": "Exactly ten mines remain after relocation",
+          "condition": {
+            "op": "eq",
+            "args": [
+              {
+                "op": "call",
+                "function": "core:grid.count_equal",
+                "args": [
+                  {
+                    "op": "literal",
+                    "value": "rule:state.mines"
+                  },
+                  {
+                    "op": "literal",
+                    "value": 1
+                  }
+                ]
+              },
+              {
+                "op": "literal",
+                "value": 10
+              }
+            ]
+          },
+          "severity": "error"
+        }
+      ],
+      "extensions": {},
+      "provenance": {
+        "patch_history": [
+          {
+            "base_revision": 0,
+            "base_content_hash": "6078e896532aab58c7015fa2bf18a28038673d3657de7d3e3a10678125ff8df9",
+            "evidence": [
+              {
+                "evidence_id": "run_game.py:1-17@0d9c1899014279d13615849458126254a3fac9e54d7cd28aef6c7fb41aa3d03a",
+                "path": "run_game.py",
+                "file_sha256": "0d9c1899014279d13615849458126254a3fac9e54d7cd28aef6c7fb41aa3d03a",
+                "span": {
+                  "line_start": 1,
+                  "line_end": 17
+                },
+                "supports": "/rule_ir"
+              },
+              {
+                "evidence_id": "minesweeper/__main__.py:1-168@c734448d03ecdb6ef6693a03e5d711ec2d27145d13ba38b6455271c50677cd5a",
+                "path": "minesweeper/__main__.py",
+                "file_sha256": "c734448d03ecdb6ef6693a03e5d711ec2d27145d13ba38b6455271c50677cd5a",
+                "span": {
+                  "line_start": 1,
+                  "line_end": 168
+                },
+                "supports": "/rule_ir"
+              },
+              {
+                "evidence_id": "minesweeper/core/board.py:1-163@5bdaff08d676549c480c95374f212bc54a013cc2ac787a686c5279291d883970",
+                "path": "minesweeper/core/board.py",
+                "file_sha256": "5bdaff08d676549c480c95374f212bc54a013cc2ac787a686c5279291d883970",
+                "span": {
+                  "line_start": 1,
+                  "line_end": 163
+                },
+                "supports": "/rule_ir"
+              },
+              {
+                "evidence_id": "minesweeper/core/board.py:151-172@5bdaff08d676549c480c95374f212bc54a013cc2ac787a686c5279291d883970",
+                "path": "minesweeper/core/board.py",
+                "file_sha256": "5bdaff08d676549c480c95374f212bc54a013cc2ac787a686c5279291d883970",
+                "span": {
+                  "line_start": 151,
+                  "line_end": 172
+                },
+                "supports": "/rule_ir"
+              },
+              {
+                "evidence_id": "minesweeper/core/board_tile.py:1-64@2d5927094f88c3c03e6ae64ae5a47e63ed4226769caf21998a77a13850233345",
+                "path": "minesweeper/core/board_tile.py",
+                "file_sha256": "2d5927094f88c3c03e6ae64ae5a47e63ed4226769caf21998a77a13850233345",
+                "span": {
+                  "line_start": 1,
+                  "line_end": 64
+                },
+                "supports": "/rule_ir"
+              },
+              {
+                "evidence_id": "minesweeper/user_interface_board.py:1-152@1e552aa64378928d6297a68abee49dc425b20e6bd240a9752b92f549589c89fc",
+                "path": "minesweeper/user_interface_board.py",
+                "file_sha256": "1e552aa64378928d6297a68abee49dc425b20e6bd240a9752b92f549589c89fc",
+                "span": {
+                  "line_start": 1,
+                  "line_end": 152
+                },
+                "supports": "/rule_ir"
+              },
+              {
+                "evidence_id": "minesweeper/user_interface_face.py:1-88@9ffe4fbb299b21934f4ad01b2b4075beb09af5e37bd72ed970e90464f9f10f97",
+                "path": "minesweeper/user_interface_face.py",
+                "file_sha256": "9ffe4fbb299b21934f4ad01b2b4075beb09af5e37bd72ed970e90464f9f10f97",
+                "span": {
+                  "line_start": 1,
+                  "line_end": 88
+                },
+                "supports": "/rule_ir"
+              },
+              {
+                "evidence_id": "minesweeper/user_interface_score.py:1-76@eda7fdfc4640dbca70aebbe0278a70ea60c9867ad48371e6650d87250455fa1e",
+                "path": "minesweeper/user_interface_score.py",
+                "file_sha256": "eda7fdfc4640dbca70aebbe0278a70ea60c9867ad48371e6650d87250455fa1e",
+                "span": {
+                  "line_start": 1,
+                  "line_end": 76
+                },
+                "supports": "/rule_ir"
+              },
+              {
+                "evidence_id": "minesweeper/user_interface.py:1-70@3eda8eaeb4b8e12b397e397e305f662a027911d38c649d80f8f6b32d0f67f23a",
+                "path": "minesweeper/user_interface.py",
+                "file_sha256": "3eda8eaeb4b8e12b397e397e305f662a027911d38c649d80f8f6b32d0f67f23a",
+                "span": {
+                  "line_start": 1,
+                  "line_end": 70
+                },
+                "supports": "/rule_ir"
+              },
+              {
+                "evidence_id": "minesweeper/util.py:1-53@595760f06122d94027d3c06800ab890831203e6f1aaeb66203ea0bd9fe2bf97e",
+                "path": "minesweeper/util.py",
+                "file_sha256": "595760f06122d94027d3c06800ab890831203e6f1aaeb66203ea0bd9fe2bf97e",
+                "span": {
+                  "line_start": 1,
+                  "line_end": 53
+                },
+                "supports": "/rule_ir"
+              }
+            ],
+            "assumptions": [
+              "The launcher forces basic difficulty, so this Rule topology is fixed at 10×10.",
+              "The displayed timer is approximated by 60 simulation ticks per second rather than sampling wall-clock time.",
+              "Mine cells use 9 in the count grid; safe cells have at most eight neighboring mines.",
+              "Flood opening follows the core board's unopened tiles: a flag or question mark in a zero region can be opened without decrementing the UI's flag counter."
+            ],
+            "operation_count": 18
+          }
+        ]
+      },
+      "unresolved": [
+        {
+          "path": "/state/information_model",
+          "reason": "This backend exposes authoritative state to local clients. Covered mines can be concealed visually, but secure hidden observations for agents or remote clients are unavailable.",
+          "required": false,
+          "owner": "extension"
+        },
+        {
+          "path": "/goals/high_scores",
+          "reason": "The source saves winning times to a persistent JSON high-score file; Rule commands cannot perform filesystem persistence. This does not affect the executable board rules.",
+          "required": false,
+          "owner": "extension"
+        },
+        {
+          "path": "/actions/reveal/first_click_relocation",
+          "reason": "The source retries random row-and-column pairs. Shuffling sites and selecting the first eligible destination preserves the uniform destination distribution but not the exact random-number sequence.",
+          "required": false,
+          "owner": "llm"
+        }
+      ]
+    },
+    "asset_ir": {
+      "ir_version": "cubeengine.asset-ir/2.0-alpha.1",
+      "document_id": "asset:game.pygame.minesweeper.source",
+      "revision": 1,
+      "content_hash": "5d8aed65b832332a8aa528b7ee359acb9246fb36a184d79abb41b87ae338ee9b",
+      "metadata": {
+        "title": "Pygame Minesweeper",
+        "description": "Original Minesweeper sprite sheets, including the active 2000-style tile, face and score sheets, with regions for all source-defined tile appearances, faces and digits. Alternative indexed sprite sheets are retained.",
+        "source_project_hash": "711faede56c844d8c40612a1a285087c2ee39f1b4832974ac3e742125f9bd930"
+      },
+      "assets": [
+        {
+          "id": "asset:image.collection",
+          "name": "Minesweeper sprite collection",
+          "kind": "image",
+          "media_type": "image/png",
+          "source": {
+            "uri": "project://minesweeper/images/minesweeper-sprites.png",
+            "content_hash": "8e854a539350464bff4631e8c1f9234236f515bec833a237fe9e60232ebb1329",
+            "byte_size": 58599
+          },
+          "license": {
+            "spdx_id": "MIT",
+            "attribution": "Andreas Isnes; retain the included sprite license notice.",
+            "source_uri": null,
+            "redistribution": "allowed"
+          },
+          "importer": {
+            "capability": "cubeengine.image",
+            "version": "1.0",
+            "settings": {}
+          },
+          "metadata": {
+            "width": 760,
+            "height": 705,
+            "usage": "source collection; not loaded by the game"
+          }
+        },
+        {
+          "id": "asset:face.2000",
+          "name": "2000 face sheet",
+          "kind": "image",
+          "media_type": "image/png",
+          "source": {
+            "uri": "project://minesweeper/images/faces/2000.png",
+            "content_hash": "762a6f60aa3122605650bf629fa58482852c83034f935aec084da1f9b46e7419",
+            "byte_size": 654
+          },
+          "license": {
+            "spdx_id": "MIT",
+            "attribution": "Andreas Isnes; retain the included sprite license notice.",
+            "source_uri": null,
+            "redistribution": "allowed"
+          },
+          "importer": {
+            "capability": "cubeengine.image",
+            "version": "1.0",
+            "settings": {}
+          },
+          "metadata": {
+            "width": 120,
+            "height": 24,
+            "default": true
+          }
+        },
+        {
+          "id": "asset:face.monochrome",
+          "name": "Monochrome face sheet",
+          "kind": "image",
+          "media_type": "image/png",
+          "source": {
+            "uri": "project://minesweeper/images/faces/monochrome.png",
+            "content_hash": "85f47550013452df2212b0b4c6f16c79eed07b01a0f6ed208152582eea73f6f5",
+            "byte_size": 650
+          },
+          "license": {
+            "spdx_id": "MIT",
+            "attribution": "Andreas Isnes; retain the included sprite license notice.",
+            "source_uri": null,
+            "redistribution": "allowed"
+          },
+          "importer": {
+            "capability": "cubeengine.image",
+            "version": "1.0",
+            "settings": {}
+          },
+          "metadata": {
+            "width": 120,
+            "height": 24
+          }
+        },
+        {
+          "id": "asset:score.2000",
+          "name": "2000 score digits sheet",
+          "kind": "image",
+          "media_type": "image/png",
+          "source": {
+            "uri": "project://minesweeper/images/scores/2000.png",
+            "content_hash": "1618527371caf7632a063349982f22ac5c041ad32bdba3929d56c836efdbe44e",
+            "byte_size": 10479
+          },
+          "license": {
+            "spdx_id": "MIT",
+            "attribution": "Andreas Isnes; retain the included sprite license notice.",
+            "source_uri": null,
+            "redistribution": "allowed"
+          },
+          "importer": {
+            "capability": "cubeengine.image",
+            "version": "1.0",
+            "settings": {}
+          },
+          "metadata": {
+            "width": 130,
+            "height": 23,
+            "default": true
+          }
+        },
+        {
+          "id": "asset:score.monochrome",
+          "name": "Monochrome score digits sheet",
+          "kind": "image",
+          "media_type": "image/png",
+          "source": {
+            "uri": "project://minesweeper/images/scores/monochrome.png",
+            "content_hash": "a7579c08e9c4705ea64551780e23e1bb6eb0ed8988cfdfad4c74a8b35b3d311d",
+            "byte_size": 419
+          },
+          "license": {
+            "spdx_id": "MIT",
+            "attribution": "Andreas Isnes; retain the included sprite license notice.",
+            "source_uri": null,
+            "redistribution": "allowed"
+          },
+          "importer": {
+            "capability": "cubeengine.image",
+            "version": "1.0",
+            "settings": {}
+          },
+          "metadata": {
+            "width": 130,
+            "height": 23
+          }
+        },
+        {
+          "id": "asset:tile.2000",
+          "name": "2000 tile sheet",
+          "kind": "image",
+          "media_type": "image/png",
+          "source": {
+            "uri": "project://minesweeper/images/tiles/2000.png",
+            "content_hash": "fe658c317f759c45cfedd3802bac9b2cf47e139c0670fe67214bac512e99e648",
+            "byte_size": 1222
+          },
+          "license": {
+            "spdx_id": "MIT",
+            "attribution": "Andreas Isnes; retain the included sprite license notice.",
+            "source_uri": null,
+            "redistribution": "allowed"
+          },
+          "importer": {
+            "capability": "cubeengine.image",
+            "version": "1.0",
+            "settings": {}
+          },
+          "metadata": {
+            "width": 128,
+            "height": 32,
+            "default": true
+          }
+        },
+        {
+          "id": "asset:tile.20",
+          "name": "2.0 tile sheet",
+          "kind": "image",
+          "media_type": "image/png",
+          "source": {
+            "uri": "project://minesweeper/images/tiles/2.0.png",
+            "content_hash": "98421b004b558d8e6a672c8a8772f75f5f91c74ae433b07edd23b1ef0983ccff",
+            "byte_size": 945
+          },
+          "license": {
+            "spdx_id": "MIT",
+            "attribution": "Andreas Isnes; retain the included sprite license notice.",
+            "source_uri": null,
+            "redistribution": "allowed"
+          },
+          "importer": {
+            "capability": "cubeengine.image",
+            "version": "1.0",
+            "settings": {}
+          },
+          "metadata": {
+            "width": 128,
+            "height": 32
+          }
+        },
+        {
+          "id": "asset:tile.29",
+          "name": "2.9 tile sheet",
+          "kind": "image",
+          "media_type": "image/png",
+          "source": {
+            "uri": "project://minesweeper/images/tiles/2.9.png",
+            "content_hash": "c8f1424b05261f42254f7e5b7320a77bcfe8157aea90fcfec3e017dba5515992",
+            "byte_size": 880
+          },
+          "license": {
+            "spdx_id": "MIT",
+            "attribution": "Andreas Isnes; retain the included sprite license notice.",
+            "source_uri": null,
+            "redistribution": "allowed"
+          },
+          "importer": {
+            "capability": "cubeengine.image",
+            "version": "1.0",
+            "settings": {}
+          },
+          "metadata": {
+            "width": 128,
+            "height": 32
+          }
+        },
+        {
+          "id": "asset:tile.95",
+          "name": "95 tile sheet",
+          "kind": "image",
+          "media_type": "image/png",
+          "source": {
+            "uri": "project://minesweeper/images/tiles/95.png",
+            "content_hash": "22d0e0898f53e527ddee310a3e12ea55b328c9f11f57df82035ffef3d6e957f0",
+            "byte_size": 973
+          },
+          "license": {
+            "spdx_id": "MIT",
+            "attribution": "Andreas Isnes; retain the included sprite license notice.",
+            "source_uri": null,
+            "redistribution": "allowed"
+          },
+          "importer": {
+            "capability": "cubeengine.image",
+            "version": "1.0",
+            "settings": {}
+          },
+          "metadata": {
+            "width": 128,
+            "height": 32
+          }
+        },
+        {
+          "id": "asset:tile.fiorito-2000",
+          "name": "Fiorito 2000 tile sheet",
+          "kind": "image",
+          "media_type": "image/png",
+          "source": {
+            "uri": "project://minesweeper/images/tiles/fiorito-2000.png",
+            "content_hash": "0a968bd423d2a2ea24151840b90ebe8615bbb5243b727f613cb8591482d6788b",
+            "byte_size": 902
+          },
+          "license": {
+            "spdx_id": "MIT",
+            "attribution": "Andreas Isnes; retain the included sprite license notice.",
+            "source_uri": null,
+            "redistribution": "allowed"
+          },
+          "importer": {
+            "capability": "cubeengine.image",
+            "version": "1.0",
+            "settings": {}
+          },
+          "metadata": {
+            "width": 128,
+            "height": 32
+          }
+        },
+        {
+          "id": "asset:tile.fiorito-monochrome",
+          "name": "Fiorito monochrome tile sheet",
+          "kind": "image",
+          "media_type": "image/png",
+          "source": {
+            "uri": "project://minesweeper/images/tiles/fiorito-monochrome.png",
+            "content_hash": "b7a957a3b1fdfd3f4812db004bc6f70f8b7115d8ac2359510d331b88b75f6fd6",
+            "byte_size": 912
+          },
+          "license": {
+            "spdx_id": "MIT",
+            "attribution": "Andreas Isnes; retain the included sprite license notice.",
+            "source_uri": null,
+            "redistribution": "allowed"
+          },
+          "importer": {
+            "capability": "cubeengine.image",
+            "version": "1.0",
+            "settings": {}
+          },
+          "metadata": {
+            "width": 128,
+            "height": 32
+          }
+        },
+        {
+          "id": "asset:tile.fiorito-xp",
+          "name": "Fiorito XP tile sheet",
+          "kind": "image",
+          "media_type": "image/png",
+          "source": {
+            "uri": "project://minesweeper/images/tiles/fiorito-xp.png",
+            "content_hash": "75e13de3c3d40787cb8ce23d1c877d3e11007caccfd59e7d07f87d185880bb62",
+            "byte_size": 885
+          },
+          "license": {
+            "spdx_id": "MIT",
+            "attribution": "Andreas Isnes; retain the included sprite license notice.",
+            "source_uri": null,
+            "redistribution": "allowed"
+          },
+          "importer": {
+            "capability": "cubeengine.image",
+            "version": "1.0",
+            "settings": {}
+          },
+          "metadata": {
+            "width": 128,
+            "height": 32
+          }
+        },
+        {
+          "id": "asset:tile.monochrome",
+          "name": "Monochrome tile sheet",
+          "kind": "image",
+          "media_type": "image/png",
+          "source": {
+            "uri": "project://minesweeper/images/tiles/monochrome.png",
+            "content_hash": "a47ac8078051a43a3960f228e7aad6657b5238f20a3579a773dd6b8012028bc3",
+            "byte_size": 712
+          },
+          "license": {
+            "spdx_id": "MIT",
+            "attribution": "Andreas Isnes; retain the included sprite license notice.",
+            "source_uri": null,
+            "redistribution": "allowed"
+          },
+          "importer": {
+            "capability": "cubeengine.image",
+            "version": "1.0",
+            "settings": {}
+          },
+          "metadata": {
+            "width": 128,
+            "height": 32
+          }
+        }
+      ],
+      "derivations": [
+        {
+          "id": "asset:tile.unopened",
+          "name": "Unopened tile, index 0",
+          "kind": "image",
+          "media_type": "image/png",
+          "strategy": "atlas_region",
+          "inputs": [
+            "asset:tile.2000"
+          ],
+          "settings": {
+            "x": 0,
+            "y": 0,
+            "width": 16,
+            "height": 16
+          },
+          "expected_content_hash": "",
+          "license_policy": "inherit"
+        },
+        {
+          "id": "asset:tile.empty",
+          "name": "Opened empty tile, index 1",
+          "kind": "image",
+          "media_type": "image/png",
+          "strategy": "atlas_region",
+          "inputs": [
+            "asset:tile.2000"
+          ],
+          "settings": {
+            "x": 16,
+            "y": 0,
+            "width": 16,
+            "height": 16
+          },
+          "expected_content_hash": "",
+          "license_policy": "inherit"
+        },
+        {
+          "id": "asset:tile.flag",
+          "name": "Flag, index 2",
+          "kind": "image",
+          "media_type": "image/png",
+          "strategy": "atlas_region",
+          "inputs": [
+            "asset:tile.2000"
+          ],
+          "settings": {
+            "x": 32,
+            "y": 0,
+            "width": 16,
+            "height": 16
+          },
+          "expected_content_hash": "",
+          "license_policy": "inherit"
+        },
+        {
+          "id": "asset:tile.question",
+          "name": "Question mark, index 3",
+          "kind": "image",
+          "media_type": "image/png",
+          "strategy": "atlas_region",
+          "inputs": [
+            "asset:tile.2000"
+          ],
+          "settings": {
+            "x": 48,
+            "y": 0,
+            "width": 16,
+            "height": 16
+          },
+          "expected_content_hash": "",
+          "license_policy": "inherit"
+        },
+        {
+          "id": "asset:tile.question-click",
+          "name": "Pressed question mark, index 4",
+          "kind": "image",
+          "media_type": "image/png",
+          "strategy": "atlas_region",
+          "inputs": [
+            "asset:tile.2000"
+          ],
+          "settings": {
+            "x": 64,
+            "y": 0,
+            "width": 16,
+            "height": 16
+          },
+          "expected_content_hash": "",
+          "license_policy": "inherit"
+        },
+        {
+          "id": "asset:tile.mine",
+          "name": "Exposed mine, index 5",
+          "kind": "image",
+          "media_type": "image/png",
+          "strategy": "atlas_region",
+          "inputs": [
+            "asset:tile.2000"
+          ],
+          "settings": {
+            "x": 80,
+            "y": 0,
+            "width": 16,
+            "height": 16
+          },
+          "expected_content_hash": "",
+          "license_policy": "inherit"
+        },
+        {
+          "id": "asset:tile.mine-red",
+          "name": "Detonated mine, index 6",
+          "kind": "image",
+          "media_type": "image/png",
+          "strategy": "atlas_region",
+          "inputs": [
+            "asset:tile.2000"
+          ],
+          "settings": {
+            "x": 96,
+            "y": 0,
+            "width": 16,
+            "height": 16
+          },
+          "expected_content_hash": "",
+          "license_policy": "inherit"
+        },
+        {
+          "id": "asset:tile.mine-red-cross",
+          "name": "Incorrect flag, index 7",
+          "kind": "image",
+          "media_type": "image/png",
+          "strategy": "atlas_region",
+          "inputs": [
+            "asset:tile.2000"
+          ],
+          "settings": {
+            "x": 112,
+            "y": 0,
+            "width": 16,
+            "height": 16
+          },
+          "expected_content_hash": "",
+          "license_policy": "inherit"
+        },
+        {
+          "id": "asset:tile.one",
+          "name": "Adjacent count 1, index 8",
+          "kind": "image",
+          "media_type": "image/png",
+          "strategy": "atlas_region",
+          "inputs": [
+            "asset:tile.2000"
+          ],
+          "settings": {
+            "x": 0,
+            "y": 16,
+            "width": 16,
+            "height": 16
+          },
+          "expected_content_hash": "",
+          "license_policy": "inherit"
+        },
+        {
+          "id": "asset:tile.two",
+          "name": "Adjacent count 2, index 9",
+          "kind": "image",
+          "media_type": "image/png",
+          "strategy": "atlas_region",
+          "inputs": [
+            "asset:tile.2000"
+          ],
+          "settings": {
+            "x": 16,
+            "y": 16,
+            "width": 16,
+            "height": 16
+          },
+          "expected_content_hash": "",
+          "license_policy": "inherit"
+        },
+        {
+          "id": "asset:tile.three",
+          "name": "Adjacent count 3, index 10",
+          "kind": "image",
+          "media_type": "image/png",
+          "strategy": "atlas_region",
+          "inputs": [
+            "asset:tile.2000"
+          ],
+          "settings": {
+            "x": 32,
+            "y": 16,
+            "width": 16,
+            "height": 16
+          },
+          "expected_content_hash": "",
+          "license_policy": "inherit"
+        },
+        {
+          "id": "asset:tile.four",
+          "name": "Adjacent count 4, index 11",
+          "kind": "image",
+          "media_type": "image/png",
+          "strategy": "atlas_region",
+          "inputs": [
+            "asset:tile.2000"
+          ],
+          "settings": {
+            "x": 48,
+            "y": 16,
+            "width": 16,
+            "height": 16
+          },
+          "expected_content_hash": "",
+          "license_policy": "inherit"
+        },
+        {
+          "id": "asset:tile.five",
+          "name": "Adjacent count 5, index 12",
+          "kind": "image",
+          "media_type": "image/png",
+          "strategy": "atlas_region",
+          "inputs": [
+            "asset:tile.2000"
+          ],
+          "settings": {
+            "x": 64,
+            "y": 16,
+            "width": 16,
+            "height": 16
+          },
+          "expected_content_hash": "",
+          "license_policy": "inherit"
+        },
+        {
+          "id": "asset:tile.six",
+          "name": "Adjacent count 6, index 13",
+          "kind": "image",
+          "media_type": "image/png",
+          "strategy": "atlas_region",
+          "inputs": [
+            "asset:tile.2000"
+          ],
+          "settings": {
+            "x": 80,
+            "y": 16,
+            "width": 16,
+            "height": 16
+          },
+          "expected_content_hash": "",
+          "license_policy": "inherit"
+        },
+        {
+          "id": "asset:tile.seven",
+          "name": "Adjacent count 7, index 14",
+          "kind": "image",
+          "media_type": "image/png",
+          "strategy": "atlas_region",
+          "inputs": [
+            "asset:tile.2000"
+          ],
+          "settings": {
+            "x": 96,
+            "y": 16,
+            "width": 16,
+            "height": 16
+          },
+          "expected_content_hash": "",
+          "license_policy": "inherit"
+        },
+        {
+          "id": "asset:tile.eight",
+          "name": "Adjacent count 8, index 15",
+          "kind": "image",
+          "media_type": "image/png",
+          "strategy": "atlas_region",
+          "inputs": [
+            "asset:tile.2000"
+          ],
+          "settings": {
+            "x": 112,
+            "y": 16,
+            "width": 16,
+            "height": 16
+          },
+          "expected_content_hash": "",
+          "license_policy": "inherit"
+        },
+        {
+          "id": "asset:face.smile",
+          "name": "Smile face, index 0",
+          "kind": "image",
+          "media_type": "image/png",
+          "strategy": "atlas_region",
+          "inputs": [
+            "asset:face.2000"
+          ],
+          "settings": {
+            "x": 0,
+            "y": 0,
+            "width": 24,
+            "height": 24
+          },
+          "expected_content_hash": "",
+          "license_policy": "inherit"
+        },
+        {
+          "id": "asset:face.smile-click",
+          "name": "Pressed smile face, index 1",
+          "kind": "image",
+          "media_type": "image/png",
+          "strategy": "atlas_region",
+          "inputs": [
+            "asset:face.2000"
+          ],
+          "settings": {
+            "x": 24,
+            "y": 0,
+            "width": 24,
+            "height": 24
+          },
+          "expected_content_hash": "",
+          "license_policy": "inherit"
+        },
+        {
+          "id": "asset:face.excited",
+          "name": "Excited face, index 2",
+          "kind": "image",
+          "media_type": "image/png",
+          "strategy": "atlas_region",
+          "inputs": [
+            "asset:face.2000"
+          ],
+          "settings": {
+            "x": 48,
+            "y": 0,
+            "width": 24,
+            "height": 24
+          },
+          "expected_content_hash": "",
+          "license_policy": "inherit"
+        },
+        {
+          "id": "asset:face.winner",
+          "name": "Winning face, index 3",
+          "kind": "image",
+          "media_type": "image/png",
+          "strategy": "atlas_region",
+          "inputs": [
+            "asset:face.2000"
+          ],
+          "settings": {
+            "x": 72,
+            "y": 0,
+            "width": 24,
+            "height": 24
+          },
+          "expected_content_hash": "",
+          "license_policy": "inherit"
+        },
+        {
+          "id": "asset:face.dead",
+          "name": "Losing face, index 4",
+          "kind": "image",
+          "media_type": "image/png",
+          "strategy": "atlas_region",
+          "inputs": [
+            "asset:face.2000"
+          ],
+          "settings": {
+            "x": 96,
+            "y": 0,
+            "width": 24,
+            "height": 24
+          },
+          "expected_content_hash": "",
+          "license_policy": "inherit"
+        },
+        {
+          "id": "asset:score.zero",
+          "name": "Score digit 0",
+          "kind": "image",
+          "media_type": "image/png",
+          "strategy": "atlas_region",
+          "inputs": [
+            "asset:score.2000"
+          ],
+          "settings": {
+            "x": 0,
+            "y": 0,
+            "width": 13,
+            "height": 23
+          },
+          "expected_content_hash": "",
+          "license_policy": "inherit"
+        },
+        {
+          "id": "asset:score.one",
+          "name": "Score digit 1",
+          "kind": "image",
+          "media_type": "image/png",
+          "strategy": "atlas_region",
+          "inputs": [
+            "asset:score.2000"
+          ],
+          "settings": {
+            "x": 13,
+            "y": 0,
+            "width": 13,
+            "height": 23
+          },
+          "expected_content_hash": "",
+          "license_policy": "inherit"
+        },
+        {
+          "id": "asset:score.two",
+          "name": "Score digit 2",
+          "kind": "image",
+          "media_type": "image/png",
+          "strategy": "atlas_region",
+          "inputs": [
+            "asset:score.2000"
+          ],
+          "settings": {
+            "x": 26,
+            "y": 0,
+            "width": 13,
+            "height": 23
+          },
+          "expected_content_hash": "",
+          "license_policy": "inherit"
+        },
+        {
+          "id": "asset:score.three",
+          "name": "Score digit 3",
+          "kind": "image",
+          "media_type": "image/png",
+          "strategy": "atlas_region",
+          "inputs": [
+            "asset:score.2000"
+          ],
+          "settings": {
+            "x": 39,
+            "y": 0,
+            "width": 13,
+            "height": 23
+          },
+          "expected_content_hash": "",
+          "license_policy": "inherit"
+        },
+        {
+          "id": "asset:score.four",
+          "name": "Score digit 4",
+          "kind": "image",
+          "media_type": "image/png",
+          "strategy": "atlas_region",
+          "inputs": [
+            "asset:score.2000"
+          ],
+          "settings": {
+            "x": 52,
+            "y": 0,
+            "width": 13,
+            "height": 23
+          },
+          "expected_content_hash": "",
+          "license_policy": "inherit"
+        },
+        {
+          "id": "asset:score.five",
+          "name": "Score digit 5",
+          "kind": "image",
+          "media_type": "image/png",
+          "strategy": "atlas_region",
+          "inputs": [
+            "asset:score.2000"
+          ],
+          "settings": {
+            "x": 65,
+            "y": 0,
+            "width": 13,
+            "height": 23
+          },
+          "expected_content_hash": "",
+          "license_policy": "inherit"
+        },
+        {
+          "id": "asset:score.six",
+          "name": "Score digit 6",
+          "kind": "image",
+          "media_type": "image/png",
+          "strategy": "atlas_region",
+          "inputs": [
+            "asset:score.2000"
+          ],
+          "settings": {
+            "x": 78,
+            "y": 0,
+            "width": 13,
+            "height": 23
+          },
+          "expected_content_hash": "",
+          "license_policy": "inherit"
+        },
+        {
+          "id": "asset:score.seven",
+          "name": "Score digit 7",
+          "kind": "image",
+          "media_type": "image/png",
+          "strategy": "atlas_region",
+          "inputs": [
+            "asset:score.2000"
+          ],
+          "settings": {
+            "x": 91,
+            "y": 0,
+            "width": 13,
+            "height": 23
+          },
+          "expected_content_hash": "",
+          "license_policy": "inherit"
+        },
+        {
+          "id": "asset:score.eight",
+          "name": "Score digit 8",
+          "kind": "image",
+          "media_type": "image/png",
+          "strategy": "atlas_region",
+          "inputs": [
+            "asset:score.2000"
+          ],
+          "settings": {
+            "x": 104,
+            "y": 0,
+            "width": 13,
+            "height": 23
+          },
+          "expected_content_hash": "",
+          "license_policy": "inherit"
+        },
+        {
+          "id": "asset:score.nine",
+          "name": "Score digit 9",
+          "kind": "image",
+          "media_type": "image/png",
+          "strategy": "atlas_region",
+          "inputs": [
+            "asset:score.2000"
+          ],
+          "settings": {
+            "x": 117,
+            "y": 0,
+            "width": 13,
+            "height": 23
+          },
+          "expected_content_hash": "",
+          "license_policy": "inherit"
+        }
+      ],
+      "roles": [
+        {
+          "id": "asset:role.tiles",
+          "name": "Default tile appearances",
+          "semantic": "tile-sprites",
+          "resource": "asset:tile.2000",
+          "usage": "world_texture",
+          "required": true
+        },
+        {
+          "id": "asset:role.faces",
+          "name": "Default status and reset faces",
+          "semantic": "face-sprites",
+          "resource": "asset:face.2000",
+          "usage": "ui_texture",
+          "required": true
+        },
+        {
+          "id": "asset:role.digits",
+          "name": "Default timer and mine-counter digits",
+          "semantic": "score-sprites",
+          "resource": "asset:score.2000",
+          "usage": "ui_texture",
+          "required": true
+        }
+      ],
+      "presentation_mappings": [],
+      "provenance": {
+        "patch_history": [
+          {
+            "base_revision": 0,
+            "base_content_hash": "562a9a0fa239028710017a7bc920247f2f9892bff3ba4682c526c2cbca28f6ec",
+            "evidence": [
+              {
+                "evidence_id": "run_game.py:1-17@0d9c1899014279d13615849458126254a3fac9e54d7cd28aef6c7fb41aa3d03a",
+                "path": "run_game.py",
+                "file_sha256": "0d9c1899014279d13615849458126254a3fac9e54d7cd28aef6c7fb41aa3d03a",
+                "span": {
+                  "line_start": 1,
+                  "line_end": 17
+                },
+                "supports": "/asset_ir"
+              },
+              {
+                "evidence_id": "minesweeper/__main__.py:1-168@c734448d03ecdb6ef6693a03e5d711ec2d27145d13ba38b6455271c50677cd5a",
+                "path": "minesweeper/__main__.py",
+                "file_sha256": "c734448d03ecdb6ef6693a03e5d711ec2d27145d13ba38b6455271c50677cd5a",
+                "span": {
+                  "line_start": 1,
+                  "line_end": 168
+                },
+                "supports": "/asset_ir"
+              },
+              {
+                "evidence_id": "minesweeper/sprites/spritesheet.py:1-86@3b875b93fdaf2cc6fb38ac2e4bdc2d1cd56667bba72a626a36b9dfeb28b0ad4b",
+                "path": "minesweeper/sprites/spritesheet.py",
+                "file_sha256": "3b875b93fdaf2cc6fb38ac2e4bdc2d1cd56667bba72a626a36b9dfeb28b0ad4b",
+                "span": {
+                  "line_start": 1,
+                  "line_end": 86
+                },
+                "supports": "/asset_ir"
+              },
+              {
+                "evidence_id": "minesweeper/sprites/tile.py:1-182@95433703bbf3665d8abf4e41a3a22eb6687d2bf1625a2667ae8d75ff0024fd9f",
+                "path": "minesweeper/sprites/tile.py",
+                "file_sha256": "95433703bbf3665d8abf4e41a3a22eb6687d2bf1625a2667ae8d75ff0024fd9f",
+                "span": {
+                  "line_start": 1,
+                  "line_end": 182
+                },
+                "supports": "/asset_ir"
+              },
+              {
+                "evidence_id": "minesweeper/sprites/tile.py:183-199@95433703bbf3665d8abf4e41a3a22eb6687d2bf1625a2667ae8d75ff0024fd9f",
+                "path": "minesweeper/sprites/tile.py",
+                "file_sha256": "95433703bbf3665d8abf4e41a3a22eb6687d2bf1625a2667ae8d75ff0024fd9f",
+                "span": {
+                  "line_start": 183,
+                  "line_end": 199
+                },
+                "supports": "/asset_ir"
+              },
+              {
+                "evidence_id": "minesweeper/sprites/face.py:1-81@279d37b6d436e5620cd3e6639d185d4f52747872cda2a0aa05fcfdb6cccb0160",
+                "path": "minesweeper/sprites/face.py",
+                "file_sha256": "279d37b6d436e5620cd3e6639d185d4f52747872cda2a0aa05fcfdb6cccb0160",
+                "span": {
+                  "line_start": 1,
+                  "line_end": 81
+                },
+                "supports": "/asset_ir"
+              },
+              {
+                "evidence_id": "minesweeper/sprites/score.py:1-138@7820112dd83e64c9b5e567b9da9d8877a21474dce6f4635830e7fa4cdaae3ba8",
+                "path": "minesweeper/sprites/score.py",
+                "file_sha256": "7820112dd83e64c9b5e567b9da9d8877a21474dce6f4635830e7fa4cdaae3ba8",
+                "span": {
+                  "line_start": 1,
+                  "line_end": 138
+                },
+                "supports": "/asset_ir"
+              },
+              {
+                "evidence_id": "minesweeper/user_interface_board.py:1-140@1e552aa64378928d6297a68abee49dc425b20e6bd240a9752b92f549589c89fc",
+                "path": "minesweeper/user_interface_board.py",
+                "file_sha256": "1e552aa64378928d6297a68abee49dc425b20e6bd240a9752b92f549589c89fc",
+                "span": {
+                  "line_start": 1,
+                  "line_end": 140
+                },
+                "supports": "/asset_ir"
+              },
+              {
+                "evidence_id": "minesweeper/user_interface_board.py:141-152@1e552aa64378928d6297a68abee49dc425b20e6bd240a9752b92f549589c89fc",
+                "path": "minesweeper/user_interface_board.py",
+                "file_sha256": "1e552aa64378928d6297a68abee49dc425b20e6bd240a9752b92f549589c89fc",
+                "span": {
+                  "line_start": 141,
+                  "line_end": 152
+                },
+                "supports": "/asset_ir"
+              },
+              {
+                "evidence_id": "minesweeper/user_interface_face.py:1-88@9ffe4fbb299b21934f4ad01b2b4075beb09af5e37bd72ed970e90464f9f10f97",
+                "path": "minesweeper/user_interface_face.py",
+                "file_sha256": "9ffe4fbb299b21934f4ad01b2b4075beb09af5e37bd72ed970e90464f9f10f97",
+                "span": {
+                  "line_start": 1,
+                  "line_end": 88
+                },
+                "supports": "/asset_ir"
+              },
+              {
+                "evidence_id": "minesweeper/user_interface_score.py:1-76@eda7fdfc4640dbca70aebbe0278a70ea60c9867ad48371e6650d87250455fa1e",
+                "path": "minesweeper/user_interface_score.py",
+                "file_sha256": "eda7fdfc4640dbca70aebbe0278a70ea60c9867ad48371e6650d87250455fa1e",
+                "span": {
+                  "line_start": 1,
+                  "line_end": 76
+                },
+                "supports": "/asset_ir"
+              },
+              {
+                "evidence_id": "LICENSE-pygame-minesweeper-sprites.txt:1-21@1429f1b0e5e1072dd77a7966ad1754b91ba9fd3ec29aeb916e5d53ba7e9fe1f6",
+                "path": "LICENSE-pygame-minesweeper-sprites.txt",
+                "file_sha256": "1429f1b0e5e1072dd77a7966ad1754b91ba9fd3ec29aeb916e5d53ba7e9fe1f6",
+                "span": {
+                  "line_start": 1,
+                  "line_end": 21
+                },
+                "supports": "/asset_ir"
+              }
+            ],
+            "assumptions": [
+              "The launcher selects basic difficulty and leaves the default 2000 sprite options unchanged. Alternative indexed sheets are retained as source assets.",
+              "Sprite-sheet images use the included MIT sprite license; the source collection has no active in-game role."
+            ],
+            "operation_count": 6
+          }
+        ]
+      },
+      "unresolved": []
+    },
+    "scene_ir": {
+      "ir_version": "cubeengine.scene-ir/2.0-alpha.1",
+      "document_id": "scene:game.pygame.minesweeper.source",
+      "revision": 1,
+      "content_hash": "7c1dda63869168dd9226f3f45aff54baa4f47ecf5c62f9197a9b6870ab45a9fa",
+      "metadata": {
+        "title": "Pygame Minesweeper",
+        "description": "Basic 10×10 Minesweeper with the original 2000-style tile, face and score sprites, a grey beveled frame, a live mine counter and timer, and conditional mouse-down feedback.",
+        "source_project_hash": "711faede56c844d8c40612a1a285087c2ee39f1b4832974ac3e742125f9bd930",
+        "source_visual_bindings": [
+          {
+            "target": "/nodes/2/components/0/properties/color",
+            "id": "visual:e22dfc821c71797d59cc",
+            "kind": "color",
+            "value": [
+              0.7529411764705882,
+              0.7529411764705882,
+              0.7529411764705882,
+              1.0
+            ],
+            "source": {
+              "path": "minesweeper/gui.py",
+              "file_sha256": "33508e5c3b87a61ab07e5beecc63c664f270c0e507978a5264903d880fd6b68f",
+              "anchor": "line:18:8:color",
+              "line": 18,
+              "expression": "(192, 192, 192)"
+            }
+          }
+        ]
+      },
+      "dependencies": {
+        "rule_ir": {
+          "document_id": "rule:game.pygame.minesweeper.source",
+          "content_hash": "f5ebc1e26af13ede695a97fe8cd6cc6e05960530c489f2b51a21f5be7b05de0f"
+        },
+        "asset_ir": {
+          "document_id": "asset:game.pygame.minesweeper.source",
+          "content_hash": "5d8aed65b832332a8aa528b7ee359acb9246fb36a184d79abb41b87ae338ee9b"
+        },
+        "extensions": []
+      },
+      "layers": [
+        {
+          "id": "scene:layer.runtime",
+          "name": "Runtime",
+          "kind": "runtime",
+          "visible": true,
+          "pickable": true,
+          "opacity": 1
+        }
+      ],
+      "prefabs": [
+        {
+          "id": "scene:prefab.cell",
+          "name": "Source-art tile",
+          "root": {
+            "local_id": "cell",
+            "name": "Selectable grid cell",
+            "active": true,
+            "transform": {
+              "translation": [
+                0,
+                0,
+                0
+              ],
+              "rotation_euler_deg": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                1,
+                1,
+                1
+              ]
+            },
+            "components": [
+              {
+                "id": "shell",
+                "type": "renderer",
+                "enabled": true,
+                "properties": {
+                  "geometry": "builtin:cube",
+                  "visible": true,
+                  "scale": [
+                    0.98,
+                    0.98,
+                    0.88
+                  ],
+                  "color": [
+                    0.75294,
+                    0.75294,
+                    0.75294,
+                    0.12
+                  ],
+                  "opacity": 0.12,
+                  "spatial_role": "cell_shell"
+                }
+              },
+              {
+                "id": "pick",
+                "type": "collider",
+                "enabled": true,
+                "properties": {
+                  "shape": "box",
+                  "size": [
+                    1,
+                    1,
+                    0.9
+                  ],
+                  "is_trigger": false,
+                  "selectable": true
+                }
+              }
+            ],
+            "children": [
+              {
+                "local_id": "number",
+                "name": "Opened tile surface",
+                "active": true,
+                "transform": {
+                  "translation": [
+                    0,
+                    0,
+                    -0.51
+                  ],
+                  "rotation_euler_deg": [
+                    0,
+                    0,
+                    0
+                  ],
+                  "scale": [
+                    1,
+                    1,
+                    1
+                  ]
+                },
+                "components": [
+                  {
+                    "id": "number_sprite",
+                    "type": "renderer",
+                    "enabled": true,
+                    "properties": {
+                      "geometry": "builtin:quad",
+                      "visible": false,
+                      "scale": [
+                        1,
+                        1,
+                        0.01
+                      ],
+                      "texture": "asset:tile.empty",
+                      "spatial_role": "content",
+                      "variant": "empty",
+                      "variants": {
+                        "empty": {
+                          "texture": "asset:tile.empty"
+                        },
+                        "one": {
+                          "texture": "asset:tile.one"
+                        },
+                        "two": {
+                          "texture": "asset:tile.two"
+                        },
+                        "three": {
+                          "texture": "asset:tile.three"
+                        },
+                        "four": {
+                          "texture": "asset:tile.four"
+                        },
+                        "five": {
+                          "texture": "asset:tile.five"
+                        },
+                        "six": {
+                          "texture": "asset:tile.six"
+                        },
+                        "seven": {
+                          "texture": "asset:tile.seven"
+                        },
+                        "eight": {
+                          "texture": "asset:tile.eight"
+                        },
+                        "mine": {
+                          "texture": "asset:tile.mine"
+                        }
+                      }
+                    }
+                  }
+                ],
+                "children": []
+              },
+              {
+                "local_id": "cover",
+                "name": "Cover, marks and loss artwork",
+                "active": true,
+                "transform": {
+                  "translation": [
+                    0,
+                    0,
+                    -0.53
+                  ],
+                  "rotation_euler_deg": [
+                    0,
+                    0,
+                    0
+                  ],
+                  "scale": [
+                    1,
+                    1,
+                    1
+                  ]
+                },
+                "components": [
+                  {
+                    "id": "cover_sprite",
+                    "type": "renderer",
+                    "enabled": true,
+                    "properties": {
+                      "geometry": "builtin:quad",
+                      "visible": true,
+                      "scale": [
+                        1,
+                        1,
+                        0.01
+                      ],
+                      "texture": "asset:tile.unopened",
+                      "spatial_role": "content",
+                      "pressed": false,
+                      "variant": "unopened",
+                      "variants": {
+                        "unopened": {
+                          "visible": true,
+                          "texture": "asset:tile.unopened",
+                          "pressed_style": {
+                            "texture": "asset:tile.empty"
+                          }
+                        },
+                        "flag": {
+                          "visible": true,
+                          "texture": "asset:tile.flag"
+                        },
+                        "question": {
+                          "visible": true,
+                          "texture": "asset:tile.question",
+                          "pressed_style": {
+                            "texture": "asset:tile.question-click"
+                          }
+                        },
+                        "opened": {
+                          "visible": false
+                        },
+                        "detonated": {
+                          "visible": true,
+                          "texture": "asset:tile.mine-red"
+                        },
+                        "incorrect_flag": {
+                          "visible": true,
+                          "texture": "asset:tile.mine-red-cross"
+                        },
+                        "exposed_mine": {
+                          "visible": true,
+                          "texture": "asset:tile.mine"
+                        }
+                      }
+                    }
+                  }
+                ],
+                "children": []
+              }
+            ]
+          }
+        }
+      ],
+      "nodes": [
+        {
+          "id": "scene:board",
+          "name": "Ten-by-ten tile board",
+          "parent": null,
+          "active": true,
+          "layer": "scene:layer.runtime",
+          "transform": {
+            "translation": [
+              0,
+              0,
+              0
+            ],
+            "rotation_euler_deg": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "id": "sites",
+              "type": "topology_visualizer",
+              "enabled": true,
+              "properties": {
+                "rule_topology": "rule:topology.board",
+                "prefab": "scene:prefab.cell",
+                "index_to_world": [
+                  0,
+                  1,
+                  0,
+                  -4.5,
+                  -1,
+                  0,
+                  0,
+                  2.9375,
+                  0,
+                  0,
+                  1,
+                  0,
+                  0,
+                  0,
+                  0,
+                  1
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "scene:camera",
+          "name": "Front camera",
+          "parent": null,
+          "active": true,
+          "layer": "scene:layer.runtime",
+          "transform": {
+            "translation": [
+              0,
+              0,
+              -24
+            ],
+            "rotation_euler_deg": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "id": "camera",
+              "type": "camera",
+              "enabled": true,
+              "properties": {
+                "projection": "orthographic",
+                "near_clip": 0.1,
+                "far_clip": 100,
+                "active": true,
+                "orthographic_size": 15.3
+              }
+            }
+          ]
+        },
+        {
+          "id": "scene:frame",
+          "name": "Classic grey frame fill",
+          "parent": null,
+          "active": true,
+          "layer": "scene:layer.runtime",
+          "transform": {
+            "translation": [
+              0,
+              0,
+              0.8
+            ],
+            "rotation_euler_deg": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "id": "fill",
+              "type": "renderer",
+              "enabled": true,
+              "properties": {
+                "geometry": "builtin:cube",
+                "visible": true,
+                "scale": [
+                  11.125,
+                  14.25,
+                  0.08
+                ],
+                "color": [
+                  0.7529411764705882,
+                  0.7529411764705882,
+                  0.7529411764705882,
+                  1.0
+                ],
+                "spatial_role": "source_backdrop"
+              }
+            }
+          ]
+        },
+        {
+          "id": "scene:frame.left",
+          "name": "White left bevel",
+          "parent": null,
+          "active": true,
+          "layer": "scene:layer.runtime",
+          "transform": {
+            "translation": [
+              -5.5,
+              0,
+              -0.03
+            ],
+            "rotation_euler_deg": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "id": "edge",
+              "type": "renderer",
+              "enabled": true,
+              "properties": {
+                "geometry": "builtin:cube",
+                "visible": true,
+                "scale": [
+                  0.125,
+                  14.25,
+                  0.04
+                ],
+                "color": [
+                  1,
+                  1,
+                  1,
+                  1
+                ],
+                "spatial_role": "source_backdrop"
+              }
+            }
+          ]
+        },
+        {
+          "id": "scene:frame.top",
+          "name": "White top bevel",
+          "parent": null,
+          "active": true,
+          "layer": "scene:layer.runtime",
+          "transform": {
+            "translation": [
+              0,
+              7.0625,
+              -0.03
+            ],
+            "rotation_euler_deg": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "id": "edge",
+              "type": "renderer",
+              "enabled": true,
+              "properties": {
+                "geometry": "builtin:cube",
+                "visible": true,
+                "scale": [
+                  11.125,
+                  0.125,
+                  0.04
+                ],
+                "color": [
+                  1,
+                  1,
+                  1,
+                  1
+                ],
+                "spatial_role": "source_backdrop"
+              }
+            }
+          ]
+        },
+        {
+          "id": "scene:frame.right",
+          "name": "Dark right bevel",
+          "parent": null,
+          "active": true,
+          "layer": "scene:layer.runtime",
+          "transform": {
+            "translation": [
+              5.5,
+              0,
+              -0.03
+            ],
+            "rotation_euler_deg": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "id": "edge",
+              "type": "renderer",
+              "enabled": true,
+              "properties": {
+                "geometry": "builtin:cube",
+                "visible": true,
+                "scale": [
+                  0.125,
+                  14.25,
+                  0.04
+                ],
+                "color": [
+                  0.50196,
+                  0.50196,
+                  0.50196,
+                  1
+                ],
+                "spatial_role": "source_backdrop"
+              }
+            }
+          ]
+        },
+        {
+          "id": "scene:frame.bottom",
+          "name": "Dark bottom bevel",
+          "parent": null,
+          "active": true,
+          "layer": "scene:layer.runtime",
+          "transform": {
+            "translation": [
+              0,
+              -7.0625,
+              -0.03
+            ],
+            "rotation_euler_deg": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "id": "edge",
+              "type": "renderer",
+              "enabled": true,
+              "properties": {
+                "geometry": "builtin:cube",
+                "visible": true,
+                "scale": [
+                  11.125,
+                  0.125,
+                  0.04
+                ],
+                "color": [
+                  0.50196,
+                  0.50196,
+                  0.50196,
+                  1
+                ],
+                "spatial_role": "source_backdrop"
+              }
+            }
+          ]
+        },
+        {
+          "id": "scene:frame.header",
+          "name": "White header separator",
+          "parent": null,
+          "active": true,
+          "layer": "scene:layer.runtime",
+          "transform": {
+            "translation": [
+              0,
+              3.625,
+              -0.03
+            ],
+            "rotation_euler_deg": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "id": "edge",
+              "type": "renderer",
+              "enabled": true,
+              "properties": {
+                "geometry": "builtin:cube",
+                "visible": true,
+                "scale": [
+                  10,
+                  0.125,
+                  0.04
+                ],
+                "color": [
+                  1,
+                  1,
+                  1,
+                  1
+                ],
+                "spatial_role": "source_backdrop"
+              }
+            }
+          ]
+        },
+        {
+          "id": "scene:frame.header-shadow",
+          "name": "Dark header separator",
+          "parent": null,
+          "active": true,
+          "layer": "scene:layer.runtime",
+          "transform": {
+            "translation": [
+              0,
+              3.1875,
+              -0.03
+            ],
+            "rotation_euler_deg": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "id": "edge",
+              "type": "renderer",
+              "enabled": true,
+              "properties": {
+                "geometry": "builtin:cube",
+                "visible": true,
+                "scale": [
+                  10,
+                  0.125,
+                  0.04
+                ],
+                "color": [
+                  0.50196,
+                  0.50196,
+                  0.50196,
+                  1
+                ],
+                "spatial_role": "source_backdrop"
+              }
+            }
+          ]
+        },
+        {
+          "id": "scene:face",
+          "name": "Clickable reset and result face",
+          "parent": null,
+          "active": true,
+          "layer": "scene:layer.runtime",
+          "transform": {
+            "translation": [
+              0,
+              5.25,
+              -0.2
+            ],
+            "rotation_euler_deg": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "id": "face_sprite",
+              "type": "renderer",
+              "enabled": true,
+              "properties": {
+                "geometry": "builtin:quad",
+                "visible": true,
+                "scale": [
+                  1.5,
+                  1.5,
+                  0.01
+                ],
+                "texture": "asset:face.smile",
+                "spatial_role": "content",
+                "variant": "playing",
+                "variants": {
+                  "playing": {
+                    "texture": "asset:face.smile"
+                  },
+                  "lost": {
+                    "texture": "asset:face.dead"
+                  },
+                  "won": {
+                    "texture": "asset:face.winner"
+                  }
+                },
+                "pressed": false,
+                "pressed_style": {
+                  "texture": "asset:face.smile-click"
+                }
+              }
+            },
+            {
+              "id": "face_pick",
+              "type": "collider",
+              "enabled": true,
+              "properties": {
+                "shape": "box",
+                "size": [
+                  1.5,
+                  1.5,
+                  0.1
+                ],
+                "is_trigger": false,
+                "selectable": true
+              }
+            }
+          ]
+        },
+        {
+          "id": "scene:face.excited",
+          "name": "Excited expression during a board press",
+          "parent": null,
+          "active": true,
+          "layer": "scene:layer.runtime",
+          "transform": {
+            "translation": [
+              0,
+              5.25,
+              -0.21
+            ],
+            "rotation_euler_deg": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "id": "excited_sprite",
+              "type": "renderer",
+              "enabled": true,
+              "properties": {
+                "geometry": "builtin:quad",
+                "visible": false,
+                "scale": [
+                  1.5,
+                  1.5,
+                  0.01
+                ],
+                "texture": "asset:face.excited",
+                "spatial_role": "content"
+              }
+            }
+          ]
+        },
+        {
+          "id": "scene:mines.hundreds",
+          "name": "Mine counter hundreds",
+          "parent": null,
+          "active": true,
+          "layer": "scene:layer.runtime",
+          "transform": {
+            "translation": [
+              -4.03125,
+              5.28125,
+              -0.2
+            ],
+            "rotation_euler_deg": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "id": "digit",
+              "type": "renderer",
+              "enabled": true,
+              "properties": {
+                "geometry": "builtin:quad",
+                "visible": true,
+                "scale": [
+                  0.8125,
+                  1.4375,
+                  0.01
+                ],
+                "texture": "asset:score.zero",
+                "spatial_role": "content"
+              }
+            }
+          ]
+        },
+        {
+          "id": "scene:mines.tens",
+          "name": "Mine counter tens",
+          "parent": null,
+          "active": true,
+          "layer": "scene:layer.runtime",
+          "transform": {
+            "translation": [
+              -3.21875,
+              5.28125,
+              -0.2
+            ],
+            "rotation_euler_deg": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "id": "digit",
+              "type": "renderer",
+              "enabled": true,
+              "properties": {
+                "geometry": "builtin:quad",
+                "visible": true,
+                "scale": [
+                  0.8125,
+                  1.4375,
+                  0.01
+                ],
+                "texture": "asset:score.one",
+                "spatial_role": "content"
+              }
+            }
+          ]
+        },
+        {
+          "id": "scene:mines.ones",
+          "name": "Mine counter units",
+          "parent": null,
+          "active": true,
+          "layer": "scene:layer.runtime",
+          "transform": {
+            "translation": [
+              -2.40625,
+              5.28125,
+              -0.2
+            ],
+            "rotation_euler_deg": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "id": "digit",
+              "type": "renderer",
+              "enabled": true,
+              "properties": {
+                "geometry": "builtin:quad",
+                "visible": true,
+                "scale": [
+                  0.8125,
+                  1.4375,
+                  0.01
+                ],
+                "texture": "asset:score.zero",
+                "spatial_role": "content"
+              }
+            }
+          ]
+        },
+        {
+          "id": "scene:timer.hundreds",
+          "name": "Timer hundreds",
+          "parent": null,
+          "active": true,
+          "layer": "scene:layer.runtime",
+          "transform": {
+            "translation": [
+              2.40625,
+              5.28125,
+              -0.2
+            ],
+            "rotation_euler_deg": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "id": "digit",
+              "type": "renderer",
+              "enabled": true,
+              "properties": {
+                "geometry": "builtin:quad",
+                "visible": true,
+                "scale": [
+                  0.8125,
+                  1.4375,
+                  0.01
+                ],
+                "texture": "asset:score.zero",
+                "spatial_role": "content"
+              }
+            }
+          ]
+        },
+        {
+          "id": "scene:timer.tens",
+          "name": "Timer tens",
+          "parent": null,
+          "active": true,
+          "layer": "scene:layer.runtime",
+          "transform": {
+            "translation": [
+              3.21875,
+              5.28125,
+              -0.2
+            ],
+            "rotation_euler_deg": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "id": "digit",
+              "type": "renderer",
+              "enabled": true,
+              "properties": {
+                "geometry": "builtin:quad",
+                "visible": true,
+                "scale": [
+                  0.8125,
+                  1.4375,
+                  0.01
+                ],
+                "texture": "asset:score.zero",
+                "spatial_role": "content"
+              }
+            }
+          ]
+        },
+        {
+          "id": "scene:timer.ones",
+          "name": "Timer units",
+          "parent": null,
+          "active": true,
+          "layer": "scene:layer.runtime",
+          "transform": {
+            "translation": [
+              4.03125,
+              5.28125,
+              -0.2
+            ],
+            "rotation_euler_deg": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "id": "digit",
+              "type": "renderer",
+              "enabled": true,
+              "properties": {
+                "geometry": "builtin:quad",
+                "visible": true,
+                "scale": [
+                  0.8125,
+                  1.4375,
+                  0.01
+                ],
+                "texture": "asset:score.zero",
+                "spatial_role": "content"
+              }
+            }
+          ]
+        }
+      ],
+      "bindings": [
+        {
+          "id": "scene:binding.cover",
+          "name": "All cover and loss appearances",
+          "source": {
+            "kind": "state",
+            "scope": "topology_site",
+            "variable": "rule:state.cover"
+          },
+          "target": {
+            "selector": "topology_sites",
+            "node": "scene:board",
+            "visualizer": "sites",
+            "component": "cover_sprite",
+            "property": "variant"
+          },
+          "transform": {
+            "kind": "map",
+            "cases": [
+              {
+                "equals": 0,
+                "value": "unopened"
+              },
+              {
+                "equals": 1,
+                "value": "flag"
+              },
+              {
+                "equals": 2,
+                "value": "question"
+              },
+              {
+                "equals": 3,
+                "value": "opened"
+              },
+              {
+                "equals": 4,
+                "value": "detonated"
+              },
+              {
+                "equals": 5,
+                "value": "incorrect_flag"
+              },
+              {
+                "equals": 6,
+                "value": "exposed_mine"
+              }
+            ]
+          }
+        },
+        {
+          "id": "scene:binding.number",
+          "name": "Original adjacent-count sprites",
+          "source": {
+            "kind": "state",
+            "scope": "topology_site",
+            "variable": "rule:state.number"
+          },
+          "target": {
+            "selector": "topology_sites",
+            "node": "scene:board",
+            "visualizer": "sites",
+            "component": "number_sprite",
+            "property": "variant"
+          },
+          "transform": {
+            "kind": "map",
+            "cases": [
+              {
+                "equals": 0,
+                "value": "empty"
+              },
+              {
+                "equals": 1,
+                "value": "one"
+              },
+              {
+                "equals": 2,
+                "value": "two"
+              },
+              {
+                "equals": 3,
+                "value": "three"
+              },
+              {
+                "equals": 4,
+                "value": "four"
+              },
+              {
+                "equals": 5,
+                "value": "five"
+              },
+              {
+                "equals": 6,
+                "value": "six"
+              },
+              {
+                "equals": 7,
+                "value": "seven"
+              },
+              {
+                "equals": 8,
+                "value": "eight"
+              },
+              {
+                "equals": 9,
+                "value": "mine"
+              }
+            ]
+          }
+        },
+        {
+          "id": "scene:binding.number-visible",
+          "name": "Conceal counts until opened",
+          "source": {
+            "kind": "state",
+            "scope": "topology_site",
+            "variable": "rule:state.cover"
+          },
+          "target": {
+            "selector": "topology_sites",
+            "node": "scene:board",
+            "visualizer": "sites",
+            "component": "number_sprite",
+            "property": "visible"
+          },
+          "transform": {
+            "kind": "map",
+            "cases": [
+              {
+                "equals": 0,
+                "value": false
+              },
+              {
+                "equals": 1,
+                "value": false
+              },
+              {
+                "equals": 2,
+                "value": false
+              },
+              {
+                "equals": 3,
+                "value": true
+              },
+              {
+                "equals": 4,
+                "value": false
+              },
+              {
+                "equals": 5,
+                "value": false
+              },
+              {
+                "equals": 6,
+                "value": false
+              }
+            ]
+          }
+        },
+        {
+          "id": "scene:binding.tile-press",
+          "name": "Depress only eligible tiles during a primary-button hold; each cover variant supplies its own source sprite",
+          "source": {
+            "kind": "expression",
+            "expression": {
+              "op": "all",
+              "args": [
+                {
+                  "op": "read",
+                  "source": {
+                    "kind": "interaction",
+                    "property": "pressed",
+                    "scope": "target",
+                    "control": "mouse.button.primary",
+                    "node": "scene:board"
+                  }
+                },
+                {
+                  "op": "eq",
+                  "args": [
+                    {
+                      "op": "read",
+                      "source": {
+                        "kind": "state",
+                        "scope": "global",
+                        "variable": "rule:state.result"
+                      }
+                    },
+                    {
+                      "op": "literal",
+                      "value": 0
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "target": {
+            "selector": "topology_sites",
+            "node": "scene:board",
+            "visualizer": "sites",
+            "component": "cover_sprite",
+            "property": "pressed"
+          },
+          "transform": {
+            "kind": "direct"
+          }
+        },
+        {
+          "id": "scene:binding.face",
+          "name": "Smile, defeat or victory",
+          "source": {
+            "kind": "state",
+            "scope": "global",
+            "variable": "rule:state.result"
+          },
+          "target": {
+            "selector": "node",
+            "node": "scene:face",
+            "component": "face_sprite",
+            "property": "variant"
+          },
+          "transform": {
+            "kind": "map",
+            "cases": [
+              {
+                "equals": 0,
+                "value": "playing"
+              },
+              {
+                "equals": 1,
+                "value": "lost"
+              },
+              {
+                "equals": 2,
+                "value": "won"
+              }
+            ]
+          }
+        },
+        {
+          "id": "scene:binding.face-press",
+          "name": "Pressed reset face",
+          "source": {
+            "kind": "interaction",
+            "property": "pressed",
+            "scope": "target",
+            "control": "mouse.button.primary",
+            "node": "scene:face"
+          },
+          "target": {
+            "selector": "node",
+            "node": "scene:face",
+            "component": "face_sprite",
+            "property": "pressed"
+          },
+          "transform": {
+            "kind": "direct"
+          }
+        },
+        {
+          "id": "scene:binding.face-excited",
+          "name": "Excited face during a board press while playing",
+          "source": {
+            "kind": "expression",
+            "expression": {
+              "op": "all",
+              "args": [
+                {
+                  "op": "read",
+                  "source": {
+                    "kind": "interaction",
+                    "property": "pressed",
+                    "scope": "any",
+                    "control": "mouse.button.primary",
+                    "node": "scene:board"
+                  }
+                },
+                {
+                  "op": "eq",
+                  "args": [
+                    {
+                      "op": "read",
+                      "source": {
+                        "kind": "state",
+                        "scope": "global",
+                        "variable": "rule:state.result"
+                      }
+                    },
+                    {
+                      "op": "literal",
+                      "value": 0
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "target": {
+            "selector": "node",
+            "node": "scene:face.excited",
+            "component": "excited_sprite",
+            "property": "visible"
+          },
+          "transform": {
+            "kind": "direct"
+          }
+        },
+        {
+          "id": "scene:binding.mines-hundreds",
+          "name": "Remaining mines hundreds",
+          "source": {
+            "kind": "expression",
+            "expression": {
+              "op": "max",
+              "args": [
+                {
+                  "op": "literal",
+                  "value": 0
+                },
+                {
+                  "op": "subtract",
+                  "args": [
+                    {
+                      "op": "literal",
+                      "value": 10
+                    },
+                    {
+                      "op": "read",
+                      "source": {
+                        "kind": "state",
+                        "scope": "global",
+                        "variable": "rule:state.flags"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "target": {
+            "selector": "node",
+            "node": "scene:mines.hundreds",
+            "component": "digit",
+            "property": "texture"
+          },
+          "transform": {
+            "kind": "digit",
+            "place": 2,
+            "minimum": 0,
+            "maximum": 999,
+            "values": [
+              "asset:score.zero",
+              "asset:score.one",
+              "asset:score.two",
+              "asset:score.three",
+              "asset:score.four",
+              "asset:score.five",
+              "asset:score.six",
+              "asset:score.seven",
+              "asset:score.eight",
+              "asset:score.nine"
+            ]
+          }
+        },
+        {
+          "id": "scene:binding.mines-tens",
+          "name": "Remaining mines tens",
+          "source": {
+            "kind": "expression",
+            "expression": {
+              "op": "max",
+              "args": [
+                {
+                  "op": "literal",
+                  "value": 0
+                },
+                {
+                  "op": "subtract",
+                  "args": [
+                    {
+                      "op": "literal",
+                      "value": 10
+                    },
+                    {
+                      "op": "read",
+                      "source": {
+                        "kind": "state",
+                        "scope": "global",
+                        "variable": "rule:state.flags"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "target": {
+            "selector": "node",
+            "node": "scene:mines.tens",
+            "component": "digit",
+            "property": "texture"
+          },
+          "transform": {
+            "kind": "digit",
+            "place": 1,
+            "minimum": 0,
+            "maximum": 999,
+            "values": [
+              "asset:score.zero",
+              "asset:score.one",
+              "asset:score.two",
+              "asset:score.three",
+              "asset:score.four",
+              "asset:score.five",
+              "asset:score.six",
+              "asset:score.seven",
+              "asset:score.eight",
+              "asset:score.nine"
+            ]
+          }
+        },
+        {
+          "id": "scene:binding.mines-ones",
+          "name": "Remaining mines units",
+          "source": {
+            "kind": "expression",
+            "expression": {
+              "op": "max",
+              "args": [
+                {
+                  "op": "literal",
+                  "value": 0
+                },
+                {
+                  "op": "subtract",
+                  "args": [
+                    {
+                      "op": "literal",
+                      "value": 10
+                    },
+                    {
+                      "op": "read",
+                      "source": {
+                        "kind": "state",
+                        "scope": "global",
+                        "variable": "rule:state.flags"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "target": {
+            "selector": "node",
+            "node": "scene:mines.ones",
+            "component": "digit",
+            "property": "texture"
+          },
+          "transform": {
+            "kind": "digit",
+            "place": 0,
+            "minimum": 0,
+            "maximum": 999,
+            "values": [
+              "asset:score.zero",
+              "asset:score.one",
+              "asset:score.two",
+              "asset:score.three",
+              "asset:score.four",
+              "asset:score.five",
+              "asset:score.six",
+              "asset:score.seven",
+              "asset:score.eight",
+              "asset:score.nine"
+            ]
+          }
+        },
+        {
+          "id": "scene:binding.timer-hundreds",
+          "name": "Source timer hundreds, capped at 999",
+          "source": {
+            "kind": "state",
+            "scope": "global",
+            "variable": "rule:state.seconds"
+          },
+          "target": {
+            "selector": "node",
+            "node": "scene:timer.hundreds",
+            "component": "digit",
+            "property": "texture"
+          },
+          "transform": {
+            "kind": "digit",
+            "place": 2,
+            "minimum": 0,
+            "maximum": 999,
+            "values": [
+              "asset:score.zero",
+              "asset:score.one",
+              "asset:score.two",
+              "asset:score.three",
+              "asset:score.four",
+              "asset:score.five",
+              "asset:score.six",
+              "asset:score.seven",
+              "asset:score.eight",
+              "asset:score.nine"
+            ]
+          }
+        },
+        {
+          "id": "scene:binding.timer-tens",
+          "name": "Source timer tens",
+          "source": {
+            "kind": "state",
+            "scope": "global",
+            "variable": "rule:state.seconds"
+          },
+          "target": {
+            "selector": "node",
+            "node": "scene:timer.tens",
+            "component": "digit",
+            "property": "texture"
+          },
+          "transform": {
+            "kind": "digit",
+            "place": 1,
+            "minimum": 0,
+            "maximum": 999,
+            "values": [
+              "asset:score.zero",
+              "asset:score.one",
+              "asset:score.two",
+              "asset:score.three",
+              "asset:score.four",
+              "asset:score.five",
+              "asset:score.six",
+              "asset:score.seven",
+              "asset:score.eight",
+              "asset:score.nine"
+            ]
+          }
+        },
+        {
+          "id": "scene:binding.timer-ones",
+          "name": "Source timer units",
+          "source": {
+            "kind": "state",
+            "scope": "global",
+            "variable": "rule:state.seconds"
+          },
+          "target": {
+            "selector": "node",
+            "node": "scene:timer.ones",
+            "component": "digit",
+            "property": "texture"
+          },
+          "transform": {
+            "kind": "digit",
+            "place": 0,
+            "minimum": 0,
+            "maximum": 999,
+            "values": [
+              "asset:score.zero",
+              "asset:score.one",
+              "asset:score.two",
+              "asset:score.three",
+              "asset:score.four",
+              "asset:score.five",
+              "asset:score.six",
+              "asset:score.seven",
+              "asset:score.eight",
+              "asset:score.nine"
+            ]
+          }
+        }
+      ],
+      "provenance": {
+        "patch_history": [
+          {
+            "base_revision": 0,
+            "base_content_hash": "660ccce576005d8a689bd5184d888db26ad4c64e3f1640a0b706862583078d0e",
+            "evidence": [
+              {
+                "evidence_id": "run_game.py:1-17@0d9c1899014279d13615849458126254a3fac9e54d7cd28aef6c7fb41aa3d03a",
+                "path": "run_game.py",
+                "file_sha256": "0d9c1899014279d13615849458126254a3fac9e54d7cd28aef6c7fb41aa3d03a",
+                "span": {
+                  "line_start": 1,
+                  "line_end": 17
+                },
+                "supports": "/scene_ir"
+              },
+              {
+                "evidence_id": "minesweeper/__main__.py:1-168@c734448d03ecdb6ef6693a03e5d711ec2d27145d13ba38b6455271c50677cd5a",
+                "path": "minesweeper/__main__.py",
+                "file_sha256": "c734448d03ecdb6ef6693a03e5d711ec2d27145d13ba38b6455271c50677cd5a",
+                "span": {
+                  "line_start": 1,
+                  "line_end": 168
+                },
+                "supports": "/scene_ir"
+              },
+              {
+                "evidence_id": "minesweeper/user_interface.py:1-70@3eda8eaeb4b8e12b397e397e305f662a027911d38c649d80f8f6b32d0f67f23a",
+                "path": "minesweeper/user_interface.py",
+                "file_sha256": "3eda8eaeb4b8e12b397e397e305f662a027911d38c649d80f8f6b32d0f67f23a",
+                "span": {
+                  "line_start": 1,
+                  "line_end": 70
+                },
+                "supports": "/scene_ir"
+              },
+              {
+                "evidence_id": "minesweeper/user_interface_board.py:1-152@1e552aa64378928d6297a68abee49dc425b20e6bd240a9752b92f549589c89fc",
+                "path": "minesweeper/user_interface_board.py",
+                "file_sha256": "1e552aa64378928d6297a68abee49dc425b20e6bd240a9752b92f549589c89fc",
+                "span": {
+                  "line_start": 1,
+                  "line_end": 152
+                },
+                "supports": "/scene_ir"
+              },
+              {
+                "evidence_id": "minesweeper/user_interface_face.py:1-88@9ffe4fbb299b21934f4ad01b2b4075beb09af5e37bd72ed970e90464f9f10f97",
+                "path": "minesweeper/user_interface_face.py",
+                "file_sha256": "9ffe4fbb299b21934f4ad01b2b4075beb09af5e37bd72ed970e90464f9f10f97",
+                "span": {
+                  "line_start": 1,
+                  "line_end": 88
+                },
+                "supports": "/scene_ir"
+              },
+              {
+                "evidence_id": "minesweeper/user_interface_score.py:1-76@eda7fdfc4640dbca70aebbe0278a70ea60c9867ad48371e6650d87250455fa1e",
+                "path": "minesweeper/user_interface_score.py",
+                "file_sha256": "eda7fdfc4640dbca70aebbe0278a70ea60c9867ad48371e6650d87250455fa1e",
+                "span": {
+                  "line_start": 1,
+                  "line_end": 76
+                },
+                "supports": "/scene_ir"
+              },
+              {
+                "evidence_id": "minesweeper/user_interface_frame.py:1-81@cdb5fd19fcfa47a34c1e461438fc3ea0d514a2e62e44def7cfeac961aa2828a2",
+                "path": "minesweeper/user_interface_frame.py",
+                "file_sha256": "cdb5fd19fcfa47a34c1e461438fc3ea0d514a2e62e44def7cfeac961aa2828a2",
+                "span": {
+                  "line_start": 1,
+                  "line_end": 81
+                },
+                "supports": "/scene_ir"
+              },
+              {
+                "evidence_id": "minesweeper/sprites/tile.py:1-182@95433703bbf3665d8abf4e41a3a22eb6687d2bf1625a2667ae8d75ff0024fd9f",
+                "path": "minesweeper/sprites/tile.py",
+                "file_sha256": "95433703bbf3665d8abf4e41a3a22eb6687d2bf1625a2667ae8d75ff0024fd9f",
+                "span": {
+                  "line_start": 1,
+                  "line_end": 182
+                },
+                "supports": "/scene_ir"
+              },
+              {
+                "evidence_id": "minesweeper/sprites/tile.py:183-199@95433703bbf3665d8abf4e41a3a22eb6687d2bf1625a2667ae8d75ff0024fd9f",
+                "path": "minesweeper/sprites/tile.py",
+                "file_sha256": "95433703bbf3665d8abf4e41a3a22eb6687d2bf1625a2667ae8d75ff0024fd9f",
+                "span": {
+                  "line_start": 183,
+                  "line_end": 199
+                },
+                "supports": "/scene_ir"
+              },
+              {
+                "evidence_id": "minesweeper/sprites/face.py:1-81@279d37b6d436e5620cd3e6639d185d4f52747872cda2a0aa05fcfdb6cccb0160",
+                "path": "minesweeper/sprites/face.py",
+                "file_sha256": "279d37b6d436e5620cd3e6639d185d4f52747872cda2a0aa05fcfdb6cccb0160",
+                "span": {
+                  "line_start": 1,
+                  "line_end": 81
+                },
+                "supports": "/scene_ir"
+              },
+              {
+                "evidence_id": "minesweeper/sprites/score.py:1-138@7820112dd83e64c9b5e567b9da9d8877a21474dce6f4635830e7fa4cdaae3ba8",
+                "path": "minesweeper/sprites/score.py",
+                "file_sha256": "7820112dd83e64c9b5e567b9da9d8877a21474dce6f4635830e7fa4cdaae3ba8",
+                "span": {
+                  "line_start": 1,
+                  "line_end": 138
+                },
+                "supports": "/scene_ir"
+              }
+            ],
+            "assumptions": [
+              "One world unit corresponds to one original 16-pixel tile; source row indices descend on screen and column indices increase rightward.",
+              "The launcher fixes basic difficulty and retains the default 2000-style sprite sheets."
+            ],
+            "operation_count": 7
+          }
+        ]
+      },
+      "unresolved": []
+    }
+  },
+  "behavior_tests": [
+    {
+      "name": "Right-click flags an unopened tile",
+      "steps": [
+        {
+          "action": "rule:action.cycle_mark",
+          "parameters": {
+            "coordinate": [
+              0,
+              0
+            ]
+          },
+          "accepted": true
+        }
+      ],
+      "expect": {
+        "cells": [
+          {
+            "state": "rule:state.cover",
+            "coordinate": [
+              0,
+              0
+            ],
+            "value": 1
+          }
+        ],
+        "terminal": false
+      }
+    },
+    {
+      "name": "A flagged tile cannot be directly revealed",
+      "steps": [
+        {
+          "action": "rule:action.cycle_mark",
+          "parameters": {
+            "coordinate": [
+              0,
+              0
+            ]
+          },
+          "accepted": true
+        },
+        {
+          "action": "rule:action.reveal",
+          "parameters": {
+            "coordinate": [
+              0,
+              0
+            ]
+          },
+          "accepted": false
+        }
+      ],
+      "expect": {
+        "cells": [
+          {
+            "state": "rule:state.cover",
+            "coordinate": [
+              0,
+              0
+            ],
+            "value": 1
+          }
+        ],
+        "terminal": false
+      }
+    },
+    {
+      "name": "Left-click clears a question mark without opening",
+      "steps": [
+        {
+          "action": "rule:action.cycle_mark",
+          "parameters": {
+            "coordinate": [
+              0,
+              0
+            ]
+          },
+          "accepted": true
+        },
+        {
+          "action": "rule:action.cycle_mark",
+          "parameters": {
+            "coordinate": [
+              0,
+              0
+            ]
+          },
+          "accepted": true
+        },
+        {
+          "action": "rule:action.clear_question",
+          "parameters": {
+            "coordinate": [
+              0,
+              0
+            ]
+          },
+          "accepted": true
+        }
+      ],
+      "expect": {
+        "cells": [
+          {
+            "state": "rule:state.cover",
+            "coordinate": [
+              0,
+              0
+            ],
+            "value": 0
+          }
+        ],
+        "terminal": false
+      }
+    },
+    {
+      "name": "Opening a mine after the first opening loses and blocks further moves",
+      "fixture": {
+        "otherwise": 0,
+        "cells": [
+          {
+            "state": "rule:state.mines",
+            "coordinate": [
+              0,
+              0
+            ],
+            "value": 1
+          },
+          {
+            "state": "rule:state.mines",
+            "coordinate": [
+              9,
+              0
+            ],
+            "value": 1
+          },
+          {
+            "state": "rule:state.mines",
+            "coordinate": [
+              9,
+              1
+            ],
+            "value": 1
+          },
+          {
+            "state": "rule:state.mines",
+            "coordinate": [
+              9,
+              2
+            ],
+            "value": 1
+          },
+          {
+            "state": "rule:state.mines",
+            "coordinate": [
+              9,
+              3
+            ],
+            "value": 1
+          },
+          {
+            "state": "rule:state.mines",
+            "coordinate": [
+              9,
+              4
+            ],
+            "value": 1
+          },
+          {
+            "state": "rule:state.mines",
+            "coordinate": [
+              9,
+              5
+            ],
+            "value": 1
+          },
+          {
+            "state": "rule:state.mines",
+            "coordinate": [
+              9,
+              6
+            ],
+            "value": 1
+          },
+          {
+            "state": "rule:state.mines",
+            "coordinate": [
+              9,
+              7
+            ],
+            "value": 1
+          },
+          {
+            "state": "rule:state.mines",
+            "coordinate": [
+              9,
+              8
+            ],
+            "value": 1
+          },
+          {
+            "state": "rule:state.number",
+            "coordinate": [
+              0,
+              0
+            ],
+            "value": 9
+          }
+        ],
+        "globals": {
+          "rule:state.opened_count": 1,
+          "rule:state.timer_active": 1
+        }
+      },
+      "steps": [
+        {
+          "action": "rule:action.reveal",
+          "parameters": {
+            "coordinate": [
+              0,
+              0
+            ]
+          },
+          "accepted": true
+        },
+        {
+          "action": "rule:action.cycle_mark",
+          "parameters": {
+            "coordinate": [
+              0,
+              1
+            ]
+          },
+          "accepted": false
+        }
+      ],
+      "expect": {
+        "cells": [
+          {
+            "state": "rule:state.cover",
+            "coordinate": [
+              0,
+              0
+            ],
+            "value": 4
+          }
+        ],
+        "terminal": true
+      }
+    }
+  ],
+  "scene_checks": [
+    {
+      "scene_nodes": 317,
+      "compiled": true,
+      "replayed_frames": 12,
+      "behavior_traces": 4,
+      "transient_input_states": 1536,
+      "transient_target_sampling": true
+    }
+  ],
+  "usage": {
+    "http_requests": 4,
+    "input_tokens": 305028,
+    "output_tokens": 14052,
+    "reported_cost_usd": 0.8841135999999999
+  }
+}

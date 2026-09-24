@@ -315,6 +315,7 @@ class InputRouter:
         self, event: PhysicalInputEvent, *,
         active_contexts: Optional[Sequence[str]] = None,
         focus: str = "viewport",
+        rule_runtime: Any = None,
     ) -> InputDispatch:
         if not isinstance(event, PhysicalInputEvent):
             raise InputDispatchError("router requires a PhysicalInputEvent")
@@ -356,14 +357,20 @@ class InputRouter:
                         continue
                     intent = self.compiled.intents_by_id[binding.intent_id]
                     value = _intent_value(intent.value_type, binding.trigger, binding.processing, event, after)
-                    request = _rule_action_request(
-                        intent, value, event, self.compiled._type_registry,
-                    )
+                    try:
+                        request = _rule_action_request(intent, value, event, self.compiled._type_registry)
+                        if context.consume_policy=='first_legal' and request is not None:
+                            if rule_runtime is None:
+                                raise ValueError('first_legal requires the authoritative Rule runtime')
+                            if not rule_runtime.is_legal(request.resolve(rule_runtime)):continue
+                    except InputDispatchError:
+                        if context.consume_policy=='first_legal':continue
+                        raise
                     intents.append(ResolvedIntent(
                         intent.id, value, context.id, binding.id,
                         str(intent.target["kind"]), request, event.sequence,
                     ))
-                    if binding.consume or context.consume_policy == "first_match":
+                    if binding.consume or context.consume_policy in ("first_match", "first_legal"):
                         consumed, consumed_by = True, binding.id
                         break
                 if consumed:
@@ -535,7 +542,7 @@ def _analyse_conflicts(
             )
             consumes = (
                 high.consume
-                or high_context.consume_policy in ("first_match", "all_events")
+                or high_context.consume_policy in ("first_match", "first_legal", "all_events")
             )
             if explicit_precedence and consumes:
                 result.append(InputConflict(
@@ -563,6 +570,8 @@ def _contexts_mutually_exclusive(first: CompiledContext, second: CompiledContext
 
 
 def _triggers_overlap(first: Mapping[str, Any], second: Mapping[str, Any]) -> bool:
+    from srtp.input_pointer_contract import pointer_filters_disjoint
+    if pointer_filters_disjoint(first.get('pointer',{}),second.get('pointer',{})):return False
     first_footprint = _trigger_footprint(first)
     second_footprint = _trigger_footprint(second)
     if not first_footprint.intersection(second_footprint):
@@ -603,6 +612,8 @@ def _trigger_matches(
     trigger: Mapping[str, Any], event: PhysicalInputEvent,
     held: Set[Tuple[str, str, str]],
 ) -> bool:
+    from srtp.input_pointer_contract import pointer_matches
+    if not pointer_matches(trigger.get('pointer',{}),event.data):return False
     kind = trigger["kind"]
     if kind == "control":
         return (

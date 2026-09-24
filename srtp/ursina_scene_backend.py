@@ -56,18 +56,21 @@ class UrsinaSceneBackend:
         self.audio_states.pop(key,None)
 
     def _node_enabled(self, node_id):
+        from .input_pointer_contract import scene_parent
         node=self.presentation.nodes.get(node_id)
         while node:
             if not node.get('active',True) or not self.presentation.layers.get(node.get('layer'),{}).get('visible',True):
                 return False
-            node=self.presentation.nodes.get(node.get('parent'))
+            node=self.presentation.nodes.get(scene_parent(node))
         return True
 
     def _ancestor_dirty(self, node_id):
+        from .input_pointer_contract import scene_parent
         node=self.presentation.nodes[node_id]
-        while node.get('parent') in self.presentation.nodes:
-            if node['parent'] in self.presentation.dirty_nodes: return True
-            node=self.presentation.nodes[node['parent']]
+        while scene_parent(node) in self.presentation.nodes:
+            parent=scene_parent(node)
+            if parent in self.presentation.dirty_nodes: return True
+            node=self.presentation.nodes[parent]
         return False
 
     def _matrix(self, entity, values):
@@ -415,7 +418,11 @@ class UrsinaSceneBackend:
     def pick_context(self, hovered):
         while hovered is not None and hovered != self.root:
             context = getattr(hovered, 'rule_context', None)
-            if context:
-                return context
+            identifier = getattr(hovered, 'scene_node_id', None)
+            if context or identifier:
+                if identifier:
+                    from .input_pointer_contract import scene_pick_context
+                    return scene_pick_context(self.presentation.nodes,identifier,context)
+                return dict(context or {})
             hovered = getattr(hovered, 'parent', None)
         return {}

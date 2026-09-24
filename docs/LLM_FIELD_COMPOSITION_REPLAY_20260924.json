@@ -1,0 +1,15 @@
+{
+  "scope": "Saved Rule/Asset + explicitly authored test-only Scene repair through production builder and replay. Not a live model result. No project manifest published.",
+  "api_calls": 0,
+  "checks": [
+    {
+      "scene_nodes": 517,
+      "compiled": true,
+      "replayed_frames": 12,
+      "behavior_traces": 4,
+      "transient_input_states": 1536,
+      "transient_target_sampling": true
+    }
+  ],
+  "seconds": 22.12
+}

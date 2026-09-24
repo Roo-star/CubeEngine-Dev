@@ -24,3 +24,9 @@ class PointerGesture:
 
     def clear(self):
         self.pending.clear()
+
+    def presentation_state(self, hovered):
+        """A cancelled/dragged press stops visual feedback before release."""
+        return {'hovered':deepcopy(hovered), 'pressed':{
+            button:deepcopy(context) for button,(_,context,dragged) in self.pending.items()
+            if context and context==hovered and not dragged}}

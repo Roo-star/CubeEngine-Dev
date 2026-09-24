@@ -35,6 +35,7 @@ def project_volume(graph, rule):
         maps[topology] = (extents, offset)
         for coordinate, node_id in sites.items():
             node = graph.nodes[node_id]
+            node.setdefault('logical_parent', node.get('parent'))
             desired = matrix_for(coordinate, extents, offset)
             if node.get('local_matrix') != desired or node.get('parent') is not None:
                 node['parent'] = None

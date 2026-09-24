@@ -328,7 +328,15 @@ class RuleTransaction:
             "kind": str(kind),
             "payload": deepcopy(dict(payload)),
         }
-        self.dispatch_queue.append(trigger)
+        # State notifications have no external event/replay payload. Preserve
+        # sequence allocation, but do not count unobserved bulk grid writes as
+        # a scheduler cascade. Check static subscriptions, never conditions or
+        # current phase: those may change before the queue is drained.
+        if kind != "state_changed" or (
+            None in self.runtime._observed_states
+            or payload.get("state") in self.runtime._observed_states
+        ):
+            self.dispatch_queue.append(trigger)
         return trigger
 
     def emit_event(
@@ -665,6 +673,10 @@ class RuleRuntime:
         self._systems = sorted(
             [item for item in self.document.get("systems", []) if isinstance(item, Mapping)],
             key=lambda item: (self._phase_order.get(str(item.get("phase")), 10 ** 9), int(item.get("priority", 0)), str(item.get("id"))),
+        )
+        self._observed_states = frozenset(
+            item["trigger"].get("state") for item in self._systems
+            if item.get("trigger", {}).get("kind") == "state_changed"
         )
         self._paused = False
         self._time_remainder_units = 0

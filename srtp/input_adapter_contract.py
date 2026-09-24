@@ -2,12 +2,15 @@
 import string
 from copy import deepcopy
 from srtp.ir_contracts import obj,enum,TEXT
+from srtp.input_pointer_contract import POINTER_FILTER, pointer_filter_errors
 
 KEY_NAMES={'up arrow':'arrow_up','down arrow':'arrow_down','left arrow':'arrow_left','right arrow':'arrow_right',
            'page up':'page_up','page down':'page_down','enter':'enter','escape':'escape','tab':'tab',
            'backspace':'backspace','home':'home','end':'end','delete':'delete','insert':'insert','space':'space'}
 KEY_CONTROLS=tuple('keyboard.key.'+name for name in sorted(set(KEY_NAMES.values())|set(string.ascii_lowercase+string.digits)))
 MOUSE_CONTROLS=('mouse.button.primary','mouse.button.secondary')
+HOST_FOCUS=('global','viewport')
+HOST_VALUE_TYPES=('digital','scalar','pointer')
 
 
 def keyboard_event(key):
@@ -25,11 +28,15 @@ def parameter_source_schema():
 
 
 def enrich_schema(schema):
+    schema['$defs']['context']['properties']['focus']=enum(*HOST_FOCUS)
+    schema['$defs']['intent']['properties']['value_type']=enum(*HOST_VALUE_TYPES)
+    schema['$defs']['pointerFilter']=deepcopy(POINTER_FILTER)
     schema['$defs']['parameterSource']=parameter_source_schema()
     trigger=schema['$defs']['trigger']['oneOf'][0]
     choices=[]
     for device,controls in [('keyboard',KEY_CONTROLS),('mouse',MOUSE_CONTROLS)]:
         item=deepcopy(trigger); p=item['properties']; p.update(device={'const':device},control=enum(*controls),phase=enum('press','release'))
+        if device == 'keyboard': p.pop('pointer', None)
         p['modifiers']={'type':'array','maxItems':0}; choices.append(item)
     # The router understands more trigger types; this host emits only these
     # events. Do not advertise virtual controls the player cannot produce.
@@ -41,13 +48,22 @@ def enrich_schema(schema):
 
 def backend_diagnostics(document):
     result=[]
+    for i,context in enumerate(document.get('contexts',[])):
+        if context.get('focus') not in HOST_FOCUS:
+            result.append('/contexts/'+str(i)+'/focus: ProjectView routes game controls through global or viewport focus; use Scene pointer filters for in-game UI')
     for i,b in enumerate(document.get('bindings',[])):
         t=b.get('trigger',{}); path='/bindings/'+str(i)+'/trigger'
         if t.get('kind')!='control': result.append(path+'/kind: ProjectView currently emits control triggers only')
-        if t.get('control') not in KEY_CONTROLS+MOUSE_CONTROLS: result.append(path+'/control: not emitted by ProjectView')
+        controls = {'keyboard':KEY_CONTROLS, 'mouse':MOUSE_CONTROLS}.get(t.get('device'), ())
+        if t.get('control') not in controls: result.append(path+'/control: not emitted by ProjectView for device '+str(t.get('device')))
         if t.get('phase') not in ('press','release'): result.append(path+'/phase: ProjectView emits press/release only')
         if t.get('modifiers'): result.append(path+'/modifiers: ProjectView does not emit modifier chords')
+        if 'pointer' in t:
+            result.extend(pointer_filter_errors(t['pointer'],path+'/pointer'))
+            if t.get('device')!='mouse':result.append(path+'/pointer: only mouse controls carry pointer picking data')
     for i,intent in enumerate(document.get('intents',[])):
+        if intent.get('value_type') not in HOST_VALUE_TYPES:
+            result.append('/intents/'+str(i)+'/value_type: host emits digital, scalar or pointer values, not text/vector2 events')
         target=intent.get('target',{}); path='/intents/'+str(i)+'/target'
         if target.get('kind') not in ('rule_action','host_command'):
             result.append(path+'/kind: use rule_action for gameplay or host_command for quit/restart')

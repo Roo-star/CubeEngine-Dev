@@ -33,6 +33,20 @@ _PATCH_ERRORS = (
 )
 
 
+def validate_working_documents(documents):
+    """Find local baseline errors before any paid semantic generation."""
+    from srtp.ir_contracts import document_shape_errors
+    diagnostics=[]
+    for slot in _IR_KEYS:
+        shape=document_shape_errors(slot,documents.get(slot))
+        if shape:
+            diagnostics.extend(slot+' invalid at '+item for item in shape)
+            continue
+        diagnostics.extend('{0} invalid at {1}: {2}'.format(slot,item.path,item.message)
+                           for item in _VALIDATORS[slot](documents[slot]) if item.severity=='error')
+    return diagnostics
+
+
 def _ir_document_pin(document: Optional[Mapping[str, Any]]) -> Optional[Dict[str, str]]:
     if not isinstance(document, Mapping):
         return None

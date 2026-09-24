@@ -61,7 +61,7 @@
         "priority": {"type": "integer"},
         "enabled_by_default": {"type": "boolean"},
         "focus": {"enum": ["global", "viewport", "ui", "text_entry"]},
-        "consume_policy": {"enum": ["binding", "first_match", "all_events"]},
+        "consume_policy": {"enum": ["binding", "first_match", "first_legal", "all_events"]},
         "exclusive_group": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/local"}]}
       }
     },
@@ -111,6 +111,15 @@
       },
       "additionalProperties": false
     },
+    "pointerFilter": {
+      "type": "object", "additionalProperties": false, "minProperties": 1,
+      "properties": {
+        "node": {"type": "string", "pattern": "^scene:[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$"},
+        "subtree": {"type": "boolean"},
+        "topology": {"$ref": "#/$defs/ruleId"},
+        "gesture": {"const": "click"}
+      }
+    },
     "controlRef": {
       "type": "object", "additionalProperties": false,
       "required": ["device", "control"],
@@ -130,7 +139,8 @@
             "control": {"$ref": "#/$defs/local"},
             "phase": {"enum": ["press", "release", "repeat", "hold", "axis", "move", "scroll", "gesture", "text"]},
             "modifiers": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/local"}},
-            "modifier_policy": {"enum": ["exact", "at_least"]}
+            "modifier_policy": {"enum": ["exact", "at_least"]},
+            "pointer": {"$ref": "#/$defs/pointerFilter"}
           }
         },
         {

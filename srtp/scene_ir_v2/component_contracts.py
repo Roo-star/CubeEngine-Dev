@@ -1,12 +1,13 @@
 """Ursina executable component and projection contracts (no game-specific IDs)."""
 from copy import deepcopy
 from srtp.ir_contracts import obj,array,enum,NUMBER,BOOL,TEXT,POSITIVE,NORMAL,VEC3,POS3,COLOR,ASSET,RULE,SCENE,LOCAL,errors
+from .binding_expressions import schema as expression_schema, validate_expression
 
 BUILTIN_GEOMETRY=('cube','sphere','cylinder','plane','quad')
 COLLIDERS=('box','sphere')
 LIGHTS=('ambient','directional','point')
 BINDABLE={
-    'renderer':('visible','geometry','material','texture','color','opacity','variant','text','text_color','scale'),
+    'renderer':('visible','geometry','material','texture','color','opacity','variant','text','text_color','scale','pressed'),
     'camera':('active','fov','orthographic_size','near_clip','far_clip'),
     'light':('color','intensity'), 'collider':('selectable','is_trigger'),
     'ui_canvas':('visible','text','color','scale','background'),
@@ -23,6 +24,8 @@ RENDER_FIELDS={'geometry':GEOMETRY,'visible':BOOL,'color':COLOR,'opacity':NORMAL
     'font':ASSET,'scale':POS3,'text':TEXT,'text_color':COLOR,'text_scale':POSITIVE,'text_billboard':BOOL,
     'marker':MARKER,'animation':ANIMATION,'variant':TEXT,
     'spatial_role':enum('cell_shell','content','source_backdrop','world_decoration'),'shell_color':COLOR}
+PRESS_STYLE=obj(deepcopy(RENDER_FIELDS),description='Visual overrides while a valid pointer press is held; release/cancel restores the current Rule variant.')
+RENDER_FIELDS.update(pressed=BOOL,pressed_style=PRESS_STYLE)
 RENDERER=obj(dict(RENDER_FIELDS,variants={'type':'object','additionalProperties':obj(RENDER_FIELDS)}),('geometry','visible'))
 COLLIDER={'oneOf':[
     obj({'shape':{'const':'box'},'size':POS3,'is_trigger':BOOL,'selectable':BOOL},('shape','size','is_trigger','selectable')),
@@ -49,7 +52,20 @@ COMPONENTS={
 BINDING_SOURCE={'oneOf':[
     obj({'kind':{'const':'state'},'scope':enum('global','participant','topology_site','entity'),'variable':RULE,'participant':RULE},('kind','scope','variable')),
     obj({'kind':{'const':'flow'},'property':enum('current_actor','phase','tick','turn')},('kind','property')),
-    obj({'kind':{'const':'entity_component'},'component':LOCAL},('kind','component'))]}
+    obj({'kind':{'const':'entity_component'},'component':LOCAL},('kind','component')),
+    obj({'kind':{'const':'interaction'},'property':enum('pressed','hovered'),
+         'scope':enum('target','any'),'control':enum('mouse.button.primary','mouse.button.secondary'),
+         'node':SCENE},('kind','property','scope')),
+    obj({'kind':{'const':'expression'},'expression':expression_schema()},('kind','expression'))]}
+
+
+def binding_source_errors(value, path):
+    result=errors(value,BINDING_SOURCE,path)
+    if isinstance(value,dict) and value.get('kind')=='expression':
+        issues,_=validate_expression(value.get('expression'),
+            lambda source,p:errors(source,BINDING_SOURCE,p),path+'/expression')
+        result.extend(issues)
+    return result
 BINDING_TARGET={'oneOf':[
     obj({'selector':{'const':selector},'node':SCENE,'property':enum('active') if not component else enum(*sorted(set(v for values in BINDABLE.values() for v in values))),
          **({'component':LOCAL} if component else {}), **({'visualizer':LOCAL} if selector!='node' else {})},
@@ -59,6 +75,13 @@ BINDING_TRANSFORM={'oneOf':[
     obj({'kind':{'const':'direct'}},('kind',)),obj({'kind':{'const':'not'}},('kind',)),
     obj({'kind':{'const':'map'},'cases':array(obj({'equals':{},'value':{}},('equals','value'))),'default':{}},('kind','cases')),
     obj({'kind':{'const':'numeric'},'multiply':NUMBER,'add':NUMBER},('kind',)),
+    obj({'kind':{'const':'digit'},'place':{'type':'integer','minimum':0,'maximum':9},
+         'minimum':{'type':'integer','minimum':0},'maximum':{'type':'integer','minimum':0},
+         'values':array({},10)},('kind','place'),
+        description='Floor, clamp then extract decimal digit at place 0=units, 1=tens, 2=hundreds. Optional values is exactly ten atlas texture IDs or values indexed by that digit.'),
+    obj({'kind':{'const':'integer_format'},'width':{'type':'integer','minimum':1,'maximum':16},
+         'minimum':{'type':'integer'},'maximum':{'type':'integer'}},('kind','width'),
+        description='Floor, clamp, then zero-pad an integer for text. For source sprite digits use digit with original atlas IDs instead.'),
     obj({'kind':{'const':'format'},'template':dict(TEXT,description='Exactly one {value} token.')},('kind','template'))]}
 
 
@@ -109,7 +132,8 @@ def backend_diagnostics(document):
     for i,binding in enumerate(document.get('bindings',[])):
         if not isinstance(binding,dict): continue
         for key,schema in [('source',BINDING_SOURCE),('target',BINDING_TARGET),('transform',BINDING_TRANSFORM)]:
-            result.extend(errors(binding.get(key),schema,'/bindings/'+str(i)+'/'+key))
+            path='/bindings/'+str(i)+'/'+key
+            result.extend(binding_source_errors(binding.get(key),path) if key=='source' else errors(binding.get(key),schema,path))
         target=binding.get('target',{})
         if not isinstance(target,dict): continue
         if not target.get('component') and target.get('property')!='active':

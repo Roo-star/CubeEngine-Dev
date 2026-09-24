@@ -30,6 +30,7 @@ class ProjectHost:
         self.presentation = ScenePresentation(bundle.scene, bundle.assets, legacy_appearance=True,
             volume_rule=self.rule if report.manifest.get('variant')=='target' else None)
         self.projection = bundle.scene.create_projection_session()
+        self.interaction = {}
         self.refresh_scene()
 
     @property
@@ -63,21 +64,20 @@ class ProjectHost:
 
     def refresh_scene(self):
         session = self.controller.sessions[self.controller.active_key]
-        return self.presentation.synchronize(self.projection, session.rule_runtime.state)
+        return self.presentation.synchronize(self.projection, session.rule_runtime.state, self.interaction)
 
-    def mouse(self, control, context, phase='press'):
+    def mouse(self, control, context, phase='press', *, click=False):
         sequence = self._next_sequence()
-        data = {}
-        if 'coordinate' in context:
-            data['rule_coordinate'] = list(context['coordinate'])
-        if 'entity_id' in context:
-            data['rule_entity_id'] = context['entity_id']
+        from .input_pointer_contract import pointer_data,scene_pick_context
+        if context.get('node_id'):
+            context=scene_pick_context(self.presentation.nodes,context['node_id'],context)
+        data = pointer_data(context,click=click)
         return self._host_result(self.controller.dispatch_physical(PhysicalInputEvent(
             sequence, 'mouse', control, phase, position=(0, 0), data=data)))
 
     def mouse_click(self, control, context):
-        pressed=self.mouse(control,context)
-        released=self.mouse(control,context,'release')
+        pressed=self.mouse(control,context,click=True)
+        released=self.mouse(control,context,'release',click=True)
         return released if released.accepted or pressed.code=='input_not_resolved' else pressed
 
     def close(self):
@@ -128,12 +128,14 @@ def main():
 
         def restart(self):
             self.pointer.clear()
+            host.interaction = {}
             host.controller.reset()
             self.failed = False
             self.refresh()
 
         def set_layer(self, layer):
             self.pointer.clear()
+            host.interaction = {}
             self.layer = layer
             self.refresh()
 
@@ -168,6 +170,7 @@ def main():
                         clicked = self.pointer.release(control, position, context)
                         if clicked:
                             self.message = host.mouse_click(control, clicked).message
+                    host.interaction=self.pointer.presentation_state(context)
                 else:
                     from .input_adapter_contract import keyboard_event
                     event=keyboard_event(key)
@@ -194,9 +197,12 @@ def main():
                 backend.hover(mouse.hovered_entity)
                 backend.advance_visuals(min(time.dt, .25))
                 self.pointer.move((mouse.x, mouse.y))
+                interaction=self.pointer.presentation_state(backend.pick_context(mouse.hovered_entity))
+                interaction_changed=interaction!=host.interaction
+                host.interaction=interaction
                 host.advance(min(time.dt, .25))
                 state = host.controller.sessions[host.controller.active_key].rule_runtime.state
-                if state.revision != self.last_revision:
+                if state.revision != self.last_revision or interaction_changed:
                     self.refresh()
             except Exception as exc:
                 self.failed = True
@@ -210,6 +216,8 @@ def main():
     def restore_camera():
         camera_rig.restore()
         view.pointer.clear()
+        host.interaction = {}
+        view.refresh()
     view.controls.append(Button(text='Reset view', position=(window.aspect_ratio/2-.24,.40), scale=(.14,.045), on_click=restore_camera))
     if args.smoke:
         invoke(application.quit, delay=2)

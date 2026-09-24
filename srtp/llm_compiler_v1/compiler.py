@@ -804,6 +804,23 @@ class SourceToIRCompiler:
                 report.output_dir = str(self._write_compile_artifacts(out_dir, report))
             return report
 
+        target_docs = _target_documents(source_report.documents)
+        from .validation import validate_working_documents
+        baseline_errors = validate_working_documents(target_docs)
+        if baseline_errors:
+            report = deepcopy_report(source_report)
+            report.ok = report.compile_ready = False
+            report.stage = 'spatial_lift_blocked'
+            report.diagnostics = ['Local Target baseline invalid before model call: '+item for item in baseline_errors]
+            if out_dir is not None:
+                report.output_dir = str(self._write_compile_artifacts(out_dir, report))
+            return report
+
+        resumed_intent = False
+        if structured_intent is None and self.staged:
+            from .staged import resume_design_intent
+            structured_intent = resume_design_intent(self,package,evidence,target_docs,source_hash,intent_text,language,out_dir)
+            resumed_intent = structured_intent is not None
         try:
             if structured_intent is not None:
                 from .client import LLMChatResult
@@ -870,33 +887,6 @@ class SourceToIRCompiler:
                 report.output_dir = str(self._write_compile_artifacts(out_dir, report))
             return report
 
-        # Target bootstrap from current sealed source documents.
-        target_docs = deepcopy(source_report.documents)
-        for key, document in target_docs.items():
-            document_id = str(document["document_id"]).replace(".source", ".target")
-            if document_id == str(document["document_id"]):
-                # Ensure target pins never collide with co-located source IR copies.
-                if document_id.endswith(".target"):
-                    pass
-                else:
-                    document_id = "{0}.target".format(document_id)
-            document["document_id"] = document_id
-            document["revision"] = 0
-            document["content_hash"] = ""
-            # Re-seal after id change via existing seal helpers.
-        from srtp.asset_ir_v2 import seal_asset_ir
-        from srtp.input_ir_v2 import seal_input_ir
-        from srtp.ir_v2 import seal_rule_ir
-        from srtp.scene_ir_v2 import seal_scene_ir
-
-        target_docs = {
-            "rule_ir": seal_rule_ir(target_docs["rule_ir"], revision=0),
-            "scene_ir": seal_scene_ir(target_docs["scene_ir"], revision=0),
-            "asset_ir": seal_asset_ir(target_docs["asset_ir"], revision=0),
-            "input_ir": seal_input_ir(target_docs["input_ir"], revision=0),
-        }
-        # Re-pin Scene/Input against retargeted Rule/Asset hashes.
-        target_docs = _pin_cross_ir_dependencies(target_docs)
         base_pins = {
             key: {
                 "document_id": doc["document_id"],
@@ -913,6 +903,7 @@ class SourceToIRCompiler:
                 documents=target_docs, job_id=source_report.job_id,
                 project_id=source_report.project_id.rstrip('.') + '.target',
                 design_intent=design_intent, source_manifest=source_manifest)
+            report.compilation_trace['design_intent_cached'] = resumed_intent
             if out_dir is not None:
                 report.output_dir = str(self._write_compile_artifacts(out_dir, report, source_manifest=source_manifest))
             return report
@@ -1166,6 +1157,41 @@ class SourceToIRCompiler:
             # Still seal for artifact inspection; callers see compile_ready=False.
             pass
         return seal_project_manifest(manifest, revision=0)
+
+
+def _target_documents(source_documents):
+    """Create an independent Target identity without rewriting Source semantics."""
+    docs=deepcopy(source_documents)
+    for document in docs.values():
+        source_id=document['document_id']
+        target_id=source_id.replace('.source','.target')
+        if target_id==source_id and not target_id.endswith('.target'):
+            target_id += '.target'
+        document.update(document_id=target_id,revision=0,content_hash='')
+    # Do not call the legacy _pin_cross_ir_dependencies authoring heuristics:
+    # approved pointer filters and shared controls are intentionally legal.
+    return _seal_document_dependencies(docs)
+
+
+def _seal_document_dependencies(documents):
+    """Pure document sealing/pinning, with no inferred gameplay or controls."""
+    from srtp.asset_ir_v2 import seal_asset_ir
+    from srtp.input_ir_v2 import seal_input_ir
+    from srtp.ir_v2 import seal_rule_ir
+    from srtp.scene_ir_v2 import seal_scene_ir
+
+    docs = deepcopy(documents)
+    for slot, seal in (('rule_ir',seal_rule_ir),('asset_ir',seal_asset_ir)):
+        docs[slot] = seal(docs[slot])
+    for slot, seal, dependencies in (
+        ('scene_ir',seal_scene_ir,('rule_ir','asset_ir')),
+        ('input_ir',seal_input_ir,('rule_ir',)),
+    ):
+        for dependency in dependencies:
+            docs[slot]['dependencies'][dependency] = {
+                key: docs[dependency][key] for key in ('document_id','content_hash')}
+        docs[slot] = seal(docs[slot])
+    return docs
 
 
 def _pin_cross_ir_dependencies(

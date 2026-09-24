@@ -1,0 +1,1 @@
+Original paid run 2710ec96d8ec47229e9675ff41061aa5: accepted Rule/Asset and rejected Scene response. No successful model result is claimed. Tests construct explicitly authored repairs in memory; the user bundle is untouched.

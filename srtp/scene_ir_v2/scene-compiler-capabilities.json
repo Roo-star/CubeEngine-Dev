@@ -23,10 +23,10 @@
     "maximum_rank": 3,
     "index_to_world": "row_major_4x4"
   },
-  "binding_sources": ["state", "flow", "entity_component"],
+  "binding_sources": ["state", "flow", "entity_component", "interaction", "expression"],
   "state_scopes": ["global", "participant", "topology_site", "entity"],
   "binding_targets": ["node", "topology_sites", "entity_nodes"],
-  "binding_transforms": ["direct", "not", "map", "numeric", "format"],
+  "binding_transforms": ["direct", "not", "map", "numeric", "format", "digit", "integer_format"],
   "renderer_commands": [
     "register_asset",
     "configure_layer",

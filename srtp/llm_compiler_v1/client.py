@@ -249,7 +249,8 @@ class OpenRouterLLMClient:
         return LLMChatResult(content, "openrouter", str(body.get("model") or self.model), parsed)
 
     def _request(self, payload):
-        retries = _resolve_chat_retries()
+        retries = getattr(self,'max_http_retries',None)
+        if retries is None:retries = _resolve_chat_retries()
         for attempt in range(retries + 1):
             if self.http_requests >= self.max_requests:
                 raise LLMTransportError('Stopped before another paid request: CUBEENGINE_LLM_MAX_REQUESTS={0} reached for this job. Accepted stages are checkpointed; review diagnostics before raising the limit.'.format(self.max_requests))

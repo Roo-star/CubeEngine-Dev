@@ -99,8 +99,8 @@ class ScenePresentation:
                 visit(child, identifier + '.' + child['local_id'], identifier, identity)
         visit(root, node_id, payload.get('parent'), tuple(payload['local_matrix']))
 
-    def synchronize(self, projection, state):
-        delta = projection.synchronize(state)
+    def synchronize(self, projection, state, interaction=None):
+        delta = projection.synchronize(state, interaction=interaction)
         self.apply(delta.commands)
         if delta.commands and self.volume_layout:
             from .volume_layout import matrix_for
@@ -112,6 +112,7 @@ class ScenePresentation:
                         continue
                     node_id = _entity_node_id(descriptor['node'], entity_id)
                     node = self.nodes[node_id]
+                    node.setdefault('logical_parent',node.get('parent'))
                     node['parent'] = None
                     node['local_matrix'] = matrix_for(_entity_coordinate(entity, descriptor), extents, offset)
                     self.dirty_nodes.add(node_id)
@@ -144,6 +145,9 @@ class ScenePresentation:
             if key not in variants:
                 raise PresentationError('Missing presentation variant {0!r} on {1}'.format(key, node_id))
             properties.update(deepcopy(variants[key]))
+        pressed_style = properties.pop('pressed_style', {})
+        if properties.pop('pressed', False):
+            properties.update(deepcopy(pressed_style))
         material = properties.get('material')
         if material:
             resource = self.assets.resource(material)
@@ -227,9 +231,10 @@ class ScenePresentation:
             return {'primitive':'source_mesh','mesh_data':mesh,'dimensions':[1,1,1]}
         raise PresentationError('Presentation recipe is not implemented by this renderer: ' + strategy)
 
-    def diagnostics(self):
+    def diagnostics(self, node_ids=None, *, include_variants=True):
         errors = []
-        for node_id, node in self.nodes.items():
+        selected=self.nodes.items() if node_ids is None else ((key,self.nodes[key]) for key in node_ids if key in self.nodes)
+        for node_id, node in selected:
             for component_id, component in node['components'].items():
                 properties = component['properties']
                 try:
@@ -240,6 +245,7 @@ class ScenePresentation:
                         if issues: raise PresentationError('; '.join(issues))
                     if component['type'] == 'renderer':
                         self.renderer(node_id, component_id)
+                        if not include_variants:continue
                         # Validate states which are not visible on the initial board too.
                         original = deepcopy(properties)
                         try:
@@ -248,12 +254,14 @@ class ScenePresentation:
                                 target = binding.target
                                 base_node = target.get('node', '')
                                 if target.get('component') == component_id and target.get('property') == 'variant' and (
-                                        node_id == base_node or node_id.startswith(base_node + '.')):
+                                        node_id == base_node or (target.get('selector')!='node' and node_id.startswith(base_node + '.'))):
                                     if binding.transform.get('kind') == 'map':
                                         variants.update(str(c['value']) for c in binding.transform.get('cases', ()))
-                            for variant in variants:
-                                properties['variant'] = variant
-                                self.renderer(node_id, component_id)
+                            for variant in variants or {original.get('variant')}:
+                                if variant is not None:properties['variant'] = variant
+                                for pressed in (False,True):
+                                    properties['pressed'] = pressed
+                                    self.renderer(node_id, component_id)
                         finally:
                             properties.clear()
                             properties.update(original)
