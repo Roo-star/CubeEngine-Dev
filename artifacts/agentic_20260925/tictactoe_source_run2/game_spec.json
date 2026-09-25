@@ -1,0 +1,275 @@
+{
+  "summary": "Two players alternate placing X and O on a 3×3 grid; three in a row wins, and a full board without a win is a draw.",
+  "topology": {
+    "kind": "rect_grid",
+    "axes": [
+      {
+        "name": "x",
+        "extent": 3
+      },
+      {
+        "name": "y",
+        "extent": 3
+      }
+    ],
+    "cite": {
+      "path": "main.py",
+      "lines": [
+        6,
+        8
+      ]
+    },
+    "evidence_id": "ev:agent.1"
+  },
+  "cell_values": [
+    {
+      "value": 0,
+      "meaning": "empty",
+      "cite": {
+        "path": "main.py",
+        "lines": [
+          20,
+          21
+        ]
+      },
+      "evidence_id": "ev:agent.2"
+    },
+    {
+      "value": 1,
+      "meaning": "X",
+      "cite": {
+        "path": "main.py",
+        "lines": [
+          65,
+          77
+        ]
+      },
+      "evidence_id": "ev:agent.3"
+    },
+    {
+      "value": 2,
+      "meaning": "O",
+      "cite": {
+        "path": "main.py",
+        "lines": [
+          65,
+          79
+        ]
+      },
+      "evidence_id": "ev:agent.4"
+    }
+  ],
+  "participants": [
+    {
+      "key": "x",
+      "name": "X",
+      "cell_value": 1,
+      "cite": {
+        "path": "main.py",
+        "lines": [
+          21,
+          22
+        ]
+      },
+      "evidence_id": "ev:agent.5"
+    },
+    {
+      "key": "o",
+      "name": "O",
+      "cell_value": 2,
+      "cite": {
+        "path": "main.py",
+        "lines": [
+          38,
+          39
+        ]
+      },
+      "evidence_id": "ev:agent.6"
+    }
+  ],
+  "flow": {
+    "model": "turn_based",
+    "turn_order": [
+      "x",
+      "o"
+    ],
+    "tick_ms": null,
+    "cite": {
+      "path": "main.py",
+      "lines": [
+        20,
+        39
+      ]
+    },
+    "evidence_id": "ev:agent.7"
+  },
+  "initial_setup": {
+    "description": "Every cell is empty; X moves first, with no winner or draw.",
+    "placements": [],
+    "cite": {
+      "path": "main.py",
+      "lines": [
+        20,
+        24
+      ]
+    },
+    "evidence_id": "ev:agent.8"
+  },
+  "actions": [
+    {
+      "key": "place",
+      "actor": "current participant",
+      "parameters": [
+        {
+          "name": "x",
+          "type": "coordinate"
+        },
+        {
+          "name": "y",
+          "type": "coordinate"
+        }
+      ],
+      "legal_when": "There is no winner or draw, x and y are each within 0 through 2, and board[y][x] is empty.",
+      "effect": "Set board[y][x] to the current player's value. Check for a win, then a draw; only if neither occurs, switch the current player from 1 to 2 or from 2 to 1. An illegal placement returns false without changing state.",
+      "cite": {
+        "path": "main.py",
+        "lines": [
+          26,
+          40
+        ]
+      },
+      "evidence_id": "ev:agent.9"
+    },
+    {
+      "key": "restart",
+      "actor": "user",
+      "parameters": [],
+      "legal_when": "An R keydown is received; the source imposes no game-state restriction.",
+      "effect": "Reset the board, current player, winner, and draw state to their initial values.",
+      "cite": {
+        "path": "main.py",
+        "lines": [
+          20,
+          24
+        ]
+      },
+      "evidence_id": "ev:agent.10"
+    },
+    {
+      "key": "quit",
+      "actor": "user",
+      "parameters": [],
+      "legal_when": "Escape is pressed or a window-close event is received.",
+      "effect": "Stop the application loop; no game outcome is assigned.",
+      "cite": {
+        "path": "main.py",
+        "lines": [
+          53,
+          59
+        ]
+      },
+      "evidence_id": "ev:agent.11"
+    }
+  ],
+  "outcomes": [
+    {
+      "key": "win",
+      "condition": "After a placement, any row, column, or either diagonal has all three cells equal to the current player's value.",
+      "result": "win",
+      "winner": "current participant",
+      "checked_before": [
+        "draw"
+      ],
+      "cite": {
+        "path": "main.py",
+        "lines": [
+          31,
+          36
+        ]
+      },
+      "evidence_id": "ev:agent.12"
+    },
+    {
+      "key": "draw",
+      "condition": "After a placement, no winning line exists and every board cell is nonzero.",
+      "result": "draw",
+      "winner": null,
+      "checked_before": [],
+      "cite": {
+        "path": "main.py",
+        "lines": [
+          34,
+          37
+        ]
+      },
+      "evidence_id": "ev:agent.13"
+    }
+  ],
+  "controls": [
+    {
+      "device": "mouse",
+      "control": "Left-button down; convert pointer position to a cell using the board's left and top offsets and cell size.",
+      "action_key": "place",
+      "cite": {
+        "path": "main.py",
+        "lines": [
+          62,
+          64
+        ]
+      },
+      "evidence_id": "ev:agent.14"
+    },
+    {
+      "device": "keyboard",
+      "control": "R keydown",
+      "action_key": "restart",
+      "cite": {
+        "path": "main.py",
+        "lines": [
+          57,
+          61
+        ]
+      },
+      "evidence_id": "ev:agent.15"
+    },
+    {
+      "device": "keyboard",
+      "control": "Escape keydown",
+      "action_key": "quit",
+      "cite": {
+        "path": "main.py",
+        "lines": [
+          57,
+          59
+        ]
+      },
+      "evidence_id": "ev:agent.16"
+    },
+    {
+      "device": "window",
+      "control": "Close event",
+      "action_key": "quit",
+      "cite": {
+        "path": "main.py",
+        "lines": [
+          54,
+          56
+        ]
+      },
+      "evidence_id": "ev:agent.17"
+    }
+  ],
+  "presentation": {
+    "description": "A Pygame window displays a status line showing the turn, winner, or draw; instructions; and a 3×3 board of rounded cells with blue X marks and orange O marks. The display loop is capped at 60 frames per second.",
+    "asset_files": [],
+    "cite": {
+      "path": "main.py",
+      "lines": [
+        46,
+        81
+      ]
+    },
+    "evidence_id": "ev:agent.18"
+  },
+  "unknowns": []
+}

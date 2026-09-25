@@ -1,0 +1,258 @@
+{
+  "summary": "Two players alternate placing X and O on a 3×3 grid; three in a row wins, otherwise a full board is a draw.",
+  "topology": {
+    "kind": "rect_grid",
+    "axes": [
+      {
+        "name": "x",
+        "extent": 3
+      },
+      {
+        "name": "y",
+        "extent": 3
+      }
+    ],
+    "cite": {
+      "path": "main.py",
+      "lines": [
+        6,
+        7
+      ]
+    },
+    "evidence_id": "ev:agent.1"
+  },
+  "cell_values": [
+    {
+      "value": 0,
+      "meaning": "empty",
+      "cite": {
+        "path": "main.py",
+        "lines": [
+          20,
+          21
+        ]
+      },
+      "evidence_id": "ev:agent.2"
+    },
+    {
+      "value": 1,
+      "meaning": "X",
+      "cite": {
+        "path": "main.py",
+        "lines": [
+          66,
+          77
+        ]
+      },
+      "evidence_id": "ev:agent.3"
+    },
+    {
+      "value": 2,
+      "meaning": "O",
+      "cite": {
+        "path": "main.py",
+        "lines": [
+          66,
+          79
+        ]
+      },
+      "evidence_id": "ev:agent.4"
+    }
+  ],
+  "participants": [
+    {
+      "key": "x",
+      "name": "X",
+      "cell_value": 1,
+      "cite": {
+        "path": "main.py",
+        "lines": [
+          22,
+          22
+        ]
+      },
+      "evidence_id": "ev:agent.5"
+    },
+    {
+      "key": "o",
+      "name": "O",
+      "cell_value": 2,
+      "cite": {
+        "path": "main.py",
+        "lines": [
+          39,
+          39
+        ]
+      },
+      "evidence_id": "ev:agent.6"
+    }
+  ],
+  "flow": {
+    "model": "event_driven",
+    "turn_order": [
+      "x",
+      "o"
+    ],
+    "tick_ms": null,
+    "cite": {
+      "path": "main.py",
+      "lines": [
+        20,
+        39
+      ]
+    },
+    "evidence_id": "ev:agent.7"
+  },
+  "initial_setup": {
+    "description": "All nine cells are empty; X moves first, with no winner or draw.",
+    "placements": [],
+    "cite": {
+      "path": "main.py",
+      "lines": [
+        20,
+        24
+      ]
+    },
+    "evidence_id": "ev:agent.8"
+  },
+  "actions": [
+    {
+      "key": "place",
+      "actor": "current participant",
+      "parameters": [
+        {
+          "name": "cell",
+          "type": "coordinate"
+        }
+      ],
+      "legal_when": "There is no winner or draw, the coordinate is within the 3×3 board, and its cell is empty.",
+      "effect": "Set the cell to the current player's value. Check for a win, then a draw; only if neither occurs, switch to the other player.",
+      "cite": {
+        "path": "main.py",
+        "lines": [
+          26,
+          40
+        ]
+      },
+      "evidence_id": "ev:agent.9"
+    },
+    {
+      "key": "restart",
+      "actor": "user",
+      "parameters": [],
+      "legal_when": "An R keydown is received.",
+      "effect": "Reset the board, turn, winner, and draw state to their initial values.",
+      "cite": {
+        "path": "main.py",
+        "lines": [
+          20,
+          24
+        ]
+      },
+      "evidence_id": "ev:agent.10"
+    },
+    {
+      "key": "quit",
+      "actor": "user",
+      "parameters": [],
+      "legal_when": "An Escape keydown or window-close event is received.",
+      "effect": "Stop the application loop.",
+      "cite": {
+        "path": "main.py",
+        "lines": [
+          53,
+          61
+        ]
+      },
+      "evidence_id": "ev:agent.11"
+    }
+  ],
+  "outcomes": [
+    {
+      "key": "win",
+      "condition": "After a placement, any complete row, column, or either diagonal contains three cells equal to the current player's value.",
+      "result": "win",
+      "winner": "current participant",
+      "checked_before": [
+        "draw"
+      ],
+      "cite": {
+        "path": "main.py",
+        "lines": [
+          32,
+          36
+        ]
+      },
+      "evidence_id": "ev:agent.12"
+    },
+    {
+      "key": "draw",
+      "condition": "After a placement, no winning line exists and every board cell is occupied.",
+      "result": "draw",
+      "winner": "none",
+      "checked_before": [],
+      "cite": {
+        "path": "main.py",
+        "lines": [
+          34,
+          37
+        ]
+      },
+      "evidence_id": "ev:agent.13"
+    }
+  ],
+  "controls": [
+    {
+      "device": "mouse",
+      "control": "Left-button press; convert pointer position to a cell by subtracting the board's left and top offsets and dividing each coordinate by cell size, rounding down.",
+      "action_key": "place",
+      "cite": {
+        "path": "main.py",
+        "lines": [
+          62,
+          64
+        ]
+      },
+      "evidence_id": "ev:agent.14"
+    },
+    {
+      "device": "keyboard",
+      "control": "R keydown",
+      "action_key": "restart",
+      "cite": {
+        "path": "main.py",
+        "lines": [
+          57,
+          61
+        ]
+      },
+      "evidence_id": "ev:agent.15"
+    },
+    {
+      "device": "keyboard",
+      "control": "Escape keydown",
+      "action_key": "quit",
+      "cite": {
+        "path": "main.py",
+        "lines": [
+          57,
+          59
+        ]
+      },
+      "evidence_id": "ev:agent.16"
+    }
+  ],
+  "presentation": {
+    "description": "A 480×570 window shows a turn, winner, or draw status and instructions above a 3×3 board. Cells are drawn as rounded rectangles; X is drawn with blue crossed lines and O with an orange circle. No asset files are used.",
+    "asset_files": [],
+    "cite": {
+      "path": "main.py",
+      "lines": [
+        10,
+        13
+      ]
+    },
+    "evidence_id": "ev:agent.17"
+  },
+  "unknowns": []
+}

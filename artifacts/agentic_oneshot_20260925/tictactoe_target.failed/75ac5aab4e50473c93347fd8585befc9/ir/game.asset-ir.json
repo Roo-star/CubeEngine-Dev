@@ -1,0 +1,153 @@
+{
+  "ir_version": "cubeengine.asset-ir/2.0-alpha.1",
+  "document_id": "asset:game.tic.tac.toe.target",
+  "revision": 0,
+  "content_hash": "e064c08a4bd1b93c979ae1c50383c31d8792d227763da2bdb7fb56c95e1a99b3",
+  "metadata": {
+    "title": "Tic Tac Toe",
+    "description": "LLM compiler bootstrap shell. Semantics must be filled by evidence-backed patches.",
+    "source_project_hash": "247430c188d62026b62128405e3e01dcc803d51fbff2bf0e0177a249ca421f82"
+  },
+  "assets": [],
+  "derivations": [
+    {
+      "id": "asset:mesh.board",
+      "name": "3×3 board with rounded rectangular cells",
+      "kind": "model",
+      "media_type": "application/vnd.cubeengine.presentation+json",
+      "strategy": "procedural_mesh",
+      "inputs": [],
+      "settings": {
+        "primitive": "plane",
+        "dimensions": [
+          1,
+          1,
+          1
+        ]
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:mesh.x",
+      "name": "X mark formed by blue crossed lines",
+      "kind": "model",
+      "media_type": "application/vnd.cubeengine.presentation+json",
+      "strategy": "procedural_mesh",
+      "inputs": [],
+      "settings": {
+        "primitive": "plane",
+        "dimensions": [
+          1,
+          1,
+          1
+        ]
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:mesh.o",
+      "name": "O mark formed by an orange circle",
+      "kind": "model",
+      "media_type": "application/vnd.cubeengine.presentation+json",
+      "strategy": "procedural_mesh",
+      "inputs": [],
+      "settings": {
+        "primitive": "plane",
+        "dimensions": [
+          1,
+          1,
+          1
+        ]
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    }
+  ],
+  "roles": [],
+  "presentation_mappings": [],
+  "provenance": {
+    "patch_history": [
+      {
+        "base_revision": 0,
+        "base_content_hash": "794999ec91d3e2a3ef5119ddb45c8186a02edcd4e2f2324842cf3e762c49d610",
+        "evidence": [
+          {
+            "evidence_id": "ev:agent.1",
+            "path": "main.py",
+            "kind": "static",
+            "supports": "/rule_ir/topologies",
+            "confidence": 0.5,
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 6,
+              "line_end": 7
+            }
+          },
+          {
+            "evidence_id": "ev:agent.3",
+            "path": "main.py",
+            "kind": "static",
+            "supports": "/rule_ir/types",
+            "confidence": 0.5,
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 66,
+              "line_end": 77
+            }
+          },
+          {
+            "evidence_id": "ev:agent.4",
+            "path": "main.py",
+            "kind": "static",
+            "supports": "/rule_ir/types",
+            "confidence": 0.5,
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 66,
+              "line_end": 79
+            }
+          },
+          {
+            "evidence_id": "ev:agent.17",
+            "path": "main.py",
+            "kind": "static",
+            "supports": "/scene_ir/nodes",
+            "confidence": 0.5,
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 10,
+              "line_end": 13
+            }
+          }
+        ],
+        "assumptions": [
+          "The source inventory contains no image or model files, so the board and marks are procedural rather than file assets.",
+          "Unit-size planes are presentation surfaces, not claims about physical dimensions."
+        ],
+        "operation_count": 4
+      }
+    ]
+  },
+  "unresolved": [
+    {
+      "path": "/assets",
+      "reason": "Asset entry dropped, asset:role.board: role missing resource reference.",
+      "required": false,
+      "owner": "llm"
+    },
+    {
+      "path": "/assets",
+      "reason": "Asset entry dropped, asset:role.x.mark: role missing resource reference.",
+      "required": false,
+      "owner": "llm"
+    },
+    {
+      "path": "/assets",
+      "reason": "Asset entry dropped, asset:role.o.mark: role missing resource reference.",
+      "required": false,
+      "owner": "llm"
+    }
+  ]
+}

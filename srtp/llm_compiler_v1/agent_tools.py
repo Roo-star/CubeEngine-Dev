@@ -8,6 +8,7 @@ it never gets to overrule them.
 
 from __future__ import annotations
 
+import json
 import random
 import re
 from dataclasses import dataclass, field
@@ -200,18 +201,74 @@ _FUNCTION_NOTES = {
     "core:state.get": "value of a global/participant state variable",
 }
 
-_EXPRESSION_OPS = {
-    "literal": {"value": "<json>"},
-    "ref": {"path": "flow.current_actor | flow.turn | flow.phase | flow.tick"},
-    "param": {"name": "<action parameter name>"},
-    "var": {"name": "<foreach variable>"},
-    "call": {"function": "<core:function>", "args": ["<expr>", "..."]},
-    "eq|ne|lt|lte|gt|gte": {"args": ["<expr>", "<expr>"]},
-    "and|or|all|any": {"args": ["<expr>", "..."]},
-    "not": {"args": ["<expr>"]},
-    "add|sub|mul|div|mod|min|max": {"args": ["<expr>", "..."]},
-    "if": {"args": ["<cond>", "<then>", "<else>"]},
+# Readable placeholders for operands whose schema is only "a string".
+_OPERAND_HINTS = {
+    ("ref", "path"): "flow.current_actor | flow.turn | flow.phase | flow.tick",
+    ("param", "name"): "<action parameter name>",
+    ("var", "name"): "<foreach variable>",
+    ("call", "function"): "<core:function>",
 }
+_COMMAND_KIND_HINTS = {
+    "expression": "<expr>", "ruleId": "<rule id>", "localId": "<local name>", "text": "<string>",
+    "expressionMap": {"<name>": "<expr>"}, "commands": ["<effect command>", "..."],
+    "distribution": "<distribution>",
+}
+
+
+def _operand_hint(schema: Mapping[str, Any]) -> Any:
+    if schema.get("type") == "array":
+        item = _operand_hint(schema.get("items") or {})
+        size = schema.get("maxItems")
+        return [item] * size if size is not None else [item, "..."]
+    if "$ref" in schema:
+        return "<expr>"
+    return "<string>" if schema.get("type") == "string" else "<json>"
+
+
+def _expression_ops() -> Dict[str, Any]:
+    """Operand shapes from the Rule validator's own schema, so prompts cannot drift."""
+
+    from srtp.ir_v2.expression_contracts import expression_schema
+
+    groups: Dict[str, Tuple[List[str], Dict[str, Any]]] = {}
+    for variant in expression_schema(False)["oneOf"]:
+        properties = variant["properties"]
+        op = properties["op"]["const"]
+        shape = {
+            field: _OPERAND_HINTS.get((op, field)) or _operand_hint(properties[field])
+            for field in variant["required"] if field != "op"
+        }
+        groups.setdefault(json.dumps(shape, sort_keys=True), ([], shape))[0].append(op)
+    return {"|".join(ops): shape for ops, shape in groups.values()}
+
+
+def _effect_commands() -> Dict[str, Any]:
+    """Required (and optional) operands of every effect command the runtime executes."""
+
+    from srtp.ir_v2.command_contracts import COMMAND_CONTRACTS
+
+    commands: Dict[str, Any] = {}
+    for op, (required, optional) in COMMAND_CONTRACTS.items():
+        entry: Dict[str, Any] = {name: _COMMAND_KIND_HINTS.get(kind, kind) for name, kind in required.items()}
+        if optional:
+            entry["optional"] = {name: _COMMAND_KIND_HINTS.get(kind, kind) for name, kind in optional.items()}
+        commands[op] = entry
+    return commands
+
+
+def scene_component_properties() -> Dict[str, Any]:
+    """Allowed/required properties per Scene component, from the Scene compiler's contracts."""
+
+    from srtp.scene_ir_v2.component_contracts import COMPONENTS
+
+    def fields(schema: Mapping[str, Any]) -> Dict[str, Any]:
+        return {"allowed": sorted(schema.get("properties") or {}), "required": list(schema.get("required") or [])}
+
+    result: Dict[str, Any] = {}
+    for name, schema in sorted(COMPONENTS.items()):
+        variants = schema.get("oneOf") or schema.get("anyOf")
+        result[name] = [fields(item) for item in variants] if variants else fields(schema)
+    return result
 
 
 def rule_function_catalog() -> Dict[str, Any]:
@@ -230,25 +287,24 @@ def rule_function_catalog() -> Dict[str, Any]:
             entry["note"] = _FUNCTION_NOTES[name]
         functions.append(entry)
     try:
-        import json
-
         capabilities = json.loads(
             (Path(__file__).resolve().parents[1] / "ir_v2" / "rule-runtime-capabilities.json").read_text(
                 encoding="utf-8",
             )
         )
-        effect_commands = list(capabilities.get("effect_commands") or [])
         encodings = list(capabilities.get("action_encodings") or [])
     except (OSError, ValueError):
-        effect_commands, encodings = [], []
+        encodings = []
     return {
-        "expression_ops": _EXPRESSION_OPS,
+        "expression_ops": _expression_ops(),
         "functions": functions,
-        "effect_commands": effect_commands,
+        "effect_commands": _effect_commands(),
         "action_encodings": encodings,
         "notes": [
             "Expressions are ASTs with key 'op' (never 'kind').",
             "Function arguments naming a state/topology are literals: {\"op\":\"literal\",\"value\":\"rule:state.board_cell\"}.",
+            "state.set/state.increment 'target' is an expression naming the state variable: "
+            "{\"op\":\"literal\",\"value\":\"rule:state.score\"}.",
             "Coordinate parameters use type core:coord and a domain call to core:topology.sites; "
             "enumerate them with encoding {kind:parameter_product, parameters:[name], ordering:lexicographic}.",
             "turn_based flow advances flow.current_actor through flow.turn_order after every action.",
@@ -508,6 +564,72 @@ def _explain_no_legal_actions(runtime: Any) -> List[str]:
     return ["No legal action on the initial state. " + item for item in messages[:6]]
 
 
+def _is_spatial(rule: Mapping[str, Any]) -> bool:
+    return any(
+        isinstance(item, Mapping) and len(item.get("axes") or []) >= 3 for item in rule.get("topologies") or []
+    )
+
+
+def _initial_graph(scene: Any, assets: Any, rule: Mapping[str, Any]) -> Any:
+    """Scene presentation synchronized to the initial Rule state, as the host starts it.
+
+    None when the Rule cannot start yet; the Rule gate reports why.
+    """
+
+    from srtp.scene_presentation import ScenePresentation
+
+    from .behavior_runtime import test_runtime
+
+    try:
+        runtime = test_runtime(rule, {})
+    except Exception:  # noqa: BLE001 - e.g. cross-IR blockers while Input is still a shell
+        return None
+    try:
+        graph = ScenePresentation(scene, assets, volume_rule=rule if _is_spatial(rule) else None)
+        graph.synchronize(scene.create_projection_session(), runtime.state)
+        return graph
+    finally:
+        runtime.close()
+
+
+def _presentation_errors(scene: Any, assets: Any, rule: Mapping[str, Any]) -> List[str]:
+    """What the Ursina host refuses at startup, e.g. a state variant without an appearance.
+
+    Mirrors the staged compiler's Scene replay: the presentation diagnostics also
+    cover states not yet visible on the initial board.
+    """
+
+    try:
+        graph = _initial_graph(scene, assets, rule)
+    except Exception as error:  # noqa: BLE001 - report the presentation's own message
+        return [str(error)]
+    return list(graph.diagnostics()) if graph is not None else []
+
+
+def _host_route_error(
+    compiled_input: Any, rule: Mapping[str, Any], scene: Any, assets: Any,
+) -> Optional[Tuple[str, str]]:
+    """(owning IR, problem) when real host events cannot reach a required intent."""
+
+    from .input_acceptance import _pick_data, verify_host_routes
+
+    mouse_bound = any(
+        binding.enabled and binding.trigger.get("kind") == "control" and binding.trigger.get("device") == "mouse"
+        for binding in compiled_input.bindings
+    )
+    try:
+        graph = _initial_graph(scene, assets, rule)
+        if graph is None:
+            return None
+        if mouse_bound and not list(_pick_data(graph)):
+            return ("scene_ir", "Host picking: mouse-bound intents cannot pick anything; give the cell prefab a "
+                                "selectable collider {shape:'box',size:[1,1,1],is_trigger:false,selectable:true}.")
+        verify_host_routes(compiled_input, rule, scene, assets, spatial=_is_spatial(rule))
+    except Exception as error:  # noqa: BLE001 - report the host check's own message
+        return ("input_ir", "Host routes: {0}".format(error))
+    return None
+
+
 def compile_gate(
     documents: Mapping[str, Mapping[str, Any]],
     *,
@@ -534,22 +656,38 @@ def compile_gate(
             compile_rule_ir(rule).close()
         except Exception as error:  # noqa: BLE001 - report the compiler's own message
             errors.setdefault("rule_ir", []).append("Rule compiler: {0}".format(error))
+    # Scene and Input are also compiled for each other's host-route check, but
+    # only the requested IRs report their own errors.
+    interactive = wanted & {"scene_ir", "input_ir"}
     assets = None
-    if wanted & {"asset_ir", "scene_ir"}:
+    if wanted & {"asset_ir"} or interactive:
         try:
             assets = compile_asset_ir(documents.get("asset_ir") or {}, Path(asset_root))
         except Exception as error:  # noqa: BLE001
-            errors.setdefault("asset_ir", []).append("Asset compiler: {0}".format(error))
-    if "scene_ir" in wanted and assets is not None:
+            if wanted & {"asset_ir", "scene_ir"}:
+                errors.setdefault("asset_ir", []).append("Asset compiler: {0}".format(error))
+    scene = None
+    if interactive and assets is not None:
         try:
-            compile_scene_ir(documents.get("scene_ir") or {}, rule_document=rule, asset_catalog=assets)
+            scene = compile_scene_ir(documents.get("scene_ir") or {}, rule_document=rule, asset_catalog=assets)
         except Exception as error:  # noqa: BLE001
-            errors.setdefault("scene_ir", []).append("Scene compiler: {0}".format(error))
-    if "input_ir" in wanted:
+            if "scene_ir" in wanted:
+                errors.setdefault("scene_ir", []).append("Scene compiler: {0}".format(error))
+        else:
+            if "scene_ir" in wanted:
+                for problem in _presentation_errors(scene, assets, rule)[:12]:
+                    errors.setdefault("scene_ir", []).append("Scene presentation: {0}".format(problem))
+    compiled_input = None
+    if interactive:
         try:
-            compile_input_ir(documents.get("input_ir") or {}, rule_document=rule)
+            compiled_input = compile_input_ir(documents.get("input_ir") or {}, rule_document=rule)
         except Exception as error:  # noqa: BLE001
-            errors.setdefault("input_ir", []).append("Input compiler: {0}".format(error))
+            if "input_ir" in wanted:
+                errors.setdefault("input_ir", []).append("Input compiler: {0}".format(error))
+    if scene is not None and compiled_input is not None and not errors:
+        route = _host_route_error(compiled_input, rule, scene, assets)
+        if route is not None and route[0] in wanted:
+            errors.setdefault(route[0], []).append(route[1])
     return errors
 
 

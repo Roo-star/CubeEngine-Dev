@@ -1,0 +1,466 @@
+{
+  "ir_version": "cubeengine.rule-ir/2.0-alpha.1",
+  "document_id": "rule:game.tic.tac.toe.target",
+  "revision": 0,
+  "content_hash": "e8b7d3323944be8194ac696ec178eb3ee7d57999241ac6c1f84010f310d3247b",
+  "metadata": {
+    "title": "Tic Tac Toe",
+    "description": "LLM compiler bootstrap shell. Semantics must be filled by evidence-backed patches.",
+    "source_project_hash": "247430c188d62026b62128405e3e01dcc803d51fbff2bf0e0177a249ca421f82",
+    "determinism": "deterministic"
+  },
+  "dependencies": {
+    "scene_ir": null,
+    "asset_ir": null,
+    "input_ir": null,
+    "extensions": []
+  },
+  "parameters": [],
+  "types": [
+    {
+      "id": "rule:type.cell_state",
+      "name": "Cell State",
+      "kind": "enum",
+      "values": {
+        "empty": 0,
+        "x": 1,
+        "o": 2
+      }
+    }
+  ],
+  "participants": [
+    {
+      "id": "rule:participant.x",
+      "name": "X",
+      "kind": "human_or_agent"
+    },
+    {
+      "id": "rule:participant.o",
+      "name": "O",
+      "kind": "human_or_agent"
+    }
+  ],
+  "topologies": [
+    {
+      "id": "rule:topology.board",
+      "name": "Board",
+      "kind": "rect_grid",
+      "anchor": "cell",
+      "axes": [
+        {
+          "name": "x",
+          "extent": 3,
+          "boundary": "bounded"
+        },
+        {
+          "name": "y",
+          "extent": 3,
+          "boundary": "bounded"
+        }
+      ],
+      "neighborhoods": []
+    }
+  ],
+  "state": {
+    "variables": [
+      {
+        "id": "rule:state.board_cell",
+        "name": "Board Cell",
+        "type": "rule:type.cell_state",
+        "scope": "topology_site",
+        "topology": "rule:topology.board",
+        "initial": {
+          "op": "literal",
+          "value": 0
+        }
+      }
+    ],
+    "entity_types": [
+      {
+        "id": "rule:entity.x_mark",
+        "name": "X Mark",
+        "components": [
+          {
+            "name": "legacy_state_value",
+            "type": "core:int",
+            "default": {
+              "op": "literal",
+              "value": 1
+            }
+          }
+        ],
+        "legacy": {
+          "owner": "rule:participant.x",
+          "state_value": 1
+        }
+      },
+      {
+        "id": "rule:entity.o_mark",
+        "name": "O Mark",
+        "components": [
+          {
+            "name": "legacy_state_value",
+            "type": "core:int",
+            "default": {
+              "op": "literal",
+              "value": 2
+            }
+          }
+        ],
+        "legacy": {
+          "owner": "rule:participant.o",
+          "state_value": 2
+        }
+      }
+    ],
+    "initial_effects": [],
+    "information_model": "perfect"
+  },
+  "queries": [],
+  "events": [],
+  "actions": [
+    {
+      "id": "rule:action.place",
+      "name": "Place",
+      "actor": {
+        "op": "ref",
+        "path": "flow.current_actor"
+      },
+      "parameters": [
+        {
+          "name": "cell",
+          "type": "core:coord",
+          "domain": {
+            "op": "call",
+            "function": "core:topology.sites",
+            "args": [
+              {
+                "op": "literal",
+                "value": "rule:topology.board"
+              }
+            ]
+          }
+        }
+      ],
+      "precondition": {
+        "op": "call",
+        "function": "core:grid.equals",
+        "args": [
+          {
+            "op": "literal",
+            "value": "rule:state.board_cell"
+          },
+          {
+            "op": "param",
+            "name": "cell"
+          },
+          {
+            "op": "literal",
+            "value": 0
+          }
+        ]
+      },
+      "effects": [
+        {
+          "op": "grid.set",
+          "state": "rule:state.board_cell",
+          "topology": "rule:topology.board",
+          "coordinate": {
+            "op": "param",
+            "name": "cell"
+          },
+          "value": {
+            "op": "call",
+            "function": "core:participant.state",
+            "args": [
+              {
+                "op": "ref",
+                "path": "flow.current_actor"
+              }
+            ]
+          }
+        }
+      ],
+      "timing": {
+        "phase": "rule:phase.input"
+      },
+      "encoding": {
+        "kind": "parameter_product",
+        "parameters": [
+          "cell"
+        ],
+        "ordering": "lexicographic"
+      }
+    }
+  ],
+  "systems": [],
+  "flow": {
+    "model": "turn_based",
+    "phases": [
+      {
+        "id": "rule:phase.input",
+        "order": 100
+      }
+    ],
+    "initial_phase": "rule:phase.input",
+    "scheduler": {
+      "clock": "turn",
+      "tick_hz": null,
+      "ordering": "phase_priority_id"
+    },
+    "turn_order": [
+      "rule:participant.x",
+      "rule:participant.o"
+    ]
+  },
+  "random_streams": [],
+  "goals": [],
+  "outcomes": [
+    {
+      "id": "rule:outcome.win",
+      "name": "Win",
+      "priority": 200,
+      "condition": {
+        "op": "call",
+        "function": "core:grid.has_line",
+        "args": [
+          {
+            "op": "literal",
+            "value": "rule:state.board_cell"
+          },
+          {
+            "op": "call",
+            "function": "core:participant.state",
+            "args": [
+              {
+                "op": "ref",
+                "path": "flow.current_actor"
+              }
+            ]
+          },
+          {
+            "op": "literal",
+            "value": 3
+          }
+        ]
+      },
+      "result": {
+        "status": "win",
+        "terminal": true,
+        "winners": [
+          {
+            "op": "ref",
+            "path": "flow.current_actor"
+          }
+        ],
+        "losers": []
+      }
+    },
+    {
+      "id": "rule:outcome.draw",
+      "name": "Draw",
+      "priority": 100,
+      "condition": {
+        "op": "and",
+        "args": [
+          {
+            "op": "call",
+            "function": "core:grid.none_equal",
+            "args": [
+              {
+                "op": "literal",
+                "value": "rule:state.board_cell"
+              },
+              {
+                "op": "literal",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "op": "not",
+            "args": [
+              {
+                "op": "call",
+                "function": "core:grid.has_line",
+                "args": [
+                  {
+                    "op": "literal",
+                    "value": "rule:state.board_cell"
+                  },
+                  {
+                    "op": "literal",
+                    "value": 3
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "result": {
+        "status": "draw",
+        "terminal": true,
+        "winners": [],
+        "losers": []
+      }
+    }
+  ],
+  "modes": [
+    {
+      "id": "rule:mode.default",
+      "name": "Default",
+      "overrides": []
+    }
+  ],
+  "invariants": [],
+  "extensions": {},
+  "provenance": {
+    "patch_history": [
+      {
+        "base_revision": 0,
+        "base_content_hash": "b249b51604330ccb210b81fcf64721ff0f23810573a64cab313045d8bab780c3",
+        "evidence": [
+          {
+            "evidence_id": "ev:agent.1",
+            "path": "main.py",
+            "kind": "static",
+            "supports": "/rule_ir/topologies",
+            "confidence": 0.5,
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 6,
+              "line_end": 7
+            }
+          },
+          {
+            "evidence_id": "ev:agent.2",
+            "path": "main.py",
+            "kind": "static",
+            "supports": "/rule_ir/types",
+            "confidence": 0.5,
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 20,
+              "line_end": 21
+            }
+          },
+          {
+            "evidence_id": "ev:agent.3",
+            "path": "main.py",
+            "kind": "static",
+            "supports": "/rule_ir/types",
+            "confidence": 0.5,
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 66,
+              "line_end": 77
+            }
+          },
+          {
+            "evidence_id": "ev:agent.4",
+            "path": "main.py",
+            "kind": "static",
+            "supports": "/rule_ir/types",
+            "confidence": 0.5,
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 66,
+              "line_end": 79
+            }
+          },
+          {
+            "evidence_id": "ev:agent.5",
+            "path": "main.py",
+            "kind": "static",
+            "supports": "/rule_ir/participants",
+            "confidence": 0.5,
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 22,
+              "line_end": 22
+            }
+          },
+          {
+            "evidence_id": "ev:agent.6",
+            "path": "main.py",
+            "kind": "static",
+            "supports": "/rule_ir/participants",
+            "confidence": 0.5,
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 39,
+              "line_end": 39
+            }
+          },
+          {
+            "evidence_id": "ev:agent.7",
+            "path": "main.py",
+            "kind": "static",
+            "supports": "/rule_ir/flow",
+            "confidence": 0.5,
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 20,
+              "line_end": 39
+            }
+          },
+          {
+            "evidence_id": "ev:agent.8",
+            "path": "main.py",
+            "kind": "static",
+            "supports": "/rule_ir/state",
+            "confidence": 0.5,
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 20,
+              "line_end": 24
+            }
+          },
+          {
+            "evidence_id": "ev:agent.9",
+            "path": "main.py",
+            "kind": "static",
+            "supports": "/rule_ir/actions",
+            "confidence": 0.5,
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 26,
+              "line_end": 40
+            }
+          },
+          {
+            "evidence_id": "ev:agent.12",
+            "path": "main.py",
+            "kind": "static",
+            "supports": "/rule_ir/outcomes",
+            "confidence": 0.5,
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 32,
+              "line_end": 36
+            }
+          },
+          {
+            "evidence_id": "ev:agent.13",
+            "path": "main.py",
+            "kind": "static",
+            "supports": "/rule_ir/outcomes",
+            "confidence": 0.5,
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 34,
+              "line_end": 37
+            }
+          }
+        ],
+        "assumptions": [
+          "Full-game restart and application quit are host commands, not Rule actions.",
+          "Terminal outcomes prevent further placements; otherwise turn-based flow advances to the next participant."
+        ],
+        "operation_count": 8
+      }
+    ]
+  },
+  "unresolved": []
+}

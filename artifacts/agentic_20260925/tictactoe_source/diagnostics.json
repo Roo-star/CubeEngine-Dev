@@ -1,0 +1,49 @@
+{
+  "ok": true,
+  "stage": "source_four_ir",
+  "diagnostics": [
+    "LLM call budget of 12 exhausted during input_ir"
+  ],
+  "unresolved_summary": [
+    {
+      "path": "/assets",
+      "reason": "Asset entry dropped, asset:role.board.cell: role missing resource reference.",
+      "required": false,
+      "owner": "llm"
+    },
+    {
+      "path": "/assets",
+      "reason": "Asset entry dropped, asset:role.x.mark: role missing resource reference.",
+      "required": false,
+      "owner": "llm"
+    },
+    {
+      "path": "/assets",
+      "reason": "Asset entry dropped, asset:role.o.mark: role missing resource reference.",
+      "required": false,
+      "owner": "llm"
+    },
+    {
+      "path": "/bindings",
+      "reason": "Escape and the window quit event stop the source application, but the supplied Rule ids contain no quit action. An application-level quit binding needs a supported non-rule target or a designer decision; no quit binding is enabled here.",
+      "required": false,
+      "owner": "designer"
+    },
+    {
+      "path": "/bindings",
+      "reason": "Escape and the window quit event stop the source application, but the supplied Rule ids contain no quit action. An application-level quit binding needs a supported non-rule target or a designer decision; no quit binding is enabled here.",
+      "required": false,
+      "owner": "designer"
+    },
+    {
+      "path": "/provenance/llm",
+      "reason": "LLM proposal has not been designer-approved.",
+      "required": true,
+      "owner": "designer"
+    }
+  ],
+  "provider": "openrouter",
+  "model": "openai/gpt-6-sol",
+  "attempts": 12,
+  "compile_ready": false
+}

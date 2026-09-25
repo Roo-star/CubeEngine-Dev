@@ -1,0 +1,12 @@
+{
+  "ok": false,
+  "stage": "agent_transport",
+  "diagnostics": [
+    "Cost guard: US$0.5493 spent in total; the next call (~US$0.4970) could exceed the US$0.60 limit. Stopped before sending it."
+  ],
+  "unresolved_summary": [],
+  "provider": "openrouter",
+  "model": "openai/gpt-6-sol",
+  "attempts": 6,
+  "compile_ready": false
+}

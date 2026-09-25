@@ -1,0 +1,35 @@
+{
+  "ok": true,
+  "stage": "source_four_ir",
+  "diagnostics": [],
+  "unresolved_summary": [
+    {
+      "path": "/assets",
+      "reason": "Asset entry dropped, asset:role.board: role missing resource reference.",
+      "required": false,
+      "owner": "llm"
+    },
+    {
+      "path": "/assets",
+      "reason": "Asset entry dropped, asset:role.x.mark: role missing resource reference.",
+      "required": false,
+      "owner": "llm"
+    },
+    {
+      "path": "/assets",
+      "reason": "Asset entry dropped, asset:role.o.mark: role missing resource reference.",
+      "required": false,
+      "owner": "llm"
+    },
+    {
+      "path": "/provenance/llm",
+      "reason": "LLM proposal has not been designer-approved.",
+      "required": true,
+      "owner": "designer"
+    }
+  ],
+  "provider": "openrouter",
+  "model": "openai/gpt-6-sol",
+  "attempts": 7,
+  "compile_ready": false
+}

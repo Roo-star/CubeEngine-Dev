@@ -1,0 +1,27 @@
+{
+  "ok": true,
+  "errors": [],
+  "warnings": [],
+  "facts": {
+    "flow_model": "event_driven",
+    "action_catalogue_size": 11,
+    "initial_outcome": {
+      "status": "ongoing",
+      "terminal": false,
+      "matched": []
+    },
+    "initial_legal_actions": 11,
+    "playouts": 24,
+    "terminated": 6,
+    "mean_length": 5.25,
+    "max_length": 11,
+    "terminal_statuses": {
+      "win": 6
+    },
+    "matched_outcomes": {
+      "rule:outcome.win": 6
+    },
+    "legal_actions_ever_decrease": true,
+    "outcome_overlaps": []
+  }
+}

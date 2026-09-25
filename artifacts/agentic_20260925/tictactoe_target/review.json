@@ -1,0 +1,22 @@
+[
+  {
+    "verdict": "revise",
+    "issues": [
+      {
+        "ir": "input_ir",
+        "problem": "The input bindings provide only a primary click for placement. They provide no '[' and ']' keys or on-screen controls to select a depth layer, so players cannot reliably pick inner cube cells as required by the lift plan.",
+        "fix": "Add depth-layer selection controls to input_ir and make the click-generated rule_coordinate include the selected z layer."
+      }
+    ]
+  },
+  {
+    "verdict": "revise",
+    "issues": [
+      {
+        "ir": "input_ir",
+        "problem": "Placement clicks use a full coordinate, but the input bindings provide no '[' or ']' keys or on-screen depth controls. Players cannot select a depth layer to pick inner cells as required by the lift plan.",
+        "fix": "Add '[' and ']' depth-selection bindings, or on-screen depth buttons, and make cell picking supply the selected layer in the placement target's (x,y,z) coordinate."
+      }
+    ]
+  }
+]

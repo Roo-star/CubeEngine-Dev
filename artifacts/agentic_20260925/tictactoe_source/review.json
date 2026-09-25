@@ -1,0 +1,31 @@
+[
+  {
+    "verdict": "revise",
+    "issues": [
+      {
+        "ir": "rule_ir",
+        "problem": "The source stops the application when Escape is pressed or a window quit event occurs, but the IR has no quit action or equivalent effect.",
+        "fix": "Add a quit action or equivalent application-stop effect.",
+        "source": {
+          "path": "main.py",
+          "lines": [
+            53,
+            59
+          ]
+        }
+      },
+      {
+        "ir": "input_ir",
+        "problem": "Neither Escape nor the window quit event is bound to a quit intent.",
+        "fix": "Bind Escape and the window quit event to the quit action or equivalent application-stop intent.",
+        "source": {
+          "path": "main.py",
+          "lines": [
+            54,
+            59
+          ]
+        }
+      }
+    ]
+  }
+]

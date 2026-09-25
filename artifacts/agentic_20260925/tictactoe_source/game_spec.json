@@ -1,0 +1,275 @@
+{
+  "summary": "Two players alternate placing X and O on a 3×3 grid; three in a row wins, and a full board without a win is a draw.",
+  "topology": {
+    "kind": "rect_grid",
+    "axes": [
+      {
+        "name": "x",
+        "extent": 3
+      },
+      {
+        "name": "y",
+        "extent": 3
+      }
+    ],
+    "cite": {
+      "path": "main.py",
+      "lines": [
+        6,
+        7
+      ]
+    },
+    "evidence_id": "ev:agent.1"
+  },
+  "cell_values": [
+    {
+      "value": 0,
+      "meaning": "empty",
+      "cite": {
+        "path": "main.py",
+        "lines": [
+          20,
+          21
+        ]
+      },
+      "evidence_id": "ev:agent.2"
+    },
+    {
+      "value": 1,
+      "meaning": "player 1, displayed as X",
+      "cite": {
+        "path": "main.py",
+        "lines": [
+          66,
+          77
+        ]
+      },
+      "evidence_id": "ev:agent.3"
+    },
+    {
+      "value": 2,
+      "meaning": "player 2, displayed as O",
+      "cite": {
+        "path": "main.py",
+        "lines": [
+          66,
+          79
+        ]
+      },
+      "evidence_id": "ev:agent.4"
+    }
+  ],
+  "participants": [
+    {
+      "key": "p1",
+      "name": "X",
+      "cell_value": 1,
+      "cite": {
+        "path": "main.py",
+        "lines": [
+          22,
+          22
+        ]
+      },
+      "evidence_id": "ev:agent.5"
+    },
+    {
+      "key": "p2",
+      "name": "O",
+      "cell_value": 2,
+      "cite": {
+        "path": "main.py",
+        "lines": [
+          39,
+          39
+        ]
+      },
+      "evidence_id": "ev:agent.6"
+    }
+  ],
+  "flow": {
+    "model": "event_driven",
+    "turn_order": [
+      "p1",
+      "p2"
+    ],
+    "tick_ms": null,
+    "cite": {
+      "path": "main.py",
+      "lines": [
+        26,
+        39
+      ]
+    },
+    "evidence_id": "ev:agent.7"
+  },
+  "initial_setup": {
+    "description": "All nine cells are empty; player 1 moves first, with no winner or draw.",
+    "placements": [],
+    "cite": {
+      "path": "main.py",
+      "lines": [
+        20,
+        24
+      ]
+    },
+    "evidence_id": "ev:agent.8"
+  },
+  "actions": [
+    {
+      "key": "place",
+      "actor": "current participant",
+      "parameters": [
+        {
+          "name": "x",
+          "type": "coordinate"
+        },
+        {
+          "name": "y",
+          "type": "coordinate"
+        }
+      ],
+      "legal_when": "No winner or draw exists; x and y are each in [0, 2]; board[y][x] is empty.",
+      "effect": "Set board[y][x] to the current player's value. Check for a win, then a draw; switch to the other player only if neither occurs. Illegal attempts leave the state unchanged.",
+      "cite": {
+        "path": "main.py",
+        "lines": [
+          26,
+          40
+        ]
+      },
+      "evidence_id": "ev:agent.9"
+    },
+    {
+      "key": "restart",
+      "actor": "system",
+      "parameters": [],
+      "legal_when": "The R key is pressed while the application runs.",
+      "effect": "Reset the board, current player, winner, and draw state to their initial values.",
+      "cite": {
+        "path": "main.py",
+        "lines": [
+          20,
+          24
+        ]
+      },
+      "evidence_id": "ev:agent.10"
+    },
+    {
+      "key": "quit",
+      "actor": "system",
+      "parameters": [],
+      "legal_when": "Escape is pressed or a window quit event occurs.",
+      "effect": "Stop the application loop.",
+      "cite": {
+        "path": "main.py",
+        "lines": [
+          53,
+          59
+        ]
+      },
+      "evidence_id": "ev:agent.11"
+    }
+  ],
+  "outcomes": [
+    {
+      "key": "win",
+      "condition": "After a legal placement, any complete row, column, or either full diagonal contains three cells equal to the current player's value.",
+      "result": "win",
+      "winner": "current participant",
+      "checked_before": [
+        "draw"
+      ],
+      "cite": {
+        "path": "main.py",
+        "lines": [
+          31,
+          36
+        ]
+      },
+      "evidence_id": "ev:agent.12"
+    },
+    {
+      "key": "draw",
+      "condition": "After a legal placement, no winning line exists and every board cell is nonempty.",
+      "result": "draw",
+      "winner": null,
+      "checked_before": [],
+      "cite": {
+        "path": "main.py",
+        "lines": [
+          34,
+          37
+        ]
+      },
+      "evidence_id": "ev:agent.13"
+    }
+  ],
+  "controls": [
+    {
+      "device": "mouse",
+      "control": "Left-button press maps pixel position to the board cell using board offset and cell size.",
+      "action_key": "place",
+      "cite": {
+        "path": "main.py",
+        "lines": [
+          62,
+          64
+        ]
+      },
+      "evidence_id": "ev:agent.14"
+    },
+    {
+      "device": "keyboard",
+      "control": "R",
+      "action_key": "restart",
+      "cite": {
+        "path": "main.py",
+        "lines": [
+          57,
+          61
+        ]
+      },
+      "evidence_id": "ev:agent.15"
+    },
+    {
+      "device": "keyboard",
+      "control": "Escape",
+      "action_key": "quit",
+      "cite": {
+        "path": "main.py",
+        "lines": [
+          57,
+          59
+        ]
+      },
+      "evidence_id": "ev:agent.16"
+    },
+    {
+      "device": "window",
+      "control": "Quit event",
+      "action_key": "quit",
+      "cite": {
+        "path": "main.py",
+        "lines": [
+          54,
+          56
+        ]
+      },
+      "evidence_id": "ev:agent.17"
+    }
+  ],
+  "presentation": {
+    "description": "Pygame renders a status line, instructions, a 3×3 grid of rounded cells, blue X marks, and orange O marks; it shows the current turn, winner, or draw.",
+    "asset_files": [],
+    "cite": {
+      "path": "main.py",
+      "lines": [
+        65,
+        80
+      ]
+    },
+    "evidence_id": "ev:agent.18"
+  },
+  "unknowns": []
+}

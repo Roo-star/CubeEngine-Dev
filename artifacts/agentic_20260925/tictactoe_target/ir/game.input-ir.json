@@ -1,0 +1,238 @@
+{
+  "ir_version": "cubeengine.input-ir/2.0-alpha.1",
+  "document_id": "input:game.tic.tac.toe.target",
+  "revision": 1,
+  "content_hash": "59f384519c4d9d56400b44e03f18aff6854260ad4f08112582aa07a53e4048e5",
+  "metadata": {
+    "title": "Tic Tac Toe",
+    "description": "LLM compiler bootstrap shell. Semantics must be filled by evidence-backed patches.",
+    "source_project_hash": "247430c188d62026b62128405e3e01dcc803d51fbff2bf0e0177a249ca421f82"
+  },
+  "dependencies": {
+    "rule_ir": {
+      "document_id": "rule:game.tic.tac.toe.target",
+      "content_hash": "f0e3619820c46d47304fee64ea2e2fd3a0d7a79ca86a9983ee5ef5eeba16cc24"
+    },
+    "extensions": []
+  },
+  "contexts": [
+    {
+      "id": "input:context.play",
+      "name": "Play",
+      "priority": 100,
+      "enabled_by_default": true,
+      "focus": "viewport",
+      "consume_policy": "first_match",
+      "exclusive_group": "runtime_mode"
+    }
+  ],
+  "intents": [
+    {
+      "id": "input:action.intent.place",
+      "name": "Place Mark",
+      "value_type": "digital",
+      "required": true,
+      "target": {
+        "kind": "rule_action",
+        "action": "rule:action.place",
+        "parameters": {
+          "target": {
+            "source": "event_data",
+            "key": "rule_coordinate",
+            "value_type": "core:coord"
+          }
+        }
+      }
+    },
+    {
+      "id": "input:action.intent.restart",
+      "name": "Restart",
+      "value_type": "digital",
+      "required": true,
+      "target": {
+        "kind": "host_command",
+        "command": "restart"
+      }
+    },
+    {
+      "id": "input:action.intent.quit",
+      "name": "Quit",
+      "value_type": "digital",
+      "required": true,
+      "target": {
+        "kind": "host_command",
+        "command": "quit"
+      }
+    }
+  ],
+  "bindings": [
+    {
+      "id": "input:binding.place",
+      "name": "Place Mark with Primary Mouse Button",
+      "context": "input:context.play",
+      "intent": "input:action.intent.place",
+      "priority": 100,
+      "enabled": true,
+      "consume": true,
+      "rebindable": true,
+      "slot": "primary",
+      "accessibility_label": "Place a mark in the selected cell",
+      "trigger": {
+        "kind": "control",
+        "device": "mouse",
+        "control": "mouse.button.primary",
+        "phase": "press",
+        "modifiers": [],
+        "modifier_policy": "exact"
+      },
+      "processing": {
+        "dead_zone": 0,
+        "sensitivity_numerator": 1,
+        "sensitivity_denominator": 1,
+        "invert": false,
+        "clamp_min": -32768,
+        "clamp_max": 32767
+      }
+    },
+    {
+      "id": "input:binding.restart",
+      "name": "Restart with R",
+      "context": "input:context.play",
+      "intent": "input:action.intent.restart",
+      "priority": 100,
+      "enabled": true,
+      "consume": true,
+      "rebindable": true,
+      "slot": "primary",
+      "accessibility_label": "Restart the game",
+      "trigger": {
+        "kind": "control",
+        "device": "keyboard",
+        "control": "keyboard.key.r",
+        "phase": "press",
+        "modifiers": [],
+        "modifier_policy": "exact"
+      },
+      "processing": {
+        "dead_zone": 0,
+        "sensitivity_numerator": 1,
+        "sensitivity_denominator": 1,
+        "invert": false,
+        "clamp_min": -32768,
+        "clamp_max": 32767
+      }
+    },
+    {
+      "id": "input:binding.quit",
+      "name": "Quit with Escape",
+      "context": "input:context.play",
+      "intent": "input:action.intent.quit",
+      "priority": 100,
+      "enabled": true,
+      "consume": true,
+      "rebindable": true,
+      "slot": "primary",
+      "accessibility_label": "Quit the game",
+      "trigger": {
+        "kind": "control",
+        "device": "keyboard",
+        "control": "keyboard.key.escape",
+        "phase": "press",
+        "modifiers": [],
+        "modifier_policy": "exact"
+      },
+      "processing": {
+        "dead_zone": 0,
+        "sensitivity_numerator": 1,
+        "sensitivity_denominator": 1,
+        "invert": false,
+        "clamp_min": -32768,
+        "clamp_max": 32767
+      }
+    }
+  ],
+  "provenance": {
+    "patch_history": [
+      {
+        "base_revision": 0,
+        "base_content_hash": "e31a1e0f9539a24bf6936aa7a5488d71a3a9eb9bd35cd3ef7626b7715b1ab3ec",
+        "evidence": [
+          {
+            "evidence_id": "ev:agent.14",
+            "path": "main.py",
+            "kind": "static",
+            "supports": "/input_ir/bindings",
+            "confidence": 0.5,
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 62,
+              "line_end": 64
+            }
+          },
+          {
+            "evidence_id": "ev:agent.15",
+            "path": "main.py",
+            "kind": "static",
+            "supports": "/input_ir/bindings",
+            "confidence": 0.5,
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 57,
+              "line_end": 61
+            }
+          },
+          {
+            "evidence_id": "ev:agent.16",
+            "path": "main.py",
+            "kind": "static",
+            "supports": "/input_ir/bindings",
+            "confidence": 0.5,
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 57,
+              "line_end": 59
+            }
+          },
+          {
+            "evidence_id": "ev:agent.17",
+            "path": "main.py",
+            "kind": "static",
+            "supports": "/input_ir/bindings",
+            "confidence": 0.5,
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 54,
+              "line_end": 56
+            }
+          }
+        ],
+        "assumptions": [
+          "The primary mouse press supplies the selected board cell as event_data.rule_coordinate after converting the pointer position using the board offsets and cell size.",
+          "The host handles window-close events without an Input IR binding, as specified by the supplied Input IR instructions."
+        ],
+        "operation_count": 4
+      },
+      {
+        "base_revision": 0,
+        "base_content_hash": "a77a838cb6706b99a3ef9c06cd01fd38ecda3462fc1f8fcf1bf995189e4f168f",
+        "evidence": [
+          {
+            "evidence_id": "ev:agent.14",
+            "path": "main.py",
+            "kind": "static",
+            "supports": "/input_ir/bindings",
+            "confidence": 0.5,
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 62,
+              "line_end": 64
+            }
+          }
+        ],
+        "assumptions": [],
+        "operation_count": 1
+      }
+    ]
+  },
+  "unresolved": []
+}

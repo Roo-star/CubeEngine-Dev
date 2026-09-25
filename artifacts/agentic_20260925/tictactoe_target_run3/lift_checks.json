@@ -1,0 +1,55 @@
+{
+  "z_equals_one": {
+    "ok": true,
+    "errors": [],
+    "warnings": [],
+    "facts": {
+      "added_axes": {
+        "rule:topology.board": [
+          2
+        ]
+      },
+      "compared_steps": 522,
+      "playouts": 60
+    }
+  },
+  "behavior_tests": {
+    "ok": true,
+    "errors": [],
+    "warnings": [],
+    "facts": {
+      "results": [
+        {
+          "name": "pillar wins across layers",
+          "passed": true,
+          "failure": null
+        },
+        {
+          "name": "face diagonal spanning depth wins",
+          "passed": true,
+          "failure": null
+        },
+        {
+          "name": "body diagonal wins",
+          "passed": true,
+          "failure": null
+        },
+        {
+          "name": "original plane diagonal still wins",
+          "passed": true,
+          "failure": null
+        },
+        {
+          "name": "same x and y on different layers are distinct cells",
+          "passed": true,
+          "failure": null
+        },
+        {
+          "name": "occupied cube cell rejects placement",
+          "passed": true,
+          "failure": null
+        }
+      ]
+    }
+  }
+}

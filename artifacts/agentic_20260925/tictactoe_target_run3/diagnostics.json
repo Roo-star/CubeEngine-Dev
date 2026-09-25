@@ -1,0 +1,35 @@
+{
+  "ok": true,
+  "stage": "spatial_lift",
+  "diagnostics": [],
+  "unresolved_summary": [
+    {
+      "path": "/prefabs/0/root/components/0/properties/variants",
+      "reason": "The supplied source facts describe blue X and orange O marks but do not provide their exact numeric colors; marker colors are left unspecified.",
+      "required": false,
+      "owner": "designer"
+    },
+    {
+      "path": "/derivations",
+      "reason": "The plane primitives are carriers only; the source does not define procedural mesh geometry that visibly depicts the X and O glyphs or rounded cells.",
+      "required": false,
+      "owner": "designer"
+    },
+    {
+      "path": "/derivations",
+      "reason": "The plane primitives are carriers only; the source does not define procedural mesh geometry that visibly depicts the X and O glyphs or rounded cells.",
+      "required": false,
+      "owner": "designer"
+    },
+    {
+      "path": "/provenance/llm",
+      "reason": "LLM proposal has not been designer-approved.",
+      "required": true,
+      "owner": "designer"
+    }
+  ],
+  "provider": "openrouter",
+  "model": "openai/gpt-6-sol",
+  "attempts": 8,
+  "compile_ready": false
+}

@@ -1,0 +1,218 @@
+{
+  "ev:agent.1": {
+    "evidence_id": "ev:agent.1",
+    "path": "main.py",
+    "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+    "kind": "static",
+    "span": {
+      "line_start": 6,
+      "line_end": 7
+    },
+    "supports": "/rule_ir/topologies",
+    "detail": "BOARD_WIDTH = 3 BOARD_HEIGHT = 3"
+  },
+  "ev:agent.2": {
+    "evidence_id": "ev:agent.2",
+    "path": "main.py",
+    "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+    "kind": "static",
+    "span": {
+      "line_start": 20,
+      "line_end": 21
+    },
+    "supports": "/rule_ir/types",
+    "detail": "def reset(self): self.board = [[0 for _ in range(BOARD_WIDTH)] for _ in range(BOARD_HEIGHT)]"
+  },
+  "ev:agent.3": {
+    "evidence_id": "ev:agent.3",
+    "path": "main.py",
+    "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+    "kind": "static",
+    "span": {
+      "line_start": 66,
+      "line_end": 77
+    },
+    "supports": "/rule_ir/types",
+    "detail": "symbol = lambda p: 'X' if p == 1 else 'O' status = ('Winner: ' + symbol(game.winner)) if game.winner else ('Draw' if game.draw else 'Turn: ' + symbol(game.curre"
+  },
+  "ev:agent.4": {
+    "evidence_id": "ev:agent.4",
+    "path": "main.py",
+    "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+    "kind": "static",
+    "span": {
+      "line_start": 66,
+      "line_end": 79
+    },
+    "supports": "/rule_ir/types",
+    "detail": "symbol = lambda p: 'X' if p == 1 else 'O' status = ('Winner: ' + symbol(game.winner)) if game.winner else ('Draw' if game.draw else 'Turn: ' + symbol(game.curre"
+  },
+  "ev:agent.5": {
+    "evidence_id": "ev:agent.5",
+    "path": "main.py",
+    "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+    "kind": "static",
+    "span": {
+      "line_start": 22,
+      "line_end": 22
+    },
+    "supports": "/rule_ir/participants",
+    "detail": "self.current_player = 1"
+  },
+  "ev:agent.6": {
+    "evidence_id": "ev:agent.6",
+    "path": "main.py",
+    "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+    "kind": "static",
+    "span": {
+      "line_start": 39,
+      "line_end": 39
+    },
+    "supports": "/rule_ir/participants",
+    "detail": "self.current_player = 3 - self.current_player"
+  },
+  "ev:agent.7": {
+    "evidence_id": "ev:agent.7",
+    "path": "main.py",
+    "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+    "kind": "static",
+    "span": {
+      "line_start": 26,
+      "line_end": 39
+    },
+    "supports": "/rule_ir/flow",
+    "detail": "def place(self, x, y): if self.winner or self.draw or not (0 <= x < BOARD_WIDTH and 0 <= y < BOARD_HEIGHT): return False if self.board[y][x] != 0: return False "
+  },
+  "ev:agent.8": {
+    "evidence_id": "ev:agent.8",
+    "path": "main.py",
+    "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+    "kind": "static",
+    "span": {
+      "line_start": 20,
+      "line_end": 24
+    },
+    "supports": "/rule_ir/state",
+    "detail": "def reset(self): self.board = [[0 for _ in range(BOARD_WIDTH)] for _ in range(BOARD_HEIGHT)] self.current_player = 1 self.winner = 0 self.draw = False"
+  },
+  "ev:agent.9": {
+    "evidence_id": "ev:agent.9",
+    "path": "main.py",
+    "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+    "kind": "static",
+    "span": {
+      "line_start": 26,
+      "line_end": 40
+    },
+    "supports": "/rule_ir/actions",
+    "detail": "def place(self, x, y): if self.winner or self.draw or not (0 <= x < BOARD_WIDTH and 0 <= y < BOARD_HEIGHT): return False if self.board[y][x] != 0: return False "
+  },
+  "ev:agent.10": {
+    "evidence_id": "ev:agent.10",
+    "path": "main.py",
+    "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+    "kind": "static",
+    "span": {
+      "line_start": 20,
+      "line_end": 24
+    },
+    "supports": "/rule_ir/actions",
+    "detail": "def reset(self): self.board = [[0 for _ in range(BOARD_WIDTH)] for _ in range(BOARD_HEIGHT)] self.current_player = 1 self.winner = 0 self.draw = False"
+  },
+  "ev:agent.11": {
+    "evidence_id": "ev:agent.11",
+    "path": "main.py",
+    "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+    "kind": "static",
+    "span": {
+      "line_start": 53,
+      "line_end": 59
+    },
+    "supports": "/rule_ir/actions",
+    "detail": "while running: for event in pygame.event.get(): if event.type == pygame.QUIT: running = False elif event.type == pygame.KEYDOWN: if event.key == pygame.K_ESCAPE"
+  },
+  "ev:agent.12": {
+    "evidence_id": "ev:agent.12",
+    "path": "main.py",
+    "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+    "kind": "static",
+    "span": {
+      "line_start": 31,
+      "line_end": 36
+    },
+    "supports": "/rule_ir/outcomes",
+    "detail": "self.board[y][x] = self.current_player lines = list(self.board) + [[self.board[y][x] for y in range(3)] for x in range(3)] lines += [[self.board[i][i] for i in "
+  },
+  "ev:agent.13": {
+    "evidence_id": "ev:agent.13",
+    "path": "main.py",
+    "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+    "kind": "static",
+    "span": {
+      "line_start": 34,
+      "line_end": 37
+    },
+    "supports": "/rule_ir/outcomes",
+    "detail": "if any(all(cell == self.current_player for cell in line) for line in lines): self.winner = self.current_player elif all(cell for row in self.board for cell in r"
+  },
+  "ev:agent.14": {
+    "evidence_id": "ev:agent.14",
+    "path": "main.py",
+    "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+    "kind": "static",
+    "span": {
+      "line_start": 62,
+      "line_end": 64
+    },
+    "supports": "/input_ir/bindings",
+    "detail": "elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1: mx, my = event.pos game.place((mx - BOARD_LEFT) // CELL_SIZE, (my - BOARD_TOP) // CELL_SIZE)"
+  },
+  "ev:agent.15": {
+    "evidence_id": "ev:agent.15",
+    "path": "main.py",
+    "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+    "kind": "static",
+    "span": {
+      "line_start": 57,
+      "line_end": 61
+    },
+    "supports": "/input_ir/bindings",
+    "detail": "elif event.type == pygame.KEYDOWN: if event.key == pygame.K_ESCAPE: running = False elif event.key == pygame.K_r: game.reset()"
+  },
+  "ev:agent.16": {
+    "evidence_id": "ev:agent.16",
+    "path": "main.py",
+    "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+    "kind": "static",
+    "span": {
+      "line_start": 57,
+      "line_end": 59
+    },
+    "supports": "/input_ir/bindings",
+    "detail": "elif event.type == pygame.KEYDOWN: if event.key == pygame.K_ESCAPE: running = False"
+  },
+  "ev:agent.17": {
+    "evidence_id": "ev:agent.17",
+    "path": "main.py",
+    "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+    "kind": "static",
+    "span": {
+      "line_start": 54,
+      "line_end": 56
+    },
+    "supports": "/input_ir/bindings",
+    "detail": "for event in pygame.event.get(): if event.type == pygame.QUIT: running = False"
+  },
+  "ev:agent.18": {
+    "evidence_id": "ev:agent.18",
+    "path": "main.py",
+    "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+    "kind": "static",
+    "span": {
+      "line_start": 65,
+      "line_end": 80
+    },
+    "supports": "/scene_ir/nodes",
+    "detail": "screen.fill((22, 28, 40)) symbol = lambda p: 'X' if p == 1 else 'O' status = ('Winner: ' + symbol(game.winner)) if game.winner else ('Draw' if game.draw else 'T"
+  }
+}

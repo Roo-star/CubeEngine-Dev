@@ -99,10 +99,10 @@ def main():
         Text.default_font = Filename.from_os_specific(str(font)).get_fullpath()
     app = Ursina(borderless=False, fullscreen=False, size=(1280, 800), development_mode=False)
     window.title = 'CubeEngine - Project IR / Ursina 3D'
-    window.color = color.rgb(20, 25, 36)
+    from .ursina_scene_backend import UrsinaSceneBackend, rgba255
+    window.color = rgba255(20, 25, 36)
     dims = host.snapshot.dimensions
     depth = dims[2] if len(dims) == 3 else 1
-    from .ursina_scene_backend import UrsinaSceneBackend
     errors = host.presentation.diagnostics()
     if errors:
         host.close()

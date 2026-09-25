@@ -1,0 +1,50 @@
+{
+  "z_equals_one": {
+    "ok": true,
+    "errors": [],
+    "warnings": [],
+    "facts": {
+      "added_axes": {
+        "rule:topology.board": [
+          2
+        ]
+      },
+      "compared_steps": 522,
+      "playouts": 60
+    }
+  },
+  "behavior_tests": {
+    "ok": true,
+    "errors": [],
+    "warnings": [],
+    "facts": {
+      "results": [
+        {
+          "name": "Pillar across layers wins",
+          "passed": true,
+          "failure": null
+        },
+        {
+          "name": "Space diagonal wins",
+          "passed": true,
+          "failure": null
+        },
+        {
+          "name": "Diagonal within a depth layer wins",
+          "passed": true,
+          "failure": null
+        },
+        {
+          "name": "Any empty depth cell is playable without support",
+          "passed": true,
+          "failure": null
+        },
+        {
+          "name": "Occupied cell is rejected",
+          "passed": true,
+          "failure": null
+        }
+      ]
+    }
+  }
+}

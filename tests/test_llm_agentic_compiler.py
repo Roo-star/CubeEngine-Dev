@@ -12,7 +12,13 @@ from types import SimpleNamespace
 from typing import Any, Dict, List
 
 from srtp.ir_acceptance import IRAcceptanceController
-from srtp.llm_compiler_v1.agent_tools import SourceWorkspace, ToolError, behavior_probe
+from srtp.llm_compiler_v1.agent_tools import (
+    SourceWorkspace,
+    ToolError,
+    behavior_probe,
+    compile_gate,
+    rule_function_catalog,
+)
 from srtp.llm_compiler_v1.agentic import AgenticSourceToIRCompiler
 from srtp.llm_compiler_v1.approval import approval_status, approve_llm_manifest_file
 from srtp.llm_compiler_v1.client import LLMClientError, LLMTransportError, OpenRouterLLMClient
@@ -155,20 +161,26 @@ def _scene_patch() -> Dict[str, Any]:
         "operations": [
             {"op": "replace", "path": "/prefabs", "value": [{"id": "scene:prefab.cell", "name": "Cell", "root": {
                 "local_id": "root", "name": "Cell", "active": True, "transform": _IDENTITY, "children": [],
-                "components": [{"id": "renderer", "type": "renderer", "enabled": True,
-                                "properties": {"geometry": "builtin:cube", "visible": True}}]}}]},
+                "components": [
+                    {"id": "renderer", "type": "renderer", "enabled": True,
+                     "properties": {"geometry": "builtin:cube", "visible": True, "variant": "empty", "variants": {
+                         "empty": {"marker": None},
+                         "p1_mark": {"marker": {"kind": "cross", "color": [0.3, 0.7, 1, 1], "size": 0.5}},
+                         "p2_mark": {"marker": {"kind": "ring", "color": [1, 0.7, 0.3, 1], "size": 0.5}}}}},
+                    {"id": "cell_hit", "type": "collider", "enabled": True,
+                     "properties": {"shape": "box", "size": [1, 1, 1], "is_trigger": False, "selectable": True}}]}}]},
             {"op": "replace", "path": "/nodes", "value": [
                 {"id": "scene:node.board", "name": "Board", "active": True, "parent": None,
                  "layer": "scene:layer.runtime", "transform": _IDENTITY, "children": [],
                  "components": [{"id": "sites", "type": "topology_visualizer", "enabled": True,
-                                 "properties": {"topology": TOPO, "rule_topology": TOPO,
-                                                "prefab": "scene:prefab.cell"}}]},
+                                 "properties": {"rule_topology": TOPO, "prefab": "scene:prefab.cell",
+                                                "index_to_world": [1, 0, 0, 0, 0, -1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]}}]},
                 {"id": "scene:node.camera", "name": "Camera", "active": True, "parent": None,
                  "layer": "scene:layer.runtime", "children": [],
                  "transform": {"translation": [1, 1, 6], "rotation_euler_deg": [0, 0, 0], "scale": [1, 1, 1]},
                  "components": [{"id": "camera", "type": "camera", "enabled": True,
                                  "properties": {"projection": "perspective", "near_clip": 0.1, "far_clip": 100.0,
-                                                "active": True, "fov_deg": 60.0}}]}]},
+                                                "active": True, "fov": 60.0}}]}]},
             {"op": "replace", "path": "/bindings", "value": [{
                 "id": "scene:binding.cell_variant", "name": "Cell Variant",
                 "source": {"kind": "state", "scope": "topology_site", "variable": GRID},
@@ -209,6 +221,24 @@ def _input_patch() -> Dict[str, Any]:
         "assumptions": ["primary click places at the picked cell"],
         "unresolved": [],
     }
+
+
+def _lifecycle_input_patch() -> Dict[str, Any]:
+    """Source Escape-to-quit and R-to-restart as host commands, not Rule actions."""
+
+    patch = _input_patch()
+    operations = {operation["path"]: operation for operation in patch["operations"]}
+    for key, control in (("quit", "keyboard.key.escape"), ("restart", "keyboard.key.r")):
+        operations["/intents"]["value"].append({
+            "id": "input:action.intent." + key, "name": key.title(), "value_type": "digital", "required": True,
+            "target": {"kind": "host_command", "command": key}})
+        operations["/bindings"]["value"].append({
+            "id": "input:binding." + key, "name": key.title(), "context": "input:context.play",
+            "intent": "input:action.intent." + key, "priority": 100, "enabled": True, "consume": True,
+            "rebindable": True, "slot": "primary", "accessibility_label": key.title(),
+            "trigger": {"kind": "control", "device": "keyboard", "control": control,
+                        "phase": "press", "modifiers": [], "modifier_policy": "exact"}})
+    return patch
 
 
 _PASS = {"verdict": "pass", "issues": []}
@@ -405,6 +435,17 @@ class AgenticCompilerTests(unittest.TestCase):
         self.assertEqual(routed["origin"], "review")
         self.assertIn("rename to Place mark", routed["diagnostics"][0])
         self.assertEqual(len(chat.requests), 8)
+
+    def test_host_command_lifecycle_bindings_pass_every_gate(self):
+        report, _, _ = self._compile([
+            {"action": "finish", "spec": _spec()},
+            _rule_patch(), _asset_patch(), _scene_patch(), _lifecycle_input_patch(), _PASS,
+        ])
+        self.assertTrue(report.ok, report.diagnostics)
+        self.assertTrue(approval_status(report.manifest)["can_approve"])
+        targets = {item["id"]: item["target"] for item in report.documents["input_ir"]["intents"]}
+        self.assertEqual(targets["input:action.intent.quit"], {"kind": "host_command", "command": "quit"})
+        self.assertEqual(targets["input:action.intent.restart"], {"kind": "host_command", "command": "restart"})
 
     def test_transport_failure_resumes_from_checkpoint(self):
         first, _, _ = self._compile([
@@ -645,6 +686,52 @@ class CompilerRegressionTests(unittest.TestCase):
         self.assertEqual(component["name"], "legacy_state_value")
         component = _coerce_entity_component({"name": "Legacy State"}, 0)
         self.assertEqual(component["name"], "legacy.state")
+
+
+class HostGateTests(unittest.TestCase):
+    """compile_gate refuses bundles the Ursina host could not show or play."""
+
+    FIXTURE = ROOT / "tests" / "fixtures" / "generated_tictactoe_target_20260923"
+
+    def _documents(self) -> Dict[str, Any]:
+        return {key: json.loads((self.FIXTURE / "ir" / "game.{0}-ir.json".format(name)).read_text(encoding="utf-8"))
+                for key, name in (("rule_ir", "rule"), ("asset_ir", "asset"), ("scene_ir", "scene"),
+                                  ("input_ir", "input"))}
+
+    def _reseal(self, documents: Dict[str, Any]) -> None:
+        from srtp.scene_ir_v2 import seal_scene_ir
+
+        documents["scene_ir"] = seal_scene_ir(documents["scene_ir"], revision=documents["scene_ir"]["revision"])
+
+    def _cell_components(self, documents: Dict[str, Any]) -> List[Dict[str, Any]]:
+        return documents["scene_ir"]["prefabs"][0]["root"]["components"]
+
+    def test_playable_reference_target_passes(self):
+        self.assertEqual(compile_gate(self._documents(), asset_root=self.FIXTURE), {})
+
+    def test_unpickable_cells_are_routed_to_the_scene(self):
+        documents = self._documents()
+        components = self._cell_components(documents)
+        components[:] = [item for item in components if item["type"] != "collider"]
+        self._reseal(documents)
+        errors = compile_gate(documents, asset_root=self.FIXTURE)
+        self.assertIn("Host picking", errors["scene_ir"][0])
+        self.assertEqual(compile_gate(documents, asset_root=self.FIXTURE, keys=("input_ir",)), {})
+
+    def test_state_variant_without_appearance_is_a_scene_error(self):
+        documents = self._documents()
+        renderer = next(item for item in self._cell_components(documents) if item["type"] == "renderer")
+        del renderer["properties"]["variants"]
+        self._reseal(documents)
+        errors = compile_gate(documents, asset_root=self.FIXTURE, keys=("scene_ir",))
+        self.assertTrue(any("no appearance mapping" in item for item in errors["scene_ir"]), errors)
+
+
+class PromptContractTests(unittest.TestCase):
+    def test_rule_vocabulary_matches_the_rule_validator(self):
+        catalog = rule_function_catalog()
+        self.assertEqual(catalog["expression_ops"]["if"], {"condition": "<expr>", "then": "<expr>", "else": "<expr>"})
+        self.assertEqual(set(catalog["effect_commands"]["state.set"]) - {"optional"}, {"target", "value"})
 
 
 class ClientReplyTests(unittest.TestCase):

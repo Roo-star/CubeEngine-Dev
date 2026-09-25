@@ -1,0 +1,41 @@
+{
+  "ok": true,
+  "stage": "source_four_ir",
+  "diagnostics": [],
+  "unresolved_summary": [
+    {
+      "path": "/derivations",
+      "reason": "The specified plane primitives are carriers only; the source does not define procedural mesh geometry that would make them visibly depict the X and O glyphs or the rounded cells.",
+      "required": false,
+      "owner": "designer"
+    },
+    {
+      "path": "/assets",
+      "reason": "Asset entry dropped, asset:role.board: role missing resource reference.",
+      "required": false,
+      "owner": "llm"
+    },
+    {
+      "path": "/assets",
+      "reason": "Asset entry dropped, asset:role.x: role missing resource reference.",
+      "required": false,
+      "owner": "llm"
+    },
+    {
+      "path": "/assets",
+      "reason": "Asset entry dropped, asset:role.o: role missing resource reference.",
+      "required": false,
+      "owner": "llm"
+    },
+    {
+      "path": "/provenance/llm",
+      "reason": "LLM proposal has not been designer-approved.",
+      "required": true,
+      "owner": "designer"
+    }
+  ],
+  "provider": "openrouter",
+  "model": "openai/gpt-6-sol",
+  "attempts": 10,
+  "compile_ready": false
+}

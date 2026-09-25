@@ -1,0 +1,497 @@
+{
+  "design_intent": {
+    "intent_version": "cubeengine.srtp/design-intent/1.0",
+    "intent_id": "intent:tic-tac-toe-3d-no-gravity",
+    "conversation_id": "unknown",
+    "turn_id": "unknown",
+    "project_id": "project:tic.tac.toe.llm.source",
+    "source_manifest_hash": "82b1ac0878bc11fd4eb868fd4dc1587093add48617ce9f39a23759b30cebff06",
+    "original_text": "Make it a 3x3x3 cube with no gravity: players still alternate placing X and O in any empty cell; any straight line of three cells through the cube (rows, columns, pillars and every diagonal, 49 lines in total) wins; a full cube with no line is a draw.",
+    "language": "en",
+    "operation": "transform",
+    "scope": [
+      "rule"
+    ],
+    "preserve": [
+      "Players alternate placing X and O.",
+      "A placement may be made in any empty cell."
+    ],
+    "changes": [
+      "Use a 3x3x3 cube.",
+      "Apply no gravity.",
+      "A straight line of three cells through the cube wins, including rows, columns, pillars, and every diagonal; there are 49 winning lines in total.",
+      "A full cube with no winning line is a draw."
+    ],
+    "constraints": [],
+    "resolved_references": [],
+    "assumptions": [],
+    "conflicts": [],
+    "unresolved": [
+      "The existing game referred to by “it” is not identified as a specific target object.",
+      "Conversation and turn identifiers were not supplied."
+    ],
+    "requires_confirmation": false,
+    "status": "ready",
+    "target_base": null
+  },
+  "lift_plan": {
+    "topology": {
+      "id": "rule:topology.board",
+      "add_axes": [
+        {
+          "name": "z",
+          "extent": 3,
+          "boundary": "bounded"
+        }
+      ]
+    },
+    "source_xy_policy": "Keep x and y bounded at extent 3, with their coordinates, cell values, turn order, and empty-cell placement rule unchanged. At z extent 1, preserve the Source rows, columns, and two diagonals.",
+    "target_z": 3,
+    "neighborhood": "Straight three-cell lines in all 13 unoriented axis and diagonal directions: 27 rows, columns, and pillars; 18 diagonals within xy, xz, and yz planes; and 4 diagonals through all three axes. These are the 49 winning lines.",
+    "movement": "On each turn, place the current player's X or O in any empty (x,y,z) cell. No gravity or supporting cell is required. Occupied or out-of-bounds placements remain illegal. Preserve restart and quit as host commands.",
+    "outcomes": "After a placement, the current player wins if their mark occupies any of the 49 straight three-cell lines. Check for a win before a draw. If all 27 cells are occupied with no winning line, the result is a draw; otherwise play continues.",
+    "presentation": "Show the board as one continuous cube volume with X and O at their 3D cell positions. Retain turn, win, and draw status; do not split the cube into layer panels.",
+    "input": "A cell pick supplies its full (x,y,z) coordinate for placement. Use the engine's existing depth-layer selection, '[' and ']' keys, and on-screen buttons to address inner cells; retain the Source restart and quit bindings.",
+    "z_equals_one_tests": [
+      "With z at extent 1, the game must equal the Source: X moves first, players alternate placing in empty cells of the 3×3 board, its rows, columns, and two diagonals win, and a full board without a line draws."
+    ],
+    "z_gt_one_tests": [
+      {
+        "name": "Row on upper layer",
+        "moves": [
+          [
+            0,
+            0,
+            2
+          ],
+          [
+            0,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            2
+          ],
+          [
+            0,
+            1,
+            0
+          ],
+          [
+            2,
+            0,
+            2
+          ]
+        ],
+        "expect": {
+          "status": "win",
+          "winner_turn_index": 0
+        }
+      },
+      {
+        "name": "Pillar across layers",
+        "moves": [
+          [
+            0,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            1
+          ],
+          [
+            1,
+            0,
+            1
+          ],
+          [
+            0,
+            0,
+            2
+          ]
+        ],
+        "expect": {
+          "status": "win",
+          "winner_turn_index": 0
+        }
+      },
+      {
+        "name": "Space diagonal",
+        "moves": [
+          [
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            2,
+            0
+          ],
+          [
+            1,
+            1,
+            1
+          ],
+          [
+            2,
+            0,
+            0
+          ],
+          [
+            2,
+            2,
+            2
+          ]
+        ],
+        "expect": {
+          "status": "win",
+          "winner_turn_index": 0
+        }
+      },
+      {
+        "name": "O wins on a yz diagonal",
+        "moves": [
+          [
+            0,
+            0,
+            0
+          ],
+          [
+            2,
+            0,
+            0
+          ],
+          [
+            0,
+            1,
+            0
+          ],
+          [
+            2,
+            1,
+            1
+          ],
+          [
+            1,
+            2,
+            0
+          ],
+          [
+            2,
+            2,
+            2
+          ]
+        ],
+        "expect": {
+          "status": "win",
+          "winner_turn_index": 1
+        }
+      },
+      {
+        "name": "Unsupported upper cell is legal",
+        "moves": [
+          [
+            1,
+            1,
+            2
+          ]
+        ],
+        "expect": {
+          "status": "ongoing"
+        }
+      },
+      {
+        "name": "Occupied cell rejected across layers",
+        "moves": [
+          [
+            1,
+            1,
+            2
+          ],
+          [
+            1,
+            1,
+            2
+          ]
+        ],
+        "expect": {
+          "status": "illegal"
+        }
+      }
+    ],
+    "alternatives": [],
+    "unresolved": [],
+    "plan_version": "cubeengine.srtp/spatial-lift-plan/1.0",
+    "plan_id": "lift:161cf776d733",
+    "source_manifest_hash": "82b1ac0878bc11fd4eb868fd4dc1587093add48617ce9f39a23759b30cebff06",
+    "design_intent_id": "intent:tic-tac-toe-3d-no-gravity"
+  },
+  "source_game_spec": {
+    "summary": "Two players alternate placing X and O on a 3×3 grid; three in a row wins, otherwise a full board is a draw.",
+    "topology": {
+      "kind": "rect_grid",
+      "axes": [
+        {
+          "name": "x",
+          "extent": 3
+        },
+        {
+          "name": "y",
+          "extent": 3
+        }
+      ],
+      "cite": {
+        "path": "main.py",
+        "lines": [
+          6,
+          7
+        ]
+      },
+      "evidence_id": "ev:agent.1"
+    },
+    "cell_values": [
+      {
+        "value": 0,
+        "meaning": "empty",
+        "cite": {
+          "path": "main.py",
+          "lines": [
+            20,
+            21
+          ]
+        },
+        "evidence_id": "ev:agent.2"
+      },
+      {
+        "value": 1,
+        "meaning": "X",
+        "cite": {
+          "path": "main.py",
+          "lines": [
+            66,
+            77
+          ]
+        },
+        "evidence_id": "ev:agent.3"
+      },
+      {
+        "value": 2,
+        "meaning": "O",
+        "cite": {
+          "path": "main.py",
+          "lines": [
+            66,
+            79
+          ]
+        },
+        "evidence_id": "ev:agent.4"
+      }
+    ],
+    "participants": [
+      {
+        "key": "x",
+        "name": "X",
+        "cell_value": 1,
+        "cite": {
+          "path": "main.py",
+          "lines": [
+            22,
+            22
+          ]
+        },
+        "evidence_id": "ev:agent.5"
+      },
+      {
+        "key": "o",
+        "name": "O",
+        "cell_value": 2,
+        "cite": {
+          "path": "main.py",
+          "lines": [
+            39,
+            39
+          ]
+        },
+        "evidence_id": "ev:agent.6"
+      }
+    ],
+    "flow": {
+      "model": "event_driven",
+      "turn_order": [
+        "x",
+        "o"
+      ],
+      "tick_ms": null,
+      "cite": {
+        "path": "main.py",
+        "lines": [
+          20,
+          39
+        ]
+      },
+      "evidence_id": "ev:agent.7"
+    },
+    "initial_setup": {
+      "description": "All nine cells are empty; X moves first, with no winner or draw.",
+      "placements": [],
+      "cite": {
+        "path": "main.py",
+        "lines": [
+          20,
+          24
+        ]
+      },
+      "evidence_id": "ev:agent.8"
+    },
+    "actions": [
+      {
+        "key": "place",
+        "actor": "current participant",
+        "parameters": [
+          {
+            "name": "cell",
+            "type": "coordinate"
+          }
+        ],
+        "legal_when": "There is no winner or draw, the coordinate is within the 3×3 board, and its cell is empty.",
+        "effect": "Set the cell to the current player's value. Check for a win, then a draw; only if neither occurs, switch to the other player.",
+        "cite": {
+          "path": "main.py",
+          "lines": [
+            26,
+            40
+          ]
+        },
+        "evidence_id": "ev:agent.9"
+      },
+      {
+        "key": "restart",
+        "actor": "user",
+        "parameters": [],
+        "legal_when": "An R keydown is received.",
+        "effect": "Reset the board, turn, winner, and draw state to their initial values.",
+        "cite": {
+          "path": "main.py",
+          "lines": [
+            20,
+            24
+          ]
+        },
+        "evidence_id": "ev:agent.10"
+      },
+      {
+        "key": "quit",
+        "actor": "user",
+        "parameters": [],
+        "legal_when": "An Escape keydown or window-close event is received.",
+        "effect": "Stop the application loop.",
+        "cite": {
+          "path": "main.py",
+          "lines": [
+            53,
+            61
+          ]
+        },
+        "evidence_id": "ev:agent.11"
+      }
+    ],
+    "outcomes": [
+      {
+        "key": "win",
+        "condition": "After a placement, any complete row, column, or either diagonal contains three cells equal to the current player's value.",
+        "result": "win",
+        "winner": "current participant",
+        "checked_before": [
+          "draw"
+        ],
+        "cite": {
+          "path": "main.py",
+          "lines": [
+            32,
+            36
+          ]
+        },
+        "evidence_id": "ev:agent.12"
+      },
+      {
+        "key": "draw",
+        "condition": "After a placement, no winning line exists and every board cell is occupied.",
+        "result": "draw",
+        "winner": "none",
+        "checked_before": [],
+        "cite": {
+          "path": "main.py",
+          "lines": [
+            34,
+            37
+          ]
+        },
+        "evidence_id": "ev:agent.13"
+      }
+    ],
+    "controls": [
+      {
+        "device": "mouse",
+        "control": "Left-button press; convert pointer position to a cell by subtracting the board's left and top offsets and dividing each coordinate by cell size, rounding down.",
+        "action_key": "place",
+        "cite": {
+          "path": "main.py",
+          "lines": [
+            62,
+            64
+          ]
+        },
+        "evidence_id": "ev:agent.14"
+      },
+      {
+        "device": "keyboard",
+        "control": "R keydown",
+        "action_key": "restart",
+        "cite": {
+          "path": "main.py",
+          "lines": [
+            57,
+            61
+          ]
+        },
+        "evidence_id": "ev:agent.15"
+      },
+      {
+        "device": "keyboard",
+        "control": "Escape keydown",
+        "action_key": "quit",
+        "cite": {
+          "path": "main.py",
+          "lines": [
+            57,
+            59
+          ]
+        },
+        "evidence_id": "ev:agent.16"
+      }
+    ],
+    "presentation": {
+      "description": "A 480×570 window shows a turn, winner, or draw status and instructions above a 3×3 board. Cells are drawn as rounded rectangles; X is drawn with blue crossed lines and O with an orange circle. No asset files are used.",
+      "asset_files": [],
+      "cite": {
+        "path": "main.py",
+        "lines": [
+          10,
+          13
+        ]
+      },
+      "evidence_id": "ev:agent.17"
+    },
+    "unknowns": []
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "intent_version": "cubeengine.srtp/design-intent/1.0",
+  "intent_id": "intent:d1a2e973b2dab630f967d07456891a2fb0d737f14b5936ca055109d15f7be9b1",
+  "project_id": "project:tic.tac.toe.llm.source",
+  "source_manifest_hash": "d1a2e973b2dab630f967d07456891a2fb0d737f14b5936ca055109d15f7be9b1",
+  "original_text": "Make it a 3x3x3 cube with no gravity: players still alternate placing X and O in any empty cell; any straight line of three cells through the cube (rows, columns, pillars and every diagonal, 49 lines in total) wins; a full cube with no line is a draw.",
+  "language": "en",
+  "operation": "transform",
+  "scope": [
+    "rule",
+    "scene"
+  ],
+  "preserve": [
+    "Players alternate turns placing X and O."
+  ],
+  "changes": [
+    "Use a 3x3x3 cube.",
+    "Remove gravity; a player may place their mark in any empty cell.",
+    "Award a win for any straight line of three cells through the cube, including rows, columns, pillars, and every diagonal: 49 winning lines in total.",
+    "Declare a draw when the cube is full and neither player has a winning line."
+  ],
+  "constraints": [
+    "Marks may be placed only in empty cells."
+  ],
+  "resolved_references": [],
+  "assumptions": [],
+  "conflicts": [],
+  "unresolved": [
+    "Conversation and turn identifiers were not provided."
+  ],
+  "requires_confirmation": false,
+  "status": "ready",
+  "target_base": null,
+  "conversation_id": "conversation:af1a1374a4bf",
+  "turn_id": "turn:0db6bdef6c58"
+}

@@ -1,0 +1,37 @@
+{
+  "ok": true,
+  "stage": "spatial_lift",
+  "job_id": "job:fd7f1ee648704e22",
+  "project_id": "project:tic.tac.toe.llm.target",
+  "source_package_hash": "247430c188d62026b62128405e3e01dcc803d51fbff2bf0e0177a249ca421f82",
+  "provider": "openrouter",
+  "model": "openai/gpt-6-sol",
+  "attempts": 11,
+  "prompt_template_version": "cubeengine.srtp/llm-prompt/2.0",
+  "diagnostics": [],
+  "compile_ready": false,
+  "output_dir": "C:\\repos\\CubeEngine-Dev\\artifacts\\agentic_20260925\\tictactoe_target",
+  "unresolved_summary": [
+    {
+      "path": "/derivations",
+      "reason": "The plane primitives are carriers only; neither the source nor the lift plan specifies geometry or materials that visibly depict the X and O glyphs.",
+      "required": false,
+      "owner": "designer"
+    },
+    {
+      "path": "/derivations",
+      "reason": "The plane primitives are carriers only; neither the source nor the lift plan specifies geometry or materials that visibly depict the X and O glyphs.",
+      "required": false,
+      "owner": "designer"
+    },
+    {
+      "path": "/provenance/llm",
+      "reason": "LLM proposal has not been designer-approved.",
+      "required": true,
+      "owner": "designer"
+    }
+  ],
+  "proposal_id": "proposal:f7bdd54ff83f",
+  "manifest_project_id": "project:tic.tac.toe.llm.target",
+  "compilation_trace": {}
+}

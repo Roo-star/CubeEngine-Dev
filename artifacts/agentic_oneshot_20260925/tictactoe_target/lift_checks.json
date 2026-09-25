@@ -1,0 +1,60 @@
+{
+  "z_equals_one": {
+    "ok": true,
+    "errors": [],
+    "warnings": [],
+    "facts": {
+      "added_axes": {
+        "rule:topology.board": [
+          2
+        ]
+      },
+      "compared_steps": 555,
+      "playouts": 60
+    }
+  },
+  "behavior_tests": {
+    "ok": false,
+    "errors": [
+      "behavior test 'Row on upper layer': expected win, runtime says ongoing",
+      "behavior test 'Pillar across layers': expected win, runtime says ongoing",
+      "behavior test 'Space diagonal': expected win, runtime says ongoing",
+      "behavior test 'O wins on a yz diagonal': expected win, runtime says ongoing"
+    ],
+    "warnings": [],
+    "facts": {
+      "results": [
+        {
+          "name": "Row on upper layer",
+          "passed": false,
+          "failure": "expected win, runtime says ongoing"
+        },
+        {
+          "name": "Pillar across layers",
+          "passed": false,
+          "failure": "expected win, runtime says ongoing"
+        },
+        {
+          "name": "Space diagonal",
+          "passed": false,
+          "failure": "expected win, runtime says ongoing"
+        },
+        {
+          "name": "O wins on a yz diagonal",
+          "passed": false,
+          "failure": "expected win, runtime says ongoing"
+        },
+        {
+          "name": "Unsupported upper cell is legal",
+          "passed": true,
+          "failure": null
+        },
+        {
+          "name": "Occupied cell rejected across layers",
+          "passed": true,
+          "failure": null
+        }
+      ]
+    }
+  }
+}

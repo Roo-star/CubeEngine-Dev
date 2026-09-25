@@ -8,6 +8,12 @@ from pathlib import Path
 from .scene_presentation import PresentationError
 
 
+def rgba255(r, g, b, a=255):
+    """Colour from 0-255 channels: Ursina 5 rgba takes 0-255; Ursina 6+ takes 0-1 and adds rgba32."""
+    from ursina import color
+    return color.rgba32(r, g, b, a) if hasattr(color, 'rgba32') else color.rgba(r, g, b, a)
+
+
 class UrsinaSceneBackend:
     def __init__(self, presentation, cache_root: Path):
         import ursina as u
@@ -30,7 +36,7 @@ class UrsinaSceneBackend:
                if i<j and sum(x!=y for x,y in zip(a,b))==1]
         self.hover_outline = u.Entity(parent=self.root,
                                       model=u.Mesh(vertices=vertices,triangles=edges,mode='line',thickness=2),
-                                      color=u.color.rgba(255, 214, 95, 255), enabled=False, unlit=True)
+                                      color=rgba255(255, 214, 95, 255), enabled=False, unlit=True)
         self.paths = presentation.assets.materialize(cache_root)
         from panda3d.core import Filename
         fallback_font = Path('C:/Windows/Fonts/arial.ttf')
@@ -153,9 +159,12 @@ class UrsinaSceneBackend:
                 else:
                     raise PresentationError('Unsupported picking collider: ' + str(shape))
             else:
-                if entity.collider is not None:
-                    entity.collider.remove()
-                entity.collider = None
+                collider = entity.collider
+                if collider is not None:
+                    entity.collider = None
+                    # Ursina 6+ removes it in the setter (node_path becomes None); Ursina 5 only detaches it.
+                    if getattr(collider, 'node_path', None) is not None:
+                        collider.remove()
 
         self.last_sync = sync_key
         graph.dirty_nodes.clear()
@@ -182,7 +191,7 @@ class UrsinaSceneBackend:
                 rgba.append(1)
             rgba[3] *= float(props.get('opacity', 1))
             solid = u.Entity(parent=holder, model=model, scale=tuple(mesh.get('dimensions', [1,1,1])),
-                             color=u.color.rgba(*(max(0, min(1, v)) * 255 for v in rgba)))
+                             color=rgba255(*(max(0, min(1, v)) * 255 for v in rgba)))
             if rgba[3] < 1:
                 solid.set_depth_write(False)
             if primitive == 'plane':
@@ -197,7 +206,7 @@ class UrsinaSceneBackend:
                            if i<j and sum(x!=y for x,y in zip(a,b))==1]
                     self.meshes['volume-outline']=u.Mesh(vertices=vertices,triangles=edges,mode='line',thickness=1)
                 outline=u.Entity(parent=holder, model=self.meshes['volume-outline'].copy_to(holder), unlit=True,
-                                 color=u.color.rgba(135,165,195,150))
+                                 color=rgba255(135,165,195,150))
                 outline.volume_outline=True
             texture = props.get('texture') or mesh.get('texture')
             if texture:
@@ -229,7 +238,7 @@ class UrsinaSceneBackend:
                 kwargs = {'font': Filename.from_os_specific(str(self.paths[font])).get_fullpath()} if font else {}
                 u.Text(parent=holder, text=str(props['text']), origin=(0,0),
                        position=(0, 0, -.52), scale=float(props.get('text_scale', 5)),
-                       color=u.color.rgba(*(v * 255 for v in (list(props.get('text_color', [0,0,0,1])) + [1])[:4])),
+                       color=rgba255(*(v * 255 for v in (list(props.get('text_color', [0,0,0,1])) + [1])[:4])),
                        billboard=bool(props.get('text_billboard', True)), **kwargs)
             return holder
         if kind == 'ui_canvas':
@@ -244,10 +253,10 @@ class UrsinaSceneBackend:
             kwargs={'font':Filename.from_os_specific(str(self.paths[props['font']])).get_fullpath()} if props.get('font') else {}
             if props.get('background'):
                 u.Entity(parent=host,model='quad',position=tuple(props.get('position',[-.85,.45])),
-                         scale=tuple(props.get('size',[.4,.12])),color=u.color.rgba(*(v*255 for v in (list(props['background'])+[1])[:4])))
+                         scale=tuple(props.get('size',[.4,.12])),color=rgba255(*(v*255 for v in (list(props['background'])+[1])[:4])))
             u.Text(parent=host, text=str(props.get('text', '')), origin=tuple(props.get('origin', [-.5,.5])),
                    position=tuple(props.get('position', [-.85,.45])), scale=props.get('scale', 1),
-                   color=u.color.rgba(*(v*255 for v in (list(props.get('color',[1,1,1,1]))+[1])[:4])), **kwargs)
+                   color=rgba255(*(v*255 for v in (list(props.get('color',[1,1,1,1]))+[1])[:4])), **kwargs)
             return host
         if kind == 'audio_source':
             from panda3d.core import Filename
@@ -279,7 +288,7 @@ class UrsinaSceneBackend:
                 raise PresentationError('Unsupported light kind: ' + light_kind)
             rgba = (list(props['color']) + [1])[:4]
             rgba[:3] = [v * props.get('intensity', 1) for v in rgba[:3]]
-            return constructors[light_kind](parent=parent, enabled=enabled, color=u.color.rgba(*(v * 255 for v in rgba)))
+            return constructors[light_kind](parent=parent, enabled=enabled, color=rgba255(*(v * 255 for v in rgba)))
         if kind in ('collider', 'topology_visualizer', 'rule_entity_visualizer', 'authoring_marker', 'camera'):
             return None
         raise PresentationError('Unsupported Scene component: ' + kind)
@@ -349,7 +358,7 @@ class UrsinaSceneBackend:
                           billboard=settings.get('billboard', True))
         if settings.get('placement','surface')=='surface' and settings['kind'] in ('cross','ring') and settings.get('billboard', True):
             self.markers.append({'glyph':holder, 'parent':parent, 'dimensions':dimensions})
-        tint = u.color.rgba(*(v * 255 for v in rgba))
+        tint = rgba255(*(v * 255 for v in rgba))
         if settings['kind'] == 'cross':
             for angle in (-45, 45):
                 u.Entity(parent=holder, model='cube', scale=(.16, 1, .14), rotation_z=angle,

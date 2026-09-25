@@ -1,0 +1,12 @@
+{
+  "commit": "29a93523f24e4cba0ed8e5a46724fc44eafe3865",
+  "provider": "openrouter",
+  "model": "openai/gpt-6-sol",
+  "prompt_template_version": "cubeengine.srtp/llm-prompt/2.0",
+  "stage": "spatial_lift",
+  "ok": true,
+  "compile_ready": false,
+  "diagnostics": [],
+  "rate_limit_or_error": null,
+  "output_dir": "C:\\repos\\CubeEngine-Dev\\artifacts\\agentic_20260925\\.tictactoe_target-pending-i5lcgyyn"
+}

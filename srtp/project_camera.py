@@ -92,7 +92,10 @@ class ProjectCameraRig:
         self.editor.smoothing_helper.rotation = rotation
         self.editor.target_z = -distance
         self.editor.target_fov = camera.fov
-        self.editor.hotkeys = dict.fromkeys(self.editor.hotkeys, None)
+        # Disable editor shortcuts: Ursina 5 names them `hotkeys`, Ursina 7+ `shortcuts`.
+        for name in ('hotkeys', 'shortcuts'):
+            if isinstance(getattr(self.editor, name, None), dict):
+                setattr(self.editor, name, dict.fromkeys(getattr(self.editor, name), None))
         self.initial_pose = (tuple(self.editor.position), tuple(self.editor.rotation), tuple(camera.position))
         self.initial_lens = (camera.orthographic, camera.fov)
         if not bounds_in_view(bounds):

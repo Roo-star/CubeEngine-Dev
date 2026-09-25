@@ -10,7 +10,7 @@ from __future__ import annotations
 import json
 from typing import Any, Dict, List, Mapping, Optional, Sequence
 
-AGENT_PROMPT_VERSION = "cubeengine.srtp/llm-agent-prompt/1.0"
+AGENT_PROMPT_VERSION = "cubeengine.srtp/llm-agent-prompt/1.6"
 
 _COMMON = (
     "Reply with ONE JSON object only: no markdown, no prose. "
@@ -64,6 +64,9 @@ Flag only concrete rule mismatches you can point to in the source: wrong board s
 precondition, wrong effect/value, wrong turn order, missing/wrong/always-true outcome, unreachable play,
 input intents that cannot trigger the actions. Ignore naming, styling and camera choices.
 Probe errors are facts; probe warnings are hints you must judge against the source.
+Quit/close and full-game restart are Input IR host_command intents (quit, restart), never Rule actions:
+report a missing quit/restart control against input_ir, and flag Rule quit/restart actions as wrong.
+Closing the window is handled by the host itself; Input IR has no window-close control, so never ask for one.
 Reply: {"verdict":"pass|revise","issues":[{"ir":"rule_ir|scene_ir|asset_ir|input_ir","problem":"...",
         "fix":"<concrete IR change>","source":{"path":"...","lines":[a,b]}}]}
 Use "pass" with issues [] when the IR faithfully implements the source rules."""
@@ -101,6 +104,14 @@ def tool_result_message(result: Mapping[str, Any]) -> Dict[str, str]:
 
 
 # --- IR-specific knowledge --------------------------------------------------
+
+# Mirrors backend_contract.profile()['lifecycle_note'] for the agentic roles.
+_LIFECYCLE_NOTE = (
+    "Application lifecycle is not Rule: quitting/closing the game and a full-game restart (the source "
+    "resets everything, e.g. an R key calling reset) are Input IR host_command intents ('quit', 'restart'; "
+    "restart also works after a terminal outcome). Do not add Rule actions or unresolved items for them. "
+    "Partial gameplay resets (undo one move, reshuffle only a deck) remain Rule actions."
+)
 
 RULE_SHAPES: Dict[str, Any] = {
     "patch_roots": ["/types", "/participants", "/topologies", "/state", "/flow", "/actions",
@@ -141,6 +152,7 @@ RULE_SHAPES: Dict[str, Any] = {
         "initial_effects stay [] when the source starts from an empty board.",
         "priority: when several outcome conditions are true at once the runtime keeps the HIGHEST number. "
         "An outcome the source checks first must get the larger priority (or exclude the other in its condition).",
+        _LIFECYCLE_NOTE,
     ],
 }
 
@@ -150,29 +162,42 @@ SCENE_SHAPES: Dict[str, Any] = {
         "local_id": "root", "name": "Cell", "active": True,
         "transform": {"translation": [0, 0, 0], "rotation_euler_deg": [0, 0, 0], "scale": [1, 1, 1]},
         "components": [{"id": "renderer", "type": "renderer", "enabled": True,
-                        "properties": {"geometry": "builtin:cube", "visible": True}}],
+                        "properties": {"geometry": "builtin:cube", "visible": True, "color": [0.2, 0.2, 0.3, 1],
+                                       "variant": "empty",
+                                       "variants": {"empty": {"marker": None},
+                                                    "a": {"marker": {"kind": "cross", "color": [0.3, 0.7, 1, 1],
+                                                                     "size": 0.5, "billboard": True}}}}},
+                       {"id": "cell_hit", "type": "collider", "enabled": True,
+                        "properties": {"shape": "box", "size": [1, 1, 1], "is_trigger": False, "selectable": True}}],
         "children": []}},
     "board_node": {"id": "scene:node.board", "name": "Board", "active": True, "parent": None,
                    "layer": "scene:layer.runtime",
                    "transform": {"translation": [0, 0, 0], "rotation_euler_deg": [0, 0, 0], "scale": [1, 1, 1]},
                    "components": [{"id": "sites", "type": "topology_visualizer", "enabled": True,
-                                   "properties": {"topology": "<rule topology id>",
-                                                  "rule_topology": "<rule topology id>",
-                                                  "prefab": "scene:prefab.cell"}}],
+                                   "properties": {"rule_topology": "<rule topology id>",
+                                                  "prefab": "scene:prefab.cell",
+                                                  "index_to_world": [1, 0, 0, 0, 0, -1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]}}],
                    "children": []},
     "camera_node": {"id": "scene:node.camera", "name": "Camera", "active": True, "parent": None,
                     "layer": "scene:layer.runtime",
                     "transform": {"translation": [1, 1, 6], "rotation_euler_deg": [0, 0, 0], "scale": [1, 1, 1]},
                     "components": [{"id": "camera", "type": "camera", "enabled": True,
                                     "properties": {"projection": "perspective", "near_clip": 0.1,
-                                                   "far_clip": 100.0, "active": True, "fov_deg": 60.0}}],
+                                                   "far_clip": 100.0, "active": True, "fov": 60.0}}],
                     "children": []},
     "cell_binding": {"id": "scene:binding.cell_variant", "name": "Cell Variant",
                      "source": {"kind": "state", "scope": "topology_site", "variable": "<rule state id>"},
                      "target": {"selector": "topology_sites", "node": "scene:node.board", "visualizer": "sites",
                                 "component": "renderer", "property": "variant"},
                      "transform": {"kind": "map", "cases": [{"equals": 0, "value": "empty"}]}},
-    "notes": ["Map EVERY cell value from the Game Spec to a distinct variant name describing its meaning."],
+    "notes": [
+        "Map EVERY cell value from the Game Spec to a distinct variant name describing its meaning.",
+        "Every variant a binding can produce needs an entry in the bound renderer's variants map (its "
+        "appearance); a bound variant without one stops the player. Marker kinds: cross, ring, sphere. "
+        "Colours are [r,g,b,a] in 0..1 taken from the source (divide 0-255 values by 255).",
+        "index_to_world is a 16-number row-major affine matrix mapping a cell coordinate (x, y, z, 1) to world units.",
+        "component_properties lists the exact allowed/required properties of each component; others are rejected.",
+    ],
 }
 
 ASSET_SHAPES: Dict[str, Any] = {
@@ -200,6 +225,8 @@ INPUT_SHAPES: Dict[str, Any] = {
                                        "parameters": {"<coord param>": {"source": "event_data",
                                                                         "key": "rule_coordinate",
                                                                         "value_type": "core:coord"}}}},
+    "intent_host_command": {"id": "input:action.intent.quit", "name": "Quit", "value_type": "digital",
+                            "required": True, "target": {"kind": "host_command", "command": "quit|restart"}},
     "binding": {"id": "input:binding.<key>", "name": "...", "context": "input:context.play",
                 "intent": "input:action.intent.<key>", "priority": 100, "enabled": True, "consume": True,
                 "rebindable": True, "slot": "primary", "accessibility_label": "...",
@@ -209,7 +236,9 @@ INPUT_SHAPES: Dict[str, Any] = {
         "Use the source's own controls when the Game Spec lists them.",
         "If the source has no input handler, you may map a coordinate action to mouse.button.primary on the "
         "picked cell, but record it in assumptions and as unresolved {required:false, owner:'designer'}.",
-        "Every enabled binding must target an intent whose target.kind is rule_action.",
+        "Every enabled binding must target an intent whose target.kind is rule_action or host_command.",
+        "Bind the source's quit key (e.g. Escape) and full-restart key to host_command intents; closing the "
+        "window is handled by the host and needs no binding. " + _LIFECYCLE_NOTE,
     ],
 }
 
@@ -252,6 +281,10 @@ def worker_messages(
             "outcome_order": "outcome ids in the order the source checks them (from checked_before); "
                              "the runtime verifies your priorities implement this order",
         }
+    if ir_key == "scene_ir":
+        from .agent_tools import scene_component_properties
+
+        payload["component_properties"] = scene_component_properties()
     if inventory is not None:
         payload["source_inventory"] = list(inventory)
     if instruction:
@@ -312,6 +345,14 @@ def critic_messages(
 
 # --- Spatial Lift -----------------------------------------------------------
 
+# Mirrors backend_contract.profile()['spatial_grid_layout'] and the ProjectHost depth picker.
+_VOLUME_NOTE = (
+    "The engine presents a lifted rank-3 rect_grid as ONE continuous cube volume (cell shells, 3D positions, "
+    "colliders and overview camera are engine-owned) and gives the player depth-layer selection for picking "
+    "inner cells ('[' and ']' keys plus on-screen buttons). Do not plan exploded or side-by-side layer panels "
+    "or new layer controls; clicking a cell already yields the full Target coordinate."
+)
+
 SYSTEM_LIFT_PLANNER = _COMMON + """
 Role: spatial-lift planner. The Source project (2D) is approved truth. Plan how the Design Intent lifts it.
 Reply {"plan":{...}} with:
@@ -329,7 +370,8 @@ z_gt_one_tests are EXECUTED on the compiled Target: moves are coordinates in the
 whoever's turn it is (turn_order index 0 moves first); expect describes the state after the last move
 ("illegal" = the last move must be rejected). Write 3-6 short tests that pin down the Design Intent,
 including at least one that only works across layers. Every scripted game must stay unfinished until
-its last move. Never change Source rules the Design Intent does not mention."""
+its last move. Never change Source rules the Design Intent does not mention.
+""" + _VOLUME_NOTE
 
 SYSTEM_LIFT_CRITIC = _COMMON + """
 Role: spatial-lift reviewer. Check that the Target IR implements the Design Intent and lift plan while the
@@ -337,7 +379,8 @@ Source rules stay intact. Deterministic checks are facts: z_equals_one (Target c
 Source) and behavior_tests (planner scripts run on the Target). Flag concrete problems only: missing axis,
 coordinates of the wrong rank, outcomes that ignore the new axis or break the intent, input that cannot reach
 new layers, scene that cannot show them. Reply {"verdict":"pass|revise","issues":[{"ir":"rule_ir|scene_ir|asset_ir|input_ir",
-"problem":"...","fix":"<concrete IR change>"}]}. Use "pass" with [] when the Target is faithful."""
+"problem":"...","fix":"<concrete IR change>"}]}. Use "pass" with [] when the Target is faithful.
+""" + _VOLUME_NOTE + " The host owns depth selection, so never ask Input IR to bind '[' / ']' or add layer controls."
 
 LIFT_WORKER_INSTRUCTIONS = {
     "rule_ir": (
@@ -350,17 +393,17 @@ LIFT_WORKER_INSTRUCTIONS = {
     ),
     "asset_ir": (
         "SPATIAL LIFT. base_document is the approved Source Asset IR. Change it only if the lifted "
-        "presentation needs different resources; otherwise reply {\"operations\":[],\"no_change_reason\":\"...\"}."
+        "presentation needs different resources; otherwise reply {\"operations\":[],\"no_change_reason\":\"...\",\"evidence\":[\"<id from evidence_menu>\"]}."
     ),
     "scene_ir": (
         "SPATIAL LIFT. base_document is the approved Source Scene IR. Keep ids and bindings; adjust only what "
         "the new axis needs (e.g. camera framing for all layers). If nothing needs to change reply "
-        "{\"operations\":[],\"no_change_reason\":\"...\"}."
+        "{\"operations\":[],\"no_change_reason\":\"...\",\"evidence\":[\"<id from evidence_menu>\"]}. " + _VOLUME_NOTE
     ),
     "input_ir": (
         "SPATIAL LIFT. base_document is the approved Source Input IR. Coordinate parameters read "
         "event_data.rule_coordinate, which becomes a full Target coordinate. Change bindings only if the plan "
-        "needs new controls; otherwise reply {\"operations\":[],\"no_change_reason\":\"...\"}."
+        "needs new controls; otherwise reply {\"operations\":[],\"no_change_reason\":\"...\",\"evidence\":[\"<id from evidence_menu>\"]}. " + _VOLUME_NOTE
     ),
 }
 

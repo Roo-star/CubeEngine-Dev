@@ -1,0 +1,29 @@
+{
+  "ok": true,
+  "stage": "spatial_lift",
+  "diagnostics": [],
+  "unresolved_summary": [
+    {
+      "path": "/derivations",
+      "reason": "The plane primitives are carriers only; neither the source nor the lift plan specifies geometry or materials that visibly depict the X and O glyphs.",
+      "required": false,
+      "owner": "designer"
+    },
+    {
+      "path": "/derivations",
+      "reason": "The plane primitives are carriers only; neither the source nor the lift plan specifies geometry or materials that visibly depict the X and O glyphs.",
+      "required": false,
+      "owner": "designer"
+    },
+    {
+      "path": "/provenance/llm",
+      "reason": "LLM proposal has not been designer-approved.",
+      "required": true,
+      "owner": "designer"
+    }
+  ],
+  "provider": "openrouter",
+  "model": "openai/gpt-6-sol",
+  "attempts": 11,
+  "compile_ready": false
+}

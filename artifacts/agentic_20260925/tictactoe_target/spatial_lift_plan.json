@@ -1,0 +1,182 @@
+{
+  "topology": {
+    "id": "rule:topology.board",
+    "add_axes": [
+      {
+        "name": "z",
+        "extent": 3,
+        "boundary": "bounded"
+      }
+    ]
+  },
+  "source_xy_policy": "Keep the bounded x and y axes at extent 3, their coordinates, empty/X/O cell values, X-first alternating turns, and the existing placement, restart, and quit behavior. Add no gravity.",
+  "target_z": 3,
+  "neighborhood": "Winning lines use straight, contiguous triples along the three axes and all face and body diagonals: 27 axial lines, 18 face diagonals, and 4 body diagonals, for 49 lines total.",
+  "movement": "On a turn, place the current player's mark in any empty (x,y,z) cell. Reject occupied or out-of-bounds targets without changing state. Do not allow placements after a win or draw. Restart resets all 27 cells and the turn; quit retains its Source behavior.",
+  "outcomes": "After each legal placement, a line of three matching marks anywhere in the cube wins for its owner. Check wins before declaring a draw; a draw requires every cube cell occupied and no winning line.",
+  "presentation": "Show the board as one continuous cube volume using the engine-owned cell shells, 3D positions, colliders, and overview camera. Display X and O in their occupied cells and retain turn, winner, and draw status.",
+  "input": "Click a cube cell to supply its full (x,y,z) coordinate. Use the engine-provided '[' and ']' keys or on-screen buttons to select a depth layer when picking inner cells. Retain R to restart and Escape to quit.",
+  "z_equals_one_tests": [
+    "With z at extent 1, legal placements and occupied-cell rejection must match the Source 3×3 board.",
+    "With z at extent 1, exactly the Source rows, columns, and two diagonals win; a full board without a line draws.",
+    "With z at extent 1, X moves first, turns alternate, and restart restores the Source initial state."
+  ],
+  "z_gt_one_tests": [
+    {
+      "name": "pillar wins across layers",
+      "moves": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          2,
+          2,
+          0
+        ],
+        [
+          0,
+          0,
+          1
+        ],
+        [
+          2,
+          1,
+          0
+        ],
+        [
+          0,
+          0,
+          2
+        ]
+      ],
+      "expect": {
+        "status": "win",
+        "winner_turn_index": 0
+      }
+    },
+    {
+      "name": "body diagonal wins",
+      "moves": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          2,
+          0
+        ],
+        [
+          1,
+          1,
+          1
+        ],
+        [
+          2,
+          0,
+          0
+        ],
+        [
+          2,
+          2,
+          2
+        ]
+      ],
+      "expect": {
+        "status": "win",
+        "winner_turn_index": 0
+      }
+    },
+    {
+      "name": "face diagonal wins for O",
+      "moves": [
+        [
+          2,
+          2,
+          0
+        ],
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          2,
+          1,
+          0
+        ],
+        [
+          1,
+          0,
+          1
+        ],
+        [
+          1,
+          2,
+          1
+        ],
+        [
+          2,
+          0,
+          2
+        ]
+      ],
+      "expect": {
+        "status": "win",
+        "winner_turn_index": 1
+      }
+    },
+    {
+      "name": "different layers remain independently playable",
+      "moves": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          1
+        ],
+        [
+          1,
+          1,
+          1
+        ]
+      ],
+      "expect": {
+        "status": "ongoing",
+        "winner_turn_index": 0
+      }
+    },
+    {
+      "name": "occupied cube cell rejects placement",
+      "moves": [
+        [
+          1,
+          1,
+          1
+        ],
+        [
+          1,
+          1,
+          1
+        ]
+      ],
+      "expect": {
+        "status": "illegal",
+        "winner_turn_index": 0
+      }
+    }
+  ],
+  "alternatives": [],
+  "unresolved": [],
+  "plan_version": "cubeengine.srtp/spatial-lift-plan/1.0",
+  "plan_id": "lift:efd0adc32427",
+  "source_manifest_hash": "d1a2e973b2dab630f967d07456891a2fb0d737f14b5936ca055109d15f7be9b1",
+  "design_intent_id": "intent:d1a2e973b2dab630f967d07456891a2fb0d737f14b5936ca055109d15f7be9b1"
+}

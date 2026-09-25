@@ -1,0 +1,50 @@
+{
+  "z_equals_one": {
+    "ok": true,
+    "errors": [],
+    "warnings": [],
+    "facts": {
+      "added_axes": {
+        "rule:topology.board": [
+          2
+        ]
+      },
+      "compared_steps": 522,
+      "playouts": 60
+    }
+  },
+  "behavior_tests": {
+    "ok": true,
+    "errors": [],
+    "warnings": [],
+    "facts": {
+      "results": [
+        {
+          "name": "pillar wins across layers",
+          "passed": true,
+          "failure": null
+        },
+        {
+          "name": "body diagonal wins",
+          "passed": true,
+          "failure": null
+        },
+        {
+          "name": "face diagonal wins for O",
+          "passed": true,
+          "failure": null
+        },
+        {
+          "name": "different layers remain independently playable",
+          "passed": true,
+          "failure": null
+        },
+        {
+          "name": "occupied cube cell rejects placement",
+          "passed": true,
+          "failure": null
+        }
+      ]
+    }
+  }
+}

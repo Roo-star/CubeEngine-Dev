@@ -1,0 +1,194 @@
+{
+  "ir_version": "cubeengine.input-ir/2.0-alpha.1",
+  "document_id": "input:game.tic.tac.toe.source",
+  "revision": 1,
+  "content_hash": "10bf6a2b42d4344e488894003f18f2ee5a75f1a839833d26c81a83ad19f6d191",
+  "metadata": {
+    "title": "Tic Tac Toe",
+    "description": "LLM compiler bootstrap shell. Semantics must be filled by evidence-backed patches.",
+    "source_project_hash": "247430c188d62026b62128405e3e01dcc803d51fbff2bf0e0177a249ca421f82"
+  },
+  "dependencies": {
+    "rule_ir": {
+      "document_id": "rule:game.tic.tac.toe.source",
+      "content_hash": "3b308d5fd68f14d242fbf0ee90c450bce634c18b52bc3fe47db65f9caa941942"
+    },
+    "extensions": []
+  },
+  "contexts": [
+    {
+      "id": "input:context.play",
+      "name": "Play",
+      "priority": 100,
+      "enabled_by_default": true,
+      "focus": "viewport",
+      "consume_policy": "first_match",
+      "exclusive_group": "runtime_mode"
+    }
+  ],
+  "intents": [
+    {
+      "id": "input:action.intent.place",
+      "name": "Place Mark",
+      "value_type": "digital",
+      "required": true,
+      "target": {
+        "kind": "rule_action",
+        "action": "rule:action.place",
+        "parameters": {
+          "target": {
+            "source": "event_data",
+            "key": "rule_coordinate",
+            "value_type": "core:coord"
+          }
+        }
+      }
+    },
+    {
+      "id": "input:action.intent.restart",
+      "name": "Restart",
+      "value_type": "digital",
+      "required": true,
+      "target": {
+        "kind": "rule_action",
+        "action": "rule:action.restart",
+        "parameters": {}
+      }
+    }
+  ],
+  "bindings": [
+    {
+      "id": "input:binding.place",
+      "name": "Place Mark",
+      "context": "input:context.play",
+      "intent": "input:action.intent.place",
+      "priority": 100,
+      "enabled": true,
+      "consume": true,
+      "rebindable": true,
+      "slot": "primary",
+      "accessibility_label": "Place a mark in the selected cell",
+      "trigger": {
+        "kind": "control",
+        "device": "mouse",
+        "control": "mouse.button.primary",
+        "phase": "press",
+        "modifiers": [],
+        "modifier_policy": "exact"
+      },
+      "processing": {
+        "dead_zone": 0,
+        "sensitivity_numerator": 1,
+        "sensitivity_denominator": 1,
+        "invert": false,
+        "clamp_min": -32768,
+        "clamp_max": 32767
+      }
+    },
+    {
+      "id": "input:binding.restart",
+      "name": "Restart",
+      "context": "input:context.play",
+      "intent": "input:action.intent.restart",
+      "priority": 100,
+      "enabled": true,
+      "consume": true,
+      "rebindable": true,
+      "slot": "primary",
+      "accessibility_label": "Restart the game",
+      "trigger": {
+        "kind": "control",
+        "device": "keyboard",
+        "control": "keyboard.key.r",
+        "phase": "press",
+        "modifiers": [],
+        "modifier_policy": "exact"
+      },
+      "processing": {
+        "dead_zone": 0,
+        "sensitivity_numerator": 1,
+        "sensitivity_denominator": 1,
+        "invert": false,
+        "clamp_min": -32768,
+        "clamp_max": 32767
+      }
+    }
+  ],
+  "provenance": {
+    "patch_history": [
+      {
+        "base_revision": 0,
+        "base_content_hash": "e31a1e0f9539a24bf6936aa7a5488d71a3a9eb9bd35cd3ef7626b7715b1ab3ec",
+        "evidence": [
+          {
+            "evidence_id": "ev:agent.14",
+            "path": "main.py",
+            "kind": "static",
+            "supports": "/input_ir/bindings",
+            "confidence": 0.5,
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 62,
+              "line_end": 64
+            }
+          },
+          {
+            "evidence_id": "ev:agent.15",
+            "path": "main.py",
+            "kind": "static",
+            "supports": "/input_ir/bindings",
+            "confidence": 0.5,
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 57,
+              "line_end": 61
+            }
+          },
+          {
+            "evidence_id": "ev:agent.16",
+            "path": "main.py",
+            "kind": "static",
+            "supports": "/input_ir/bindings",
+            "confidence": 0.5,
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 57,
+              "line_end": 59
+            }
+          },
+          {
+            "evidence_id": "ev:agent.17",
+            "path": "main.py",
+            "kind": "static",
+            "supports": "/input_ir/bindings",
+            "confidence": 0.5,
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 54,
+              "line_end": 56
+            }
+          }
+        ],
+        "assumptions": [
+          "The mouse event's rule_coordinate is the picked board cell after applying the source's board offset and cell size; input_ir does not specify that pixel-to-cell conversion.",
+          "The window quit event and Escape are application-lifecycle controls, not bindings to the supplied Rule actions."
+        ],
+        "operation_count": 4
+      }
+    ]
+  },
+  "unresolved": [
+    {
+      "path": "/bindings",
+      "reason": "Escape and the window quit event stop the source application, but the supplied Rule ids contain no quit action. An application-level quit binding needs a supported non-rule target or a designer decision; no quit binding is enabled here.",
+      "required": false,
+      "owner": "designer"
+    },
+    {
+      "path": "/bindings",
+      "reason": "Escape and the window quit event stop the source application, but the supplied Rule ids contain no quit action. An application-level quit binding needs a supported non-rule target or a designer decision; no quit binding is enabled here.",
+      "required": false,
+      "owner": "designer"
+    }
+  ]
+}

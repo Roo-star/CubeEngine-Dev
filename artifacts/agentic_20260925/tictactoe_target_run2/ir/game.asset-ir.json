@@ -1,0 +1,205 @@
+{
+  "ir_version": "cubeengine.asset-ir/2.0-alpha.1",
+  "document_id": "asset:game.tic.tac.toe.target",
+  "revision": 1,
+  "content_hash": "78382910fec2fa3c05aaa036319bc0835bfa2495d6105540f3fe855759599199",
+  "metadata": {
+    "title": "Tic Tac Toe",
+    "description": "LLM compiler bootstrap shell. Semantics must be filled by evidence-backed patches.",
+    "source_project_hash": "247430c188d62026b62128405e3e01dcc803d51fbff2bf0e0177a249ca421f82"
+  },
+  "assets": [],
+  "derivations": [
+    {
+      "id": "asset:mesh.board",
+      "name": "Continuous 3×3×3 cube board volume",
+      "kind": "model",
+      "media_type": "application/vnd.cubeengine.presentation+json",
+      "strategy": "procedural_mesh",
+      "inputs": [],
+      "settings": {
+        "primitive": "cube",
+        "dimensions": [
+          1,
+          1,
+          1
+        ]
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:mesh.x",
+      "name": "Plane carrier for blue X mark",
+      "kind": "model",
+      "media_type": "application/vnd.cubeengine.presentation+json",
+      "strategy": "procedural_mesh",
+      "inputs": [],
+      "settings": {
+        "primitive": "plane",
+        "dimensions": [
+          1,
+          1,
+          1
+        ]
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:mesh.o",
+      "name": "Plane carrier for orange O mark",
+      "kind": "model",
+      "media_type": "application/vnd.cubeengine.presentation+json",
+      "strategy": "procedural_mesh",
+      "inputs": [],
+      "settings": {
+        "primitive": "plane",
+        "dimensions": [
+          1,
+          1,
+          1
+        ]
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    }
+  ],
+  "roles": [],
+  "presentation_mappings": [],
+  "provenance": {
+    "patch_history": [
+      {
+        "base_revision": 0,
+        "base_content_hash": "794999ec91d3e2a3ef5119ddb45c8186a02edcd4e2f2324842cf3e762c49d610",
+        "evidence": [
+          {
+            "evidence_id": "ev:agent.1",
+            "path": "main.py",
+            "kind": "static",
+            "supports": "/rule_ir/topologies",
+            "confidence": 0.5,
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 6,
+              "line_end": 8
+            }
+          },
+          {
+            "evidence_id": "ev:agent.3",
+            "path": "main.py",
+            "kind": "static",
+            "supports": "/rule_ir/types",
+            "confidence": 0.5,
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 65,
+              "line_end": 77
+            }
+          },
+          {
+            "evidence_id": "ev:agent.4",
+            "path": "main.py",
+            "kind": "static",
+            "supports": "/rule_ir/types",
+            "confidence": 0.5,
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 65,
+              "line_end": 79
+            }
+          },
+          {
+            "evidence_id": "ev:agent.18",
+            "path": "main.py",
+            "kind": "static",
+            "supports": "/scene_ir/nodes",
+            "confidence": 0.5,
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 46,
+              "line_end": 81
+            }
+          }
+        ],
+        "assumptions": [
+          "The supplied inventory contains source and documentation files but no presentation asset files, so no file assets are declared.",
+          "The unit-sized planes are normalized procedural carriers, not claims about the source window's dimensions or finished glyph geometry."
+        ],
+        "operation_count": 4
+      },
+      {
+        "base_revision": 0,
+        "base_content_hash": "66821f21322455599870d4e96e746b7db7fa981cef364ac58a8b6c3fefe8aa1b",
+        "evidence": [
+          {
+            "evidence_id": "ev:agent.1",
+            "path": "main.py",
+            "kind": "static",
+            "supports": "/rule_ir/topologies",
+            "confidence": 0.5,
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 6,
+              "line_end": 8
+            }
+          },
+          {
+            "evidence_id": "ev:agent.3",
+            "path": "main.py",
+            "kind": "static",
+            "supports": "/rule_ir/types",
+            "confidence": 0.5,
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 65,
+              "line_end": 77
+            }
+          },
+          {
+            "evidence_id": "ev:agent.4",
+            "path": "main.py",
+            "kind": "static",
+            "supports": "/rule_ir/types",
+            "confidence": 0.5,
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 65,
+              "line_end": 79
+            }
+          },
+          {
+            "evidence_id": "ev:agent.18",
+            "path": "main.py",
+            "kind": "static",
+            "supports": "/scene_ir/nodes",
+            "confidence": 0.5,
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 46,
+              "line_end": 81
+            }
+          }
+        ],
+        "assumptions": [
+          "The cube primitive represents the continuous board volume; its dimensions are presentation scale, not the number of cells. Existing mark carriers remain planes because the source supplies no image assets or glyph mesh geometry."
+        ],
+        "operation_count": 2
+      }
+    ]
+  },
+  "unresolved": [
+    {
+      "path": "/derivations",
+      "reason": "The cube primitive provides a board volume, but the specified primitives do not define how to show its internal cells or make marks inside it visible. The plane carriers do not themselves depict X and O glyphs.",
+      "required": false,
+      "owner": "designer"
+    },
+    {
+      "path": "/derivations",
+      "reason": "The cube primitive provides a board volume, but the specified primitives do not define how to show its internal cells or make marks inside it visible. The plane carriers do not themselves depict X and O glyphs.",
+      "required": false,
+      "owner": "designer"
+    }
+  ]
+}

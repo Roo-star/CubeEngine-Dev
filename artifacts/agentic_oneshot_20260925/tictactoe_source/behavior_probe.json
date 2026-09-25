@@ -1,0 +1,29 @@
+{
+  "ok": true,
+  "errors": [],
+  "warnings": [],
+  "facts": {
+    "flow_model": "turn_based",
+    "action_catalogue_size": 9,
+    "initial_outcome": {
+      "status": "ongoing",
+      "terminal": false,
+      "matched": []
+    },
+    "initial_legal_actions": 9,
+    "playouts": 24,
+    "terminated": 19,
+    "mean_length": 8.46,
+    "max_length": 9,
+    "terminal_statuses": {
+      "draw": 5,
+      "win": 14
+    },
+    "matched_outcomes": {
+      "rule:outcome.draw": 5,
+      "rule:outcome.win": 14
+    },
+    "legal_actions_ever_decrease": true,
+    "outcome_overlaps": []
+  }
+}

@@ -1,0 +1,217 @@
+{
+  "ir_version": "cubeengine.input-ir/2.0-alpha.1",
+  "document_id": "input:game.tic.tac.toe.target",
+  "revision": 0,
+  "content_hash": "efdcb02e60515fa295992831493aacbad123e5051a60c93ec0399da7f814a785",
+  "metadata": {
+    "title": "Tic Tac Toe",
+    "description": "LLM compiler bootstrap shell. Semantics must be filled by evidence-backed patches.",
+    "source_project_hash": "247430c188d62026b62128405e3e01dcc803d51fbff2bf0e0177a249ca421f82"
+  },
+  "dependencies": {
+    "rule_ir": {
+      "document_id": "rule:game.tic.tac.toe.target",
+      "content_hash": "e8b7d3323944be8194ac696ec178eb3ee7d57999241ac6c1f84010f310d3247b"
+    },
+    "extensions": []
+  },
+  "contexts": [
+    {
+      "id": "input:context.play",
+      "name": "Play",
+      "priority": 100,
+      "enabled_by_default": true,
+      "focus": "viewport",
+      "consume_policy": "first_match",
+      "exclusive_group": "runtime_mode"
+    }
+  ],
+  "intents": [
+    {
+      "id": "input:action.intent.place",
+      "name": "Place",
+      "value_type": "digital",
+      "required": true,
+      "target": {
+        "kind": "rule_action",
+        "action": "rule:action.place",
+        "parameters": {
+          "cell": {
+            "source": "event_data",
+            "key": "rule_coordinate",
+            "value_type": "core:coord"
+          }
+        }
+      }
+    },
+    {
+      "id": "input:action.intent.restart",
+      "name": "Restart",
+      "value_type": "digital",
+      "required": true,
+      "target": {
+        "kind": "host_command",
+        "command": "restart"
+      }
+    },
+    {
+      "id": "input:action.intent.quit",
+      "name": "Quit",
+      "value_type": "digital",
+      "required": true,
+      "target": {
+        "kind": "host_command",
+        "command": "quit"
+      }
+    }
+  ],
+  "bindings": [
+    {
+      "id": "input:binding.place",
+      "name": "Place in selected cell",
+      "context": "input:context.play",
+      "intent": "input:action.intent.place",
+      "priority": 100,
+      "enabled": true,
+      "consume": true,
+      "rebindable": true,
+      "slot": "primary",
+      "accessibility_label": "Left-click a board cell to place a mark",
+      "trigger": {
+        "kind": "control",
+        "device": "mouse",
+        "control": "mouse.button.primary",
+        "phase": "press",
+        "modifiers": [],
+        "modifier_policy": "exact"
+      },
+      "processing": {
+        "dead_zone": 0,
+        "sensitivity_numerator": 1,
+        "sensitivity_denominator": 1,
+        "invert": false,
+        "clamp_min": -32768,
+        "clamp_max": 32767
+      }
+    },
+    {
+      "id": "input:binding.restart",
+      "name": "Restart game",
+      "context": "input:context.play",
+      "intent": "input:action.intent.restart",
+      "priority": 100,
+      "enabled": true,
+      "consume": true,
+      "rebindable": true,
+      "slot": "primary",
+      "accessibility_label": "Press R to restart the game",
+      "trigger": {
+        "kind": "control",
+        "device": "keyboard",
+        "control": "keyboard.key.r",
+        "phase": "press",
+        "modifiers": [],
+        "modifier_policy": "exact"
+      },
+      "processing": {
+        "dead_zone": 0,
+        "sensitivity_numerator": 1,
+        "sensitivity_denominator": 1,
+        "invert": false,
+        "clamp_min": -32768,
+        "clamp_max": 32767
+      }
+    },
+    {
+      "id": "input:binding.quit",
+      "name": "Quit game",
+      "context": "input:context.play",
+      "intent": "input:action.intent.quit",
+      "priority": 100,
+      "enabled": true,
+      "consume": true,
+      "rebindable": true,
+      "slot": "primary",
+      "accessibility_label": "Press Escape to quit the game",
+      "trigger": {
+        "kind": "control",
+        "device": "keyboard",
+        "control": "keyboard.key.escape",
+        "phase": "press",
+        "modifiers": [],
+        "modifier_policy": "exact"
+      },
+      "processing": {
+        "dead_zone": 0,
+        "sensitivity_numerator": 1,
+        "sensitivity_denominator": 1,
+        "invert": false,
+        "clamp_min": -32768,
+        "clamp_max": 32767
+      }
+    }
+  ],
+  "provenance": {
+    "patch_history": [
+      {
+        "base_revision": 0,
+        "base_content_hash": "e31a1e0f9539a24bf6936aa7a5488d71a3a9eb9bd35cd3ef7626b7715b1ab3ec",
+        "evidence": [
+          {
+            "evidence_id": "ev:agent.9",
+            "path": "main.py",
+            "kind": "static",
+            "supports": "/rule_ir/actions",
+            "confidence": 0.5,
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 26,
+              "line_end": 40
+            }
+          },
+          {
+            "evidence_id": "ev:agent.14",
+            "path": "main.py",
+            "kind": "static",
+            "supports": "/input_ir/bindings",
+            "confidence": 0.5,
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 62,
+              "line_end": 64
+            }
+          },
+          {
+            "evidence_id": "ev:agent.15",
+            "path": "main.py",
+            "kind": "static",
+            "supports": "/input_ir/bindings",
+            "confidence": 0.5,
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 57,
+              "line_end": 61
+            }
+          },
+          {
+            "evidence_id": "ev:agent.16",
+            "path": "main.py",
+            "kind": "static",
+            "supports": "/input_ir/bindings",
+            "confidence": 0.5,
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 57,
+              "line_end": 59
+            }
+          }
+        ],
+        "assumptions": [
+          "The mouse binding supplies the picked board cell as event_data.rule_coordinate; the source computes it from the pointer position using the board offsets and cell size."
+        ],
+        "operation_count": 4
+      }
+    ]
+  },
+  "unresolved": []
+}

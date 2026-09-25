@@ -1,0 +1,29 @@
+{
+  "ok": true,
+  "stage": "spatial_lift",
+  "diagnostics": [],
+  "unresolved_summary": [
+    {
+      "path": "/derivations",
+      "reason": "The cube primitive provides a board volume, but the specified primitives do not define how to show its internal cells or make marks inside it visible. The plane carriers do not themselves depict X and O glyphs.",
+      "required": false,
+      "owner": "designer"
+    },
+    {
+      "path": "/derivations",
+      "reason": "The cube primitive provides a board volume, but the specified primitives do not define how to show its internal cells or make marks inside it visible. The plane carriers do not themselves depict X and O glyphs.",
+      "required": false,
+      "owner": "designer"
+    },
+    {
+      "path": "/provenance/llm",
+      "reason": "LLM proposal has not been designer-approved.",
+      "required": true,
+      "owner": "designer"
+    }
+  ],
+  "provider": "openrouter",
+  "model": "openai/gpt-6-sol",
+  "attempts": 8,
+  "compile_ready": false
+}

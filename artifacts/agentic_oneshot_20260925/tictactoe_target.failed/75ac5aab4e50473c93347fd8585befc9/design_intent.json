@@ -1,0 +1,35 @@
+{
+  "intent_version": "cubeengine.srtp/design-intent/1.0",
+  "intent_id": "intent:tic-tac-toe-3d-no-gravity",
+  "conversation_id": "unknown",
+  "turn_id": "unknown",
+  "project_id": "project:tic.tac.toe.llm.source",
+  "source_manifest_hash": "82b1ac0878bc11fd4eb868fd4dc1587093add48617ce9f39a23759b30cebff06",
+  "original_text": "Make it a 3x3x3 cube with no gravity: players still alternate placing X and O in any empty cell; any straight line of three cells through the cube (rows, columns, pillars and every diagonal, 49 lines in total) wins; a full cube with no line is a draw.",
+  "language": "en",
+  "operation": "transform",
+  "scope": [
+    "rule"
+  ],
+  "preserve": [
+    "Players alternate placing X and O.",
+    "A placement may be made in any empty cell."
+  ],
+  "changes": [
+    "Use a 3x3x3 cube.",
+    "Apply no gravity.",
+    "A straight line of three cells through the cube wins, including rows, columns, pillars, and every diagonal; there are 49 winning lines in total.",
+    "A full cube with no winning line is a draw."
+  ],
+  "constraints": [],
+  "resolved_references": [],
+  "assumptions": [],
+  "conflicts": [],
+  "unresolved": [
+    "The existing game referred to by “it” is not identified as a specific target object.",
+    "Conversation and turn identifiers were not supplied."
+  ],
+  "requires_confirmation": false,
+  "status": "ready",
+  "target_base": null
+}

@@ -1,0 +1,378 @@
+{
+  "proposal_id": "proposal:f7bdd54ff83f",
+  "stage": "spatial_lift",
+  "design_intent": {
+    "intent_version": "cubeengine.srtp/design-intent/1.0",
+    "intent_id": "intent:d1a2e973b2dab630f967d07456891a2fb0d737f14b5936ca055109d15f7be9b1",
+    "project_id": "project:tic.tac.toe.llm.source",
+    "source_manifest_hash": "d1a2e973b2dab630f967d07456891a2fb0d737f14b5936ca055109d15f7be9b1",
+    "original_text": "Make it a 3x3x3 cube with no gravity: players still alternate placing X and O in any empty cell; any straight line of three cells through the cube (rows, columns, pillars and every diagonal, 49 lines in total) wins; a full cube with no line is a draw.",
+    "language": "en",
+    "operation": "transform",
+    "scope": [
+      "rule",
+      "scene"
+    ],
+    "preserve": [
+      "Players alternate turns placing X and O."
+    ],
+    "changes": [
+      "Use a 3x3x3 cube.",
+      "Remove gravity; a player may place their mark in any empty cell.",
+      "Award a win for any straight line of three cells through the cube, including rows, columns, pillars, and every diagonal: 49 winning lines in total.",
+      "Declare a draw when the cube is full and neither player has a winning line."
+    ],
+    "constraints": [
+      "Marks may be placed only in empty cells."
+    ],
+    "resolved_references": [],
+    "assumptions": [],
+    "conflicts": [],
+    "unresolved": [
+      "Conversation and turn identifiers were not provided."
+    ],
+    "requires_confirmation": false,
+    "status": "ready",
+    "target_base": null,
+    "conversation_id": "conversation:af1a1374a4bf",
+    "turn_id": "turn:0db6bdef6c58"
+  },
+  "patches": {
+    "rule_ir": [
+      {
+        "document_id": "rule:game.tic.tac.toe.target",
+        "base_revision": 0,
+        "base_content_hash": "e485ed7fbf518db2b890dfcaa529b38452344a0febcc1bef51583fdd68a9dddf",
+        "operations": [
+          {
+            "op": "replace",
+            "path": "/topologies",
+            "value": [
+              {
+                "id": "rule:topology.board",
+                "name": "Board",
+                "kind": "rect_grid",
+                "anchor": "cell",
+                "axes": [
+                  {
+                    "name": "x",
+                    "extent": 3,
+                    "boundary": "bounded"
+                  },
+                  {
+                    "name": "y",
+                    "extent": 3,
+                    "boundary": "bounded"
+                  },
+                  {
+                    "name": "z",
+                    "extent": 3,
+                    "boundary": "bounded"
+                  }
+                ],
+                "neighborhoods": []
+              }
+            ]
+          },
+          {
+            "op": "replace",
+            "path": "/unresolved",
+            "value": []
+          }
+        ],
+        "evidence": [
+          {
+            "evidence_id": "ev:agent.1",
+            "path": "main.py",
+            "kind": "static",
+            "supports": "/rule_ir/topologies",
+            "confidence": 0.5,
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 6,
+              "line_end": 8
+            }
+          },
+          {
+            "evidence_id": "ev:agent.9",
+            "path": "main.py",
+            "kind": "static",
+            "supports": "/rule_ir/actions",
+            "confidence": 0.5,
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 26,
+              "line_end": 40
+            }
+          },
+          {
+            "evidence_id": "ev:agent.12",
+            "path": "main.py",
+            "kind": "static",
+            "supports": "/rule_ir/outcomes",
+            "confidence": 0.5,
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 31,
+              "line_end": 36
+            }
+          },
+          {
+            "evidence_id": "ev:agent.13",
+            "path": "main.py",
+            "kind": "static",
+            "supports": "/rule_ir/outcomes",
+            "confidence": 0.5,
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 34,
+              "line_end": 37
+            }
+          }
+        ],
+        "assumptions": [],
+        "unresolved": []
+      }
+    ],
+    "scene_ir": [
+      {
+        "document_id": "scene:game.tic.tac.toe.target",
+        "base_revision": 0,
+        "base_content_hash": "06a4993eb9cd3c7cfa3b2e27a9188f5c50a8bc07ee615353df361b9d6b02edd1",
+        "operations": [
+          {
+            "op": "replace",
+            "path": "/unresolved",
+            "value": []
+          }
+        ],
+        "evidence": [
+          {
+            "evidence_id": "ev:agent.1",
+            "path": "main.py",
+            "kind": "static",
+            "supports": "/rule_ir/topologies",
+            "confidence": 0.5,
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 6,
+              "line_end": 8
+            }
+          },
+          {
+            "evidence_id": "ev:agent.2",
+            "path": "main.py",
+            "kind": "static",
+            "supports": "/rule_ir/types",
+            "confidence": 0.5,
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 20,
+              "line_end": 21
+            }
+          },
+          {
+            "evidence_id": "ev:agent.3",
+            "path": "main.py",
+            "kind": "static",
+            "supports": "/rule_ir/types",
+            "confidence": 0.5,
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 65,
+              "line_end": 77
+            }
+          },
+          {
+            "evidence_id": "ev:agent.4",
+            "path": "main.py",
+            "kind": "static",
+            "supports": "/rule_ir/types",
+            "confidence": 0.5,
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 65,
+              "line_end": 79
+            }
+          }
+        ],
+        "assumptions": [],
+        "unresolved": []
+      }
+    ],
+    "asset_ir": [
+      {
+        "document_id": "asset:game.tic.tac.toe.target",
+        "base_revision": 0,
+        "base_content_hash": "66821f21322455599870d4e96e746b7db7fa981cef364ac58a8b6c3fefe8aa1b",
+        "operations": [
+          {
+            "op": "replace",
+            "path": "/derivations",
+            "value": [
+              {
+                "id": "asset:mesh.x",
+                "name": "Plane carrier for blue X mark",
+                "kind": "model",
+                "media_type": "application/vnd.cubeengine.presentation+json",
+                "strategy": "procedural_mesh",
+                "inputs": [],
+                "settings": {
+                  "primitive": "plane",
+                  "dimensions": [
+                    1,
+                    1,
+                    1
+                  ]
+                },
+                "expected_content_hash": "",
+                "license_policy": "inherit"
+              },
+              {
+                "id": "asset:mesh.o",
+                "name": "Plane carrier for orange O mark",
+                "kind": "model",
+                "media_type": "application/vnd.cubeengine.presentation+json",
+                "strategy": "procedural_mesh",
+                "inputs": [],
+                "settings": {
+                  "primitive": "plane",
+                  "dimensions": [
+                    1,
+                    1,
+                    1
+                  ]
+                },
+                "expected_content_hash": "",
+                "license_policy": "inherit"
+              }
+            ]
+          },
+          {
+            "op": "replace",
+            "path": "/unresolved",
+            "value": [
+              {
+                "path": "/derivations",
+                "reason": "The plane primitives are carriers only; neither the source nor the lift plan specifies geometry or materials that visibly depict the X and O glyphs.",
+                "required": false,
+                "owner": "designer"
+              }
+            ]
+          }
+        ],
+        "evidence": [
+          {
+            "evidence_id": "ev:agent.18",
+            "path": "main.py",
+            "kind": "static",
+            "supports": "/scene_ir/nodes",
+            "confidence": 0.5,
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 46,
+              "line_end": 81
+            }
+          },
+          {
+            "evidence_id": "ev:agent.3",
+            "path": "main.py",
+            "kind": "static",
+            "supports": "/rule_ir/types",
+            "confidence": 0.5,
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 65,
+              "line_end": 77
+            }
+          },
+          {
+            "evidence_id": "ev:agent.4",
+            "path": "main.py",
+            "kind": "static",
+            "supports": "/rule_ir/types",
+            "confidence": 0.5,
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 65,
+              "line_end": 79
+            }
+          }
+        ],
+        "assumptions": [
+          "The lift plan's engine-owned cell shells provide the cube volume, so the flat board plane is no longer needed. The existing X and O plane carriers can remain for marks in occupied cells."
+        ],
+        "unresolved": [
+          {
+            "path": "/derivations",
+            "reason": "The plane primitives are carriers only; neither the source nor the lift plan specifies geometry or materials that visibly depict the X and O glyphs.",
+            "required": false,
+            "owner": "designer"
+          }
+        ]
+      }
+    ],
+    "input_ir": [
+      {
+        "document_id": "input:game.tic.tac.toe.target",
+        "base_revision": 0,
+        "base_content_hash": "a77a838cb6706b99a3ef9c06cd01fd38ecda3462fc1f8fcf1bf995189e4f168f",
+        "operations": [
+          {
+            "op": "replace",
+            "path": "/unresolved",
+            "value": []
+          }
+        ],
+        "evidence": [
+          {
+            "evidence_id": "ev:agent.14",
+            "path": "main.py",
+            "kind": "static",
+            "supports": "/input_ir/bindings",
+            "confidence": 0.5,
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 62,
+              "line_end": 64
+            }
+          }
+        ],
+        "assumptions": [],
+        "unresolved": []
+      }
+    ]
+  },
+  "proposal_version": "cubeengine.srtp/llm-proposal/2.0",
+  "job_id": "job:fd7f1ee648704e22",
+  "source_package_hash": "247430c188d62026b62128405e3e01dcc803d51fbff2bf0e0177a249ca421f82",
+  "base_documents": {
+    "rule_ir": {
+      "document_id": "rule:game.tic.tac.toe.target",
+      "revision": 0,
+      "content_hash": "e485ed7fbf518db2b890dfcaa529b38452344a0febcc1bef51583fdd68a9dddf"
+    },
+    "scene_ir": {
+      "document_id": "scene:game.tic.tac.toe.target",
+      "revision": 0,
+      "content_hash": "06a4993eb9cd3c7cfa3b2e27a9188f5c50a8bc07ee615353df361b9d6b02edd1"
+    },
+    "asset_ir": {
+      "document_id": "asset:game.tic.tac.toe.target",
+      "revision": 0,
+      "content_hash": "66821f21322455599870d4e96e746b7db7fa981cef364ac58a8b6c3fefe8aa1b"
+    },
+    "input_ir": {
+      "document_id": "input:game.tic.tac.toe.target",
+      "revision": 0,
+      "content_hash": "a77a838cb6706b99a3ef9c06cd01fd38ecda3462fc1f8fcf1bf995189e4f168f"
+    }
+  },
+  "claims": [],
+  "tests": [],
+  "extension_proposals": [],
+  "spatial_lift_options": [],
+  "assumptions": [],
+  "unresolved": [],
+  "clarification_questions": []
+}

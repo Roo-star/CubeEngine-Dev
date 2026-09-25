@@ -1,0 +1,279 @@
+{
+  "ir_version": "cubeengine.scene-ir/2.0-alpha.1",
+  "document_id": "scene:game.tic.tac.toe.source",
+  "revision": 1,
+  "content_hash": "0bae4eaa4872ed4e3a2601f0e8d5c3f8782fed2cf2f32c795ebb90ae26e9984e",
+  "metadata": {
+    "title": "Tic Tac Toe",
+    "description": "LLM compiler bootstrap shell. Semantics must be filled by evidence-backed patches.",
+    "source_project_hash": "247430c188d62026b62128405e3e01dcc803d51fbff2bf0e0177a249ca421f82"
+  },
+  "dependencies": {
+    "rule_ir": {
+      "document_id": "rule:game.tic.tac.toe.source",
+      "content_hash": "0d36e6585fd22fb6af1387888d088fd244ee605dae0bdde9ee67d6db852d9956"
+    },
+    "asset_ir": {
+      "document_id": "asset:game.tic.tac.toe.source",
+      "content_hash": "b773af8a54de2498d73196dd625c93fdc0a1cc4d1fcb63cf054fa8983d29c829"
+    },
+    "extensions": []
+  },
+  "layers": [
+    {
+      "id": "scene:layer.runtime",
+      "name": "Runtime",
+      "kind": "runtime",
+      "visible": true,
+      "pickable": true,
+      "opacity": 1.0
+    }
+  ],
+  "prefabs": [
+    {
+      "id": "scene:prefab.cell",
+      "name": "Cell",
+      "root": {
+        "local_id": "root",
+        "name": "Cell",
+        "active": true,
+        "transform": {
+          "translation": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "rotation_euler_deg": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "scale": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "components": [
+          {
+            "id": "renderer",
+            "type": "renderer",
+            "enabled": true,
+            "properties": {
+              "geometry": "builtin:cube",
+              "visible": true
+            }
+          }
+        ],
+        "children": []
+      }
+    }
+  ],
+  "nodes": [
+    {
+      "id": "scene:node.board",
+      "name": "Board",
+      "active": true,
+      "parent": null,
+      "layer": "scene:layer.runtime",
+      "transform": {
+        "translation": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "rotation_euler_deg": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "components": [
+        {
+          "id": "sites",
+          "type": "topology_visualizer",
+          "enabled": true,
+          "properties": {
+            "topology": "rule:topology.board",
+            "rule_topology": "rule:topology.board",
+            "prefab": "scene:prefab.cell",
+            "index_to_world": [
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          }
+        }
+      ],
+      "children": []
+    },
+    {
+      "id": "scene:node.camera",
+      "name": "Camera",
+      "active": true,
+      "parent": null,
+      "layer": "scene:layer.runtime",
+      "transform": {
+        "translation": [
+          1.0,
+          1.0,
+          6.0
+        ],
+        "rotation_euler_deg": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "components": [
+        {
+          "id": "camera",
+          "type": "camera",
+          "enabled": true,
+          "properties": {
+            "projection": "perspective",
+            "near_clip": 0.1,
+            "far_clip": 100.0,
+            "active": true,
+            "fov_deg": 60.0,
+            "fov": 55.0
+          }
+        }
+      ],
+      "children": []
+    }
+  ],
+  "bindings": [
+    {
+      "id": "scene:binding.cell.variant",
+      "name": "Cell Variant",
+      "source": {
+        "kind": "state",
+        "scope": "topology_site",
+        "variable": "rule:state.board_cell"
+      },
+      "target": {
+        "selector": "topology_sites",
+        "node": "scene:node.board",
+        "visualizer": "sites",
+        "component": "renderer",
+        "property": "variant"
+      },
+      "transform": {
+        "kind": "map",
+        "cases": [
+          {
+            "equals": 0,
+            "value": "empty"
+          },
+          {
+            "equals": 1,
+            "value": "x"
+          },
+          {
+            "equals": 2,
+            "value": "o"
+          }
+        ]
+      }
+    }
+  ],
+  "provenance": {
+    "patch_history": [
+      {
+        "base_revision": 0,
+        "base_content_hash": "fa1cce7edc3584e2233df6cee09ddde3f293bfc8074b4dcef728894d73fc88e2",
+        "evidence": [
+          {
+            "evidence_id": "ev:agent.1",
+            "path": "main.py",
+            "kind": "static",
+            "supports": "/rule_ir/topologies",
+            "confidence": 0.5,
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 6,
+              "line_end": 8
+            }
+          },
+          {
+            "evidence_id": "ev:agent.2",
+            "path": "main.py",
+            "kind": "static",
+            "supports": "/rule_ir/types",
+            "confidence": 0.5,
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 20,
+              "line_end": 21
+            }
+          },
+          {
+            "evidence_id": "ev:agent.3",
+            "path": "main.py",
+            "kind": "static",
+            "supports": "/rule_ir/types",
+            "confidence": 0.5,
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 65,
+              "line_end": 77
+            }
+          },
+          {
+            "evidence_id": "ev:agent.4",
+            "path": "main.py",
+            "kind": "static",
+            "supports": "/rule_ir/types",
+            "confidence": 0.5,
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 65,
+              "line_end": 79
+            }
+          },
+          {
+            "evidence_id": "ev:agent.18",
+            "path": "main.py",
+            "kind": "static",
+            "supports": "/scene_ir/nodes",
+            "confidence": 0.5,
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 46,
+              "line_end": 81
+            }
+          }
+        ],
+        "assumptions": [
+          "The supplied prefab and camera shapes are scene defaults, not a reconstruction of the Pygame drawing code. The cube geometry and symbolic cell variants do not reproduce its rounded cells or X and O marks."
+        ],
+        "operation_count": 4
+      }
+    ]
+  },
+  "unresolved": []
+}

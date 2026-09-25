@@ -1,0 +1,36 @@
+[
+  {
+    "verdict": "revise",
+    "issues": [
+      {
+        "ir": "input_ir",
+        "problem": "Escape is bound to quit, but the source also quits when the window-close event occurs; input_ir has no window-close binding.",
+        "fix": "Bind the window-close event to the existing quit host_command intent.",
+        "source": {
+          "path": "main.py",
+          "lines": [
+            54,
+            56
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "verdict": "revise",
+    "issues": [
+      {
+        "ir": "input_ir",
+        "problem": "The source quits when the window-close event occurs, but input_ir binds the quit host command only to Escape.",
+        "fix": "Add a window-close event binding to the existing quit host_command intent.",
+        "source": {
+          "path": "main.py",
+          "lines": [
+            54,
+            56
+          ]
+        }
+      }
+    ]
+  }
+]

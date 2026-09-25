@@ -1,0 +1,57 @@
+{
+  "ok": true,
+  "stage": "source_four_ir",
+  "job_id": "job:17ffea484fee40c5",
+  "project_id": "project:tic.tac.toe.llm.source",
+  "source_package_hash": "247430c188d62026b62128405e3e01dcc803d51fbff2bf0e0177a249ca421f82",
+  "provider": "openrouter",
+  "model": "openai/gpt-6-sol",
+  "attempts": 12,
+  "prompt_template_version": "cubeengine.srtp/llm-prompt/2.0",
+  "diagnostics": [
+    "LLM call budget of 12 exhausted during input_ir"
+  ],
+  "compile_ready": false,
+  "output_dir": "C:\\repos\\CubeEngine-Dev\\artifacts\\agentic_20260925\\tictactoe_source",
+  "unresolved_summary": [
+    {
+      "path": "/assets",
+      "reason": "Asset entry dropped, asset:role.board.cell: role missing resource reference.",
+      "required": false,
+      "owner": "llm"
+    },
+    {
+      "path": "/assets",
+      "reason": "Asset entry dropped, asset:role.x.mark: role missing resource reference.",
+      "required": false,
+      "owner": "llm"
+    },
+    {
+      "path": "/assets",
+      "reason": "Asset entry dropped, asset:role.o.mark: role missing resource reference.",
+      "required": false,
+      "owner": "llm"
+    },
+    {
+      "path": "/bindings",
+      "reason": "Escape and the window quit event stop the source application, but the supplied Rule ids contain no quit action. An application-level quit binding needs a supported non-rule target or a designer decision; no quit binding is enabled here.",
+      "required": false,
+      "owner": "designer"
+    },
+    {
+      "path": "/bindings",
+      "reason": "Escape and the window quit event stop the source application, but the supplied Rule ids contain no quit action. An application-level quit binding needs a supported non-rule target or a designer decision; no quit binding is enabled here.",
+      "required": false,
+      "owner": "designer"
+    },
+    {
+      "path": "/provenance/llm",
+      "reason": "LLM proposal has not been designer-approved.",
+      "required": true,
+      "owner": "designer"
+    }
+  ],
+  "proposal_id": "proposal:f111dc258ccf",
+  "manifest_project_id": "project:tic.tac.toe.llm.source",
+  "compilation_trace": {}
+}

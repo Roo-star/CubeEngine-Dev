@@ -1,0 +1,174 @@
+{
+  "topology": {
+    "id": "rule:topology.board",
+    "add_axes": [
+      {
+        "name": "z",
+        "extent": 3,
+        "boundary": "bounded"
+      }
+    ]
+  },
+  "source_xy_policy": "Keep the bounded x and y axes at extent 3, the empty/X/O cell values, X-first alternating turns, and the rule that a placement requires an empty cell. Do not add gravity or change restart and quit behavior.",
+  "target_z": 3,
+  "neighborhood": "Straight lines use bounded steps along x, y, and z, including face and space diagonals. The 3×3×3 cube has 49 winning lines of three cells: 27 axis-aligned lines, 18 face diagonals, and 4 space diagonals. Lines do not wrap.",
+  "movement": "On a turn, the current player places their mark at any empty (x,y,z) cell. An occupied cell or a placement after a terminal outcome is rejected without changing state. A legal nonterminal placement passes the turn to the other player.",
+  "outcomes": "A player wins when their placement completes any straight line of three cells in the cube. Check for a win before a draw. If all 27 cells are occupied and no winning line exists, the result is a draw.",
+  "presentation": "Show the board as the engine-owned continuous cube volume, with X and O at their 3D cell positions. Retain turn, win, and draw status information; do not split the cube into layer panels.",
+  "input": "Clicking a cell supplies its full (x,y,z) coordinate. The engine-provided '[' and ']' keys and on-screen buttons select a depth layer for picking inner cells. Retain the source restart and quit inputs.",
+  "z_equals_one_tests": [
+    "With z at extent 1, the board has the same nine cells and eight winning lines as the Source 3×3 board.",
+    "With z at extent 1, legal placements, alternating turns, wins, draws, and rejected placements must match the Source."
+  ],
+  "z_gt_one_tests": [
+    {
+      "name": "Pillar across layers wins",
+      "moves": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          1,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          1
+        ],
+        [
+          1,
+          0,
+          1
+        ],
+        [
+          0,
+          0,
+          2
+        ]
+      ],
+      "expect": {
+        "status": "win",
+        "winner_turn_index": 0
+      }
+    },
+    {
+      "name": "Space diagonal wins",
+      "moves": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          1,
+          0
+        ],
+        [
+          1,
+          1,
+          1
+        ],
+        [
+          0,
+          1,
+          1
+        ],
+        [
+          2,
+          2,
+          2
+        ]
+      ],
+      "expect": {
+        "status": "win",
+        "winner_turn_index": 0
+      }
+    },
+    {
+      "name": "Diagonal within a depth layer wins",
+      "moves": [
+        [
+          0,
+          0,
+          1
+        ],
+        [
+          0,
+          1,
+          0
+        ],
+        [
+          1,
+          1,
+          1
+        ],
+        [
+          0,
+          1,
+          1
+        ],
+        [
+          2,
+          2,
+          1
+        ]
+      ],
+      "expect": {
+        "status": "win",
+        "winner_turn_index": 0
+      }
+    },
+    {
+      "name": "Any empty depth cell is playable without support",
+      "moves": [
+        [
+          0,
+          0,
+          2
+        ],
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          1,
+          1,
+          1
+        ]
+      ],
+      "expect": {
+        "status": "ongoing"
+      }
+    },
+    {
+      "name": "Occupied cell is rejected",
+      "moves": [
+        [
+          2,
+          2,
+          2
+        ],
+        [
+          2,
+          2,
+          2
+        ]
+      ],
+      "expect": {
+        "status": "illegal"
+      }
+    }
+  ],
+  "alternatives": [],
+  "unresolved": [],
+  "plan_version": "cubeengine.srtp/spatial-lift-plan/1.0",
+  "plan_id": "lift:4398320b7d17",
+  "source_manifest_hash": "d1a2e973b2dab630f967d07456891a2fb0d737f14b5936ca055109d15f7be9b1",
+  "design_intent_id": "intent:3x3x3-no-gravity"
+}

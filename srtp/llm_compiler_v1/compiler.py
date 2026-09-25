@@ -1387,6 +1387,8 @@ def _wire_input_rule_actions(
         if not isinstance(intent, dict):
             continue
         target = intent.get("target")
+        if isinstance(target, dict) and target.get("kind") == "host_command":
+            continue  # Explicit quit/restart lifecycle command, not a semantic placeholder.
         if isinstance(target, dict) and target.get("kind") == "rule_action":
             action = target.get("action")
             if isinstance(action, str) and action and not action.startswith("rule:"):
@@ -3213,6 +3215,8 @@ def _coerce_input_intent(value: Dict[str, Any]) -> None:
         value["target"] = {"kind": "semantic"}
         return
     kind = target.get("kind")
+    if kind == "host_command":
+        return  # quit/restart lifecycle; the Input IR validator checks the command.
     if kind == "rule_action":
         action = target.get("action")
         if isinstance(action, str) and action and not action.startswith("rule:"):
