@@ -804,6 +804,23 @@ class SourceToIRCompiler:
                 report.output_dir = str(self._write_compile_artifacts(out_dir, report))
             return report
 
+        target_docs = _target_documents(source_report.documents)
+        from .validation import validate_working_documents
+        baseline_errors = validate_working_documents(target_docs)
+        if baseline_errors:
+            report = deepcopy_report(source_report)
+            report.ok = report.compile_ready = False
+            report.stage = 'spatial_lift_blocked'
+            report.diagnostics = ['Local Target baseline invalid before model call: '+item for item in baseline_errors]
+            if out_dir is not None:
+                report.output_dir = str(self._write_compile_artifacts(out_dir, report))
+            return report
+
+        resumed_intent = False
+        if structured_intent is None and self.staged:
+            from .staged import resume_design_intent
+            structured_intent = resume_design_intent(self,package,evidence,target_docs,source_hash,intent_text,language,out_dir)
+            resumed_intent = structured_intent is not None
         try:
             if structured_intent is not None:
                 from .client import LLMChatResult
@@ -870,33 +887,6 @@ class SourceToIRCompiler:
                 report.output_dir = str(self._write_compile_artifacts(out_dir, report))
             return report
 
-        # Target bootstrap from current sealed source documents.
-        target_docs = deepcopy(source_report.documents)
-        for key, document in target_docs.items():
-            document_id = str(document["document_id"]).replace(".source", ".target")
-            if document_id == str(document["document_id"]):
-                # Ensure target pins never collide with co-located source IR copies.
-                if document_id.endswith(".target"):
-                    pass
-                else:
-                    document_id = "{0}.target".format(document_id)
-            document["document_id"] = document_id
-            document["revision"] = 0
-            document["content_hash"] = ""
-            # Re-seal after id change via existing seal helpers.
-        from srtp.asset_ir_v2 import seal_asset_ir
-        from srtp.input_ir_v2 import seal_input_ir
-        from srtp.ir_v2 import seal_rule_ir
-        from srtp.scene_ir_v2 import seal_scene_ir
-
-        target_docs = {
-            "rule_ir": seal_rule_ir(target_docs["rule_ir"], revision=0),
-            "scene_ir": seal_scene_ir(target_docs["scene_ir"], revision=0),
-            "asset_ir": seal_asset_ir(target_docs["asset_ir"], revision=0),
-            "input_ir": seal_input_ir(target_docs["input_ir"], revision=0),
-        }
-        # Re-pin Scene/Input against retargeted Rule/Asset hashes.
-        target_docs = _pin_cross_ir_dependencies(target_docs)
         base_pins = {
             key: {
                 "document_id": doc["document_id"],
@@ -913,6 +903,7 @@ class SourceToIRCompiler:
                 documents=target_docs, job_id=source_report.job_id,
                 project_id=source_report.project_id.rstrip('.') + '.target',
                 design_intent=design_intent, source_manifest=source_manifest)
+            report.compilation_trace['design_intent_cached'] = resumed_intent
             if out_dir is not None:
                 report.output_dir = str(self._write_compile_artifacts(out_dir, report, source_manifest=source_manifest))
             return report
@@ -1169,12 +1160,53 @@ class SourceToIRCompiler:
         return seal_project_manifest(manifest, revision=0)
 
 
+def _target_documents(source_documents):
+    """Create an independent Target identity without rewriting Source semantics."""
+    docs=deepcopy(source_documents)
+    for document in docs.values():
+        source_id=document['document_id']
+        target_id=source_id.replace('.source','.target')
+        if target_id==source_id and not target_id.endswith('.target'):
+            target_id += '.target'
+        document.update(document_id=target_id,revision=0,content_hash='')
+    # Do not call the legacy _pin_cross_ir_dependencies authoring heuristics:
+    # approved pointer filters and shared controls are intentionally legal.
+    return _seal_document_dependencies(docs)
+
+
+def _seal_document_dependencies(documents):
+    """Pure document sealing/pinning, with no inferred gameplay or controls."""
+    from srtp.asset_ir_v2 import seal_asset_ir
+    from srtp.input_ir_v2 import seal_input_ir
+    from srtp.ir_v2 import seal_rule_ir
+    from srtp.scene_ir_v2 import seal_scene_ir
+
+    docs = deepcopy(documents)
+    for slot, seal in (('rule_ir',seal_rule_ir),('asset_ir',seal_asset_ir)):
+        docs[slot] = seal(docs[slot])
+    for slot, seal, dependencies in (
+        ('scene_ir',seal_scene_ir,('rule_ir','asset_ir')),
+        ('input_ir',seal_input_ir,('rule_ir',)),
+    ):
+        for dependency in dependencies:
+            docs[slot]['dependencies'][dependency] = {
+                key: docs[dependency][key] for key in ('document_id','content_hash')}
+        docs[slot] = seal(docs[slot])
+    return docs
+
+
 def _pin_cross_ir_dependencies(
     documents: Mapping[str, Mapping[str, Any]],
     *,
     source_hints: Optional[Mapping[str, Any]] = None,
+    legacy: bool = False,
 ) -> Dict[str, Dict[str, Any]]:
-    """Fill Scene/Input dependency pins required by Project Manifest compile."""
+    """Fill Scene/Input dependency pins required by Project Manifest compile.
+
+    ``legacy`` reproduces the pre-agentic pinning (host commands rewired,
+    no placement exemption, no reseal) solely so saved paid checkpoints can
+    still be fingerprinted; never use it to build new documents.
+    """
 
     from srtp.asset_ir_v2 import seal_asset_ir
     from srtp.input_ir_v2 import seal_input_ir
@@ -1213,7 +1245,7 @@ def _pin_cross_ir_dependencies(
     docs["scene_ir"] = seal_scene_ir(scene, revision=int(scene.get("revision") or 0))
 
     input_doc = _ensure_input_distinct_triggers(docs["input_ir"])
-    input_doc = _wire_input_rule_actions(input_doc, docs["rule_ir"])
+    input_doc = _wire_input_rule_actions(input_doc, docs["rule_ir"], legacy=legacy)
     input_doc = _wire_input_mouse_for_coord_actions(input_doc, docs["rule_ir"])
     input_doc = _ensure_input_distinct_triggers(input_doc)
     input_deps = dict(input_doc.get("dependencies") or {})
@@ -1225,8 +1257,8 @@ def _pin_cross_ir_dependencies(
         input_doc, revision=int(input_doc.get("revision") or 0),
     )
     unresolved_before = deepcopy(docs["rule_ir"].get("unresolved"))
-    _validate_playable_session(docs)
-    if docs["rule_ir"].get("unresolved") != unresolved_before:
+    _validate_playable_session(docs, legacy=legacy)
+    if not legacy and docs["rule_ir"].get("unresolved") != unresolved_before:
         # New blockers changed Rule content after sealing: reseal and re-pin
         # dependants, otherwise the stored content_hash no longer verifies.
         docs["rule_ir"] = seal_rule_ir(
@@ -1356,7 +1388,7 @@ def _rule_actions_lack_effects(rule: Mapping[str, Any]) -> bool:
 
 
 def _wire_input_rule_actions(
-    input_doc: Mapping[str, Any], rule: Mapping[str, Any],
+    input_doc: Mapping[str, Any], rule: Mapping[str, Any], *, legacy: bool = False,
 ) -> Dict[str, Any]:
     """Point semantic intents at Rule actions when names/ids align."""
 
@@ -1387,7 +1419,7 @@ def _wire_input_rule_actions(
         if not isinstance(intent, dict):
             continue
         target = intent.get("target")
-        if isinstance(target, dict) and target.get("kind") == "host_command":
+        if not legacy and isinstance(target, dict) and target.get("kind") == "host_command":
             continue  # Explicit quit/restart lifecycle command, not a semantic placeholder.
         if isinstance(target, dict) and target.get("kind") == "rule_action":
             action = target.get("action")
@@ -1565,7 +1597,9 @@ def _wire_scene_state_bindings(
     return document
 
 
-def _validate_playable_session(documents: Mapping[str, Mapping[str, Any]]) -> None:
+def _validate_playable_session(
+    documents: Mapping[str, Mapping[str, Any]], *, legacy: bool = False,
+) -> None:
     """Promote missing board-play semantics to required unresolved (no silent success)."""
 
     rule = documents.get("rule_ir")
@@ -1632,7 +1666,7 @@ def _validate_playable_session(documents: Mapping[str, Mapping[str, Any]]) -> No
     # Placement games (an action writes the grid at a player-chosen coordinate)
     # legitimately start from an empty board; demanding a pre-placed piece
     # would push the model to invent setup the source never performs.
-    has_placement = _places_at_parameter(rule, site_vars)
+    has_placement = not legacy and _places_at_parameter(rule, site_vars)
     for effect in initial:
         if not isinstance(effect, Mapping):
             continue

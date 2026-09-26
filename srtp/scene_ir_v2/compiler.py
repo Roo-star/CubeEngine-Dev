@@ -230,7 +230,9 @@ def compile_scene_ir(
         isinstance(item, Mapping) and item.get("required") is True
         for item in document.get("unresolved", [])
     ):
-        raise SceneCompileError("Scene IR has unresolved required presentation semantics")
+        details = sorted(set(str(item.get('path','/'))+': '+str(item.get('reason','Missing presentation semantics'))
+                             for item in document['unresolved'] if isinstance(item,Mapping) and item.get('required') is True))
+        raise SceneCompileError("Scene IR has unresolved required presentation semantics: "+'; '.join(details))
     content_hash = document.get("content_hash")
     if content_hash and content_hash != canonical_scene_ir_hash(document):
         raise SceneCompileError("Scene IR content hash does not match the document")
@@ -467,15 +469,27 @@ class SceneProjectionSession:
         self.scene = scene
         self.mode = mode
         self._last_state_hash = None
+        self._last_interaction = None
         self._properties: Dict[Tuple[str, Optional[str], str], Any] = {}
         self._entities: Dict[str, Dict[str, Dict[str, Any]]] = {
             key: {} for key in scene.entity_visualizers
         }
 
-    def synchronize(self, rule_state: Any) -> SceneDelta:
+    def synchronize(self, rule_state: Any, interaction=None) -> SceneDelta:
         before_hash = rule_state.state_hash()
         self._verify_state(rule_state)
-        if before_hash == self._last_state_hash:
+        interaction = deepcopy(interaction or {})
+        # Resolve hierarchy from the compiled graph for callers supplying only
+        # a node ID. Host picks already carry the full path for dynamic nodes.
+        from srtp.input_pointer_contract import scene_pick_context
+        def enrich(context):
+            if context and context.get('node_id') in self.scene.nodes_by_id:
+                return scene_pick_context(self.scene.nodes_by_id,context['node_id'],context)
+            return context
+        if interaction.get('hovered'): interaction['hovered']=enrich(interaction['hovered'])
+        if interaction.get('pressed'):
+            interaction['pressed']={key:enrich(value) for key,value in interaction['pressed'].items()}
+        if before_hash == self._last_state_hash and interaction == self._last_interaction:
             return SceneDelta(self.scene.document_id, int(rule_state.revision), before_hash, ())
         previous_properties = deepcopy(self._properties)
         previous_entities = deepcopy(self._entities)
@@ -484,7 +498,7 @@ class SceneProjectionSession:
             self._synchronize_entities(rule_state, commands)
             for binding in self.scene.bindings:
                 for context in self._binding_targets(binding):
-                    source = _read_binding_source(binding.source, rule_state, context)
+                    source = _read_scene_source(binding.source, rule_state, context, interaction)
                     value = _apply_binding_transform(binding.transform, source)
                     target = binding.target
                     component = target.get("component")
@@ -510,6 +524,7 @@ class SceneProjectionSession:
             self._entities = previous_entities
             raise
         self._last_state_hash = after_hash
+        self._last_interaction = interaction
         return SceneDelta(
             scene_document_id=self.scene.document_id,
             rule_revision=int(rule_state.revision),
@@ -585,11 +600,12 @@ class SceneProjectionSession:
         key = _visualizer_key(str(target["node"]), str(target["visualizer"]))
         if selector == "topology_sites":
             return tuple(
-                {"node_id": node_id, "coordinate": coordinate}
+                {"node_id": node_id + target.get('_component_suffix',''), "coordinate": coordinate,
+                 "rule_topology": self.scene.nodes_by_id[node_id].rule_context.get('rule_topology')}
                 for coordinate, node_id in self.scene.topology_sites[key].items()
             )
         return tuple(
-            {"node_id": value["node_id"], "entity_id": entity_id}
+            {"node_id": value["node_id"] + target.get('_component_suffix',''), "entity_id": entity_id}
             for entity_id, value in sorted(self._entities[key].items())
         )
 
@@ -608,8 +624,28 @@ def _compile_binding(
     prefabs: Mapping[str, Mapping[str, Any]], rule_document: Optional[Mapping[str, Any]],
 ) -> CompiledBinding:
     source = value["source"]
-    target = value["target"]
+    target = deepcopy(value["target"])
     source_kind = source["kind"]
+    if source_kind == 'expression':
+        from .binding_expressions import validate_expression, infer_type
+        from .component_contracts import binding_source_errors
+        issues,reads=validate_expression(source['expression'],binding_source_errors)
+        if issues:raise SceneCompileError('; '.join(issues))
+        # Validate every leaf, including branches not taken at startup: scope,
+        # topology, participant, entity type and reference checks stay identical.
+        for leaf in reads:
+            _compile_binding(dict(value,source=leaf),nodes,topology_sites,entity_visualizers,prefabs,rule_document)
+        def read_type(leaf):
+            if leaf['kind']=='interaction':return 'boolean'
+            if leaf['kind']=='flow':return 'number' if leaf['property'] in ('tick','turn') else 'string'
+            if leaf['kind']=='state':
+                kind=_rule_variables(rule_document)[leaf['variable']].get('type')
+                return {'core:int':'number','core:float':'number','core:bool':'boolean','core:string':'string'}.get(kind)
+            return None
+        try:infer_type(source['expression'],read_type)
+        except ValueError as error:raise SceneCompileError(str(error)) from error
+    if source_kind == 'interaction' and source.get('node') and source['node'] not in nodes:
+        raise SceneCompileError('Interaction filter references unknown Scene node: '+source['node'])
     selector = target["selector"]
     node_id = str(target["node"])
     if node_id not in nodes:
@@ -654,7 +690,15 @@ def _compile_binding(
                     and state_definition.get("topology") != nodes[generated].rule_context.get("rule_topology")
                 ):
                     raise SceneCompileError("topology-site binding targets a different Rule topology")
-                _validate_compiled_target(nodes[generated], component_id, str(target["property"]))
+                selected=generated
+                if component_id and not any(c.identifier==component_id for c in nodes[generated].components):
+                    matches=[n for n in nodes.values() if n.identifier.startswith(generated+'.')
+                             and any(c.identifier==component_id for c in n.components)]
+                    if len(matches)!=1:
+                        raise SceneCompileError('Expanded component must identify exactly one prefab node: '+component_id)
+                    selected=matches[0].identifier
+                    target['_component_suffix']=selected[len(generated):]
+                _validate_compiled_target(nodes[selected], component_id, str(target["property"]))
         else:
             if visualizer_key not in entity_visualizers:
                 raise SceneCompileError("binding references unknown entity visualizer")
@@ -672,7 +716,15 @@ def _compile_binding(
                 if target["property"] not in ("active", "transform.translation", "transform.rotation_euler_deg", "transform.scale"):
                     raise SceneCompileError("unsupported dynamic entity node property")
             else:
-                component = _blueprint_component(root, component_id)
+                matches=[]
+                def find_component(node,suffix=''):
+                    for c in node.get('components',[]):
+                        if c.get('id')==component_id:matches.append((suffix,c))
+                    for child in node.get('children',[]):find_component(child,suffix+'.'+child['local_id'])
+                find_component(root)
+                if len(matches)!=1:
+                    raise SceneCompileError('Expanded component must identify exactly one prefab node: '+component_id)
+                target['_component_suffix'],component=matches[0]
                 _validate_component_property(component, str(target["property"]))
     return CompiledBinding(
         identifier=str(value["id"]), name=str(value["name"]),
@@ -844,7 +896,46 @@ def _apply_binding_transform(transform: Mapping[str, Any], source: Any) -> Any:
         if isinstance(source, bool) or not isinstance(source, (int, float)) or not math.isfinite(source):
             raise SceneProjectionError("numeric binding transform requires a finite number")
         return source * transform.get("multiply", 1) + transform.get("add", 0)
+    if kind in ('digit','integer_format'):
+        if isinstance(source,bool) or not isinstance(source,(int,float)) or not math.isfinite(source):
+            raise SceneProjectionError('Number display requires a finite number')
+        number=math.floor(source)
+        if 'minimum' in transform:number=max(transform['minimum'],number)
+        if 'maximum' in transform:number=min(transform['maximum'],number)
+        if kind=='integer_format':return str(number).zfill(transform['width'])
+        digit=max(0,number)//(10**transform['place'])%10
+        return deepcopy(transform['values'][digit]) if 'values' in transform else digit
     return str(transform["template"]).replace("{value}", str(source))
+
+
+def _read_scene_source(source, state, context, interaction):
+    if source['kind']=='interaction':return _read_interaction(source,context,interaction)
+    if source['kind']=='expression':
+        from .binding_expressions import evaluate_expression
+        return evaluate_expression(source['expression'],lambda leaf:_read_scene_source(leaf,state,context,interaction))
+    return _read_binding_source(source,state,context)
+
+
+def _read_interaction(source, context, interaction):
+    """Host-owned visual state; never changes authoritative game state."""
+    if source['property']=='hovered':
+        contexts=[interaction.get('hovered')]
+    else:
+        pressed=interaction.get('pressed',{})
+        contexts=[pressed.get(source['control'])] if source.get('control') else pressed.values()
+    def matches(item):
+        if not item:return False
+        node=item.get('node_id','')
+        if source.get('node') and not (node==source['node'] or source['node'] in item.get('node_path',())):
+            return False
+        if source['scope']=='any':return True
+        if node and node==context['node_id']:return True
+        for key in ('coordinate','entity_id'):
+            if key=='coordinate' and item.get('rule_topology') and context.get('rule_topology') and item['rule_topology']!=context['rule_topology']:
+                continue
+            if key in item and key in context and _json_equal(item[key],context[key]):return True
+        return False
+    return any(matches(item) for item in contexts)
 
 
 def _entity_coordinate(entity: Mapping[str, Any], descriptor: Mapping[str, Any]) -> Tuple[int, ...]:

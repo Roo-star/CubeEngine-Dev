@@ -64,7 +64,8 @@ class ConversionJobs:
             except CompilationCancelled:
                 event={'kind':'cancelled','value':None}
             except Exception as error:
-                event={'kind':'error','value':str(error)}
+                import traceback
+                event={'kind':'error','value':str(error),'traceback':traceback.format_exc()}
             self.events.put(dict(event,id=identifier,tag=tag))
         thread=Thread(target=run,name='CubeEngine conversion',daemon=True)
         self.active['thread']=thread

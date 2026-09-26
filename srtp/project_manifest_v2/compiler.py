@@ -133,7 +133,7 @@ class ProjectSession:
         focus: str = "viewport",
     ) -> ProjectInputResult:
         dispatch = self.input_router.dispatch(
-            event, active_contexts=active_contexts, focus=focus,
+            event, active_contexts=active_contexts, focus=focus, rule_runtime=self.rule_runtime,
         )
         transitions = []
         rejections = []

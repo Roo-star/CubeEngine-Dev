@@ -5,6 +5,9 @@ cross-document IR type/reference checks or executable acceptance tests.
 """
 import math
 import re
+import json
+from pathlib import Path
+from functools import lru_cache
 from copy import deepcopy
 from collections.abc import Mapping
 
@@ -33,6 +36,36 @@ ASSET={'type':'string','pattern':r'^asset:[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$'}
 RULE={'type':'string','pattern':r'^rule:[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$'}
 SCENE={'type':'string','pattern':r'^scene:[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$'}
 LOCAL={'type':'string','pattern':r'^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$'}
+
+IR_SCHEMA_FILES = {
+    'rule_ir':'ir_v2/rule-ir-v2.schema.json', 'asset_ir':'asset_ir_v2/asset-ir-v2.schema.json',
+    'scene_ir':'scene_ir_v2/scene-ir-v2.schema.json', 'input_ir':'input_ir_v2/input-ir-v2.schema.json',
+}
+
+
+@lru_cache(maxsize=4)
+def _document_schema(slot):
+    return json.loads((Path(__file__).parent / IR_SCHEMA_FILES[slot]).read_text(encoding='utf-8'))
+
+
+def document_shape_errors(slot, document, *, authoring=False):
+    """Guard typed model data before domain validators index/hash its fields.
+
+    The stored wire schema stays the source of truth. Authoring may omit only
+    asset size/hash, which the builder measures from the original bytes.
+    """
+    schema = _document_schema(slot)
+    if authoring and slot in ('asset_ir', 'rule_ir'):
+        schema = deepcopy(schema)
+        if slot == 'asset_ir':
+            source = schema['$defs']['sourceAsset']['properties']['source']
+            source['required'] = ['uri']
+            for field in ('content_hash','byte_size'): source['properties'][field] = {}
+        else:
+            # Compact expressions have not been lowered yet at this boundary.
+            expression = schema['$defs']['expression']
+            schema['$defs']['expression'] = {'anyOf':[expression, obj({'expr':TEXT},('expr',))]}
+    return errors(document, schema)
 
 
 def errors(value, schema, path='', root=None):
@@ -71,6 +104,8 @@ def errors(value, schema, path='', root=None):
     if kind and not (any(correct[k] for k in kind) if isinstance(kind,list) else correct[kind]):
         return [path+': expected '+str(kind)]
     if isinstance(value,Mapping):
+        if len(value)<schema.get('minProperties',0) or len(value)>schema.get('maxProperties',float('inf')):
+            result.append(path+': incorrect object property count')
         properties=schema.get('properties',{})
         for key in schema.get('required',[]):
             if key not in value: result.append(path+'/'+key+': required')
@@ -86,6 +121,7 @@ def errors(value, schema, path='', root=None):
         for i,child in enumerate(value): result.extend(errors(child,schema.get('items',{}),path+'/'+str(i),root))
     elif isinstance(value,str):
         if len(value)<schema.get('minLength',0): result.append(path+': string too short')
+        if len(value)>schema.get('maxLength',float('inf')): result.append(path+': string too long')
         if 'pattern' in schema and not re.search(schema['pattern'],value): result.append(path+': must match '+schema['pattern'])
     elif type(value) in (int,float):
         if not math.isfinite(value): result.append(path+': number must be finite')

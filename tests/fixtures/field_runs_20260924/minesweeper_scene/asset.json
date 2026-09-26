@@ -1,0 +1,1078 @@
+{
+  "ir_version": "cubeengine.asset-ir/2.0-alpha.1",
+  "document_id": "asset:game.pygame.minesweeper.source",
+  "revision": 1,
+  "content_hash": "5d8aed65b832332a8aa528b7ee359acb9246fb36a184d79abb41b87ae338ee9b",
+  "metadata": {
+    "title": "Pygame Minesweeper",
+    "description": "Original Minesweeper sprite sheets, including the active 2000-style tile, face and score sheets, with regions for all source-defined tile appearances, faces and digits. Alternative indexed sprite sheets are retained.",
+    "source_project_hash": "711faede56c844d8c40612a1a285087c2ee39f1b4832974ac3e742125f9bd930"
+  },
+  "assets": [
+    {
+      "id": "asset:image.collection",
+      "name": "Minesweeper sprite collection",
+      "kind": "image",
+      "media_type": "image/png",
+      "source": {
+        "uri": "project://minesweeper/images/minesweeper-sprites.png",
+        "content_hash": "8e854a539350464bff4631e8c1f9234236f515bec833a237fe9e60232ebb1329",
+        "byte_size": 58599
+      },
+      "license": {
+        "spdx_id": "MIT",
+        "attribution": "Andreas Isnes; retain the included sprite license notice.",
+        "source_uri": null,
+        "redistribution": "allowed"
+      },
+      "importer": {
+        "capability": "cubeengine.image",
+        "version": "1.0",
+        "settings": {}
+      },
+      "metadata": {
+        "width": 760,
+        "height": 705,
+        "usage": "source collection; not loaded by the game"
+      }
+    },
+    {
+      "id": "asset:face.2000",
+      "name": "2000 face sheet",
+      "kind": "image",
+      "media_type": "image/png",
+      "source": {
+        "uri": "project://minesweeper/images/faces/2000.png",
+        "content_hash": "762a6f60aa3122605650bf629fa58482852c83034f935aec084da1f9b46e7419",
+        "byte_size": 654
+      },
+      "license": {
+        "spdx_id": "MIT",
+        "attribution": "Andreas Isnes; retain the included sprite license notice.",
+        "source_uri": null,
+        "redistribution": "allowed"
+      },
+      "importer": {
+        "capability": "cubeengine.image",
+        "version": "1.0",
+        "settings": {}
+      },
+      "metadata": {
+        "width": 120,
+        "height": 24,
+        "default": true
+      }
+    },
+    {
+      "id": "asset:face.monochrome",
+      "name": "Monochrome face sheet",
+      "kind": "image",
+      "media_type": "image/png",
+      "source": {
+        "uri": "project://minesweeper/images/faces/monochrome.png",
+        "content_hash": "85f47550013452df2212b0b4c6f16c79eed07b01a0f6ed208152582eea73f6f5",
+        "byte_size": 650
+      },
+      "license": {
+        "spdx_id": "MIT",
+        "attribution": "Andreas Isnes; retain the included sprite license notice.",
+        "source_uri": null,
+        "redistribution": "allowed"
+      },
+      "importer": {
+        "capability": "cubeengine.image",
+        "version": "1.0",
+        "settings": {}
+      },
+      "metadata": {
+        "width": 120,
+        "height": 24
+      }
+    },
+    {
+      "id": "asset:score.2000",
+      "name": "2000 score digits sheet",
+      "kind": "image",
+      "media_type": "image/png",
+      "source": {
+        "uri": "project://minesweeper/images/scores/2000.png",
+        "content_hash": "1618527371caf7632a063349982f22ac5c041ad32bdba3929d56c836efdbe44e",
+        "byte_size": 10479
+      },
+      "license": {
+        "spdx_id": "MIT",
+        "attribution": "Andreas Isnes; retain the included sprite license notice.",
+        "source_uri": null,
+        "redistribution": "allowed"
+      },
+      "importer": {
+        "capability": "cubeengine.image",
+        "version": "1.0",
+        "settings": {}
+      },
+      "metadata": {
+        "width": 130,
+        "height": 23,
+        "default": true
+      }
+    },
+    {
+      "id": "asset:score.monochrome",
+      "name": "Monochrome score digits sheet",
+      "kind": "image",
+      "media_type": "image/png",
+      "source": {
+        "uri": "project://minesweeper/images/scores/monochrome.png",
+        "content_hash": "a7579c08e9c4705ea64551780e23e1bb6eb0ed8988cfdfad4c74a8b35b3d311d",
+        "byte_size": 419
+      },
+      "license": {
+        "spdx_id": "MIT",
+        "attribution": "Andreas Isnes; retain the included sprite license notice.",
+        "source_uri": null,
+        "redistribution": "allowed"
+      },
+      "importer": {
+        "capability": "cubeengine.image",
+        "version": "1.0",
+        "settings": {}
+      },
+      "metadata": {
+        "width": 130,
+        "height": 23
+      }
+    },
+    {
+      "id": "asset:tile.2000",
+      "name": "2000 tile sheet",
+      "kind": "image",
+      "media_type": "image/png",
+      "source": {
+        "uri": "project://minesweeper/images/tiles/2000.png",
+        "content_hash": "fe658c317f759c45cfedd3802bac9b2cf47e139c0670fe67214bac512e99e648",
+        "byte_size": 1222
+      },
+      "license": {
+        "spdx_id": "MIT",
+        "attribution": "Andreas Isnes; retain the included sprite license notice.",
+        "source_uri": null,
+        "redistribution": "allowed"
+      },
+      "importer": {
+        "capability": "cubeengine.image",
+        "version": "1.0",
+        "settings": {}
+      },
+      "metadata": {
+        "width": 128,
+        "height": 32,
+        "default": true
+      }
+    },
+    {
+      "id": "asset:tile.20",
+      "name": "2.0 tile sheet",
+      "kind": "image",
+      "media_type": "image/png",
+      "source": {
+        "uri": "project://minesweeper/images/tiles/2.0.png",
+        "content_hash": "98421b004b558d8e6a672c8a8772f75f5f91c74ae433b07edd23b1ef0983ccff",
+        "byte_size": 945
+      },
+      "license": {
+        "spdx_id": "MIT",
+        "attribution": "Andreas Isnes; retain the included sprite license notice.",
+        "source_uri": null,
+        "redistribution": "allowed"
+      },
+      "importer": {
+        "capability": "cubeengine.image",
+        "version": "1.0",
+        "settings": {}
+      },
+      "metadata": {
+        "width": 128,
+        "height": 32
+      }
+    },
+    {
+      "id": "asset:tile.29",
+      "name": "2.9 tile sheet",
+      "kind": "image",
+      "media_type": "image/png",
+      "source": {
+        "uri": "project://minesweeper/images/tiles/2.9.png",
+        "content_hash": "c8f1424b05261f42254f7e5b7320a77bcfe8157aea90fcfec3e017dba5515992",
+        "byte_size": 880
+      },
+      "license": {
+        "spdx_id": "MIT",
+        "attribution": "Andreas Isnes; retain the included sprite license notice.",
+        "source_uri": null,
+        "redistribution": "allowed"
+      },
+      "importer": {
+        "capability": "cubeengine.image",
+        "version": "1.0",
+        "settings": {}
+      },
+      "metadata": {
+        "width": 128,
+        "height": 32
+      }
+    },
+    {
+      "id": "asset:tile.95",
+      "name": "95 tile sheet",
+      "kind": "image",
+      "media_type": "image/png",
+      "source": {
+        "uri": "project://minesweeper/images/tiles/95.png",
+        "content_hash": "22d0e0898f53e527ddee310a3e12ea55b328c9f11f57df82035ffef3d6e957f0",
+        "byte_size": 973
+      },
+      "license": {
+        "spdx_id": "MIT",
+        "attribution": "Andreas Isnes; retain the included sprite license notice.",
+        "source_uri": null,
+        "redistribution": "allowed"
+      },
+      "importer": {
+        "capability": "cubeengine.image",
+        "version": "1.0",
+        "settings": {}
+      },
+      "metadata": {
+        "width": 128,
+        "height": 32
+      }
+    },
+    {
+      "id": "asset:tile.fiorito-2000",
+      "name": "Fiorito 2000 tile sheet",
+      "kind": "image",
+      "media_type": "image/png",
+      "source": {
+        "uri": "project://minesweeper/images/tiles/fiorito-2000.png",
+        "content_hash": "0a968bd423d2a2ea24151840b90ebe8615bbb5243b727f613cb8591482d6788b",
+        "byte_size": 902
+      },
+      "license": {
+        "spdx_id": "MIT",
+        "attribution": "Andreas Isnes; retain the included sprite license notice.",
+        "source_uri": null,
+        "redistribution": "allowed"
+      },
+      "importer": {
+        "capability": "cubeengine.image",
+        "version": "1.0",
+        "settings": {}
+      },
+      "metadata": {
+        "width": 128,
+        "height": 32
+      }
+    },
+    {
+      "id": "asset:tile.fiorito-monochrome",
+      "name": "Fiorito monochrome tile sheet",
+      "kind": "image",
+      "media_type": "image/png",
+      "source": {
+        "uri": "project://minesweeper/images/tiles/fiorito-monochrome.png",
+        "content_hash": "b7a957a3b1fdfd3f4812db004bc6f70f8b7115d8ac2359510d331b88b75f6fd6",
+        "byte_size": 912
+      },
+      "license": {
+        "spdx_id": "MIT",
+        "attribution": "Andreas Isnes; retain the included sprite license notice.",
+        "source_uri": null,
+        "redistribution": "allowed"
+      },
+      "importer": {
+        "capability": "cubeengine.image",
+        "version": "1.0",
+        "settings": {}
+      },
+      "metadata": {
+        "width": 128,
+        "height": 32
+      }
+    },
+    {
+      "id": "asset:tile.fiorito-xp",
+      "name": "Fiorito XP tile sheet",
+      "kind": "image",
+      "media_type": "image/png",
+      "source": {
+        "uri": "project://minesweeper/images/tiles/fiorito-xp.png",
+        "content_hash": "75e13de3c3d40787cb8ce23d1c877d3e11007caccfd59e7d07f87d185880bb62",
+        "byte_size": 885
+      },
+      "license": {
+        "spdx_id": "MIT",
+        "attribution": "Andreas Isnes; retain the included sprite license notice.",
+        "source_uri": null,
+        "redistribution": "allowed"
+      },
+      "importer": {
+        "capability": "cubeengine.image",
+        "version": "1.0",
+        "settings": {}
+      },
+      "metadata": {
+        "width": 128,
+        "height": 32
+      }
+    },
+    {
+      "id": "asset:tile.monochrome",
+      "name": "Monochrome tile sheet",
+      "kind": "image",
+      "media_type": "image/png",
+      "source": {
+        "uri": "project://minesweeper/images/tiles/monochrome.png",
+        "content_hash": "a47ac8078051a43a3960f228e7aad6657b5238f20a3579a773dd6b8012028bc3",
+        "byte_size": 712
+      },
+      "license": {
+        "spdx_id": "MIT",
+        "attribution": "Andreas Isnes; retain the included sprite license notice.",
+        "source_uri": null,
+        "redistribution": "allowed"
+      },
+      "importer": {
+        "capability": "cubeengine.image",
+        "version": "1.0",
+        "settings": {}
+      },
+      "metadata": {
+        "width": 128,
+        "height": 32
+      }
+    }
+  ],
+  "derivations": [
+    {
+      "id": "asset:tile.unopened",
+      "name": "Unopened tile, index 0",
+      "kind": "image",
+      "media_type": "image/png",
+      "strategy": "atlas_region",
+      "inputs": [
+        "asset:tile.2000"
+      ],
+      "settings": {
+        "x": 0,
+        "y": 0,
+        "width": 16,
+        "height": 16
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:tile.empty",
+      "name": "Opened empty tile, index 1",
+      "kind": "image",
+      "media_type": "image/png",
+      "strategy": "atlas_region",
+      "inputs": [
+        "asset:tile.2000"
+      ],
+      "settings": {
+        "x": 16,
+        "y": 0,
+        "width": 16,
+        "height": 16
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:tile.flag",
+      "name": "Flag, index 2",
+      "kind": "image",
+      "media_type": "image/png",
+      "strategy": "atlas_region",
+      "inputs": [
+        "asset:tile.2000"
+      ],
+      "settings": {
+        "x": 32,
+        "y": 0,
+        "width": 16,
+        "height": 16
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:tile.question",
+      "name": "Question mark, index 3",
+      "kind": "image",
+      "media_type": "image/png",
+      "strategy": "atlas_region",
+      "inputs": [
+        "asset:tile.2000"
+      ],
+      "settings": {
+        "x": 48,
+        "y": 0,
+        "width": 16,
+        "height": 16
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:tile.question-click",
+      "name": "Pressed question mark, index 4",
+      "kind": "image",
+      "media_type": "image/png",
+      "strategy": "atlas_region",
+      "inputs": [
+        "asset:tile.2000"
+      ],
+      "settings": {
+        "x": 64,
+        "y": 0,
+        "width": 16,
+        "height": 16
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:tile.mine",
+      "name": "Exposed mine, index 5",
+      "kind": "image",
+      "media_type": "image/png",
+      "strategy": "atlas_region",
+      "inputs": [
+        "asset:tile.2000"
+      ],
+      "settings": {
+        "x": 80,
+        "y": 0,
+        "width": 16,
+        "height": 16
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:tile.mine-red",
+      "name": "Detonated mine, index 6",
+      "kind": "image",
+      "media_type": "image/png",
+      "strategy": "atlas_region",
+      "inputs": [
+        "asset:tile.2000"
+      ],
+      "settings": {
+        "x": 96,
+        "y": 0,
+        "width": 16,
+        "height": 16
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:tile.mine-red-cross",
+      "name": "Incorrect flag, index 7",
+      "kind": "image",
+      "media_type": "image/png",
+      "strategy": "atlas_region",
+      "inputs": [
+        "asset:tile.2000"
+      ],
+      "settings": {
+        "x": 112,
+        "y": 0,
+        "width": 16,
+        "height": 16
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:tile.one",
+      "name": "Adjacent count 1, index 8",
+      "kind": "image",
+      "media_type": "image/png",
+      "strategy": "atlas_region",
+      "inputs": [
+        "asset:tile.2000"
+      ],
+      "settings": {
+        "x": 0,
+        "y": 16,
+        "width": 16,
+        "height": 16
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:tile.two",
+      "name": "Adjacent count 2, index 9",
+      "kind": "image",
+      "media_type": "image/png",
+      "strategy": "atlas_region",
+      "inputs": [
+        "asset:tile.2000"
+      ],
+      "settings": {
+        "x": 16,
+        "y": 16,
+        "width": 16,
+        "height": 16
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:tile.three",
+      "name": "Adjacent count 3, index 10",
+      "kind": "image",
+      "media_type": "image/png",
+      "strategy": "atlas_region",
+      "inputs": [
+        "asset:tile.2000"
+      ],
+      "settings": {
+        "x": 32,
+        "y": 16,
+        "width": 16,
+        "height": 16
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:tile.four",
+      "name": "Adjacent count 4, index 11",
+      "kind": "image",
+      "media_type": "image/png",
+      "strategy": "atlas_region",
+      "inputs": [
+        "asset:tile.2000"
+      ],
+      "settings": {
+        "x": 48,
+        "y": 16,
+        "width": 16,
+        "height": 16
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:tile.five",
+      "name": "Adjacent count 5, index 12",
+      "kind": "image",
+      "media_type": "image/png",
+      "strategy": "atlas_region",
+      "inputs": [
+        "asset:tile.2000"
+      ],
+      "settings": {
+        "x": 64,
+        "y": 16,
+        "width": 16,
+        "height": 16
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:tile.six",
+      "name": "Adjacent count 6, index 13",
+      "kind": "image",
+      "media_type": "image/png",
+      "strategy": "atlas_region",
+      "inputs": [
+        "asset:tile.2000"
+      ],
+      "settings": {
+        "x": 80,
+        "y": 16,
+        "width": 16,
+        "height": 16
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:tile.seven",
+      "name": "Adjacent count 7, index 14",
+      "kind": "image",
+      "media_type": "image/png",
+      "strategy": "atlas_region",
+      "inputs": [
+        "asset:tile.2000"
+      ],
+      "settings": {
+        "x": 96,
+        "y": 16,
+        "width": 16,
+        "height": 16
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:tile.eight",
+      "name": "Adjacent count 8, index 15",
+      "kind": "image",
+      "media_type": "image/png",
+      "strategy": "atlas_region",
+      "inputs": [
+        "asset:tile.2000"
+      ],
+      "settings": {
+        "x": 112,
+        "y": 16,
+        "width": 16,
+        "height": 16
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:face.smile",
+      "name": "Smile face, index 0",
+      "kind": "image",
+      "media_type": "image/png",
+      "strategy": "atlas_region",
+      "inputs": [
+        "asset:face.2000"
+      ],
+      "settings": {
+        "x": 0,
+        "y": 0,
+        "width": 24,
+        "height": 24
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:face.smile-click",
+      "name": "Pressed smile face, index 1",
+      "kind": "image",
+      "media_type": "image/png",
+      "strategy": "atlas_region",
+      "inputs": [
+        "asset:face.2000"
+      ],
+      "settings": {
+        "x": 24,
+        "y": 0,
+        "width": 24,
+        "height": 24
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:face.excited",
+      "name": "Excited face, index 2",
+      "kind": "image",
+      "media_type": "image/png",
+      "strategy": "atlas_region",
+      "inputs": [
+        "asset:face.2000"
+      ],
+      "settings": {
+        "x": 48,
+        "y": 0,
+        "width": 24,
+        "height": 24
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:face.winner",
+      "name": "Winning face, index 3",
+      "kind": "image",
+      "media_type": "image/png",
+      "strategy": "atlas_region",
+      "inputs": [
+        "asset:face.2000"
+      ],
+      "settings": {
+        "x": 72,
+        "y": 0,
+        "width": 24,
+        "height": 24
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:face.dead",
+      "name": "Losing face, index 4",
+      "kind": "image",
+      "media_type": "image/png",
+      "strategy": "atlas_region",
+      "inputs": [
+        "asset:face.2000"
+      ],
+      "settings": {
+        "x": 96,
+        "y": 0,
+        "width": 24,
+        "height": 24
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:score.zero",
+      "name": "Score digit 0",
+      "kind": "image",
+      "media_type": "image/png",
+      "strategy": "atlas_region",
+      "inputs": [
+        "asset:score.2000"
+      ],
+      "settings": {
+        "x": 0,
+        "y": 0,
+        "width": 13,
+        "height": 23
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:score.one",
+      "name": "Score digit 1",
+      "kind": "image",
+      "media_type": "image/png",
+      "strategy": "atlas_region",
+      "inputs": [
+        "asset:score.2000"
+      ],
+      "settings": {
+        "x": 13,
+        "y": 0,
+        "width": 13,
+        "height": 23
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:score.two",
+      "name": "Score digit 2",
+      "kind": "image",
+      "media_type": "image/png",
+      "strategy": "atlas_region",
+      "inputs": [
+        "asset:score.2000"
+      ],
+      "settings": {
+        "x": 26,
+        "y": 0,
+        "width": 13,
+        "height": 23
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:score.three",
+      "name": "Score digit 3",
+      "kind": "image",
+      "media_type": "image/png",
+      "strategy": "atlas_region",
+      "inputs": [
+        "asset:score.2000"
+      ],
+      "settings": {
+        "x": 39,
+        "y": 0,
+        "width": 13,
+        "height": 23
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:score.four",
+      "name": "Score digit 4",
+      "kind": "image",
+      "media_type": "image/png",
+      "strategy": "atlas_region",
+      "inputs": [
+        "asset:score.2000"
+      ],
+      "settings": {
+        "x": 52,
+        "y": 0,
+        "width": 13,
+        "height": 23
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:score.five",
+      "name": "Score digit 5",
+      "kind": "image",
+      "media_type": "image/png",
+      "strategy": "atlas_region",
+      "inputs": [
+        "asset:score.2000"
+      ],
+      "settings": {
+        "x": 65,
+        "y": 0,
+        "width": 13,
+        "height": 23
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:score.six",
+      "name": "Score digit 6",
+      "kind": "image",
+      "media_type": "image/png",
+      "strategy": "atlas_region",
+      "inputs": [
+        "asset:score.2000"
+      ],
+      "settings": {
+        "x": 78,
+        "y": 0,
+        "width": 13,
+        "height": 23
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:score.seven",
+      "name": "Score digit 7",
+      "kind": "image",
+      "media_type": "image/png",
+      "strategy": "atlas_region",
+      "inputs": [
+        "asset:score.2000"
+      ],
+      "settings": {
+        "x": 91,
+        "y": 0,
+        "width": 13,
+        "height": 23
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:score.eight",
+      "name": "Score digit 8",
+      "kind": "image",
+      "media_type": "image/png",
+      "strategy": "atlas_region",
+      "inputs": [
+        "asset:score.2000"
+      ],
+      "settings": {
+        "x": 104,
+        "y": 0,
+        "width": 13,
+        "height": 23
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:score.nine",
+      "name": "Score digit 9",
+      "kind": "image",
+      "media_type": "image/png",
+      "strategy": "atlas_region",
+      "inputs": [
+        "asset:score.2000"
+      ],
+      "settings": {
+        "x": 117,
+        "y": 0,
+        "width": 13,
+        "height": 23
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    }
+  ],
+  "roles": [
+    {
+      "id": "asset:role.tiles",
+      "name": "Default tile appearances",
+      "semantic": "tile-sprites",
+      "resource": "asset:tile.2000",
+      "usage": "world_texture",
+      "required": true
+    },
+    {
+      "id": "asset:role.faces",
+      "name": "Default status and reset faces",
+      "semantic": "face-sprites",
+      "resource": "asset:face.2000",
+      "usage": "ui_texture",
+      "required": true
+    },
+    {
+      "id": "asset:role.digits",
+      "name": "Default timer and mine-counter digits",
+      "semantic": "score-sprites",
+      "resource": "asset:score.2000",
+      "usage": "ui_texture",
+      "required": true
+    }
+  ],
+  "presentation_mappings": [],
+  "provenance": {
+    "patch_history": [
+      {
+        "base_revision": 0,
+        "base_content_hash": "562a9a0fa239028710017a7bc920247f2f9892bff3ba4682c526c2cbca28f6ec",
+        "evidence": [
+          {
+            "evidence_id": "run_game.py:1-17@0d9c1899014279d13615849458126254a3fac9e54d7cd28aef6c7fb41aa3d03a",
+            "path": "run_game.py",
+            "file_sha256": "0d9c1899014279d13615849458126254a3fac9e54d7cd28aef6c7fb41aa3d03a",
+            "span": {
+              "line_start": 1,
+              "line_end": 17
+            },
+            "supports": "/asset_ir"
+          },
+          {
+            "evidence_id": "minesweeper/__main__.py:1-168@c734448d03ecdb6ef6693a03e5d711ec2d27145d13ba38b6455271c50677cd5a",
+            "path": "minesweeper/__main__.py",
+            "file_sha256": "c734448d03ecdb6ef6693a03e5d711ec2d27145d13ba38b6455271c50677cd5a",
+            "span": {
+              "line_start": 1,
+              "line_end": 168
+            },
+            "supports": "/asset_ir"
+          },
+          {
+            "evidence_id": "minesweeper/sprites/spritesheet.py:1-86@3b875b93fdaf2cc6fb38ac2e4bdc2d1cd56667bba72a626a36b9dfeb28b0ad4b",
+            "path": "minesweeper/sprites/spritesheet.py",
+            "file_sha256": "3b875b93fdaf2cc6fb38ac2e4bdc2d1cd56667bba72a626a36b9dfeb28b0ad4b",
+            "span": {
+              "line_start": 1,
+              "line_end": 86
+            },
+            "supports": "/asset_ir"
+          },
+          {
+            "evidence_id": "minesweeper/sprites/tile.py:1-182@95433703bbf3665d8abf4e41a3a22eb6687d2bf1625a2667ae8d75ff0024fd9f",
+            "path": "minesweeper/sprites/tile.py",
+            "file_sha256": "95433703bbf3665d8abf4e41a3a22eb6687d2bf1625a2667ae8d75ff0024fd9f",
+            "span": {
+              "line_start": 1,
+              "line_end": 182
+            },
+            "supports": "/asset_ir"
+          },
+          {
+            "evidence_id": "minesweeper/sprites/tile.py:183-199@95433703bbf3665d8abf4e41a3a22eb6687d2bf1625a2667ae8d75ff0024fd9f",
+            "path": "minesweeper/sprites/tile.py",
+            "file_sha256": "95433703bbf3665d8abf4e41a3a22eb6687d2bf1625a2667ae8d75ff0024fd9f",
+            "span": {
+              "line_start": 183,
+              "line_end": 199
+            },
+            "supports": "/asset_ir"
+          },
+          {
+            "evidence_id": "minesweeper/sprites/face.py:1-81@279d37b6d436e5620cd3e6639d185d4f52747872cda2a0aa05fcfdb6cccb0160",
+            "path": "minesweeper/sprites/face.py",
+            "file_sha256": "279d37b6d436e5620cd3e6639d185d4f52747872cda2a0aa05fcfdb6cccb0160",
+            "span": {
+              "line_start": 1,
+              "line_end": 81
+            },
+            "supports": "/asset_ir"
+          },
+          {
+            "evidence_id": "minesweeper/sprites/score.py:1-138@7820112dd83e64c9b5e567b9da9d8877a21474dce6f4635830e7fa4cdaae3ba8",
+            "path": "minesweeper/sprites/score.py",
+            "file_sha256": "7820112dd83e64c9b5e567b9da9d8877a21474dce6f4635830e7fa4cdaae3ba8",
+            "span": {
+              "line_start": 1,
+              "line_end": 138
+            },
+            "supports": "/asset_ir"
+          },
+          {
+            "evidence_id": "minesweeper/user_interface_board.py:1-140@1e552aa64378928d6297a68abee49dc425b20e6bd240a9752b92f549589c89fc",
+            "path": "minesweeper/user_interface_board.py",
+            "file_sha256": "1e552aa64378928d6297a68abee49dc425b20e6bd240a9752b92f549589c89fc",
+            "span": {
+              "line_start": 1,
+              "line_end": 140
+            },
+            "supports": "/asset_ir"
+          },
+          {
+            "evidence_id": "minesweeper/user_interface_board.py:141-152@1e552aa64378928d6297a68abee49dc425b20e6bd240a9752b92f549589c89fc",
+            "path": "minesweeper/user_interface_board.py",
+            "file_sha256": "1e552aa64378928d6297a68abee49dc425b20e6bd240a9752b92f549589c89fc",
+            "span": {
+              "line_start": 141,
+              "line_end": 152
+            },
+            "supports": "/asset_ir"
+          },
+          {
+            "evidence_id": "minesweeper/user_interface_face.py:1-88@9ffe4fbb299b21934f4ad01b2b4075beb09af5e37bd72ed970e90464f9f10f97",
+            "path": "minesweeper/user_interface_face.py",
+            "file_sha256": "9ffe4fbb299b21934f4ad01b2b4075beb09af5e37bd72ed970e90464f9f10f97",
+            "span": {
+              "line_start": 1,
+              "line_end": 88
+            },
+            "supports": "/asset_ir"
+          },
+          {
+            "evidence_id": "minesweeper/user_interface_score.py:1-76@eda7fdfc4640dbca70aebbe0278a70ea60c9867ad48371e6650d87250455fa1e",
+            "path": "minesweeper/user_interface_score.py",
+            "file_sha256": "eda7fdfc4640dbca70aebbe0278a70ea60c9867ad48371e6650d87250455fa1e",
+            "span": {
+              "line_start": 1,
+              "line_end": 76
+            },
+            "supports": "/asset_ir"
+          },
+          {
+            "evidence_id": "LICENSE-pygame-minesweeper-sprites.txt:1-21@1429f1b0e5e1072dd77a7966ad1754b91ba9fd3ec29aeb916e5d53ba7e9fe1f6",
+            "path": "LICENSE-pygame-minesweeper-sprites.txt",
+            "file_sha256": "1429f1b0e5e1072dd77a7966ad1754b91ba9fd3ec29aeb916e5d53ba7e9fe1f6",
+            "span": {
+              "line_start": 1,
+              "line_end": 21
+            },
+            "supports": "/asset_ir"
+          }
+        ],
+        "assumptions": [
+          "The launcher selects basic difficulty and leaves the default 2000 sprite options unchanged. Alternative indexed sheets are retained as source assets.",
+          "Sprite-sheet images use the included MIT sprite license; the source collection has no active in-game role."
+        ],
+        "operation_count": 6
+      }
+    ]
+  },
+  "unresolved": []
+}

@@ -1,0 +1,531 @@
+{
+  "scope": "Original paid Spatial Rule replay through production stages; downstream model generation deliberately disabled",
+  "network": "socket connections denied",
+  "live_api_requests": 0,
+  "design_intent_recovered": true,
+  "trace": [
+    {
+      "stage": "rule_ir",
+      "attempt": 1,
+      "passed": true,
+      "checks": [
+        {
+          "name": "Flag, question, then clear without opening",
+          "passed": true,
+          "state_hash": "a1bf16a30e3c703fde47b9245c79023f2a0603426497bdebb23d3cdbb17b1f43"
+        },
+        {
+          "name": "A flagged cell cannot be revealed",
+          "passed": true,
+          "state_hash": "669940195a1af7668b4c83abb1f9094e73a32147c36adf3e91967e67e11da570"
+        },
+        {
+          "name": "First opening protects a three-dimensional neighborhood",
+          "passed": true,
+          "state_hash": "200a48f1ee0391995a1b6aa9a9b7c6cf4f766e547d691d8f1c2f51c0a5a5d2ff"
+        },
+        {
+          "name": "Opening a mine loses and prevents further actions",
+          "passed": true,
+          "state_hash": "4037b91210e7599381ad34aeba696488d08f145815eb8381f5e38a155c8938bc"
+        },
+        {
+          "name": "Final safe opening wins at 502",
+          "passed": true,
+          "state_hash": "4de96607864453e4f9d66b6526fb1389cd02eb6bddac67ef5a9882cd6aed376e"
+        }
+      ],
+      "cached": true,
+      "behavior_tests": [
+        {
+          "name": "Flag, question, then clear without opening",
+          "seed": 0,
+          "steps": [
+            {
+              "action": "rule:action.cycle_mark",
+              "parameters": {
+                "coordinate": [
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "accepted": true
+            },
+            {
+              "action": "rule:action.cycle_mark",
+              "parameters": {
+                "coordinate": [
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "accepted": true
+            },
+            {
+              "action": "rule:action.clear_question",
+              "parameters": {
+                "coordinate": [
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "accepted": true
+            }
+          ],
+          "expect": {
+            "cells": [
+              {
+                "state": "rule:state.cover",
+                "coordinate": [
+                  0,
+                  0,
+                  0
+                ],
+                "value": 0
+              }
+            ],
+            "globals": {
+              "rule:state.flags": 0,
+              "rule:state.opened_count": 0
+            },
+            "terminal": false
+          }
+        },
+        {
+          "name": "A flagged cell cannot be revealed",
+          "seed": 0,
+          "steps": [
+            {
+              "action": "rule:action.cycle_mark",
+              "parameters": {
+                "coordinate": [
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "accepted": true
+            },
+            {
+              "action": "rule:action.reveal",
+              "parameters": {
+                "coordinate": [
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "accepted": false
+            }
+          ],
+          "expect": {
+            "cells": [
+              {
+                "state": "rule:state.cover",
+                "coordinate": [
+                  0,
+                  0,
+                  0
+                ],
+                "value": 1
+              }
+            ],
+            "globals": {
+              "rule:state.flags": 1
+            },
+            "terminal": false
+          }
+        },
+        {
+          "name": "First opening protects a three-dimensional neighborhood",
+          "seed": 0,
+          "steps": [
+            {
+              "action": "rule:action.reveal",
+              "parameters": {
+                "coordinate": [
+                  4,
+                  4,
+                  4
+                ]
+              },
+              "accepted": true
+            },
+            {
+              "action": "rule:action.reveal",
+              "parameters": {
+                "coordinate": [
+                  4,
+                  4,
+                  4
+                ]
+              },
+              "accepted": false
+            }
+          ],
+          "expect": {
+            "cells": [
+              {
+                "state": "rule:state.mines",
+                "coordinate": [
+                  4,
+                  4,
+                  4
+                ],
+                "value": 0
+              },
+              {
+                "state": "rule:state.mines",
+                "coordinate": [
+                  5,
+                  5,
+                  5
+                ],
+                "value": 0
+              },
+              {
+                "state": "rule:state.number",
+                "coordinate": [
+                  4,
+                  4,
+                  4
+                ],
+                "value": 0
+              },
+              {
+                "state": "rule:state.cover",
+                "coordinate": [
+                  4,
+                  4,
+                  4
+                ],
+                "value": 3
+              }
+            ],
+            "terminal": false
+          }
+        },
+        {
+          "name": "Opening a mine loses and prevents further actions",
+          "seed": 0,
+          "fixture": {
+            "cells": [
+              {
+                "state": "rule:state.mines",
+                "otherwise": 0
+              },
+              {
+                "state": "rule:state.mines",
+                "coordinate": [
+                  7,
+                  7,
+                  7
+                ],
+                "value": 1
+              },
+              {
+                "state": "rule:state.mines",
+                "coordinate": [
+                  0,
+                  0,
+                  0
+                ],
+                "value": 1
+              },
+              {
+                "state": "rule:state.mines",
+                "coordinate": [
+                  0,
+                  0,
+                  1
+                ],
+                "value": 1
+              },
+              {
+                "state": "rule:state.mines",
+                "coordinate": [
+                  0,
+                  0,
+                  2
+                ],
+                "value": 1
+              },
+              {
+                "state": "rule:state.mines",
+                "coordinate": [
+                  0,
+                  0,
+                  3
+                ],
+                "value": 1
+              },
+              {
+                "state": "rule:state.mines",
+                "coordinate": [
+                  0,
+                  0,
+                  4
+                ],
+                "value": 1
+              },
+              {
+                "state": "rule:state.mines",
+                "coordinate": [
+                  0,
+                  0,
+                  5
+                ],
+                "value": 1
+              },
+              {
+                "state": "rule:state.mines",
+                "coordinate": [
+                  0,
+                  0,
+                  6
+                ],
+                "value": 1
+              },
+              {
+                "state": "rule:state.mines",
+                "coordinate": [
+                  0,
+                  0,
+                  7
+                ],
+                "value": 1
+              },
+              {
+                "state": "rule:state.mines",
+                "coordinate": [
+                  0,
+                  1,
+                  0
+                ],
+                "value": 1
+              }
+            ],
+            "globals": {
+              "rule:state.opened_count": 1
+            }
+          },
+          "steps": [
+            {
+              "action": "rule:action.reveal",
+              "parameters": {
+                "coordinate": [
+                  7,
+                  7,
+                  7
+                ]
+              },
+              "accepted": true
+            },
+            {
+              "action": "rule:action.cycle_mark",
+              "parameters": {
+                "coordinate": [
+                  4,
+                  4,
+                  4
+                ]
+              },
+              "accepted": false
+            }
+          ],
+          "expect": {
+            "cells": [
+              {
+                "state": "rule:state.cover",
+                "coordinate": [
+                  7,
+                  7,
+                  7
+                ],
+                "value": 4
+              }
+            ],
+            "globals": {
+              "rule:state.result": 1
+            },
+            "terminal": true
+          }
+        },
+        {
+          "name": "Final safe opening wins at 502",
+          "seed": 0,
+          "fixture": {
+            "cells": [
+              {
+                "state": "rule:state.mines",
+                "otherwise": 0
+              },
+              {
+                "state": "rule:state.mines",
+                "coordinate": [
+                  7,
+                  7,
+                  7
+                ],
+                "value": 1
+              },
+              {
+                "state": "rule:state.mines",
+                "coordinate": [
+                  0,
+                  0,
+                  0
+                ],
+                "value": 1
+              },
+              {
+                "state": "rule:state.mines",
+                "coordinate": [
+                  0,
+                  0,
+                  1
+                ],
+                "value": 1
+              },
+              {
+                "state": "rule:state.mines",
+                "coordinate": [
+                  0,
+                  0,
+                  2
+                ],
+                "value": 1
+              },
+              {
+                "state": "rule:state.mines",
+                "coordinate": [
+                  0,
+                  0,
+                  3
+                ],
+                "value": 1
+              },
+              {
+                "state": "rule:state.mines",
+                "coordinate": [
+                  0,
+                  0,
+                  4
+                ],
+                "value": 1
+              },
+              {
+                "state": "rule:state.mines",
+                "coordinate": [
+                  0,
+                  0,
+                  5
+                ],
+                "value": 1
+              },
+              {
+                "state": "rule:state.mines",
+                "coordinate": [
+                  0,
+                  0,
+                  6
+                ],
+                "value": 1
+              },
+              {
+                "state": "rule:state.mines",
+                "coordinate": [
+                  0,
+                  0,
+                  7
+                ],
+                "value": 1
+              },
+              {
+                "state": "rule:state.mines",
+                "coordinate": [
+                  0,
+                  1,
+                  0
+                ],
+                "value": 1
+              },
+              {
+                "state": "rule:state.number",
+                "coordinate": [
+                  4,
+                  4,
+                  4
+                ],
+                "value": 1
+              }
+            ],
+            "globals": {
+              "rule:state.opened_count": 501
+            }
+          },
+          "steps": [
+            {
+              "action": "rule:action.reveal",
+              "parameters": {
+                "coordinate": [
+                  4,
+                  4,
+                  4
+                ]
+              },
+              "accepted": true
+            },
+            {
+              "action": "rule:action.reveal",
+              "parameters": {
+                "coordinate": [
+                  4,
+                  4,
+                  3
+                ]
+              },
+              "accepted": false
+            }
+          ],
+          "expect": {
+            "cells": [
+              {
+                "state": "rule:state.cover",
+                "coordinate": [
+                  4,
+                  4,
+                  4
+                ],
+                "value": 3
+              }
+            ],
+            "globals": {
+              "rule:state.opened_count": 502,
+              "rule:state.result": 2
+            },
+            "terminal": true
+          }
+        }
+      ],
+      "ignored_engine_fields": [],
+      "cache_recovery": "legacy_target_bootstrap; exact source/intent/model pins; current gates rerun",
+      "lowered_authoring_fields": []
+    },
+    {
+      "stage": "asset_ir",
+      "attempt": 1,
+      "passed": false,
+      "cached": false,
+      "diagnostics": [
+        "OFFLINE STOP: next uncached stage needs model generation; no request sent"
+      ]
+    }
+  ],
+  "stop": [
+    "asset_ir: OFFLINE STOP: next uncached stage needs model generation; no request sent"
+  ]
+}

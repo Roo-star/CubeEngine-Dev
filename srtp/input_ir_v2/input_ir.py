@@ -404,6 +404,12 @@ def _validate_trigger(value: Any, path: str, diagnostics: List[InputIRDiagnostic
         if value.get("phase") not in _PHASES:
             diagnostics.append(_error("trigger.phase", path + "/phase", "Unsupported physical event phase."))
         _validate_modifiers(value, path, diagnostics)
+        if 'pointer' in value:
+            from srtp.input_pointer_contract import pointer_filter_errors
+            for issue in pointer_filter_errors(value['pointer'],path+'/pointer'):
+                diagnostics.append(_error('trigger.pointer',path+'/pointer',issue))
+            if value.get('device')!='mouse':
+                diagnostics.append(_error('trigger.pointer',path+'/pointer','Pointer filter requires a mouse control.'))
     elif kind == "chord":
         _required_keys(value, ("kind", "controls", "trigger", "phase", "modifiers", "modifier_policy"), path, diagnostics)
         controls = value.get("controls")

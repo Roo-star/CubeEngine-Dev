@@ -22,7 +22,7 @@ from unittest.mock import patch
 
 ROOT=Path(__file__).resolve().parents[1]
 PROBES=('tests.ursina_contract_probe','tests.ursina_visual_probe','tests.ursina_scene_probe',
-        'tests.ursina_generated_board_probe')
+        'tests.ursina_generated_board_probe','tests.ursina_minesweeper_feedback_probe','tests.ursina_pointer_input_probe')
 
 
 def deny_network(*args,**kwargs):

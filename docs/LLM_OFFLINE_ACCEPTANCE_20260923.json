@@ -1,5 +1,5 @@
 {
-  "started_at": "2026-09-23T15:40:33.083038+00:00",
+  "started_at": "2026-09-23T16:15:48.748678+00:00",
   "python": "C:\\Users\\Yingr\\.pyenv\\pyenv-win\\versions\\3.9.1\\python.exe",
   "workspace": "E:\\CubeEngine\\CubeEngine-SRTP",
   "scope": "OFFLINE ENGINEERING ACCEPTANCE ONLY",
@@ -142,7 +142,7 @@
     "srtp/llm_compiler_v1/approval.py": "1a63b4000999267335622cf4bb8e6e488a3e3d2367fcfc75daf3952c1d771847",
     "srtp/llm_compiler_v1/artifacts.py": "b92f384671e004742e1263cf9524b6ad3ad764e1e600fa731b6b7f10f16f5bfc",
     "srtp/llm_compiler_v1/backend_contract.py": "08fd3f4bab48409af71878cd4a34186053b71fb15d1df2634c5acba45f8f450a",
-    "srtp/llm_compiler_v1/behavior_runtime.py": "cfd1a376c44322f132678dc6a4d1654a12ff4acc16ff5af031343dd43ba7fd40",
+    "srtp/llm_compiler_v1/behavior_runtime.py": "14c3b23a3a4850509926c13cbce8608589f2e4bfaa252cab2382cea0508b4d34",
     "srtp/llm_compiler_v1/bootstrap.py": "41f6a1d69da7d444b6eddb1adbf4ae20acfc66d9eb478156b14ef01c1f4ae502",
     "srtp/llm_compiler_v1/client.py": "25d10b0169a34daeb48d5e21adf4d13054105f97be5f7fd2eb84b59829294133",
     "srtp/llm_compiler_v1/compiler.py": "ee659f2ab1acdc208777f58a6f7e07377c10c526cadd378a8643c40974806659",
@@ -155,7 +155,7 @@
     "srtp/llm_compiler_v1/prompts.py": "051f2e8ee399fd55d579437f0ec139ea8eb68910153b08d0200f70dd81f667c4",
     "srtp/llm_compiler_v1/quality_assessment.py": "7ebad7da61de5bc926fce060a79b0ec55ec68a19a505cf4721900b6c2b32b779",
     "srtp/llm_compiler_v1/source_workspace.py": "ae1581b64b13f52c2f524daf062d5c556c91245b7f6f45837b2229d6e5579934",
-    "srtp/llm_compiler_v1/staged.py": "3f2156d3e4c33184aae109f655b04c39aaa8a954c6ef18b7f0c951c09687af8e",
+    "srtp/llm_compiler_v1/staged.py": "54b811df2a29719c86e0a967500e78297445c897c06966de1ac42af0d421f1a3",
     "srtp/llm_compiler_v1/validation.py": "fc5e4749a7c047575f46e0b33f200a0e1b781bfa4c54352ccd20069ddc955461",
     "srtp/manifest_source.py": "611596b3dbacc832f2404c6c54be0c705b86420d20747acafc791fbc8a8eb064",
     "srtp/parser.py": "44d52487ce2e162853c8ceed8e8a602a539cb74007bb78fba164aa5fbf75df93",
@@ -213,7 +213,7 @@
     "srtp/reference_games/turtle_connect_complete/connect_complete.py": "de234ef4f3881eba0d1dbb36975aa7944facae9a5b340e1b9a178f5366283636",
     "srtp/report.py": "c0f372c919741cfbd8273cc68cd19435c5c7d011a41df9cec4f61d7ab9a1e9e6",
     "srtp/rule-schema-v1.schema.json": "dbe97076281310e38206267e3cc9d688c4fed4ae9015fc5bb6de1c82bc514ced",
-    "srtp/runtime_assets.py": "fc7b939119364b5bec7bffd6076316217f41a68185fd281521a04dd50d35792a",
+    "srtp/runtime_assets.py": "c1d09a4c483196e29eddd65cafabfe79ab6afe2958dc59f390ce831fabac76a9",
     "srtp/runtime_bootstrap.py": "646d8533ebaaf10481c8462d760717403c30ca49111f85f565b1be04e281bcb1",
     "srtp/scene_ir_v2/__init__.py": "819c7790444b9e07e4fcca932408d54f4bd6445c58d50c1415afd3b25d7c7cd6",
     "srtp/scene_ir_v2/compiler.py": "b8039dbd8e90a436f9a65d4f56d932ec3e4ae50b9a3c6cb0b063ad1777ae31dc",
@@ -233,6 +233,7 @@
     "srtp/source_visuals.py": "c4cfb9322b239672561552211c5692f28d94f1e18c519df89b6fef17db4c9283",
     "srtp/sprite_geometry.py": "28e45dab68e222a9df5266a0f1865a20c626afd8897af6a33bcafa4f07dbc5e1",
     "srtp/stal_adapter.py": "e8a65628554104cff5fc6fc9f5c92faea015ee722f59ad0dde7a461c97563ea3",
+    "srtp/system_fonts.py": "b795fd618991c0126d2ae49c2512f6a46cd50455897e491a79c062db47b2b934",
     "srtp/transform_runner.py": "5502eb99dd60c3916d720810cf86b87aea26066aab5d2ef99bb0d75422cc1e39",
     "srtp/transformed_games.py": "5f7ae123476152f477fb88827ba1c08c5006f9fb618f798fef05527c29439bec",
     "srtp/transformed_viewer.py": "0821cc2c18d2104e03b3b1a7e994ac56f7c85ab07d345bcebfa3a6600b29b69e",
@@ -259,6 +260,8 @@
     "tests/fixtures/field_runs_20260923/tictactoe_target/report.json": "55f917a1bbe12e1e206a921ffe022bac40b298f7c56dd28e0a45329cccbe06f1",
     "tests/fixtures/field_runs_20260923/tictactoe_target/source.manifest.json": "43345111ca4d6eb43629268509747884371c519096653354e51b93e0500842db",
     "tests/fixtures/field_runs_20260923/tictactoe_target/spatial_lift_plan.json": "87a1c49196f6b767ded4f41f2c03d764022041bc35e0d84e2cf97f7d833162bb",
+    "tests/fixtures/field_runs_20260924/2048_font_failure.json": "74be998a43d51a408bffa9e76f5c2ed4a58f00a318fc4ccdcf0e2d29fb9ec17f",
+    "tests/fixtures/field_runs_20260924/minesweeper_rejected_rule.json": "aff7131ee399b2140ed0ce427cb589734175ee9c6aa3a95234f986da6cc210a0",
     "tests/fixtures/generated_tictactoe_target_20260923/asset.resources.json": "8102a2f4d20af95dc94573cf66cbe5469ef11197ea5b91aab99b73ce4d57f17d",
     "tests/fixtures/generated_tictactoe_target_20260923/design_intent.json": "b3b0cd5daa2cbc9f7b45b42848e5f0a96f61a5366460711fa1d2661fc049f846",
     "tests/fixtures/generated_tictactoe_target_20260923/ir/game.asset-ir.json": "15048b6947deb05b03c0f3d5eb8a4c820a945db07d997e7fe808186a892e2e0e",
@@ -284,6 +287,7 @@
     "tests/test_demo_rule_adapter.py": "e06490aeb445fc41c39d73d096b804cd253557d31678819661cf1e72868ff28e",
     "tests/test_engine_conversion_pipeline.py": "d612c04393bc5d58017be09804e82defcb36f56f7373a39823ab030c86f16237",
     "tests/test_extension_sdk.py": "707c5625e2a3a4621f3f897b74ae41266cbff6bfef0bf3b85ac59773d230a438",
+    "tests/test_font_and_diagnostic_failures.py": "15a1385c5fe7dfc5ddf06a8a47a2586af49620483155916e47f8c5daf5dc48c8",
     "tests/test_host_input_commands.py": "cf8106c5218b5104eb40479470ea27286abc79bc23ebd3dbb1c053a42c760f4f",
     "tests/test_input_ir_v2.py": "8ced3b5f40784218965f0bb85768029d4f212344cf0c97f52d0e65d0cfd9ea42",
     "tests/test_ir_acceptance_workbench.py": "cfed4ee6b45d514efcec742813ada6603731a9049b9684c875a10090591b2c8e",
@@ -336,7 +340,7 @@
     "tests/ursina_scene_probe.py": "05b442f416e2f585f573c893e6e0b0986b68ddac5a22d1ccc2aa9b904cab02d6",
     "tests/ursina_visual_probe.py": "5c40ed28eaa056b58c1217ee8a1a0f1a41475792233ae56f29c7ddaf5f24e2ec"
   },
-  "code_fingerprint": "63d301d08e3094381130e2609459faceab01591696e72a0bc67976b015d84f5d",
+  "code_fingerprint": "2ad16ecb693496739e010f90976affb46a27dd7b38f78608de800ea4e8a32514",
   "dependencies": {
     "httpx": "0.28.1",
     "numpy": "2.0.2",
@@ -349,8 +353,8 @@
   "branch": "SRTP",
   "git_head": "a0d817832ea24659ae3116d23b0b50b325753522",
   "tests": {
-    "total": 462,
-    "passed": 461,
+    "total": 469,
+    "passed": 468,
     "passed_test_ids": [
       "tests.test_alphazero_v1.AlphaZero3DTests.test_24_cube_rotations_are_bijective",
       "tests.test_alphazero_v1.AlphaZero3DTests.test_3d_tensor_27_actions_and_spatial_win",
@@ -418,6 +422,13 @@
       "tests.test_extension_sdk.ExtensionRegistryAndConformanceTests.test_replay_safe_capability_reproduces_request_response_hash_audit",
       "tests.test_extension_sdk.RuleAndProjectExtensionIntegrationTests.test_project_manifest_pins_provider_and_runs_full_input_pipeline",
       "tests.test_extension_sdk.RuleAndProjectExtensionIntegrationTests.test_rule_runtime_requires_and_uses_exact_extension_session",
+      "tests.test_font_and_diagnostic_failures.FontDiagnosticFailureTests.test_actual_minesweeper_failure_is_saved_and_repaired_without_json_crash",
+      "tests.test_font_and_diagnostic_failures.FontDiagnosticFailureTests.test_font_uri_cannot_select_arbitrary_paths",
+      "tests.test_font_and_diagnostic_failures.FontDiagnosticFailureTests.test_invariant_objects_are_json_safe_and_keep_identity",
+      "tests.test_font_and_diagnostic_failures.FontDiagnosticFailureTests.test_missing_system_font_stops_before_paid_call",
+      "tests.test_font_and_diagnostic_failures.FontDiagnosticFailureTests.test_real_2048_configuration_indexes_exact_bold_verdana",
+      "tests.test_font_and_diagnostic_failures.FontDiagnosticFailureTests.test_runtime_invariant_exception_reaches_next_model_request_and_report",
+      "tests.test_font_and_diagnostic_failures.FontDiagnosticFailureTests.test_system_font_survives_bundle_move_without_installed_font",
       "tests.test_host_input_commands.HostCommandTests.test_host_commands_are_explicit_allowlisted_digital_requests",
       "tests.test_host_input_commands.HostCommandTests.test_host_restart_after_terminal_and_quit_do_not_forge_rule_actions",
       "tests.test_host_input_commands.HostCommandTests.test_original_model_report_remains_blocked_not_silently_cleared",
@@ -822,7 +833,7 @@
         "reason": "Set CUBEENGINE_LLM_LIVE=1 with OPENROUTER_API_KEY for live smoke"
       }
     ],
-    "runner_output": "...................................................................................................................................................................................s..........................................................................................................................................................................................................................................................................................\n----------------------------------------------------------------------\nRan 462 tests in 53.068s\n\nOK (skipped=1)\n"
+    "runner_output": "..........................................................................................................................................................................................s..........................................................................................................................................................................................................................................................................................\n----------------------------------------------------------------------\nRan 469 tests in 57.871s\n\nOK (skipped=1)\n"
   },
   "render_probes": [
     {
@@ -856,6 +867,6 @@
   ],
   "unexpected_skips": [],
   "passed": true,
-  "duration_seconds": 69.844,
-  "finished_at": "2026-09-23T15:41:42.925500+00:00"
+  "duration_seconds": 74.797,
+  "finished_at": "2026-09-23T16:17:03.542396+00:00"
 }

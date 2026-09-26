@@ -1,0 +1,2181 @@
+{
+  "ir_version": "cubeengine.rule-ir/2.0-alpha.1",
+  "document_id": "rule:game.pygame.minesweeper.source",
+  "revision": 1,
+  "content_hash": "f5ebc1e26af13ede695a97fe8cd6cc6e05960530c489f2b51a21f5be7b05de0f",
+  "metadata": {
+    "title": "Pygame Minesweeper",
+    "description": "The launcher starts a 10×10 game with ten mines. Right-click cycles unopened tiles through flag, question mark, and unopened. Left-click clears a question mark or opens a tile. The first opening relocates mines out of its surrounding area; opening a mine loses, and opening all safe tiles wins.",
+    "source_project_hash": "711faede56c844d8c40612a1a285087c2ee39f1b4832974ac3e742125f9bd930",
+    "determinism": "seeded"
+  },
+  "dependencies": {
+    "scene_ir": null,
+    "asset_ir": null,
+    "input_ir": null,
+    "extensions": []
+  },
+  "parameters": [],
+  "types": [],
+  "participants": [
+    {
+      "id": "rule:participant.player",
+      "name": "Player",
+      "kind": "human"
+    }
+  ],
+  "topologies": [
+    {
+      "id": "rule:topology.board",
+      "name": "Basic board",
+      "kind": "rect_grid",
+      "anchor": "cell",
+      "axes": [
+        {
+          "name": "row",
+          "extent": 10,
+          "boundary": "bounded"
+        },
+        {
+          "name": "column",
+          "extent": 10,
+          "boundary": "bounded"
+        }
+      ],
+      "neighborhoods": [
+        {
+          "name": "adjacent_eight",
+          "diagonals": true
+        }
+      ]
+    }
+  ],
+  "state": {
+    "variables": [
+      {
+        "id": "rule:state.mines",
+        "name": "Mine locations",
+        "type": "core:int",
+        "scope": "topology_site",
+        "topology": "rule:topology.board",
+        "initial": {
+          "op": "literal",
+          "value": 0
+        }
+      },
+      {
+        "id": "rule:state.number",
+        "name": "Adjacent mine count, or 9 for a mine",
+        "type": "core:int",
+        "scope": "topology_site",
+        "topology": "rule:topology.board",
+        "initial": {
+          "op": "literal",
+          "value": 0
+        }
+      },
+      {
+        "id": "rule:state.cover",
+        "name": "0 unopened, 1 flagged, 2 questioned, 3 opened, 4 detonated, 5 incorrect flag, 6 exposed mine",
+        "type": "core:int",
+        "scope": "topology_site",
+        "topology": "rule:topology.board",
+        "initial": {
+          "op": "literal",
+          "value": 0
+        }
+      },
+      {
+        "id": "rule:state.flood",
+        "name": "Transient flood traversal value",
+        "type": "core:int",
+        "scope": "topology_site",
+        "topology": "rule:topology.board",
+        "initial": {
+          "op": "literal",
+          "value": 9
+        }
+      },
+      {
+        "id": "rule:state.flags",
+        "name": "Flags placed by the player",
+        "type": "core:int",
+        "scope": "global",
+        "initial": {
+          "op": "literal",
+          "value": 0
+        }
+      },
+      {
+        "id": "rule:state.opened_count",
+        "name": "Tiles opened by the core board",
+        "type": "core:int",
+        "scope": "global",
+        "initial": {
+          "op": "literal",
+          "value": 0
+        }
+      },
+      {
+        "id": "rule:state.result",
+        "name": "0 playing, 1 loss, 2 win",
+        "type": "core:int",
+        "scope": "global",
+        "initial": {
+          "op": "literal",
+          "value": 0
+        }
+      },
+      {
+        "id": "rule:state.pending",
+        "name": "First-opening relocation in progress",
+        "type": "core:int",
+        "scope": "global",
+        "initial": {
+          "op": "literal",
+          "value": 0
+        }
+      },
+      {
+        "id": "rule:state.adjacent_count",
+        "name": "Mine-counting accumulator",
+        "type": "core:int",
+        "scope": "global",
+        "initial": {
+          "op": "literal",
+          "value": 0
+        }
+      },
+      {
+        "id": "rule:state.timer_active",
+        "name": "First tile has been opened",
+        "type": "core:int",
+        "scope": "global",
+        "initial": {
+          "op": "literal",
+          "value": 0
+        }
+      },
+      {
+        "id": "rule:state.timer_ticks",
+        "name": "Timer ticks within the current second",
+        "type": "core:int",
+        "scope": "global",
+        "initial": {
+          "op": "literal",
+          "value": 0
+        }
+      },
+      {
+        "id": "rule:state.seconds",
+        "name": "Elapsed whole seconds, frozen at game end",
+        "type": "core:int",
+        "scope": "global",
+        "initial": {
+          "op": "literal",
+          "value": 0
+        }
+      }
+    ],
+    "entity_types": [],
+    "initial_effects": [
+      {
+        "op": "random.draw",
+        "stream": "rule:random.mines",
+        "distribution": {
+          "kind": "shuffle",
+          "values": {
+            "op": "call",
+            "function": "core:topology.sites",
+            "args": [
+              {
+                "op": "literal",
+                "value": "rule:topology.board"
+              }
+            ]
+          }
+        },
+        "as": "initial_shuffle"
+      },
+      {
+        "op": "foreach",
+        "query": {
+          "op": "call",
+          "function": "core:sequence.slice",
+          "args": [
+            {
+              "op": "var",
+              "name": "initial_shuffle"
+            },
+            {
+              "op": "literal",
+              "value": 0
+            },
+            {
+              "op": "literal",
+              "value": 10
+            }
+          ]
+        },
+        "as": "mine_site",
+        "effects": [
+          {
+            "op": "grid.set",
+            "state": "rule:state.mines",
+            "coordinate": {
+              "op": "var",
+              "name": "mine_site"
+            },
+            "value": {
+              "op": "literal",
+              "value": 1
+            }
+          }
+        ]
+      }
+    ],
+    "information_model": "perfect"
+  },
+  "queries": [],
+  "events": [],
+  "actions": [
+    {
+      "id": "rule:action.cycle_mark",
+      "name": "Cycle unopened → flag → question → unopened",
+      "actor": {
+        "op": "literal",
+        "value": "rule:participant.player"
+      },
+      "parameters": [
+        {
+          "name": "coordinate",
+          "type": "core:coord",
+          "domain": {
+            "op": "call",
+            "function": "core:topology.sites",
+            "args": [
+              {
+                "op": "literal",
+                "value": "rule:topology.board"
+              }
+            ]
+          }
+        }
+      ],
+      "precondition": {
+        "op": "and",
+        "args": [
+          {
+            "op": "eq",
+            "args": [
+              {
+                "op": "call",
+                "function": "core:state.get",
+                "args": [
+                  {
+                    "op": "literal",
+                    "value": "rule:state.result"
+                  }
+                ]
+              },
+              {
+                "op": "literal",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "op": "call",
+            "function": "core:topology.contains",
+            "args": [
+              {
+                "op": "literal",
+                "value": "rule:topology.board"
+              },
+              {
+                "op": "param",
+                "name": "coordinate"
+              }
+            ]
+          },
+          {
+            "op": "gte",
+            "args": [
+              {
+                "op": "call",
+                "function": "core:grid.get",
+                "args": [
+                  {
+                    "op": "literal",
+                    "value": "rule:state.cover"
+                  },
+                  {
+                    "op": "param",
+                    "name": "coordinate"
+                  }
+                ]
+              },
+              {
+                "op": "literal",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "op": "lt",
+            "args": [
+              {
+                "op": "call",
+                "function": "core:grid.get",
+                "args": [
+                  {
+                    "op": "literal",
+                    "value": "rule:state.cover"
+                  },
+                  {
+                    "op": "param",
+                    "name": "coordinate"
+                  }
+                ]
+              },
+              {
+                "op": "literal",
+                "value": 3
+              }
+            ]
+          }
+        ]
+      },
+      "effects": [
+        {
+          "op": "state.increment",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.flags"
+          },
+          "value": {
+            "op": "if",
+            "condition": {
+              "op": "eq",
+              "args": [
+                {
+                  "op": "call",
+                  "function": "core:grid.get",
+                  "args": [
+                    {
+                      "op": "literal",
+                      "value": "rule:state.cover"
+                    },
+                    {
+                      "op": "param",
+                      "name": "coordinate"
+                    }
+                  ]
+                },
+                {
+                  "op": "literal",
+                  "value": 0
+                }
+              ]
+            },
+            "then": {
+              "op": "literal",
+              "value": 1
+            },
+            "else": {
+              "op": "if",
+              "condition": {
+                "op": "eq",
+                "args": [
+                  {
+                    "op": "call",
+                    "function": "core:grid.get",
+                    "args": [
+                      {
+                        "op": "literal",
+                        "value": "rule:state.cover"
+                      },
+                      {
+                        "op": "param",
+                        "name": "coordinate"
+                      }
+                    ]
+                  },
+                  {
+                    "op": "literal",
+                    "value": 1
+                  }
+                ]
+              },
+              "then": {
+                "op": "neg",
+                "args": [
+                  {
+                    "op": "literal",
+                    "value": 1
+                  }
+                ]
+              },
+              "else": {
+                "op": "literal",
+                "value": 0
+              }
+            }
+          }
+        },
+        {
+          "op": "grid.set",
+          "state": "rule:state.cover",
+          "coordinate": {
+            "op": "param",
+            "name": "coordinate"
+          },
+          "value": {
+            "op": "mod",
+            "args": [
+              {
+                "op": "add",
+                "args": [
+                  {
+                    "op": "call",
+                    "function": "core:grid.get",
+                    "args": [
+                      {
+                        "op": "literal",
+                        "value": "rule:state.cover"
+                      },
+                      {
+                        "op": "param",
+                        "name": "coordinate"
+                      }
+                    ]
+                  },
+                  {
+                    "op": "literal",
+                    "value": 1
+                  }
+                ]
+              },
+              {
+                "op": "literal",
+                "value": 3
+              }
+            ]
+          }
+        }
+      ],
+      "timing": {
+        "phase": "rule:phase.play"
+      },
+      "encoding": {
+        "kind": "parameter_product"
+      }
+    },
+    {
+      "id": "rule:action.clear_question",
+      "name": "Left-click a question mark without opening the tile",
+      "actor": {
+        "op": "literal",
+        "value": "rule:participant.player"
+      },
+      "parameters": [
+        {
+          "name": "coordinate",
+          "type": "core:coord",
+          "domain": {
+            "op": "call",
+            "function": "core:topology.sites",
+            "args": [
+              {
+                "op": "literal",
+                "value": "rule:topology.board"
+              }
+            ]
+          }
+        }
+      ],
+      "precondition": {
+        "op": "and",
+        "args": [
+          {
+            "op": "eq",
+            "args": [
+              {
+                "op": "call",
+                "function": "core:state.get",
+                "args": [
+                  {
+                    "op": "literal",
+                    "value": "rule:state.result"
+                  }
+                ]
+              },
+              {
+                "op": "literal",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "op": "call",
+            "function": "core:topology.contains",
+            "args": [
+              {
+                "op": "literal",
+                "value": "rule:topology.board"
+              },
+              {
+                "op": "param",
+                "name": "coordinate"
+              }
+            ]
+          },
+          {
+            "op": "eq",
+            "args": [
+              {
+                "op": "call",
+                "function": "core:grid.get",
+                "args": [
+                  {
+                    "op": "literal",
+                    "value": "rule:state.cover"
+                  },
+                  {
+                    "op": "param",
+                    "name": "coordinate"
+                  }
+                ]
+              },
+              {
+                "op": "literal",
+                "value": 2
+              }
+            ]
+          }
+        ]
+      },
+      "effects": [
+        {
+          "op": "grid.set",
+          "state": "rule:state.cover",
+          "coordinate": {
+            "op": "param",
+            "name": "coordinate"
+          },
+          "value": {
+            "op": "literal",
+            "value": 0
+          }
+        }
+      ],
+      "timing": {
+        "phase": "rule:phase.play"
+      },
+      "encoding": {
+        "kind": "parameter_product"
+      }
+    },
+    {
+      "id": "rule:action.reveal",
+      "name": "Open an unopened tile",
+      "actor": {
+        "op": "literal",
+        "value": "rule:participant.player"
+      },
+      "parameters": [
+        {
+          "name": "coordinate",
+          "type": "core:coord",
+          "domain": {
+            "op": "call",
+            "function": "core:topology.sites",
+            "args": [
+              {
+                "op": "literal",
+                "value": "rule:topology.board"
+              }
+            ]
+          }
+        }
+      ],
+      "precondition": {
+        "op": "and",
+        "args": [
+          {
+            "op": "eq",
+            "args": [
+              {
+                "op": "call",
+                "function": "core:state.get",
+                "args": [
+                  {
+                    "op": "literal",
+                    "value": "rule:state.result"
+                  }
+                ]
+              },
+              {
+                "op": "literal",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "op": "call",
+            "function": "core:topology.contains",
+            "args": [
+              {
+                "op": "literal",
+                "value": "rule:topology.board"
+              },
+              {
+                "op": "param",
+                "name": "coordinate"
+              }
+            ]
+          },
+          {
+            "op": "eq",
+            "args": [
+              {
+                "op": "call",
+                "function": "core:grid.get",
+                "args": [
+                  {
+                    "op": "literal",
+                    "value": "rule:state.cover"
+                  },
+                  {
+                    "op": "param",
+                    "name": "coordinate"
+                  }
+                ]
+              },
+              {
+                "op": "literal",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      "effects": [
+        {
+          "op": "foreach",
+          "query": {
+            "op": "if",
+            "condition": {
+              "op": "eq",
+              "args": [
+                {
+                  "op": "call",
+                  "function": "core:state.get",
+                  "args": [
+                    {
+                      "op": "literal",
+                      "value": "rule:state.opened_count"
+                    }
+                  ]
+                },
+                {
+                  "op": "literal",
+                  "value": 0
+                }
+              ]
+            },
+            "then": {
+              "op": "list",
+              "items": [
+                {
+                  "op": "param",
+                  "name": "coordinate"
+                }
+              ]
+            },
+            "else": {
+              "op": "list",
+              "items": []
+            }
+          },
+          "as": "first_click",
+          "effects": [
+            {
+              "op": "state.set",
+              "target": {
+                "op": "literal",
+                "value": "rule:state.timer_active"
+              },
+              "value": {
+                "op": "literal",
+                "value": 1
+              }
+            },
+            {
+              "op": "foreach",
+              "query": {
+                "op": "call",
+                "function": "core:sequence.concat",
+                "args": [
+                  {
+                    "op": "list",
+                    "items": [
+                      {
+                        "op": "param",
+                        "name": "coordinate"
+                      }
+                    ]
+                  },
+                  {
+                    "op": "call",
+                    "function": "core:topology.neighbors",
+                    "args": [
+                      {
+                        "op": "literal",
+                        "value": "rule:topology.board"
+                      },
+                      {
+                        "op": "param",
+                        "name": "coordinate"
+                      },
+                      {
+                        "op": "literal",
+                        "value": true
+                      }
+                    ]
+                  }
+                ]
+              },
+              "as": "protected_site",
+              "effects": [
+                {
+                  "op": "foreach",
+                  "query": {
+                    "op": "if",
+                    "condition": {
+                      "op": "eq",
+                      "args": [
+                        {
+                          "op": "call",
+                          "function": "core:grid.get",
+                          "args": [
+                            {
+                              "op": "literal",
+                              "value": "rule:state.mines"
+                            },
+                            {
+                              "op": "var",
+                              "name": "protected_site"
+                            }
+                          ]
+                        },
+                        {
+                          "op": "literal",
+                          "value": 1
+                        }
+                      ]
+                    },
+                    "then": {
+                      "op": "list",
+                      "items": [
+                        {
+                          "op": "var",
+                          "name": "protected_site"
+                        }
+                      ]
+                    },
+                    "else": {
+                      "op": "list",
+                      "items": []
+                    }
+                  },
+                  "as": "mine_to_move",
+                  "effects": [
+                    {
+                      "op": "state.set",
+                      "target": {
+                        "op": "literal",
+                        "value": "rule:state.pending"
+                      },
+                      "value": {
+                        "op": "literal",
+                        "value": 1
+                      }
+                    },
+                    {
+                      "op": "random.draw",
+                      "stream": "rule:random.mines",
+                      "distribution": {
+                        "kind": "shuffle",
+                        "values": {
+                          "op": "call",
+                          "function": "core:topology.sites",
+                          "args": [
+                            {
+                              "op": "literal",
+                              "value": "rule:topology.board"
+                            }
+                          ]
+                        }
+                      },
+                      "as": "relocation_order"
+                    },
+                    {
+                      "op": "foreach",
+                      "query": {
+                        "op": "var",
+                        "name": "relocation_order"
+                      },
+                      "as": "destination",
+                      "effects": [
+                        {
+                          "op": "foreach",
+                          "query": {
+                            "op": "if",
+                            "condition": {
+                              "op": "and",
+                              "args": [
+                                {
+                                  "op": "eq",
+                                  "args": [
+                                    {
+                                      "op": "call",
+                                      "function": "core:state.get",
+                                      "args": [
+                                        {
+                                          "op": "literal",
+                                          "value": "rule:state.pending"
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "op": "literal",
+                                      "value": 1
+                                    }
+                                  ]
+                                },
+                                {
+                                  "op": "eq",
+                                  "args": [
+                                    {
+                                      "op": "call",
+                                      "function": "core:grid.get",
+                                      "args": [
+                                        {
+                                          "op": "literal",
+                                          "value": "rule:state.mines"
+                                        },
+                                        {
+                                          "op": "var",
+                                          "name": "destination"
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "op": "literal",
+                                      "value": 0
+                                    }
+                                  ]
+                                },
+                                {
+                                  "op": "ne",
+                                  "args": [
+                                    {
+                                      "op": "var",
+                                      "name": "destination"
+                                    },
+                                    {
+                                      "op": "param",
+                                      "name": "coordinate"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "op": "not",
+                                  "args": [
+                                    {
+                                      "op": "contains",
+                                      "args": [
+                                        {
+                                          "op": "call",
+                                          "function": "core:topology.neighbors",
+                                          "args": [
+                                            {
+                                              "op": "literal",
+                                              "value": "rule:topology.board"
+                                            },
+                                            {
+                                              "op": "param",
+                                              "name": "coordinate"
+                                            },
+                                            {
+                                              "op": "literal",
+                                              "value": true
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "op": "var",
+                                          "name": "destination"
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            "then": {
+                              "op": "list",
+                              "items": [
+                                {
+                                  "op": "var",
+                                  "name": "destination"
+                                }
+                              ]
+                            },
+                            "else": {
+                              "op": "list",
+                              "items": []
+                            }
+                          },
+                          "as": "chosen_destination",
+                          "effects": [
+                            {
+                              "op": "grid.set",
+                              "state": "rule:state.mines",
+                              "coordinate": {
+                                "op": "var",
+                                "name": "chosen_destination"
+                              },
+                              "value": {
+                                "op": "literal",
+                                "value": 1
+                              }
+                            },
+                            {
+                              "op": "grid.set",
+                              "state": "rule:state.mines",
+                              "coordinate": {
+                                "op": "var",
+                                "name": "mine_to_move"
+                              },
+                              "value": {
+                                "op": "literal",
+                                "value": 0
+                              }
+                            },
+                            {
+                              "op": "state.set",
+                              "target": {
+                                "op": "literal",
+                                "value": "rule:state.pending"
+                              },
+                              "value": {
+                                "op": "literal",
+                                "value": 0
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "op": "foreach",
+              "query": {
+                "op": "call",
+                "function": "core:topology.sites",
+                "args": [
+                  {
+                    "op": "literal",
+                    "value": "rule:topology.board"
+                  }
+                ]
+              },
+              "as": "numbered_site",
+              "effects": [
+                {
+                  "op": "state.set",
+                  "target": {
+                    "op": "literal",
+                    "value": "rule:state.adjacent_count"
+                  },
+                  "value": {
+                    "op": "literal",
+                    "value": 0
+                  }
+                },
+                {
+                  "op": "foreach",
+                  "query": {
+                    "op": "call",
+                    "function": "core:topology.neighbors",
+                    "args": [
+                      {
+                        "op": "literal",
+                        "value": "rule:topology.board"
+                      },
+                      {
+                        "op": "var",
+                        "name": "numbered_site"
+                      },
+                      {
+                        "op": "literal",
+                        "value": true
+                      }
+                    ]
+                  },
+                  "as": "neighbor",
+                  "effects": [
+                    {
+                      "op": "state.increment",
+                      "target": {
+                        "op": "literal",
+                        "value": "rule:state.adjacent_count"
+                      },
+                      "value": {
+                        "op": "call",
+                        "function": "core:grid.get",
+                        "args": [
+                          {
+                            "op": "literal",
+                            "value": "rule:state.mines"
+                          },
+                          {
+                            "op": "var",
+                            "name": "neighbor"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "op": "grid.set",
+                  "state": "rule:state.number",
+                  "coordinate": {
+                    "op": "var",
+                    "name": "numbered_site"
+                  },
+                  "value": {
+                    "op": "if",
+                    "condition": {
+                      "op": "eq",
+                      "args": [
+                        {
+                          "op": "call",
+                          "function": "core:grid.get",
+                          "args": [
+                            {
+                              "op": "literal",
+                              "value": "rule:state.mines"
+                            },
+                            {
+                              "op": "var",
+                              "name": "numbered_site"
+                            }
+                          ]
+                        },
+                        {
+                          "op": "literal",
+                          "value": 1
+                        }
+                      ]
+                    },
+                    "then": {
+                      "op": "literal",
+                      "value": 9
+                    },
+                    "else": {
+                      "op": "call",
+                      "function": "core:state.get",
+                      "args": [
+                        {
+                          "op": "literal",
+                          "value": "rule:state.adjacent_count"
+                        }
+                      ]
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "op": "foreach",
+          "query": {
+            "op": "if",
+            "condition": {
+              "op": "eq",
+              "args": [
+                {
+                  "op": "call",
+                  "function": "core:grid.get",
+                  "args": [
+                    {
+                      "op": "literal",
+                      "value": "rule:state.mines"
+                    },
+                    {
+                      "op": "param",
+                      "name": "coordinate"
+                    }
+                  ]
+                },
+                {
+                  "op": "literal",
+                  "value": 1
+                }
+              ]
+            },
+            "then": {
+              "op": "list",
+              "items": [
+                {
+                  "op": "param",
+                  "name": "coordinate"
+                }
+              ]
+            },
+            "else": {
+              "op": "list",
+              "items": []
+            }
+          },
+          "as": "detonated",
+          "effects": [
+            {
+              "op": "state.increment",
+              "target": {
+                "op": "literal",
+                "value": "rule:state.opened_count"
+              },
+              "value": {
+                "op": "literal",
+                "value": 1
+              }
+            },
+            {
+              "op": "grid.set",
+              "state": "rule:state.cover",
+              "coordinate": {
+                "op": "param",
+                "name": "coordinate"
+              },
+              "value": {
+                "op": "literal",
+                "value": 4
+              }
+            },
+            {
+              "op": "state.set",
+              "target": {
+                "op": "literal",
+                "value": "rule:state.result"
+              },
+              "value": {
+                "op": "literal",
+                "value": 1
+              }
+            },
+            {
+              "op": "foreach",
+              "query": {
+                "op": "call",
+                "function": "core:topology.sites",
+                "args": [
+                  {
+                    "op": "literal",
+                    "value": "rule:topology.board"
+                  }
+                ]
+              },
+              "as": "loss_site",
+              "effects": [
+                {
+                  "op": "foreach",
+                  "query": {
+                    "op": "if",
+                    "condition": {
+                      "op": "and",
+                      "args": [
+                        {
+                          "op": "eq",
+                          "args": [
+                            {
+                              "op": "call",
+                              "function": "core:grid.get",
+                              "args": [
+                                {
+                                  "op": "literal",
+                                  "value": "rule:state.mines"
+                                },
+                                {
+                                  "op": "var",
+                                  "name": "loss_site"
+                                }
+                              ]
+                            },
+                            {
+                              "op": "literal",
+                              "value": 1
+                            }
+                          ]
+                        },
+                        {
+                          "op": "eq",
+                          "args": [
+                            {
+                              "op": "call",
+                              "function": "core:grid.get",
+                              "args": [
+                                {
+                                  "op": "literal",
+                                  "value": "rule:state.cover"
+                                },
+                                {
+                                  "op": "var",
+                                  "name": "loss_site"
+                                }
+                              ]
+                            },
+                            {
+                              "op": "literal",
+                              "value": 0
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    "then": {
+                      "op": "list",
+                      "items": [
+                        {
+                          "op": "var",
+                          "name": "loss_site"
+                        }
+                      ]
+                    },
+                    "else": {
+                      "op": "list",
+                      "items": []
+                    }
+                  },
+                  "as": "unflagged_mine",
+                  "effects": [
+                    {
+                      "op": "grid.set",
+                      "state": "rule:state.cover",
+                      "coordinate": {
+                        "op": "var",
+                        "name": "unflagged_mine"
+                      },
+                      "value": {
+                        "op": "literal",
+                        "value": 6
+                      }
+                    }
+                  ]
+                },
+                {
+                  "op": "foreach",
+                  "query": {
+                    "op": "if",
+                    "condition": {
+                      "op": "and",
+                      "args": [
+                        {
+                          "op": "eq",
+                          "args": [
+                            {
+                              "op": "call",
+                              "function": "core:grid.get",
+                              "args": [
+                                {
+                                  "op": "literal",
+                                  "value": "rule:state.mines"
+                                },
+                                {
+                                  "op": "var",
+                                  "name": "loss_site"
+                                }
+                              ]
+                            },
+                            {
+                              "op": "literal",
+                              "value": 0
+                            }
+                          ]
+                        },
+                        {
+                          "op": "eq",
+                          "args": [
+                            {
+                              "op": "call",
+                              "function": "core:grid.get",
+                              "args": [
+                                {
+                                  "op": "literal",
+                                  "value": "rule:state.cover"
+                                },
+                                {
+                                  "op": "var",
+                                  "name": "loss_site"
+                                }
+                              ]
+                            },
+                            {
+                              "op": "literal",
+                              "value": 1
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    "then": {
+                      "op": "list",
+                      "items": [
+                        {
+                          "op": "var",
+                          "name": "loss_site"
+                        }
+                      ]
+                    },
+                    "else": {
+                      "op": "list",
+                      "items": []
+                    }
+                  },
+                  "as": "incorrect_flag",
+                  "effects": [
+                    {
+                      "op": "grid.set",
+                      "state": "rule:state.cover",
+                      "coordinate": {
+                        "op": "var",
+                        "name": "incorrect_flag"
+                      },
+                      "value": {
+                        "op": "literal",
+                        "value": 5
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "op": "foreach",
+          "query": {
+            "op": "if",
+            "condition": {
+              "op": "eq",
+              "args": [
+                {
+                  "op": "call",
+                  "function": "core:grid.get",
+                  "args": [
+                    {
+                      "op": "literal",
+                      "value": "rule:state.mines"
+                    },
+                    {
+                      "op": "param",
+                      "name": "coordinate"
+                    }
+                  ]
+                },
+                {
+                  "op": "literal",
+                  "value": 0
+                }
+              ]
+            },
+            "then": {
+              "op": "list",
+              "items": [
+                {
+                  "op": "param",
+                  "name": "coordinate"
+                }
+              ]
+            },
+            "else": {
+              "op": "list",
+              "items": []
+            }
+          },
+          "as": "safe_click",
+          "effects": [
+            {
+              "op": "foreach",
+              "query": {
+                "op": "call",
+                "function": "core:topology.sites",
+                "args": [
+                  {
+                    "op": "literal",
+                    "value": "rule:topology.board"
+                  }
+                ]
+              },
+              "as": "flood_site",
+              "effects": [
+                {
+                  "op": "grid.set",
+                  "state": "rule:state.flood",
+                  "coordinate": {
+                    "op": "var",
+                    "name": "flood_site"
+                  },
+                  "value": {
+                    "op": "if",
+                    "condition": {
+                      "op": "lt",
+                      "args": [
+                        {
+                          "op": "call",
+                          "function": "core:grid.get",
+                          "args": [
+                            {
+                              "op": "literal",
+                              "value": "rule:state.cover"
+                            },
+                            {
+                              "op": "var",
+                              "name": "flood_site"
+                            }
+                          ]
+                        },
+                        {
+                          "op": "literal",
+                          "value": 3
+                        }
+                      ]
+                    },
+                    "then": {
+                      "op": "call",
+                      "function": "core:grid.get",
+                      "args": [
+                        {
+                          "op": "literal",
+                          "value": "rule:state.number"
+                        },
+                        {
+                          "op": "var",
+                          "name": "flood_site"
+                        }
+                      ]
+                    },
+                    "else": {
+                      "op": "literal",
+                      "value": 9
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "op": "foreach",
+              "query": {
+                "op": "if",
+                "condition": {
+                  "op": "eq",
+                  "args": [
+                    {
+                      "op": "call",
+                      "function": "core:grid.get",
+                      "args": [
+                        {
+                          "op": "literal",
+                          "value": "rule:state.number"
+                        },
+                        {
+                          "op": "param",
+                          "name": "coordinate"
+                        }
+                      ]
+                    },
+                    {
+                      "op": "literal",
+                      "value": 0
+                    }
+                  ]
+                },
+                "then": {
+                  "op": "call",
+                  "function": "core:grid.flood_region",
+                  "args": [
+                    {
+                      "op": "literal",
+                      "value": "rule:state.flood"
+                    },
+                    {
+                      "op": "param",
+                      "name": "coordinate"
+                    },
+                    {
+                      "op": "list",
+                      "items": [
+                        {
+                          "op": "literal",
+                          "value": 0
+                        }
+                      ]
+                    },
+                    {
+                      "op": "list",
+                      "items": [
+                        {
+                          "op": "literal",
+                          "value": 9
+                        }
+                      ]
+                    },
+                    {
+                      "op": "literal",
+                      "value": true
+                    },
+                    {
+                      "op": "literal",
+                      "value": true
+                    },
+                    {
+                      "op": "list",
+                      "items": []
+                    }
+                  ]
+                },
+                "else": {
+                  "op": "list",
+                  "items": [
+                    {
+                      "op": "param",
+                      "name": "coordinate"
+                    }
+                  ]
+                }
+              },
+              "as": "opening",
+              "effects": [
+                {
+                  "op": "foreach",
+                  "query": {
+                    "op": "if",
+                    "condition": {
+                      "op": "and",
+                      "args": [
+                        {
+                          "op": "lt",
+                          "args": [
+                            {
+                              "op": "call",
+                              "function": "core:grid.get",
+                              "args": [
+                                {
+                                  "op": "literal",
+                                  "value": "rule:state.cover"
+                                },
+                                {
+                                  "op": "var",
+                                  "name": "opening"
+                                }
+                              ]
+                            },
+                            {
+                              "op": "literal",
+                              "value": 3
+                            }
+                          ]
+                        },
+                        {
+                          "op": "eq",
+                          "args": [
+                            {
+                              "op": "call",
+                              "function": "core:grid.get",
+                              "args": [
+                                {
+                                  "op": "literal",
+                                  "value": "rule:state.mines"
+                                },
+                                {
+                                  "op": "var",
+                                  "name": "opening"
+                                }
+                              ]
+                            },
+                            {
+                              "op": "literal",
+                              "value": 0
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    "then": {
+                      "op": "list",
+                      "items": [
+                        {
+                          "op": "var",
+                          "name": "opening"
+                        }
+                      ]
+                    },
+                    "else": {
+                      "op": "list",
+                      "items": []
+                    }
+                  },
+                  "as": "openable",
+                  "effects": [
+                    {
+                      "op": "grid.set",
+                      "state": "rule:state.cover",
+                      "coordinate": {
+                        "op": "var",
+                        "name": "openable"
+                      },
+                      "value": {
+                        "op": "literal",
+                        "value": 3
+                      }
+                    },
+                    {
+                      "op": "state.increment",
+                      "target": {
+                        "op": "literal",
+                        "value": "rule:state.opened_count"
+                      },
+                      "value": {
+                        "op": "literal",
+                        "value": 1
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "op": "foreach",
+              "query": {
+                "op": "if",
+                "condition": {
+                  "op": "eq",
+                  "args": [
+                    {
+                      "op": "call",
+                      "function": "core:state.get",
+                      "args": [
+                        {
+                          "op": "literal",
+                          "value": "rule:state.opened_count"
+                        }
+                      ]
+                    },
+                    {
+                      "op": "literal",
+                      "value": 90
+                    }
+                  ]
+                },
+                "then": {
+                  "op": "list",
+                  "items": [
+                    {
+                      "op": "param",
+                      "name": "coordinate"
+                    }
+                  ]
+                },
+                "else": {
+                  "op": "list",
+                  "items": []
+                }
+              },
+              "as": "completed",
+              "effects": [
+                {
+                  "op": "state.set",
+                  "target": {
+                    "op": "literal",
+                    "value": "rule:state.result"
+                  },
+                  "value": {
+                    "op": "literal",
+                    "value": 2
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "timing": {
+        "phase": "rule:phase.play"
+      },
+      "encoding": {
+        "kind": "parameter_product"
+      }
+    }
+  ],
+  "systems": [
+    {
+      "id": "rule:system.timer",
+      "name": "Advance the first-opening timer until win or loss",
+      "phase": "rule:phase.play",
+      "priority": 100,
+      "trigger": {
+        "kind": "tick",
+        "every": 1
+      },
+      "condition": {
+        "op": "and",
+        "args": [
+          {
+            "op": "eq",
+            "args": [
+              {
+                "op": "call",
+                "function": "core:state.get",
+                "args": [
+                  {
+                    "op": "literal",
+                    "value": "rule:state.timer_active"
+                  }
+                ]
+              },
+              {
+                "op": "literal",
+                "value": 1
+              }
+            ]
+          },
+          {
+            "op": "eq",
+            "args": [
+              {
+                "op": "call",
+                "function": "core:state.get",
+                "args": [
+                  {
+                    "op": "literal",
+                    "value": "rule:state.result"
+                  }
+                ]
+              },
+              {
+                "op": "literal",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      "effects": [
+        {
+          "op": "state.increment",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.timer_ticks"
+          },
+          "value": {
+            "op": "literal",
+            "value": 1
+          }
+        },
+        {
+          "op": "foreach",
+          "query": {
+            "op": "if",
+            "condition": {
+              "op": "gte",
+              "args": [
+                {
+                  "op": "call",
+                  "function": "core:state.get",
+                  "args": [
+                    {
+                      "op": "literal",
+                      "value": "rule:state.timer_ticks"
+                    }
+                  ]
+                },
+                {
+                  "op": "literal",
+                  "value": 60
+                }
+              ]
+            },
+            "then": {
+              "op": "list",
+              "items": [
+                {
+                  "op": "literal",
+                  "value": 0
+                }
+              ]
+            },
+            "else": {
+              "op": "list",
+              "items": []
+            }
+          },
+          "as": "elapsed_second",
+          "effects": [
+            {
+              "op": "state.set",
+              "target": {
+                "op": "literal",
+                "value": "rule:state.timer_ticks"
+              },
+              "value": {
+                "op": "literal",
+                "value": 0
+              }
+            },
+            {
+              "op": "state.increment",
+              "target": {
+                "op": "literal",
+                "value": "rule:state.seconds"
+              },
+              "value": {
+                "op": "literal",
+                "value": 1
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "flow": {
+    "model": "fixed_tick",
+    "phases": [
+      {
+        "id": "rule:phase.play",
+        "order": 100
+      }
+    ],
+    "initial_phase": "rule:phase.play",
+    "scheduler": {
+      "clock": "fixed_tick",
+      "tick_hz": 60,
+      "ordering": "phase_priority_id"
+    }
+  },
+  "random_streams": [
+    {
+      "id": "rule:random.mines",
+      "name": "Initial placement and first-click relocation",
+      "algorithm": "cubeengine.pcg32/1",
+      "seed_policy": "session"
+    }
+  ],
+  "goals": [
+    {
+      "id": "rule:goal.clear_safe_cells",
+      "name": "Open all 90 safe tiles"
+    }
+  ],
+  "outcomes": [
+    {
+      "id": "rule:outcome.loss",
+      "name": "Mine opened",
+      "priority": 100,
+      "condition": {
+        "op": "eq",
+        "args": [
+          {
+            "op": "call",
+            "function": "core:state.get",
+            "args": [
+              {
+                "op": "literal",
+                "value": "rule:state.result"
+              }
+            ]
+          },
+          {
+            "op": "literal",
+            "value": 1
+          }
+        ]
+      },
+      "result": {
+        "status": "loss",
+        "terminal": true,
+        "losers": [
+          {
+            "op": "literal",
+            "value": "rule:participant.player"
+          }
+        ]
+      }
+    },
+    {
+      "id": "rule:outcome.win",
+      "name": "All safe tiles opened",
+      "priority": 90,
+      "condition": {
+        "op": "eq",
+        "args": [
+          {
+            "op": "call",
+            "function": "core:state.get",
+            "args": [
+              {
+                "op": "literal",
+                "value": "rule:state.result"
+              }
+            ]
+          },
+          {
+            "op": "literal",
+            "value": 2
+          }
+        ]
+      },
+      "result": {
+        "status": "win",
+        "terminal": true,
+        "winners": [
+          {
+            "op": "literal",
+            "value": "rule:participant.player"
+          }
+        ]
+      }
+    }
+  ],
+  "modes": [
+    {
+      "id": "rule:mode.basic",
+      "name": "Basic: 10×10, ten mines",
+      "overrides": []
+    }
+  ],
+  "invariants": [
+    {
+      "id": "rule:invariant.flags",
+      "name": "Flag count stays within board bounds",
+      "condition": {
+        "op": "and",
+        "args": [
+          {
+            "op": "gte",
+            "args": [
+              {
+                "op": "call",
+                "function": "core:state.get",
+                "args": [
+                  {
+                    "op": "literal",
+                    "value": "rule:state.flags"
+                  }
+                ]
+              },
+              {
+                "op": "literal",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "op": "lte",
+            "args": [
+              {
+                "op": "call",
+                "function": "core:state.get",
+                "args": [
+                  {
+                    "op": "literal",
+                    "value": "rule:state.flags"
+                  }
+                ]
+              },
+              {
+                "op": "literal",
+                "value": 100
+              }
+            ]
+          }
+        ]
+      },
+      "severity": "error"
+    },
+    {
+      "id": "rule:invariant.mines",
+      "name": "Exactly ten mines remain after relocation",
+      "condition": {
+        "op": "eq",
+        "args": [
+          {
+            "op": "call",
+            "function": "core:grid.count_equal",
+            "args": [
+              {
+                "op": "literal",
+                "value": "rule:state.mines"
+              },
+              {
+                "op": "literal",
+                "value": 1
+              }
+            ]
+          },
+          {
+            "op": "literal",
+            "value": 10
+          }
+        ]
+      },
+      "severity": "error"
+    }
+  ],
+  "extensions": {},
+  "provenance": {
+    "patch_history": [
+      {
+        "base_revision": 0,
+        "base_content_hash": "6078e896532aab58c7015fa2bf18a28038673d3657de7d3e3a10678125ff8df9",
+        "evidence": [
+          {
+            "evidence_id": "run_game.py:1-17@0d9c1899014279d13615849458126254a3fac9e54d7cd28aef6c7fb41aa3d03a",
+            "path": "run_game.py",
+            "file_sha256": "0d9c1899014279d13615849458126254a3fac9e54d7cd28aef6c7fb41aa3d03a",
+            "span": {
+              "line_start": 1,
+              "line_end": 17
+            },
+            "supports": "/rule_ir"
+          },
+          {
+            "evidence_id": "minesweeper/__main__.py:1-168@c734448d03ecdb6ef6693a03e5d711ec2d27145d13ba38b6455271c50677cd5a",
+            "path": "minesweeper/__main__.py",
+            "file_sha256": "c734448d03ecdb6ef6693a03e5d711ec2d27145d13ba38b6455271c50677cd5a",
+            "span": {
+              "line_start": 1,
+              "line_end": 168
+            },
+            "supports": "/rule_ir"
+          },
+          {
+            "evidence_id": "minesweeper/core/board.py:1-163@5bdaff08d676549c480c95374f212bc54a013cc2ac787a686c5279291d883970",
+            "path": "minesweeper/core/board.py",
+            "file_sha256": "5bdaff08d676549c480c95374f212bc54a013cc2ac787a686c5279291d883970",
+            "span": {
+              "line_start": 1,
+              "line_end": 163
+            },
+            "supports": "/rule_ir"
+          },
+          {
+            "evidence_id": "minesweeper/core/board.py:151-172@5bdaff08d676549c480c95374f212bc54a013cc2ac787a686c5279291d883970",
+            "path": "minesweeper/core/board.py",
+            "file_sha256": "5bdaff08d676549c480c95374f212bc54a013cc2ac787a686c5279291d883970",
+            "span": {
+              "line_start": 151,
+              "line_end": 172
+            },
+            "supports": "/rule_ir"
+          },
+          {
+            "evidence_id": "minesweeper/core/board_tile.py:1-64@2d5927094f88c3c03e6ae64ae5a47e63ed4226769caf21998a77a13850233345",
+            "path": "minesweeper/core/board_tile.py",
+            "file_sha256": "2d5927094f88c3c03e6ae64ae5a47e63ed4226769caf21998a77a13850233345",
+            "span": {
+              "line_start": 1,
+              "line_end": 64
+            },
+            "supports": "/rule_ir"
+          },
+          {
+            "evidence_id": "minesweeper/user_interface_board.py:1-152@1e552aa64378928d6297a68abee49dc425b20e6bd240a9752b92f549589c89fc",
+            "path": "minesweeper/user_interface_board.py",
+            "file_sha256": "1e552aa64378928d6297a68abee49dc425b20e6bd240a9752b92f549589c89fc",
+            "span": {
+              "line_start": 1,
+              "line_end": 152
+            },
+            "supports": "/rule_ir"
+          },
+          {
+            "evidence_id": "minesweeper/user_interface_face.py:1-88@9ffe4fbb299b21934f4ad01b2b4075beb09af5e37bd72ed970e90464f9f10f97",
+            "path": "minesweeper/user_interface_face.py",
+            "file_sha256": "9ffe4fbb299b21934f4ad01b2b4075beb09af5e37bd72ed970e90464f9f10f97",
+            "span": {
+              "line_start": 1,
+              "line_end": 88
+            },
+            "supports": "/rule_ir"
+          },
+          {
+            "evidence_id": "minesweeper/user_interface_score.py:1-76@eda7fdfc4640dbca70aebbe0278a70ea60c9867ad48371e6650d87250455fa1e",
+            "path": "minesweeper/user_interface_score.py",
+            "file_sha256": "eda7fdfc4640dbca70aebbe0278a70ea60c9867ad48371e6650d87250455fa1e",
+            "span": {
+              "line_start": 1,
+              "line_end": 76
+            },
+            "supports": "/rule_ir"
+          },
+          {
+            "evidence_id": "minesweeper/user_interface.py:1-70@3eda8eaeb4b8e12b397e397e305f662a027911d38c649d80f8f6b32d0f67f23a",
+            "path": "minesweeper/user_interface.py",
+            "file_sha256": "3eda8eaeb4b8e12b397e397e305f662a027911d38c649d80f8f6b32d0f67f23a",
+            "span": {
+              "line_start": 1,
+              "line_end": 70
+            },
+            "supports": "/rule_ir"
+          },
+          {
+            "evidence_id": "minesweeper/util.py:1-53@595760f06122d94027d3c06800ab890831203e6f1aaeb66203ea0bd9fe2bf97e",
+            "path": "minesweeper/util.py",
+            "file_sha256": "595760f06122d94027d3c06800ab890831203e6f1aaeb66203ea0bd9fe2bf97e",
+            "span": {
+              "line_start": 1,
+              "line_end": 53
+            },
+            "supports": "/rule_ir"
+          }
+        ],
+        "assumptions": [
+          "The launcher forces basic difficulty, so this Rule topology is fixed at 10×10.",
+          "The displayed timer is approximated by 60 simulation ticks per second rather than sampling wall-clock time.",
+          "Mine cells use 9 in the count grid; safe cells have at most eight neighboring mines.",
+          "Flood opening follows the core board's unopened tiles: a flag or question mark in a zero region can be opened without decrementing the UI's flag counter."
+        ],
+        "operation_count": 18
+      }
+    ]
+  },
+  "unresolved": [
+    {
+      "path": "/state/information_model",
+      "reason": "This backend exposes authoritative state to local clients. Covered mines can be concealed visually, but secure hidden observations for agents or remote clients are unavailable.",
+      "required": false,
+      "owner": "extension"
+    },
+    {
+      "path": "/goals/high_scores",
+      "reason": "The source saves winning times to a persistent JSON high-score file; Rule commands cannot perform filesystem persistence. This does not affect the executable board rules.",
+      "required": false,
+      "owner": "extension"
+    },
+    {
+      "path": "/actions/reveal/first_click_relocation",
+      "reason": "The source retries random row-and-column pairs. Shuffling sites and selecting the first eligible destination preserves the uniform destination distribution but not the exact random-number sequence.",
+      "required": false,
+      "owner": "llm"
+    }
+  ]
+}

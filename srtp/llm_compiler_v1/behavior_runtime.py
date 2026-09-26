@@ -17,11 +17,28 @@ def test_runtime(rule, case):
         if not isinstance(cells,list) or len(cells)>4096:
             raise ValueError('Scenario cells must be a bounded list')
         state=runtime.state
+        fills={}
+        overrides=[]
+        for cell in cells:
+            if not isinstance(cell,dict) or cell.get('state') not in state.grids:
+                raise ValueError('Fixture cells require a declared grid state')
+            key=cell['state']
+            if set(cell)=={'state','otherwise'}:
+                if key in fills or 'otherwise' in fixture:
+                    raise ValueError('Fixture has conflicting otherwise fills for '+key)
+                state.type_registry.validate(cell['otherwise'],state.variable_definitions[key]['type'],'fixture otherwise')
+                fills[key]=cell['otherwise']
+            elif set(cell)=={'state','coordinate','value'}:
+                overrides.append(cell)
+            else:
+                raise ValueError('Fixture cell requires state/coordinate/value or state/otherwise')
         if 'otherwise' in fixture:
             for key in {cell['state'] for cell in cells}:
                 state.type_registry.validate(fixture['otherwise'],state.variable_definitions[key]['type'],'fixture otherwise')
                 state.grids[key].fill(fixture['otherwise'])
-        for cell in cells:
+        for key,value in fills.items():
+            state.grids[key].fill(value)
+        for cell in overrides:
             key=cell['state']; coordinate=tuple(cell['coordinate']); grid=state.grids[key]
             if len(coordinate)!=len(grid.shape) or any(type(c) is not int or not 0<=c<grid.shape[i] for i,c in enumerate(coordinate)):
                 raise ValueError('Fixture coordinate outside grid')

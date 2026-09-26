@@ -1,14 +1,15 @@
-"""Resolve source-declared Pygame system fonts without executing game code."""
+"""Resolve source-declared Pygame/Turtle fonts without executing game code."""
 import ast
 import hashlib
 import json
 import re
+import sys
 from pathlib import Path, PurePosixPath
 from urllib.parse import quote, unquote
 
 
 def font_request(uri):
-    match=re.fullmatch(r'runtime://pygame/sysfont/([^/]+)/([01])/([01])',uri)
+    match=re.fullmatch(r'runtime://(?:pygame/sysfont|system/font)/([^/]+)/([01])/([01])',uri)
     if not match: return None
     family=unquote(match[1])
     if not 1<=len(family)<=128 or not re.fullmatch(r'[\w ,.-]+',family):
@@ -19,6 +20,8 @@ def font_request(uri):
 def system_font_path(uri):
     request=font_request(uri)
     if request is None: raise ValueError('Unsupported system font URI')
+    if sys.platform == 'win32':
+        return _windows_font_path(*request)
     # Resolve installed dependency metadata, never import a source game's module.
     from pygame import sysfont
     family,bold,italic=request
@@ -33,6 +36,50 @@ def system_font_path(uri):
     if not path.is_file() or path.suffix.lower() not in ('.ttf','.otf'):
         raise ValueError('System font must resolve to a readable TTF/OTF resource')
     return path
+
+
+def _windows_font_path(family, bold, italic):
+    """Read font registrations defensively: registry values need not be paths.
+
+    Pygame's Windows scanner calls splitext on every registry value, including
+    DWORD values. Keep those unrelated settings out of path handling, and verify
+    the font's own family/style metadata rather than guessing from its filename.
+    """
+    import os
+    import winreg
+    from PIL import ImageFont
+    normalize=lambda text: re.sub(r'[^\w]', '', text.casefold())
+    wanted=[normalize(part) for part in family.split(',')]
+    candidates=[]
+    fontdir=Path(os.environ.get('WINDIR', 'C:/Windows'))/'Fonts'
+    for domain in (winreg.HKEY_LOCAL_MACHINE, winreg.HKEY_CURRENT_USER):
+        for subkey in (r'SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts', r'SOFTWARE\Microsoft\Windows\CurrentVersion\Fonts'):
+            try:
+                with winreg.OpenKey(domain,subkey) as key:
+                    for index in range(winreg.QueryInfoKey(key)[1]):
+                        _, filename, kind=winreg.EnumValue(key,index)
+                        if kind not in (winreg.REG_SZ,winreg.REG_EXPAND_SZ) or not isinstance(filename,str):
+                            continue
+                        path=Path(os.path.expandvars(filename))
+                        if not path.is_absolute():path=fontdir/path
+                        if path.suffix.lower() in ('.ttf','.otf') and path.is_file():
+                            candidates.append(path)
+            except OSError:
+                continue
+    matches={}
+    for path in dict.fromkeys(candidates):
+        try:
+            name,style=ImageFont.truetype(str(path),16).getname()
+        except (OSError,ValueError):
+            continue
+        style=style.lower()
+        if ('bold' in style)==bold and ('italic' in style or 'oblique' in style)==italic:
+            matches[normalize(name)]=path.resolve()
+    for name in wanted:
+        if name in matches:return matches[name]
+    raise ValueError('Required exact system font unavailable locally: '+family+
+                     (' Bold' if bold else '')+(' Italic' if italic else '')+
+                     '; install the original font before calling the model')
 
 
 def discover_system_fonts(files):
@@ -53,6 +100,9 @@ def discover_system_fonts(files):
             return ''
         def value(node):
             if isinstance(node,ast.Constant):return node.value
+            if isinstance(node,(ast.Tuple,ast.List)):
+                items=[value(item) for item in node.elts]
+                return items if all(item is not missing for item in items) else missing
             if isinstance(node,ast.Name):return values.get(node.id,missing)
             if isinstance(node,ast.Subscript):
                 container,key=value(node.value),value(node.slice)
@@ -82,14 +132,29 @@ def discover_system_fonts(files):
                     if target.id in values and values[target.id]!=found:
                         values.pop(target.id);ambiguous.add(target.id)
                     else:values[target.id]=found
+        turtle_objects={target.id for node in assignments if isinstance(node.value,ast.Call)
+                        and qualified(node.value.func) in ('turtle.Turtle','turtle.RawTurtle')
+                        for target in node.targets if isinstance(target,ast.Name)}
         for node in ast.walk(tree):
-            if not isinstance(node,ast.Call) or qualified(node.func)!='pygame.font.SysFont':continue
+            if not isinstance(node,ast.Call):continue
+            call=qualified(node.func)
             def arg(index,key,default):
                 expr=node.args[index] if len(node.args)>index else next((k.value for k in node.keywords if k.arg==key),None)
                 return default if expr is None else value(expr)
-            family,bold,italic=arg(0,'name',missing),arg(2,'bold',False),arg(3,'italic',False)
+            if call=='pygame.font.SysFont':
+                family,bold,italic=arg(0,'name',missing),arg(2,'bold',False),arg(3,'italic',False)
+                prefix='runtime://pygame/sysfont/'
+            elif call=='turtle.write' or (isinstance(node.func,ast.Attribute) and node.func.attr=='write'
+                    and isinstance(node.func.value,ast.Name) and node.func.value.id in turtle_objects):
+                spec=arg(3,'font',missing)
+                if not isinstance(spec,(list,tuple)) or len(spec)<2 or not isinstance(spec[0],str):continue
+                style=spec[2] if len(spec)>2 else 'normal'
+                if not isinstance(style,str):continue
+                family,bold,italic=spec[0],'bold' in style.lower().split(),'italic' in style.lower().split()
+                prefix='runtime://system/font/'
+            else:continue
             if not isinstance(family,str) or type(bold) not in (bool,int) or type(italic) not in (bool,int):continue
-            uri='runtime://pygame/sysfont/'+quote(family.lower(),safe='')+'/'+str(int(bool(bold)))+'/'+str(int(bool(italic)))
+            uri=prefix+quote(family.lower(),safe='')+'/'+str(int(bool(bold)))+'/'+str(int(bool(italic)))
             if uri not in assets:
                 font=system_font_path(uri);data=font.read_bytes()
                 assets[uri]={'id':'asset:font.system.'+hashlib.sha256(uri.encode()).hexdigest()[:12],

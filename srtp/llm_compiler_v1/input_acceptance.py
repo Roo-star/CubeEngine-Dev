@@ -6,27 +6,33 @@ from srtp.ir_v2 import compile_rule_ir
 from srtp.scene_presentation import ScenePresentation
 from srtp.session_random import session_sources
 from .behavior_runtime import test_runtime
+from srtp.input_pointer_contract import pointer_data,scene_pick_context,scene_parent
 
 
 def _pick_data(graph):
-    for node in graph.nodes.values():
+    for node_id,node in graph.nodes.items():
         current=node
         while current:
             if not current.get('active',True) or not graph.layers.get(current['layer'],{}).get('visible',True):
                 break
-            current=graph.nodes.get(current.get('parent'))
+            current=graph.nodes.get(scene_parent(current))
         else:
             collider=next((c for c in node['components'].values() if c['type']=='collider' and c['enabled']),None)
             if graph.layers.get(node['layer'],{}).get('pickable',True) and collider and collider['properties']['selectable']:
-                context=node.get('rule_context',{})
-                data={}
-                if 'coordinate' in context: data['rule_coordinate']=list(context['coordinate'])
-                if 'entity_id' in context: data['rule_entity_id']=context['entity_id']
-                if data: yield data
+                context=scene_pick_context(graph.nodes,node_id,node.get('rule_context',{}))
+                yield pointer_data(context,click=True)
 
 
 def verify_host_routes(compiled,rule,scene,assets,tests=(),*,spatial=False):
-    pending={intent.id:intent for intent in compiled.intents if intent.required}
+    pending={intent.id:(intent,None) for intent in compiled.intents if intent.required}
+    # A keyboard alternative must not hide an unreachable authored scene button.
+    for binding in compiled.bindings:
+        pointer=binding.trigger.get('pointer')
+        if binding.enabled and pointer:
+            node=pointer.get('node')
+            if node and node not in scene.nodes_by_id:
+                raise ValueError('Pointer binding references unknown Scene node: '+node)
+            pending[binding.id]=(compiled.intents_by_id[binding.intent_id],binding.id)
     checked=[]; failures={}
     # Pickable Scene instances may appear only after a transition. Replay saved
     # behavior states rather than inventing picked coordinates/entity IDs.
@@ -44,10 +50,12 @@ def verify_host_routes(compiled,rule,scene,assets,tests=(),*,spatial=False):
                         runtime.apply_action(candidates[0])
                 graph.synchronize(projection,runtime.state)
                 mouse_data=None
-                for intent_id,intent in list(pending.items()):
+                for obligation,(intent,required_binding) in list(pending.items()):
+                    intent_id=intent.id
                     matched=False
                     for binding in compiled.bindings:
                         if binding.intent_id!=intent_id or not binding.enabled: continue
+                        if required_binding and binding.id!=required_binding:continue
                         context=compiled.contexts_by_id[binding.context_id]
                         if not context.enabled_by_default or context.focus not in ('global','viewport'): continue
                         trigger=binding.trigger
@@ -62,17 +70,20 @@ def verify_host_routes(compiled,rule,scene,assets,tests=(),*,spatial=False):
                             event=PhysicalInputEvent(1,trigger['device'],trigger['control'],trigger['phase'],
                                 position=(0,0) if trigger['device']=='mouse' else None,data=data)
                             try:
-                                dispatched=compiled.create_router().dispatch(event,focus='viewport')
+                                dispatched=compiled.create_router().dispatch(event,focus='viewport',rule_runtime=runtime)
                                 for resolved in dispatched.intents:
+                                    if required_binding and resolved.binding_id!=required_binding:continue
                                     if resolved.intent_id==intent_id and resolved.target_kind=='host_command':
                                         matched=True
                                     if resolved.intent_id==intent_id and resolved.rule_action_request:
-                                        resolved.rule_action_request.resolve(runtime); matched=True
-                            except InputDispatchError as exc: failures[intent_id]=str(exc)
+                                        action=resolved.rule_action_request.resolve(runtime)
+                                        if runtime.is_legal(action): matched=True
+                                        else: failures[obligation]='Route resolves to a Rule action that is illegal in this state'
+                            except InputDispatchError as exc: failures[obligation]=str(exc)
                             if matched: break
                         if matched: break
                     if matched:
-                        checked.append(intent_id); del pending[intent_id]
+                        checked.append(obligation); del pending[obligation]
                 if not pending: return checked
         finally: runtime.close()
     raise ValueError('Required intents not reachable through Workbench events and Scene picking in behavior traces: '+

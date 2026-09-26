@@ -496,6 +496,14 @@ def _validate_bindings(value: Any, node_ids: Set[str], diagnostics: List[SceneIR
         elif transform.get("kind") == "numeric":
             if not _finite_number(transform.get("multiply", 1)) or not _finite_number(transform.get("add", 0)):
                 diagnostics.append(_error("binding.numeric", path + "/transform", "Numeric transform values must be finite numbers."))
+        elif transform.get("kind") in ("digit", "integer_format"):
+            from .component_contracts import BINDING_TRANSFORM
+            from srtp.ir_contracts import errors
+            for message in errors(transform, BINDING_TRANSFORM, path + '/transform'):
+                diagnostics.append(_error('binding.number_display',path+'/transform',str(message)))
+            lower,upper=transform.get('minimum',0),transform.get('maximum',float('inf'))
+            if isinstance(lower,(int,float)) and isinstance(upper,(int,float)) and lower > upper:
+                diagnostics.append(_error('binding.number_display',path+'/transform','Minimum must not exceed maximum.'))
         elif transform.get("kind") == "format":
             template = transform.get("template")
             if not isinstance(template, str) or template.count("{value}") != 1:
@@ -504,7 +512,11 @@ def _validate_bindings(value: Any, node_ids: Set[str], diagnostics: List[SceneIR
 
 def _validate_binding_source(value: Mapping[str, Any], path: str, diagnostics: List[SceneIRDiagnostic]) -> None:
     kind = value.get("kind")
-    if kind == "state":
+    if kind in ('interaction','expression'):
+        from .component_contracts import binding_source_errors
+        for message in binding_source_errors(value,path):
+            diagnostics.append(_error('binding.interaction',path,str(message)))
+    elif kind == "state":
         if value.get("scope") not in ("global", "participant", "topology_site", "entity"):
             diagnostics.append(_error("binding.scope", path + "/scope", "Unsupported Rule state scope."))
         if not isinstance(value.get("variable"), str) or not _RULE_ID.fullmatch(str(value.get("variable"))):

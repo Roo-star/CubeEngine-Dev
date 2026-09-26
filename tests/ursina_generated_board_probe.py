@@ -57,10 +57,22 @@ def main():
             direction = (entity.world_position-camera.world_position).normalized()
             hit = raycast(camera.world_position, direction, distance=100, ignore=[])
             assert hit.hit, ('unpickable', coordinate)
-            actual = tuple(backend.pick_context(hit.entity).get('coordinate',()))
+            pick = backend.pick_context(hit.entity)
+            actual = tuple(pick.get('coordinate',()))
             assert actual == coordinate, ('wrong cell', coordinate, actual)
+            logical_parent=host.presentation.nodes[pick['node_id']].get('logical_parent')
+            assert logical_parent and logical_parent in pick['node_path'], 'Volume lost logical picking ancestry'
         backend.selected_layer = None
         backend.sync(incremental=True)
+        # A logical parent may be hidden by a Scene binding after the volume
+        # removed its transform inheritance. Visibility/picking still inherit.
+        logical_parent=host.presentation.nodes[cells[(1,1,1)].scene_node_id]['logical_parent']
+        for active in (False,True):
+            host.presentation.apply([{'op':'set_property','node_id':logical_parent,
+                'payload':{'property':'active','value':active}}])
+            backend.sync(incremental=True)
+            assert all(bool(e.collider is not None)==active for e in cells.values())
+        assert all(e.collider for e in cells.values())
         for coordinate in [(0,0,0),(0,1,0)]:
             assert host.mouse('mouse.button.primary', {'coordinate':coordinate}).accepted
             host.refresh_scene(); backend.sync(incremental=True)
@@ -94,7 +106,8 @@ def main():
         assert not host.controller.snapshot().terminal
         assert hashlib.sha256(manifest.read_bytes()).hexdigest() == expected_hash
         print(json.dumps({'actual_model_bundle_unchanged':True, 'instantiated_cells':27,
-            'all_cells_ray_pickable':True, 'space_diagonal_win':True, 'restart':True,
+            'all_cells_ray_pickable':True, 'volume_logical_ancestry_and_visibility':True,
+            'space_diagonal_win':True, 'restart':True,
             'marker_pixels':{'blue':blue,'amber':amber}, 'screenshot':str(screenshot)}))
     finally:
         backend.close(); host.close(); app.destroy()

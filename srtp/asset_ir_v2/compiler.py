@@ -409,6 +409,20 @@ def _compile_derivation(
         if output_media != ASSET_COMPILER_CAPABILITIES["compiled_descriptor_media_type"]:
             raise AssetCompileError("presentation derivation must emit the CubeEngine descriptor media type")
         _validate_presentation_recipe(strategy, inputs, settings)
+        if strategy in ('billboard', 'extrusion', 'cube_face_projection'):
+            source = inputs[0]
+            if source.kind != 'image' or not source.media_type.startswith('image/'):
+                raise AssetCompileError(strategy + ' requires one image resource as input')
+            # Validate executable geometry here, before paying to generate a
+            # Scene using a descriptor that the renderer cannot materialize.
+            _inspect_image(source._payload, max_image_pixels)
+            if strategy == 'extrusion':
+                from srtp.sprite_geometry import extrude_rgba
+                try:
+                    extrude_rgba(source._payload, depth=settings['depth'], axis=settings['axis'],
+                                 size=settings.get('size'), alpha_cutoff=settings.get('alpha_cutoff', 1))
+                except ValueError as exc:
+                    raise AssetCompileError('extrusion is not renderable: ' + str(exc)) from exc
         descriptor = {
             "format": "cubeengine.presentation-descriptor/1",
             "strategy": strategy,

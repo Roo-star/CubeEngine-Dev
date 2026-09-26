@@ -8,7 +8,7 @@ RECIPES={
         'width':{'type':'integer','minimum':1},'height':{'type':'integer','minimum':1}},('x','y','width','height')),
     'billboard':obj({'facing':enum('camera','axis','fixed'),'size':array(POSITIVE,2),'double_sided':BOOL},('facing','size','double_sided')),
     'extrusion':obj({'depth':POSITIVE,'axis':enum('x','y','z'),'size':array(POSITIVE,2),
-        'alpha_cutoff':{'type':'integer','minimum':0,'maximum':255}},('depth','axis')),
+        'alpha_cutoff':{'type':'integer','minimum':1,'maximum':255}},('depth','axis')),
     'cube_face_projection':obj({'faces':{'anyOf':[{'const':'all'},array(enum('front','back','left','right','top','bottom'),minItems=1,uniqueItems=True)]},
         'uv_policy':enum('stretch','contain','tile'),'dimensions':POS3},('faces','uv_policy')),
     'procedural_mesh':obj({'primitive':enum('cube','sphere','cylinder','plane'),'dimensions':POS3},('primitive','dimensions')),

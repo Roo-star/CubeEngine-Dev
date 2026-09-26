@@ -680,6 +680,10 @@ class SrtpWorkbench:
             elif event['kind']=='cancelled':
                 self._message('Conversion cancelled. The previous successful bundle is unchanged.')
             else:
+                if event.get('traceback'):
+                    error_dir=Path(tag['out_dir']).with_name(Path(tag['out_dir']).name+'.errors')
+                    error_dir.mkdir(parents=True,exist_ok=True)
+                    (error_dir/(event['id']+'.txt')).write_text(event['traceback'],encoding='utf-8')
                 self._message('Conversion failed: '+str(event['value']),error=True)
 
     def compile_llm_source_to_ir(self, sender=None, app_data=None, user_data=None) -> None:
