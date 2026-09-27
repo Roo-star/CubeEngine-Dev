@@ -1,0 +1,935 @@
+{
+  "ir_version": "cubeengine.rule-ir/2.0-alpha.1",
+  "document_id": "rule:game.tic.tac.toe.source",
+  "revision": 1,
+  "content_hash": "3b308d5fd68f14d242fbf0ee90c450bce634c18b52bc3fe47db65f9caa941942",
+  "metadata": {
+    "title": "Tic Tac Toe",
+    "description": "LLM compiler bootstrap shell. Semantics must be filled by evidence-backed patches.",
+    "source_project_hash": "247430c188d62026b62128405e3e01dcc803d51fbff2bf0e0177a249ca421f82",
+    "determinism": "deterministic"
+  },
+  "dependencies": {
+    "scene_ir": null,
+    "asset_ir": null,
+    "input_ir": null,
+    "extensions": []
+  },
+  "parameters": [],
+  "types": [
+    {
+      "id": "rule:type.cell_state",
+      "name": "Cell State",
+      "kind": "enum",
+      "values": {
+        "empty": 0,
+        "x": 1,
+        "o": 2
+      }
+    }
+  ],
+  "participants": [
+    {
+      "id": "rule:participant.p1",
+      "name": "X",
+      "kind": "human_or_agent"
+    },
+    {
+      "id": "rule:participant.p2",
+      "name": "O",
+      "kind": "human_or_agent"
+    },
+    {
+      "id": "rule:participant.system",
+      "name": "System",
+      "kind": "human"
+    }
+  ],
+  "topologies": [
+    {
+      "id": "rule:topology.board",
+      "name": "Board",
+      "kind": "rect_grid",
+      "anchor": "cell",
+      "axes": [
+        {
+          "name": "x",
+          "extent": 3,
+          "boundary": "bounded"
+        },
+        {
+          "name": "y",
+          "extent": 3,
+          "boundary": "bounded"
+        }
+      ],
+      "neighborhoods": []
+    }
+  ],
+  "state": {
+    "variables": [
+      {
+        "id": "rule:state.board_cell",
+        "name": "Board Cell",
+        "type": "rule:type.cell_state",
+        "scope": "topology_site",
+        "topology": "rule:topology.board",
+        "initial": {
+          "op": "literal",
+          "value": 0
+        }
+      },
+      {
+        "id": "rule:state.current_player",
+        "name": "Current Player",
+        "type": "core:participant_id",
+        "scope": "global",
+        "initial": {
+          "op": "literal",
+          "value": "rule:participant.p1"
+        }
+      },
+      {
+        "id": "rule:state.running",
+        "name": "Application Running",
+        "type": "core:bool",
+        "scope": "global",
+        "initial": {
+          "op": "literal",
+          "value": true
+        }
+      }
+    ],
+    "entity_types": [
+      {
+        "id": "rule:entity.p1_mark",
+        "name": "X Mark",
+        "components": [
+          {
+            "name": "legacy_state_value",
+            "type": "core:int",
+            "default": {
+              "op": "literal",
+              "value": 1
+            }
+          }
+        ],
+        "legacy": {
+          "owner": "rule:participant.p1",
+          "state_value": 1
+        }
+      },
+      {
+        "id": "rule:entity.p2_mark",
+        "name": "O Mark",
+        "components": [
+          {
+            "name": "legacy_state_value",
+            "type": "core:int",
+            "default": {
+              "op": "literal",
+              "value": 2
+            }
+          }
+        ],
+        "legacy": {
+          "owner": "rule:participant.p2",
+          "state_value": 2
+        }
+      }
+    ],
+    "initial_effects": [],
+    "information_model": "perfect"
+  },
+  "queries": [],
+  "events": [],
+  "actions": [
+    {
+      "id": "rule:action.place",
+      "name": "Place Mark",
+      "actor": {
+        "op": "call",
+        "function": "core:state.get",
+        "args": [
+          {
+            "op": "literal",
+            "value": "rule:state.current_player"
+          }
+        ]
+      },
+      "parameters": [
+        {
+          "name": "target",
+          "type": "core:coord",
+          "domain": {
+            "op": "call",
+            "function": "core:topology.sites",
+            "args": [
+              {
+                "op": "literal",
+                "value": "rule:topology.board"
+              }
+            ]
+          }
+        }
+      ],
+      "precondition": {
+        "op": "and",
+        "args": [
+          {
+            "op": "eq",
+            "args": [
+              {
+                "op": "call",
+                "function": "core:state.get",
+                "args": [
+                  {
+                    "op": "literal",
+                    "value": "rule:state.running"
+                  }
+                ]
+              },
+              {
+                "op": "literal",
+                "value": true
+              }
+            ]
+          },
+          {
+            "op": "call",
+            "function": "core:grid.equals",
+            "args": [
+              {
+                "op": "literal",
+                "value": "rule:state.board_cell"
+              },
+              {
+                "op": "param",
+                "name": "target"
+              },
+              {
+                "op": "literal",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "op": "not",
+            "args": [
+              {
+                "op": "call",
+                "function": "core:grid.has_line",
+                "args": [
+                  {
+                    "op": "literal",
+                    "value": "rule:state.board_cell"
+                  },
+                  {
+                    "op": "literal",
+                    "value": 3
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "effects": [
+        {
+          "op": "grid.set",
+          "state": "rule:state.board_cell",
+          "topology": "rule:topology.board",
+          "coordinate": {
+            "op": "param",
+            "name": "target"
+          },
+          "value": {
+            "op": "call",
+            "function": "core:participant.state",
+            "args": [
+              {
+                "op": "call",
+                "function": "core:state.get",
+                "args": [
+                  {
+                    "op": "literal",
+                    "value": "rule:state.current_player"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "op": "state.set",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.current_player"
+          },
+          "value": {
+            "op": "if",
+            "condition": {
+              "op": "or",
+              "args": [
+                {
+                  "op": "call",
+                  "function": "core:grid.has_line",
+                  "args": [
+                    {
+                      "op": "literal",
+                      "value": "rule:state.board_cell"
+                    },
+                    {
+                      "op": "literal",
+                      "value": 3
+                    }
+                  ]
+                },
+                {
+                  "op": "call",
+                  "function": "core:grid.none_equal",
+                  "args": [
+                    {
+                      "op": "literal",
+                      "value": "rule:state.board_cell"
+                    },
+                    {
+                      "op": "literal",
+                      "value": 0
+                    }
+                  ]
+                }
+              ]
+            },
+            "then": {
+              "op": "call",
+              "function": "core:state.get",
+              "args": [
+                {
+                  "op": "literal",
+                  "value": "rule:state.current_player"
+                }
+              ]
+            },
+            "else": {
+              "op": "if",
+              "condition": {
+                "op": "eq",
+                "args": [
+                  {
+                    "op": "call",
+                    "function": "core:state.get",
+                    "args": [
+                      {
+                        "op": "literal",
+                        "value": "rule:state.current_player"
+                      }
+                    ]
+                  },
+                  {
+                    "op": "literal",
+                    "value": "rule:participant.p1"
+                  }
+                ]
+              },
+              "then": {
+                "op": "literal",
+                "value": "rule:participant.p2"
+              },
+              "else": {
+                "op": "literal",
+                "value": "rule:participant.p1"
+              }
+            }
+          }
+        }
+      ],
+      "timing": {
+        "phase": "rule:phase.input"
+      },
+      "encoding": {
+        "kind": "parameter_product",
+        "parameters": [
+          "target"
+        ],
+        "ordering": "lexicographic"
+      }
+    },
+    {
+      "id": "rule:action.restart",
+      "name": "Restart",
+      "actor": {
+        "op": "literal",
+        "value": "rule:participant.system"
+      },
+      "parameters": [],
+      "precondition": {
+        "op": "eq",
+        "args": [
+          {
+            "op": "call",
+            "function": "core:state.get",
+            "args": [
+              {
+                "op": "literal",
+                "value": "rule:state.running"
+              }
+            ]
+          },
+          {
+            "op": "literal",
+            "value": true
+          }
+        ]
+      },
+      "effects": [
+        {
+          "op": "grid.set",
+          "state": "rule:state.board_cell",
+          "topology": "rule:topology.board",
+          "coordinate": {
+            "op": "literal",
+            "value": [
+              0,
+              0
+            ]
+          },
+          "value": {
+            "op": "literal",
+            "value": 0
+          }
+        },
+        {
+          "op": "grid.set",
+          "state": "rule:state.board_cell",
+          "topology": "rule:topology.board",
+          "coordinate": {
+            "op": "literal",
+            "value": [
+              1,
+              0
+            ]
+          },
+          "value": {
+            "op": "literal",
+            "value": 0
+          }
+        },
+        {
+          "op": "grid.set",
+          "state": "rule:state.board_cell",
+          "topology": "rule:topology.board",
+          "coordinate": {
+            "op": "literal",
+            "value": [
+              2,
+              0
+            ]
+          },
+          "value": {
+            "op": "literal",
+            "value": 0
+          }
+        },
+        {
+          "op": "grid.set",
+          "state": "rule:state.board_cell",
+          "topology": "rule:topology.board",
+          "coordinate": {
+            "op": "literal",
+            "value": [
+              0,
+              1
+            ]
+          },
+          "value": {
+            "op": "literal",
+            "value": 0
+          }
+        },
+        {
+          "op": "grid.set",
+          "state": "rule:state.board_cell",
+          "topology": "rule:topology.board",
+          "coordinate": {
+            "op": "literal",
+            "value": [
+              1,
+              1
+            ]
+          },
+          "value": {
+            "op": "literal",
+            "value": 0
+          }
+        },
+        {
+          "op": "grid.set",
+          "state": "rule:state.board_cell",
+          "topology": "rule:topology.board",
+          "coordinate": {
+            "op": "literal",
+            "value": [
+              2,
+              1
+            ]
+          },
+          "value": {
+            "op": "literal",
+            "value": 0
+          }
+        },
+        {
+          "op": "grid.set",
+          "state": "rule:state.board_cell",
+          "topology": "rule:topology.board",
+          "coordinate": {
+            "op": "literal",
+            "value": [
+              0,
+              2
+            ]
+          },
+          "value": {
+            "op": "literal",
+            "value": 0
+          }
+        },
+        {
+          "op": "grid.set",
+          "state": "rule:state.board_cell",
+          "topology": "rule:topology.board",
+          "coordinate": {
+            "op": "literal",
+            "value": [
+              1,
+              2
+            ]
+          },
+          "value": {
+            "op": "literal",
+            "value": 0
+          }
+        },
+        {
+          "op": "grid.set",
+          "state": "rule:state.board_cell",
+          "topology": "rule:topology.board",
+          "coordinate": {
+            "op": "literal",
+            "value": [
+              2,
+              2
+            ]
+          },
+          "value": {
+            "op": "literal",
+            "value": 0
+          }
+        },
+        {
+          "op": "state.set",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.current_player"
+          },
+          "value": {
+            "op": "literal",
+            "value": "rule:participant.p1"
+          }
+        }
+      ],
+      "timing": {
+        "phase": "rule:phase.input"
+      },
+      "encoding": {
+        "kind": "none",
+        "parameters": []
+      }
+    },
+    {
+      "id": "rule:action.quit",
+      "name": "Quit",
+      "actor": {
+        "op": "literal",
+        "value": "rule:participant.system"
+      },
+      "parameters": [],
+      "precondition": {
+        "op": "eq",
+        "args": [
+          {
+            "op": "call",
+            "function": "core:state.get",
+            "args": [
+              {
+                "op": "literal",
+                "value": "rule:state.running"
+              }
+            ]
+          },
+          {
+            "op": "literal",
+            "value": true
+          }
+        ]
+      },
+      "effects": [
+        {
+          "op": "state.set",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.running"
+          },
+          "value": {
+            "op": "literal",
+            "value": false
+          }
+        }
+      ],
+      "timing": {
+        "phase": "rule:phase.input"
+      },
+      "encoding": {
+        "kind": "none",
+        "parameters": []
+      }
+    }
+  ],
+  "systems": [],
+  "flow": {
+    "model": "event_driven",
+    "phases": [
+      {
+        "id": "rule:phase.input",
+        "order": 100
+      },
+      {
+        "id": "rule:phase.update",
+        "order": 200
+      },
+      {
+        "id": "rule:phase.outcome",
+        "order": 300
+      }
+    ],
+    "initial_phase": "rule:phase.input",
+    "scheduler": {
+      "clock": "event_queue",
+      "tick_hz": null,
+      "ordering": "phase_priority_id"
+    },
+    "turn_order": []
+  },
+  "random_streams": [],
+  "goals": [],
+  "outcomes": [
+    {
+      "id": "rule:outcome.win",
+      "name": "Win",
+      "priority": 200,
+      "condition": {
+        "op": "call",
+        "function": "core:grid.has_line",
+        "args": [
+          {
+            "op": "literal",
+            "value": "rule:state.board_cell"
+          },
+          {
+            "op": "literal",
+            "value": 3
+          }
+        ]
+      },
+      "result": {
+        "status": "win",
+        "terminal": true,
+        "winners": [
+          {
+            "op": "call",
+            "function": "core:grid.line_owner",
+            "args": [
+              {
+                "op": "literal",
+                "value": "rule:state.board_cell"
+              },
+              {
+                "op": "literal",
+                "value": 3
+              }
+            ]
+          }
+        ],
+        "losers": []
+      }
+    },
+    {
+      "id": "rule:outcome.draw",
+      "name": "Draw",
+      "priority": 100,
+      "condition": {
+        "op": "and",
+        "args": [
+          {
+            "op": "call",
+            "function": "core:grid.none_equal",
+            "args": [
+              {
+                "op": "literal",
+                "value": "rule:state.board_cell"
+              },
+              {
+                "op": "literal",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "op": "not",
+            "args": [
+              {
+                "op": "call",
+                "function": "core:grid.has_line",
+                "args": [
+                  {
+                    "op": "literal",
+                    "value": "rule:state.board_cell"
+                  },
+                  {
+                    "op": "literal",
+                    "value": 3
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "result": {
+        "status": "draw",
+        "terminal": true,
+        "winners": [],
+        "losers": []
+      }
+    }
+  ],
+  "modes": [
+    {
+      "id": "rule:mode.default",
+      "name": "Default",
+      "overrides": []
+    }
+  ],
+  "invariants": [],
+  "extensions": {},
+  "provenance": {
+    "patch_history": [
+      {
+        "base_revision": 0,
+        "base_content_hash": "b249b51604330ccb210b81fcf64721ff0f23810573a64cab313045d8bab780c3",
+        "evidence": [
+          {
+            "evidence_id": "ev:agent.1",
+            "path": "main.py",
+            "kind": "static",
+            "supports": "/rule_ir/topologies",
+            "confidence": 0.5,
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 6,
+              "line_end": 7
+            }
+          },
+          {
+            "evidence_id": "ev:agent.2",
+            "path": "main.py",
+            "kind": "static",
+            "supports": "/rule_ir/types",
+            "confidence": 0.5,
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 20,
+              "line_end": 21
+            }
+          },
+          {
+            "evidence_id": "ev:agent.3",
+            "path": "main.py",
+            "kind": "static",
+            "supports": "/rule_ir/types",
+            "confidence": 0.5,
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 66,
+              "line_end": 77
+            }
+          },
+          {
+            "evidence_id": "ev:agent.4",
+            "path": "main.py",
+            "kind": "static",
+            "supports": "/rule_ir/types",
+            "confidence": 0.5,
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 66,
+              "line_end": 79
+            }
+          },
+          {
+            "evidence_id": "ev:agent.5",
+            "path": "main.py",
+            "kind": "static",
+            "supports": "/rule_ir/participants",
+            "confidence": 0.5,
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 22,
+              "line_end": 22
+            }
+          },
+          {
+            "evidence_id": "ev:agent.6",
+            "path": "main.py",
+            "kind": "static",
+            "supports": "/rule_ir/participants",
+            "confidence": 0.5,
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 39,
+              "line_end": 39
+            }
+          },
+          {
+            "evidence_id": "ev:agent.7",
+            "path": "main.py",
+            "kind": "static",
+            "supports": "/rule_ir/flow",
+            "confidence": 0.5,
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 26,
+              "line_end": 39
+            }
+          },
+          {
+            "evidence_id": "ev:agent.8",
+            "path": "main.py",
+            "kind": "static",
+            "supports": "/rule_ir/state",
+            "confidence": 0.5,
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 20,
+              "line_end": 24
+            }
+          },
+          {
+            "evidence_id": "ev:agent.9",
+            "path": "main.py",
+            "kind": "static",
+            "supports": "/rule_ir/actions",
+            "confidence": 0.5,
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 26,
+              "line_end": 40
+            }
+          },
+          {
+            "evidence_id": "ev:agent.10",
+            "path": "main.py",
+            "kind": "static",
+            "supports": "/rule_ir/actions",
+            "confidence": 0.5,
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 20,
+              "line_end": 24
+            }
+          },
+          {
+            "evidence_id": "ev:agent.11",
+            "path": "main.py",
+            "kind": "static",
+            "supports": "/rule_ir/actions",
+            "confidence": 0.5,
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 53,
+              "line_end": 59
+            }
+          },
+          {
+            "evidence_id": "ev:agent.12",
+            "path": "main.py",
+            "kind": "static",
+            "supports": "/rule_ir/outcomes",
+            "confidence": 0.5,
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 31,
+              "line_end": 36
+            }
+          },
+          {
+            "evidence_id": "ev:agent.13",
+            "path": "main.py",
+            "kind": "static",
+            "supports": "/rule_ir/outcomes",
+            "confidence": 0.5,
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 34,
+              "line_end": 37
+            }
+          },
+          {
+            "evidence_id": "ev:agent.16",
+            "path": "main.py",
+            "kind": "static",
+            "supports": "/input_ir/bindings",
+            "confidence": 0.5,
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 57,
+              "line_end": 59
+            }
+          },
+          {
+            "evidence_id": "ev:agent.17",
+            "path": "main.py",
+            "kind": "static",
+            "supports": "/input_ir/bindings",
+            "confidence": 0.5,
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 54,
+              "line_end": 56
+            }
+          },
+          {
+            "evidence_id": "ev:param.source_connect_n.0",
+            "path": "main.py",
+            "kind": "static",
+            "supports": "/rule_ir/flow",
+            "confidence": 0.8,
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 8,
+              "line_end": 8
+            }
+          }
+        ],
+        "assumptions": [
+          "Event-driven flow uses explicit current-player state so restart can restore the first player without resetting a turn scheduler.",
+          "Winner and draw are derived from the board rather than stored separately.",
+          "The application controller stops its event loop when rule:state.running becomes false; place and restart are disabled afterward."
+        ],
+        "operation_count": 8
+      }
+    ]
+  },
+  "unresolved": []
+}

@@ -42,6 +42,41 @@ def bounds_in_view(bounds, margin=1.0):
     return True
 
 
+def overlay_rects(backend):
+    """Screen rectangles (x0, y0, x1, y1 in camera.ui units) of visible overlay text/backgrounds."""
+    from ursina import camera
+    rects = []
+    for host in getattr(backend, 'overlay_hosts', []) or []:
+        if not host or not host.enabled:
+            continue
+        bounds = host.get_tight_bounds(camera.ui)
+        if bounds:
+            low, high = bounds
+            if high[0] - low[0] > 1e-4 and high[1] - low[1] > 1e-4:
+                rects.append((low[0], low[1], high[0], high[1]))
+    return rects
+
+
+def board_rect(bounds):
+    """The board's projected rectangle in camera.ui units, or None when a corner is not projectable."""
+    from ursina import camera, scene, window
+    from panda3d.core import Point2, Point3
+    low, high = bounds
+    xs, ys = [], []
+    for corner in product(*zip(low, high)):
+        position = camera._cam.get_relative_point(scene, Point3(*corner))
+        projected = Point2()
+        if not camera.lens.project(position, projected):
+            return None
+        xs.append(projected.x * window.aspect_ratio / 2)
+        ys.append(projected.y / 2)
+    return (min(xs), min(ys), max(xs), max(ys))
+
+
+def _intersects(a, b, gap=.01):
+    return a[0] < b[2] + gap and b[0] < a[2] + gap and a[1] < b[3] + gap and b[1] < a[3] + gap
+
+
 class ProjectCameraRig:
     def __init__(self, backend):
         from ursina import camera, EditorCamera, Vec3, scene
@@ -96,10 +131,39 @@ class ProjectCameraRig:
         for name in ('hotkeys', 'shortcuts'):
             if isinstance(getattr(self.editor, name, None), dict):
                 setattr(self.editor, name, dict.fromkeys(getattr(self.editor, name), None))
+        self.overlay_adjusted = self._clear_overlays(bounds, overlay_rects(backend))
         self.initial_pose = (tuple(self.editor.position), tuple(self.editor.rotation), tuple(camera.position))
         self.initial_lens = (camera.orthographic, camera.fov)
         if not bounds_in_view(bounds):
             raise ValueError('Initial camera could not frame the compiled board')
+
+    def _clear_overlays(self, bounds, overlays, steps=40):
+        """Pan/zoom out until the board does not sit under Scene overlay text (HUD, prompts)."""
+        from ursina import camera
+        if not overlays:
+            return False
+        moved = False
+        for _ in range(steps):
+            board = board_rect(bounds)
+            hits = [rect for rect in overlays if board and _intersects(board, rect)]
+            if not board or not hits:
+                break
+            centre = (board[1] + board[3]) / 2
+            push = sum(-1 if (rect[1] + rect[3]) / 2 > centre else 1 for rect in hits)  # text above: move board down
+            if camera.orthographic:
+                world_per_ui = camera.fov
+                camera.fov *= 1.04
+                self.editor.target_fov = camera.fov
+            else:
+                distance = -camera.z
+                world_per_ui = 2 * distance * math.tan(math.radians(min(camera.lens.get_fov())) / 2)
+                camera.z *= 1.04
+                self.editor.target_z = camera.z
+            self.editor.world_position -= camera.up * (0.03 * (1 if push > 0 else -1) * world_per_ui)
+            moved = True
+        if moved:
+            self.notice = (self.notice + ' ' if self.notice else '') + 'View adjusted to keep the HUD clear of the board.'
+        return moved
 
     def restore(self):
         from ursina import camera

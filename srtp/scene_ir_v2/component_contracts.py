@@ -51,7 +51,8 @@ COMPONENTS={
 
 BINDING_SOURCE={'oneOf':[
     obj({'kind':{'const':'state'},'scope':enum('global','participant','topology_site','entity'),'variable':RULE,'participant':RULE},('kind','scope','variable')),
-    obj({'kind':{'const':'flow'},'property':enum('current_actor','phase','tick','turn')},('kind','property')),
+    obj({'kind':{'const':'flow'},'property':enum('current_actor','phase','tick','turn','terminal','outcome_status','winner','outcome')},('kind','property'),
+        description='terminal (boolean), outcome_status (ongoing or the outcome result status, e.g. win/draw), winner (first winning participant id, empty when none) and outcome (matched outcome id, empty while ongoing) read the Rule outcome evaluated for the current state.'),
     obj({'kind':{'const':'entity_component'},'component':LOCAL},('kind','component')),
     obj({'kind':{'const':'interaction'},'property':enum('pressed','hovered'),
          'scope':enum('target','any'),'control':enum('mouse.button.primary','mouse.button.secondary'),

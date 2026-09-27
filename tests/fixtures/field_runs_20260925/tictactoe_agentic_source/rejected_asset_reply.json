@@ -1,0 +1,13 @@
+{
+ "origin": {
+  "recording": "artifacts/agentic_20260925/tictactoe_source.recording.jsonl",
+  "recording_sha256": "2ea2170dd14ce36400e5c7671a67134f9c9841446e7a05914cec9b71597a47ea",
+  "call_index": 6,
+  "report": "artifacts/agentic_20260925/tictactoe_source/report.json"
+ },
+ "model": "openai/gpt-6-sol",
+ "rejected_reply": "{\"operations\":[{\"op\":\"replace\",\"path\":\"/assets\",\"value\":[]},{\"op\":\"replace\",\"path\":\"/derivations\",\"value\":[{\"id\":\"asset:mesh.board_cell\",\"name\":\"Board cell\",\"kind\":\"model\",\"media_type\":\"application/vnd.cubeengine.presentation+json\",\"strategy\":\"procedural_mesh\",\"inputs\":[],\"settings\":{\"primitive\":\"plane\",\"dimensions\":[1,1,1]},\"expected_content_hash\":\"\",\"license_policy\":\"inherit\"},{\"id\":\"asset:mesh.x_mark\",\"name\":\"Blue X mark\",\"kind\":\"model\",\"media_type\":\"application/vnd.cubeengine.presentation+json\",\"strategy\":\"procedural_mesh\",\"inputs\":[],\"settings\":{\"primitive\":\"plane\",\"dimensions\":[1,1,1],\"symbol\":\"X\",\"color\":\"blue\"},\"expected_content_hash\":\"\",\"license_policy\":\"inherit\"},{\"id\":\"asset:mesh.o_mark\",\"name\":\"Orange O mark\",\"kind\":\"model\",\"media_type\":\"application/vnd.cubeengine.presentation+json\",\"strategy\":\"procedural_mesh\",\"inputs\":[],\"settings\":{\"primitive\":\"plane\",\"dimensions\":[1,1,1],\"symbol\":\"O\",\"color\":\"orange\"},\"expected_content_hash\":\"\",\"license_policy\":\"inherit\"}]},{\"op\":\"replace\",\"path\":\"/roles\",\"value\":[{\"id\":\"asset:role.board_cell\",\"asset_id\":\"asset:mesh.board_cell\",\"description\":\"Cell surface for the 3×3 board.\"},{\"id\":\"asset:role.x_mark\",\"asset_id\":\"asset:mesh.x_mark\",\"description\":\"Mark displayed for player 1.\"},{\"id\":\"asset:role.o_mark\",\"asset_id\":\"asset:mesh.o_mark\",\"description\":\"Mark displayed for player 2.\"}]},{\"op\":\"replace\",\"path\":\"/unresolved\",\"value\":[]}],\"evidence\":[\"ev:agent.1\",\"ev:agent.3\",\"ev:agent.4\",\"ev:agent.18\"],\"assumptions\":[\"The source lists no image or model asset files, so the board and marks are represented as procedural derivations.\",\"A plane with symbol and color settings represents each mark; the source does not specify mesh geometry for the glyphs.\"],\"unresolved\":[]}",
+ "diagnostics": [
+  "compile gate: Asset compiler: /derivations/asset:mesh.x.mark/settings/symbol: unsupported field; allowed primitive, dimensions; /derivations/asset:mesh.x.mark/settings/color: unsupported field; allowed primitive, dimensions"
+ ]
+}

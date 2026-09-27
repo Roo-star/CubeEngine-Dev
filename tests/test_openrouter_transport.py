@@ -229,6 +229,7 @@ class OpenRouterTransportTests(unittest.TestCase):
         package=SourceGameImporter().import_path(ROOT/'srtp/reference_games/pygame_tictactoe/main.py')
         with tempfile.TemporaryDirectory() as tmp:
             compiler=SourceToIRCompiler(client=self.client(handle),max_repairs=0)
+            compiler.use_lift_templates=False  # the model-authored Lift must share the transport
             source=compiler.compile(package,out_dir=Path(tmp)/'source')
             self.assertTrue(source.ok,source.diagnostics)
             self.assertEqual(source.provider,'openrouter')

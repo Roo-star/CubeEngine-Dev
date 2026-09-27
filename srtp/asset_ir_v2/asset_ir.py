@@ -306,8 +306,8 @@ def _validate_derivations(
                 diagnostics.append(_error("derivation.input_missing", path + "/inputs/{0}".format(input_index), "Derivation input is not a declared resource."))
         if strategy in ("identity", "atlas_region", "billboard", "extrusion", "cube_face_projection", "mesh_substitution") and len(inputs) != 1:
             diagnostics.append(_error("derivation.arity", path + "/inputs", "This strategy requires exactly one input."))
-        if strategy == "procedural_mesh" and inputs:
-            diagnostics.append(_error("derivation.arity", path + "/inputs", "Procedural mesh does not accept source inputs."))
+        if strategy in ("procedural_mesh", "vector_shape") and inputs:
+            diagnostics.append(_error("derivation.arity", path + "/inputs", "Procedural mesh and vector shape do not accept source inputs."))
         if not isinstance(item.get("settings"), Mapping):
             diagnostics.append(_error("derivation.settings", path + "/settings", "Derivation settings must be an object."))
         if strategy == "atlas_region" and isinstance(item.get("settings"), Mapping):

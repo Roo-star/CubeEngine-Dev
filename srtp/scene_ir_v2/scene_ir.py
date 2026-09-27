@@ -523,7 +523,8 @@ def _validate_binding_source(value: Mapping[str, Any], path: str, diagnostics: L
             diagnostics.append(_error("binding.variable", path + "/variable", "State binding requires a rule: variable."))
         if value.get("scope") == "participant" and (not isinstance(value.get("participant"), str) or not _RULE_ID.fullmatch(str(value.get("participant")))):
             diagnostics.append(_error("binding.participant", path + "/participant", "Participant state binding requires a participant ID."))
-    elif kind == "flow" and value.get("property") not in ("current_actor", "phase", "tick", "turn"):
+    elif kind == "flow" and value.get("property") not in ("current_actor", "phase", "tick", "turn", "terminal",
+                                                           "outcome_status", "winner", "outcome"):
         diagnostics.append(_error("binding.flow", path + "/property", "Unsupported flow projection property."))
     elif kind == "entity_component" and (not isinstance(value.get("component"), str) or not _LOCAL_ID.fullmatch(str(value.get("component")))):
         diagnostics.append(_error("binding.entity_component", path + "/component", "Entity component binding requires a local component name."))

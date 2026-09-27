@@ -64,7 +64,11 @@ def main(argv: Optional[List[str]] = None) -> int:
     )
     parser.add_argument(
         "--resume", action="store_true",
-        help="Agentic mode: continue from <out>/agent_state.json (accepted stages are kept)",
+        help="Agentic mode: continue from <out>/agent_state.json (default when it exists)",
+    )
+    parser.add_argument(
+        "--fresh", action="store_true",
+        help="Agentic mode: ignore <out>/agent_state.json and start a new job",
     )
     parser.add_argument(
         "--title", default="",
@@ -87,17 +91,20 @@ def main(argv: Optional[List[str]] = None) -> int:
         )
         if lift_from and not intent:
             parser.error("--lift-from requires --intent")
+        if args.fresh and args.resume:
+            parser.error("--fresh and --resume are mutually exclusive")
+        resume = False if args.fresh else (True if args.resume else None)
         try:
             if lift_from:
                 report = agentic.compile_lift_path(
                     Path(args.source), source_bundle_dir=Path(lift_from), intent_text=intent,
                     out_dir=Path(args.out), title=args.title or None, language=args.language,
-                    resume=args.resume,
+                    resume=resume,
                 )
             else:
                 report = agentic.compile_path(
                     Path(args.source), out_dir=Path(args.out), title=args.title or None,
-                    resume=args.resume,
+                    resume=resume,
                 )
         except LLMTransportError as error:
             # Configuration failures (missing key, bad model ID) before any request.

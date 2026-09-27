@@ -32,6 +32,9 @@ evidence is insufficient. Do not spend the final request asking for another read
 Never replace unknown legality/outcomes with constant true/false to pass validation.'''
 
 
+from srtp.drawn_shapes import drawings_for_model
+
+
 class SourceWorkspace:
     def __init__(self, root: Path, entrypoint: Path, *, max_files: int = 400):
         self.root = Path(root).resolve()
@@ -100,6 +103,14 @@ class SourceWorkspace:
         except (ValueError, OSError) as error:
             self.runtime_assets = []
             self.preflight_errors.append(str(error))
+        from srtp.drawn_shapes import discover_drawn_shapes
+        try:
+            self.drawn_shapes = discover_drawn_shapes(self.files)
+        except (ValueError, OSError, RecursionError):
+            self.drawn_shapes = []
+        # Drawing ids shown to the model are citable like visual facts (verified source lines).
+        self.visuals.drawn_sources = {group['id']: dict(group['source']) for group in self.drawn_shapes
+                                      if isinstance(group, dict) and group.get('id')}
 
     def _allowed(self, path: Path) -> bool:
         try:
@@ -177,6 +188,7 @@ class SourceWorkspace:
             size += row_size
         return {"entrypoint": entry, "files": index, "assets": self.assets,
                 "runtime_assets": self.runtime_assets,
+                "source_drawings": drawings_for_model(self.drawn_shapes),
                 "visual_evidence": self.visuals.to_mapping(),
                 "index_truncated": self.index_truncated or len(index) < len(self.index),
                 "source": snippets, "max_tool_turns": 8,
@@ -216,7 +228,7 @@ class SourceWorkspace:
         self.snippets=prioritized
         return len(prioritized)
 
-    def chat(self, client, messages: Sequence[Mapping[str, str]]):
+    def chat(self, client, messages: Sequence[Mapping[str, str]], *, schema=None):
         if self.preflight_errors:
             from .client import LLMTransportError
             raise LLMTransportError('Local dependency preflight failed before model call: ' + '; '.join(self.preflight_errors))
@@ -233,7 +245,8 @@ class SourceWorkspace:
                 last=json.loads(conversation[-1]['content'])
                 last['request_budget']={'remaining_http_requests':max(0,limit-getattr(client,'http_requests',0))}
                 conversation[-1]['content']=json.dumps(last,ensure_ascii=False)
-            result = client.chat_json(conversation)
+            from .reply_schemas import chat_with_schema
+            result = chat_with_schema(client, conversation, schema, "cubeengine_stage")
             self.check_cancelled()
             requests = result.parsed.get("source_requests")
             if requests is None or (requests==[] and isinstance(result.parsed.get('definition'),dict)):

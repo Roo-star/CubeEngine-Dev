@@ -31,6 +31,19 @@ from srtp.project_manifest_v2 import compile_project_manifest, load_project_mani
 from srtp.scene_ir_v2 import load_scene_ir
 
 
+
+def _cell_pick_data(scene, coordinate):
+    """Pointer data for a click on the topology site at ``coordinate`` (falls back to the bare coordinate)."""
+    from .input_pointer_contract import pointer_data, scene_pick_context
+    for sites in getattr(scene, "topology_sites", {}).values():
+        site = sites.get(tuple(coordinate))
+        if site is None:
+            continue
+        node = scene.nodes_by_id.get(site)
+        context = dict(getattr(node, "rule_context", None) or {}, coordinate=list(coordinate))
+        return pointer_data(scene_pick_context(scene.nodes_by_id, site, context), click=True)
+    return {"rule_coordinate": list(coordinate)}
+
 class IRAcceptanceError(RuntimeError):
     pass
 
@@ -315,12 +328,19 @@ class IRAcceptanceController:
             for index, value in enumerate(coord)
         ):
             raise IRAcceptanceError("Coordinate is outside the active topology.")
-        self.sequence[selected] += 1
         session = self.sessions[selected]
-        result = session.handle_input(PhysicalInputEvent(
-            self.sequence[selected], "mouse", "mouse.button.primary", "press",
-            position=(0, 0), data={"rule_coordinate": list(coord)},
-        ))
+        # A confirmed click on the cell's scene node, as the 3D viewer sends it:
+        # press, then release with pointer_click (click-gesture bindings fire on release).
+        data = _cell_pick_data(session.scene, coord)
+        result = None
+        for phase in ("press", "release"):
+            self.sequence[selected] += 1
+            result = session.handle_input(PhysicalInputEvent(
+                self.sequence[selected], "mouse", "mouse.button.primary", phase,
+                position=(0, 0), data=dict(data),
+            ))
+            if result.transitions or result.host_commands or result.rejections:
+                break
         accepted = bool(result.transitions or result.host_commands) and not result.rejections
         if accepted and result.host_commands:
             if 'restart' in result.host_commands: self.reset(selected)

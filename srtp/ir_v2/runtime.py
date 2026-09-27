@@ -109,6 +109,21 @@ class TransitionReport:
     chance_results: Tuple[ChanceResult, ...] = ()
 
 
+class _OutcomeProvider:
+    """The owning runtime's outcome for its current state (read-only; never copied with the state)."""
+
+    def __init__(self, runtime: "RuleRuntime") -> None:
+        self._runtime = runtime
+
+    def __call__(self, state: "RuleState") -> "OutcomeResult":
+        if self._runtime.state is not state:
+            raise RuleRuntimeError("outcome is only available for the runtime's current state")
+        return self._runtime.evaluate_outcome()
+
+    def __deepcopy__(self, memo: Any) -> "_OutcomeProvider":
+        return self
+
+
 class RuleState:
     """Authoritative mutable state; renderer state never lives here."""
 
@@ -119,6 +134,8 @@ class RuleState:
     ) -> None:
         self.document = document
         self.type_registry = type_registry
+        # Set by RuleRuntime; lets presentation read the outcome without mutating state.
+        self.outcome_provider: Optional[_OutcomeProvider] = None
         self.topologies: Dict[str, Tuple[int, ...]] = {
             str(item["id"]): tuple(int(axis["extent"]) for axis in item["axes"])
             for item in document.get("topologies", [])
@@ -660,6 +677,7 @@ class RuleRuntime:
             parameters=self.configuration.values_by_key,
             random_sources=random_sources,
         )
+        self.state.outcome_provider = _OutcomeProvider(self)
         self._actions_by_id = {
             str(item["id"]): item for item in self.document.get("actions", []) if isinstance(item, Mapping)
         }
@@ -1540,6 +1558,21 @@ def replay_rule_ir(
     return runtime
 
 
+def _condition_type(evaluator: ExpressionEvaluator, expression: Mapping[str, Any], environment: Mapping[str, str]) -> str:
+    """A condition's type; ``state.get('<id>')`` of a state declared core:bool is core:bool.
+
+    state.get is registered as core:any because its result depends on the
+    variable. For the exact form state.get(<literal global id>) the declared
+    type is known, so a boolean flag can be a condition without "== true".
+    """
+    inferred = evaluator.infer_type(expression, environment)
+    if inferred == "core:any" and isinstance(expression, Mapping) and expression.get("op") == "call"             and expression.get("function") == "core:state.get":
+        arguments = expression.get("args") or []
+        if len(arguments) == 1 and isinstance(arguments[0], Mapping) and arguments[0].get("op") == "literal"                 and environment.get(str(arguments[0].get("value"))) == "core:bool":
+            return "core:bool"
+    return inferred
+
+
 def _type_check_document(runtime: RuleRuntime) -> None:
     evaluator = runtime.evaluator
     base = {
@@ -1559,7 +1592,7 @@ def _type_check_document(runtime: RuleRuntime) -> None:
         actor_type = evaluator.infer_type(action["actor"], environment)
         if actor_type not in ("core:participant_id", "core:any"):
             raise RuleRuntimeError("action actor must type-check as core:participant_id")
-        result = evaluator.infer_type(action["precondition"], environment)
+        result = _condition_type(evaluator, action["precondition"], environment)
         if result != "core:bool":
             raise RuleRuntimeError("action precondition must type-check as core:bool")
         _type_check_commands(evaluator, action.get("effects", []), environment)
@@ -1587,11 +1620,11 @@ def _type_check_document(runtime: RuleRuntime) -> None:
                     str(item["name"]): str(item["type"])
                     for item in event_definition.get("payload", []) if isinstance(item, Mapping)
                 })
-        if evaluator.infer_type(system["condition"], environment) != "core:bool":
+        if _condition_type(evaluator, system["condition"], environment) != "core:bool":
             raise RuleRuntimeError("system condition must type-check as core:bool")
         _type_check_commands(evaluator, system.get("effects", []), environment)
     for outcome in runtime.document.get("outcomes", []):
-        if evaluator.infer_type(outcome["condition"], base) != "core:bool":
+        if _condition_type(evaluator, outcome["condition"], base) != "core:bool":
             raise RuleRuntimeError("outcome condition must type-check as core:bool")
         result = outcome.get("result", {})
         for expression in result.get("winners", []) + result.get("losers", []):
@@ -1600,10 +1633,10 @@ def _type_check_document(runtime: RuleRuntime) -> None:
             for expression in result["scores"].values():
                 evaluator.infer_type(expression, base)
     for invariant in runtime.document.get("invariants", []):
-        if evaluator.infer_type(invariant["condition"], base) != "core:bool":
+        if _condition_type(evaluator, invariant["condition"], base) != "core:bool":
             raise RuleRuntimeError("invariant condition must type-check as core:bool")
     turn_eligibility = runtime.document.get("flow", {}).get("turn_eligibility")
-    if isinstance(turn_eligibility, Mapping) and evaluator.infer_type(turn_eligibility, base) != "core:bool":
+    if isinstance(turn_eligibility, Mapping) and _condition_type(evaluator, turn_eligibility, base) != "core:bool":
         raise RuleRuntimeError("flow turn_eligibility must type-check as core:bool")
     _type_check_commands(evaluator, runtime.document.get("state", {}).get("initial_effects", []), base)
 
@@ -1623,7 +1656,8 @@ def _type_check_commands(
             "condition", "payload", "delay_ticks", "off", "on", "schedule_id", "phase",
         ):
             if key in command:
-                inferred = evaluator.infer_type(command[key], local_environment)
+                inferred = (_condition_type(evaluator, command[key], local_environment) if key == "condition"
+                            else evaluator.infer_type(command[key], local_environment))
                 if key == "condition" and inferred != "core:bool":
                     raise RuleRuntimeError("assert condition must type-check as core:bool")
                 if key == "delay_ticks" and inferred != "core:int":

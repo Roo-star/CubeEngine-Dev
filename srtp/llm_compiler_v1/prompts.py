@@ -32,7 +32,8 @@ Schema traps (compiler coerces many; still emit correct shapes when possible):
 - Scene IDs: scene:node.board (one colon). Component ids LOCAL only: sites, camera (never scene:component.*)
 - Prefabs: {id,name,root:{local_id,name,active,transform,components,children}}
 - Camera: projection + near_clip/far_clip with 0<near<far + active
-- Asset source = project-relative path string; or /derivations procedural_mesh with empty inputs
+- Asset source = project-relative path string; or /derivations procedural_mesh / vector_shape with empty inputs
+- Shapes drawn with pygame.draw: copy the ready vector_shape derivation from source_workspace.source_drawings
 - Input: fill /contexts+/intents+/bindings together; clear only filled unresolved paths (never wipe the whole list)
 - Input intents with target.kind=rule_action require rule_ir pin — compiler auto-pins from applied Rule IR if omitted
 - Dependencies content_hash may be "$pin:rule_ir" / "$pin:asset_ir"
@@ -56,6 +57,11 @@ Hard field shapes:
 - scope: non-empty ARRAY of rule|scene|asset|input — never a bare string like "topology"
 - target_base: null unless pinning an existing target object (never "main" or other strings)
 - preserve/changes/constraints/…: arrays (strings or objects inside are fine)
+- When the text states board dimensions or a layer/depth count, ALSO add one structured change per stated
+  axis: {"kind":"set_extent","axis":"x|y|z","value":N} (z = the new depth axis; x/y only if they change).
+  If the text says whether counts sampled from the board (mines, pieces) stay the same or scale with the
+  board, add {"kind":"count_policy","value":"keep|scale"}. If it says moving pieces stay within their layer,
+  add {"kind":"movement","value":"planar"}. Never guess numbers the text does not state.
 """
 
 SYSTEM_SPATIAL_LIFT = """Output one JSON object {plan, proposal}.

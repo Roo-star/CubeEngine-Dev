@@ -96,7 +96,8 @@ def main():
     from panda3d.core import Filename
     font = Path('C:/Windows/Fonts/arial.ttf')
     if font.exists():
-        Text.default_font = Filename.from_os_specific(str(font)).get_fullpath()
+        from .ursina_fonts import ursina_font
+        Text.default_font = ursina_font(font)
     app = Ursina(borderless=False, fullscreen=False, size=(1280, 800), development_mode=False)
     window.title = 'CubeEngine - Project IR / Ursina 3D'
     from .ursina_scene_backend import UrsinaSceneBackend, rgba255
@@ -116,7 +117,7 @@ def main():
             self.last_revision = None
             from .pointer_gesture import PointerGesture
             self.pointer = PointerGesture()
-            self.message = 'Right-drag to orbit; wheel zoom; [ / ] select depth; Restart button resets the game.'
+            self.message = 'Right-drag: orbit   Wheel: zoom' + chr(10) + '[ / ]: select depth   Restart: new game'
             self.header = Text(text='', position=(-window.aspect_ratio/2+.02, .47), scale=.7)
             right = window.aspect_ratio/2 - .08
             self.controls = [

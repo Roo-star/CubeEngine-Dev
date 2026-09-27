@@ -3,7 +3,7 @@ from srtp.scene_ir_v2.component_contracts import components
 from srtp.presentation_patterns import PATTERN_VERSION, SPATIAL_ROLES
 
 
-def assess(documents, stages, *, spatial):
+def assess(documents, stages, *, spatial, oracle=None):
     checks=[]
     def add(identifier,status,evidence):
         checks.append({'id':identifier,'status':status,'evidence':evidence})
@@ -16,7 +16,19 @@ def assess(documents, stages, *, spatial):
         {'missing_roles':missing,'reason':'No automatic flattening of content into grid containers.'})
     # Model-provided traces verify executability, not equivalence to the
     # original game or completeness of the user's design requirements.
-    add('source_behavior_equivalence','pending','Needs independent original-source oracle traces, including terminal/reset and rejected input.')
+    oracle = oracle or {}
+    if oracle.get('status') == 'diverged':
+        add('source_behavior_equivalence', 'fail', {'source_oracle': oracle.get('counterexample'),
+            'reason': 'The original game and the Rule IR disagree on the board after the listed input.'})
+    elif oracle.get('status') == 'passed':
+        # Board states agree over random legal/rejected input; outcome labels,
+        # HUD text and timing are not compared, so this is not a full pass.
+        add('source_behavior_equivalence', 'pending', {'source_oracle': {k: oracle.get(k) for k in (
+            'status', 'checked_steps', 'games', 'source_board', 'axis_order', 'value_map')},
+            'reason': 'Board states match the original game; outcome labels, HUD and timing still need evidence.'})
+    else:
+        add('source_behavior_equivalence','pending','Needs independent original-source oracle traces, including terminal/reset and rejected input.'
+            + (' Source oracle: {0}.'.format(oracle.get('reason') or oracle.get('status')) if oracle else ''))
     add('spatial_rule_equivalence','pending' if spatial else 'not_applicable',
         'Needs independent lifted-rule cases (all directions/neighbors/merges as applicable); not one self-generated win.')
     add('source_appearance_fidelity','pending',

@@ -1,5 +1,6 @@
 """Independent contract matrix and original paid response replay; no network."""
 import json
+import os
 import tempfile
 import unittest
 from copy import deepcopy
@@ -37,6 +38,7 @@ RECIPE_CASES={
     'billboard':{'size':[1,1],'facing':'camera','double_sided':True},
     'extrusion':{'depth':.1,'axis':'z'},'cube_face_projection':{'faces':'all','uv_policy':'stretch'},
     'procedural_mesh':{'primitive':'cube','dimensions':[1,1,1]},
+    'vector_shape':{'canvas':[10,10],'depth':.1,'axis':'z','shapes':[{'op':'circle','center':[5,5],'radius':4,'color':[1,0,0]}]},
 }
 
 
@@ -205,6 +207,7 @@ class BackendContractTests(unittest.TestCase):
         issues=backend_diagnostics(definition)
         self.assertTrue(any('not implemented for renderer' in issue for issue in issues),issues)
 
+    @patch.dict(os.environ, {'CUBEENGINE_SCENE_DRAFT': 'off'})  # the model's own repair path is under test
     def test_rejected_paid_stage_is_revalidated_before_first_resumed_repair(self):
         calls=[]; scene_attempts=0
         def chat(messages,**kwargs):

@@ -429,6 +429,9 @@ class SourceToIRCompiler:
         self.checkpoint_path = None
         self.cancel_token = cancel_token
         self.asset_project_root = None
+        # Spatial Lift: apply the engine template from structured intent changes
+        # before any Rule generation (see lift_templates).
+        self.use_lift_templates = True
 
     def check_cancelled(self):
         if self.cancel_token is not None:
@@ -461,6 +464,7 @@ class SourceToIRCompiler:
         out_dir: Optional[Path] = None,
         intent_text: Optional[str] = None,
         language: str = "en",
+        checkpoint_path: Optional[Path] = None,
     ) -> CompileReport:
         """Compile Source four-IR. Optional intent drafts lift only after approve.
 
@@ -471,7 +475,8 @@ class SourceToIRCompiler:
 
         self.check_cancelled()
         self.asset_project_root = Path(package.root)
-        self.checkpoint_path = Path(out_dir).with_name(Path(out_dir).name + '.stages.json') if out_dir else None
+        self.checkpoint_path = Path(checkpoint_path) if checkpoint_path else (
+            Path(out_dir).with_name(Path(out_dir).name + '.stages.json') if out_dir else None)
         evidence = build_evidence_pack(package)
         package_hash = str(evidence["source_package_hash"])
         bootstrap = bootstrap_documents(title=package.title, source_package_hash=package_hash)
@@ -523,6 +528,7 @@ class SourceToIRCompiler:
         target_dimensions: Optional[Mapping[str, int]] = None,
         out_dir: Optional[Path] = None,
         language: str = "en",
+        checkpoint_path: Optional[Path] = None,
     ) -> CompileReport:
         """Run Spatial Lift from an already-approved Source bundle on disk.
 
@@ -533,7 +539,8 @@ class SourceToIRCompiler:
         intent = str(intent_text or "").strip()
         self.check_cancelled()
         self.asset_project_root = Path(package.root)
-        self.checkpoint_path = Path(out_dir).with_name(Path(out_dir).name + '.stages.json') if out_dir else None
+        self.checkpoint_path = Path(checkpoint_path) if checkpoint_path else (
+            Path(out_dir).with_name(Path(out_dir).name + '.stages.json') if out_dir else None)
         if not intent and not target_dimensions:
             raise ValueError("Spatial conversion requires natural language or Inspector dimensions")
 
@@ -826,14 +833,18 @@ class SourceToIRCompiler:
                 from .client import LLMChatResult
                 intent_result = LLMChatResult(json.dumps(structured_intent),provider,model,structured_intent)
             else:
-                intent_result = self.client.chat_json(
-                design_intent_messages(
-                    original_text=intent_text,
-                    project_id=source_report.project_id,
-                    source_manifest_hash=source_hash,
-                    language=language,
-                )
-                )
+                from .budget import STAGED_LIFT_WEIGHTS, budget_stage
+                if getattr(self.client, 'budget', None) is not None:
+                    self.client.budget.plan(list(STAGED_LIFT_WEIGHTS), STAGED_LIFT_WEIGHTS)
+                with budget_stage(self.client, 'design_intent'):
+                    intent_result = self.client.chat_json(
+                    design_intent_messages(
+                        original_text=intent_text,
+                        project_id=source_report.project_id,
+                        source_manifest_hash=source_hash,
+                        language=language,
+                    )
+                    )
         except LLMClientError as error:
             report = deepcopy_report(source_report)
             report.ok = False
@@ -1169,6 +1180,8 @@ def _target_documents(source_documents):
         if target_id==source_id and not target_id.endswith('.target'):
             target_id += '.target'
         document.update(document_id=target_id,revision=0,content_hash='')
+    from .scene_completion import migrate_aliases
+    docs['scene_ir'] = migrate_aliases(docs['scene_ir'], [])
     # Do not call the legacy _pin_cross_ir_dependencies authoring heuristics:
     # approved pointer filters and shared controls are intentionally legal.
     return _seal_document_dependencies(docs)
@@ -3016,7 +3029,7 @@ def _coerce_asset_derivation(value: Dict[str, Any]) -> None:
     value["strategy"] = strategy
     if not isinstance(value.get("inputs"), list):
         value["inputs"] = []
-    if strategy == "procedural_mesh":
+    if strategy in ("procedural_mesh", "vector_shape"):
         value["inputs"] = []
     if not isinstance(value.get("settings"), Mapping):
         value["settings"] = (
@@ -3072,7 +3085,7 @@ def _coerce_presentation_mapping(value: Dict[str, Any]) -> bool:
     strategy = value.get("strategy")
     if strategy not in (
         "billboard", "extrusion", "cube_face_projection",
-        "mesh_substitution", "procedural_mesh", "custom_renderer",
+        "mesh_substitution", "procedural_mesh", "vector_shape", "custom_renderer",
     ):
         value["strategy"] = "procedural_mesh"
     if value.get("fidelity") not in ("source_exact", "source_derived", "designer_substitution"):
@@ -3824,7 +3837,8 @@ def _scene_binding_gap(value: Mapping[str, Any], node_ids: set) -> Optional[str]
         if not _RULE_REFERENCE.fullmatch(str(source.get("variable") or "")):
             return "{0}: state source has no rule: variable".format(identifier)
     elif source.get("kind") == "flow":
-        if source.get("property") not in ("current_actor", "phase", "tick", "turn"):
+        if source.get("property") not in ("current_actor", "phase", "tick", "turn", "terminal", "outcome_status",
+                                          "winner", "outcome"):
             return "{0}: flow source property is unsupported".format(identifier)
     elif source.get("kind") == "entity_component":
         if not _SCENE_LOCAL_ID.fullmatch(str(source.get("component") or "")):

@@ -124,6 +124,7 @@ class StagedCompilerTests(unittest.TestCase):
             source=compiler.compile(package,out_dir=Path(tmp)/'source')
             self.assertTrue(source.ok,source.diagnostics)
             approve_llm_manifest_file(Path(source.output_dir)/'project.manifest.json')
+            compiler.use_lift_templates=False  # exercise the model Rule stage; the template path has its own test
             target=compiler.compile_spatial_lift(package,source_bundle_dir=Path(source.output_dir),
                 target_dimensions={'x':3,'y':3,'z':3},out_dir=Path(tmp)/'target')
             self.assertTrue(target.ok,target.diagnostics)

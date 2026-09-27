@@ -174,11 +174,17 @@ def lower(value: Any, pointer=''):
     return deepcopy(value)
 
 
-def definition_proposal(payload, *, slot, documents, evidence_pack, job_id, design_intent=None, source_root=None, visual_catalog=None):
+def definition_proposal(payload, *, slot, documents, evidence_pack, job_id, design_intent=None, source_root=None,
+                        visual_catalog=None, locked=None):
     definition = payload.get('definition')
     if not isinstance(definition, Mapping) or not definition:
         raise ValueError('Compilation stage requires a nonempty definition object')
     base = documents[slot]
+    if slot == 'rule_ir' and 'mechanics' in definition:
+        # Selected engine mechanics expand into ordinary entries before validation.
+        from .mechanics import expand_mechanics, merge_mechanics
+        definition = dict(definition)
+        definition = merge_mechanics(definition, base, expand_mechanics(definition.pop('mechanics')))
     unknown = set(definition) - set(base) - ENGINE_OWNED_FIELDS
     if unknown:
         raise ValueError('Definition contains unknown fields: ' + str(sorted(unknown)))
@@ -187,6 +193,13 @@ def definition_proposal(payload, *, slot, documents, evidence_pack, job_id, desi
     definition = {key:deepcopy(value) for key,value in definition.items() if key not in ENGINE_OWNED_FIELDS}
     if not definition:
         raise ValueError('Compilation stage requires a nonempty semantic definition')
+    # Lossless repairs (e.g. "3" -> 3 for an integer) before any validation;
+    # each is recorded with the patch instead of costing a repair round.
+    from .normalize import normalize_definition
+    definition, normalized = normalize_definition(slot, definition)
+    if slot == 'scene_ir':
+        from .scene_completion import migrate_aliases
+        definition = migrate_aliases(definition, normalized)
     # Check the entire candidate's wire shape before semantic validators or
     # source IO. Malformed IDs/collections must produce useful repair pointers,
     # never an unhashable-dict/attribute error that hides the other mistakes.
@@ -207,6 +220,17 @@ def definition_proposal(payload, *, slot, documents, evidence_pack, job_id, desi
             if citation in catalog:
                 item = catalog[citation]
                 expanded.append({k: deepcopy(v) for k,v in item.items() if k != 'snippet'})
+            elif citation.startswith('visual:') and visual_catalog is not None and                     (visual_catalog.facts.get(citation) or {}).get('source', {}).get('line'):
+                # A measured source visual is a verifiable source line; the verifier checks it.
+                source = visual_catalog.facts[citation]['source']
+                expanded.append({'evidence_id': citation, 'path': source['path'], 'file_sha256': source['file_sha256'],
+                                 'span': {'line_start': int(source['line']), 'line_end': int(source['line'])},
+                                 'supports': '/' + slot})
+            elif citation.startswith('drawn:') and citation in (getattr(visual_catalog, 'drawn_sources', None) or {}):
+                source = visual_catalog.drawn_sources[citation]
+                expanded.append({'evidence_id': citation, 'path': source['path'], 'file_sha256': source['file_sha256'],
+                                 'span': {'line_start': int(source['line_start']), 'line_end': int(source['line_end'])},
+                                 'supports': '/' + slot})
             else:
                 match = re.fullmatch(r'(.+):(\d+)-(\d+)@([0-9a-f]{64})', citation)
                 if not match:
@@ -218,6 +242,15 @@ def definition_proposal(payload, *, slot, documents, evidence_pack, job_id, desi
                     'span':{'line_start':int(start),'line_end':int(end)}, 'supports':'/' + slot})
         else:
             expanded.append(deepcopy(citation))
+    fallback_citation = []
+    if not expanded and evidence_pack.get('evidence'):
+        # The reply cited nothing: cite the verified pack spans for this IR
+        # (the verifier still checks them) instead of paying for a repair.
+        own = [e for e in evidence_pack['evidence'] if str(e.get('supports', '')).startswith('/' + slot)]
+        expanded = [{k: deepcopy(v) for k, v in e.items() if k != 'snippet'}
+                    for e in (own or evidence_pack['evidence'])[:2]]
+        fallback_citation = ['engine cited verified evidence {0} (reply gave none)'.format(
+            [e.get('evidence_id') for e in expanded])]
     visual_uses = []
     if visual_catalog is not None:
         definition = visual_catalog.resolve(definition, visual_uses)
@@ -235,6 +268,14 @@ def definition_proposal(payload, *, slot, documents, evidence_pack, job_id, desi
                     raise ValueError('winner_state must name an existing global Rule state')
                 result['winners']=[{'op':'call','function':'core:state.get','args':[{'op':'literal','value':state}]}]
     definition = lower(definition)
+    if locked is not None and slot in ('asset_ir', 'input_ir'):
+        # Root fields replace base lists wholesale; keep engine-locked facts.
+        from .static_facts import enforce_locked
+        candidate = dict(deepcopy(base), **definition)
+        enforced, _ = enforce_locked(slot, candidate, locked)
+        for key, value in enforced.items():
+            if key in definition and value != definition[key]:
+                definition[key] = value
     if visual_uses:
         metadata = deepcopy(definition.get('metadata', base.get('metadata', {})))
         metadata['source_visual_bindings'] = visual_uses
@@ -326,7 +367,8 @@ def definition_proposal(payload, *, slot, documents, evidence_pack, job_id, desi
                 'base_documents':pins, 'patches':{key:[] for key in documents}}
     proposal['patches'][slot] = [{'document_id':base['document_id'], 'base_revision':base['revision'],
         'base_content_hash':base['content_hash'], 'operations':operations, 'evidence':expanded,
-        'assumptions':payload.get('assumptions',[]), 'unresolved':payload.get('unresolved',[])}]
+        'assumptions':list(payload.get('assumptions',[]))+['engine normalized '+item for item in normalized[:32]]+fallback_citation,
+        'unresolved':payload.get('unresolved',[])}]
     for key in ('claims','tests','extension_proposals','spatial_lift_options','assumptions','unresolved','clarification_questions'):
         proposal[key] = deepcopy(payload.get(key,[]))
     return proposal

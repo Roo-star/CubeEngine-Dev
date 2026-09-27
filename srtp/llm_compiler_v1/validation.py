@@ -65,6 +65,7 @@ class ValidationReport:
     diagnostics: List[str] = field(default_factory=list)
     documents: Dict[str, Dict[str, Any]] = field(default_factory=dict)
     proposal: Optional[Dict[str, Any]] = None
+    notes: List[str] = field(default_factory=list)
 
     def to_mapping(self) -> Dict[str, Any]:
         return {
@@ -87,7 +88,9 @@ def validate_and_apply_proposal(
     source_package_hash: Optional[str] = None,
     evidence_pack: Optional[Mapping[str, Any]] = None,
     source_root: Optional[Path] = None,
+    locked: Optional[Any] = None,
 ) -> ValidationReport:
+    """``locked`` (StaticFacts) entries are restored after each IR's patches."""
     diagnostics = validate_llm_proposal(
         proposal, require_design_intent=require_design_intent,
     )
@@ -124,6 +127,7 @@ def validate_and_apply_proposal(
         key: deepcopy(dict(documents[key])) for key in _IR_KEYS
     }
     patches = proposal.get("patches") if isinstance(proposal.get("patches"), Mapping) else {}
+    notes: List[str] = []
     for key in _IR_KEYS:
         entries = patches.get(key) if isinstance(patches, Mapping) else None
         if not isinstance(entries, list):
@@ -131,6 +135,12 @@ def validate_and_apply_proposal(
         rule_pin = _ir_document_pin(working.get("rule_ir"))
         asset_pin = _ir_document_pin(working.get("asset_ir"))
         for index, entry in enumerate(entries):
+            if isinstance(entry, Mapping) and isinstance(entry.get("operations"), list):
+                from .normalize import prune_satisfied_removes
+                pruned, prune_notes = prune_satisfied_removes(working[key], entry["operations"])
+                if prune_notes:
+                    entry = dict(entry, operations=pruned)
+                    notes.extend("{0}: engine {1}".format(key, item) for item in prune_notes)
             try:
                 if key == "scene_ir":
                     working[key] = apply_scene_ir_patch(
@@ -148,6 +158,25 @@ def validate_and_apply_proposal(
                 return ValidationReport(
                     ok=False, diagnostics=diagnostics, documents=working, proposal=dict(proposal),
                 )
+        if locked is not None and entries and key in ("asset_ir", "input_ir"):
+            from .static_facts import enforce_locked
+            restored, restored_notes = enforce_locked(key, working[key], locked)
+            if restored != working[key]:
+                from srtp.asset_ir_v2 import seal_asset_ir
+                from srtp.input_ir_v2 import seal_input_ir
+                sealer = seal_asset_ir if key == "asset_ir" else seal_input_ir
+                working[key] = sealer(restored, revision=int(restored.get("revision") or 0))
+                notes.extend("{0}: {1}".format(key, item) for item in restored_notes)
+
+    if isinstance(patches, Mapping) and (patches.get("scene_ir") or patches.get("input_ir")):
+        # Renamed component fields and the picking collider are engine-owned.
+        from .scene_completion import complete_scene
+        completed, completion_notes = complete_scene(working["scene_ir"], working.get("input_ir") or {},
+                                                     working.get("rule_ir"))
+        if completion_notes:
+            from srtp.scene_ir_v2 import seal_scene_ir
+            working["scene_ir"] = seal_scene_ir(completed, revision=int(completed.get("revision") or 0))
+            notes.extend("scene_ir: engine completed " + item for item in completion_notes)
 
     for key, document in working.items():
         errors = [
@@ -160,8 +189,8 @@ def validate_and_apply_proposal(
             )
     if diagnostics:
         return ValidationReport(
-            ok=False, diagnostics=diagnostics, documents=working, proposal=dict(proposal),
+            ok=False, diagnostics=diagnostics, documents=working, proposal=dict(proposal), notes=notes,
         )
     return ValidationReport(
-        ok=True, diagnostics=[], documents=working, proposal=dict(proposal),
+        ok=True, diagnostics=[], documents=working, proposal=dict(proposal), notes=notes,
     )

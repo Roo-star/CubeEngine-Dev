@@ -583,8 +583,41 @@ class AgenticLiftTests(unittest.TestCase):
         )
         return report, chat, compiler.last_job
 
+    def test_engine_template_lifts_without_rule_or_carry_over_calls(self):
+        report, chat, job = self._lift([_intent_reply(), _plan_reply(), _PASS])
+        self.assertTrue(report.ok, report.diagnostics)
+        self.assertEqual(len(chat.requests), 3, "intent, plan and review only")
+        self.assertFalse(chat.payloads)
+        self.assertTrue(job.lift_report["template"]["applied"])
+        self.assertIn("add axis z with extent 3", job.lift_report["template"]["transforms"])
+        self.assertTrue(job.lift_report["z_equals_one"]["ok"])
+        self.assertTrue(all(item["passed"] for item in job.lift_report["behavior_tests"]["facts"]["results"]))
+        kinds = [(step["role"], step["kind"], step.get("ok")) for step in job.trace.steps
+                 if step["kind"] in ("template", "carry_over")]
+        self.assertEqual(kinds, [("rule_ir", "template", True), ("asset_ir", "carry_over", True),
+                                 ("scene_ir", "carry_over", True), ("input_ir", "carry_over", True)])
+        out = self.tmp / "target"
+        approve_llm_manifest_file(out / "project.manifest.json")
+        controller = IRAcceptanceController(ROOT, autoload_reference=False)
+        controller.open_project_bundle(out / "project.manifest.json")
+        self.assertEqual(controller.snapshot().dimensions, (3, 3, 3))
+        for coordinate in [(0, 0, 0), (1, 0, 0), (0, 0, 1), (1, 0, 1), (0, 0, 2)]:
+            self.assertTrue(controller.click(coordinate).accepted, coordinate)
+        state = controller.snapshot()
+        self.assertTrue(state.terminal)
+        self.assertEqual(state.winners, ("Player 1",))
+
+    def test_template_that_breaks_planner_tests_falls_back_to_the_rule_worker(self):
+        gravity = _plan_reply([{"name": "upper layer needs support", "moves": [[0, 0, 1]], "expect": {"status": "illegal"}}])
+        report, chat, job = self._lift([_intent_reply(), gravity, _lift_rule_patch(), _lift_rule_patch()] + _LIFT_TAIL)
+        self.assertFalse(job.lift_report["template"]["applied"])
+        self.assertIn("upper layer needs support", json.dumps(job.lift_report["template"]["diagnostics"]))
+        worker_request = json.loads(chat.requests[2][-1]["content"])
+        self.assertIn("lift template could not finish", worker_request["instruction"])
+
     def test_lift_to_3d_passes_z1_equivalence_and_plays_across_layers(self):
-        report, chat, job = self._lift([_intent_reply(), _plan_reply(), _lift_rule_patch()] + _LIFT_TAIL)
+        report, chat, job = self._lift([_intent_reply(), _plan_reply(), _lift_rule_patch()] + _LIFT_TAIL,
+                                       use_lift_templates=False)
         self.assertTrue(report.ok, report.diagnostics)
         self.assertEqual(report.stage, "spatial_lift")
         self.assertFalse(chat.payloads)
@@ -611,6 +644,7 @@ class AgenticLiftTests(unittest.TestCase):
     def test_z1_mismatch_is_routed_back_to_the_rule_worker(self):
         report, chat, _ = self._lift(
             [_intent_reply(), _plan_reply(), _lift_rule_patch(line_length=4), _lift_rule_patch()] + _LIFT_TAIL,
+            use_lift_templates=False,
         )
         self.assertTrue(report.ok, report.diagnostics)
         repair = json.loads(chat.requests[3][-1]["content"])
@@ -625,7 +659,8 @@ class AgenticLiftTests(unittest.TestCase):
 
     def test_plan_tests_outside_the_target_are_sent_back_to_the_planner(self):
         bad = _plan_reply([{"name": "off board", "moves": [[0, 0, 3]], "expect": {"status": "ongoing"}}])
-        report, chat, _ = self._lift([_intent_reply(), bad, _plan_reply(), _lift_rule_patch()] + _LIFT_TAIL)
+        report, chat, _ = self._lift([_intent_reply(), bad, _plan_reply(), _lift_rule_patch()] + _LIFT_TAIL,
+                                     use_lift_templates=False)
         self.assertTrue(report.ok, report.diagnostics)
         correction = json.loads(chat.requests[2][-1]["content"])
         self.assertIn("outside the Target extents", correction["diagnostics"][0])

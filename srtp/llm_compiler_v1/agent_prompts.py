@@ -10,7 +10,7 @@ from __future__ import annotations
 import json
 from typing import Any, Dict, List, Mapping, Optional, Sequence
 
-AGENT_PROMPT_VERSION = "cubeengine.srtp/llm-agent-prompt/1.6"
+AGENT_PROMPT_VERSION = "cubeengine.srtp/llm-agent-prompt/2.0"
 
 _COMMON = (
     "Reply with ONE JSON object only: no markdown, no prose. "
@@ -56,7 +56,12 @@ Rules:
 - evidence: ids from evidence_menu ONLY (usually the ids of the spec facts you used).
 - The base document's unresolved list is given. Finish with {{"op":"replace","path":"/unresolved","value":[...]}}
   keeping only items you could not fill. Required unresolved blocks the project; use it only for real gaps.
-- Reference ids exactly as given in rule_ids; never invent new Rule ids in Scene/Input."""
+- Reference ids exactly as given in rule_ids; never invent new Rule ids in Scene/Input.
+- Long patch: reply with the first operations and "continue": true; the engine keeps them and asks for the
+  rest (reply the remaining operations only). A reply cut off by the output limit is continued the same way.
+- Before your patch you may check risky pieces locally (free validators, at most 2 rounds, no attempt used):
+  reply {{"tool_requests":[{{"tool":"check_expression","expr":"...","as":"condition|value"}},
+  {{"tool":"check_entry","path":"/actions/-","value":{{...one entry...}}}}]}} and you get tool_results back."""
 
 SYSTEM_CRITIC = _COMMON + """
 Role: semantic reviewer. Compare the compiled IR with the SOURCE CODE (ground truth) and the runtime probe.
@@ -67,6 +72,8 @@ Probe errors are facts; probe warnings are hints you must judge against the sour
 Quit/close and full-game restart are Input IR host_command intents (quit, restart), never Rule actions:
 report a missing quit/restart control against input_ir, and flag Rule quit/restart actions as wrong.
 Closing the window is handled by the host itself; Input IR has no window-close control, so never ask for one.
+engine_facts are measured from the source and locked by the engine (assets, drawings, quit/restart keys);
+do not report them as missing or ask to change them.
 Reply: {"verdict":"pass|revise","issues":[{"ir":"rule_ir|scene_ir|asset_ir|input_ir","problem":"...",
         "fix":"<concrete IR change>","source":{"path":"...","lines":[a,b]}}]}
 Use "pass" with issues [] when the IR faithfully implements the source rules."""
@@ -149,7 +156,15 @@ RULE_SHAPES: Dict[str, Any] = {
                            "winners": [{"op": "literal", "value": "rule:participant.<key>"}], "losers": []}},
     "notes": [
         "Shapes show syntax only; every value must come from the Game Spec.",
+        "Any pure expression may be written compactly as {\"expr\": \"...\"}, e.g. "
+        "{\"expr\": \"grid.equals('rule:state.board_cell', param.target, 0) and state.get('rule:state.turn') == 1\"}; "
+        "calls use runtime names without core:, param.NAME / var.NAME / flow.* references; the engine lowers it.",
         "initial_effects stay [] when the source starts from an empty board.",
+        "Evaluation order: effects run, the turn advances (flow.turn_order), THEN outcomes are evaluated, so "
+        "flow.current_actor inside an outcome is the NEXT participant; test the mark just placed.",
+        "mechanics lists tested engine patterns (turn state, placement on an empty cell, N in a row, full-board "
+        "draw). When one matches the source exactly, add \"mechanics\": [{\"pattern\": ..., params}] to your reply "
+        "instead of writing those entries; they are appended after your operations.",
         "priority: when several outcome conditions are true at once the runtime keeps the HIGHEST number. "
         "An outcome the source checks first must get the larger priority (or exclude the other in its condition).",
         _LIFECYCLE_NOTE,
@@ -207,11 +222,25 @@ ASSET_SHAPES: Dict[str, Any] = {
                         "strategy": "procedural_mesh", "inputs": [],
                         "settings": {"primitive": "cube|sphere|cylinder|plane", "dimensions": [1, 1, 1]},
                         "expected_content_hash": "", "license_policy": "inherit"},
+    "vector_shape": {"id": "asset:shape.<key>", "name": "...", "kind": "model",
+                     "media_type": "application/vnd.cubeengine.presentation+json",
+                     "strategy": "vector_shape", "inputs": [],
+                     "settings": {"canvas": [132, 132], "depth": 0.1, "axis": "z",
+                                  "shapes": [{"op": "line|lines|polygon|rect|circle|ellipse", "...": "...",
+                                              "width": 0, "color": [0.27, 0.75, 0.98, 1.0]}]},
+                     "expected_content_hash": "", "license_policy": "inherit"},
     "file_asset": {"id": "asset:<key>", "name": "...", "kind": "image", "source": "<project-relative path>",
                    "media_type": "image/png"},
+    "role": {"id": "asset:role.<key>", "name": "...", "semantic": "piece.<meaning>",
+             "resource": "<id of a declared asset or derivation>", "usage": "world_mesh", "required": True},
     "notes": [
         "Declare /assets only for files listed in the source inventory; never invent files.",
-        "When the source ships no asset files, describe board/piece visuals as procedural_mesh derivations.",
+        "source_drawings lists pictures the source draws with pygame.draw (cells, pieces, marks), each with the "
+        "source condition that selects it and a ready vector_shape derivation. Copy those derivations unchanged "
+        "and bind roles to them; use procedural_mesh only for visuals the source neither draws nor ships.",
+        "Every role needs a resource id; a role without one is dropped.",
+        "base_document already contains the engine-locked source files, runtime fonts and drawings "
+        "(engine_facts). Add roles that reference their ids; do not redeclare them.",
     ],
 }
 
@@ -239,6 +268,8 @@ INPUT_SHAPES: Dict[str, Any] = {
         "Every enabled binding must target an intent whose target.kind is rule_action or host_command.",
         "Bind the source's quit key (e.g. Escape) and full-restart key to host_command intents; closing the "
         "window is handled by the host and needs no binding. " + _LIFECYCLE_NOTE,
+        "Lifecycle keys found in the source are already bound in base_document (context "
+        "input:context.application, see engine_facts); they are locked. Add only gameplay controls.",
     ],
 }
 
@@ -259,6 +290,9 @@ def worker_messages(
     rule_ids: Optional[Mapping[str, Any]] = None,
     function_catalog: Optional[Mapping[str, Any]] = None,
     inventory: Optional[Sequence[str]] = None,
+    drawings: Optional[Mapping[str, Any]] = None,
+    engine_facts: Optional[Mapping[str, Any]] = None,
+    mechanics: Optional[Mapping[str, Any]] = None,
     instruction: Optional[str] = None,
 ) -> List[Dict[str, str]]:
     base_view = {
@@ -287,6 +321,12 @@ def worker_messages(
         payload["component_properties"] = scene_component_properties()
     if inventory is not None:
         payload["source_inventory"] = list(inventory)
+    if drawings is not None:
+        payload["source_drawings"] = drawings
+    if engine_facts is not None:
+        payload["engine_facts"] = engine_facts
+    if mechanics is not None:
+        payload["mechanics"] = mechanics
     if instruction:
         payload["instruction"] = instruction
     return [
@@ -325,6 +365,7 @@ def critic_messages(
     input_summary: Mapping[str, Any],
     probe: Mapping[str, Any],
     gaps: Sequence[str],
+    engine_facts: Optional[Mapping[str, Any]] = None,
 ) -> List[Dict[str, str]]:
     payload = {
         "task": "semantic_review",
@@ -337,6 +378,8 @@ def critic_messages(
         "runtime_probe": probe,
         "deterministic_gaps": list(gaps),
     }
+    if engine_facts:
+        payload["engine_facts"] = engine_facts
     return [
         {"role": "system", "content": SYSTEM_CRITIC},
         {"role": "user", "content": _dump(payload)},
@@ -356,7 +399,10 @@ _VOLUME_NOTE = (
 SYSTEM_LIFT_PLANNER = _COMMON + """
 Role: spatial-lift planner. The Source project (2D) is approved truth. Plan how the Design Intent lifts it.
 Reply {"plan":{...}} with:
- "topology": {"id":"<existing Source topology id>","add_axes":[{"name":"z","extent":N,"boundary":"bounded"}]},
+ "topology": {"id":"<existing Source topology id>","add_axes":[{"name":"z","extent":N,"boundary":"bounded"}],
+              "set_extents":{"<existing axis name>":N}  (only when the intent resizes an existing axis)},
+ "count_policy": "keep|scale"  (whether counts sampled from the board, e.g. mines, stay fixed or scale with it),
+ "movement_policy": "planar"  (only if relative movement, e.g. a snake, stays within its layer),
  "source_xy_policy": "<how existing axes/rules are kept>",
  "target_z": N,
  "neighborhood": "<which directions exist after the lift>",
@@ -371,6 +417,8 @@ whoever's turn it is (turn_order index 0 moves first); expect describes the stat
 ("illegal" = the last move must be rejected). Write 3-6 short tests that pin down the Design Intent,
 including at least one that only works across layers. Every scripted game must stay unfinished until
 its last move. Never change Source rules the Design Intent does not mention.
+The engine applies topology/set_extents/count_policy itself (adds the axis, pads literal coordinates,
+rewrites site-count constants) and verifies it; describe any further rule change the intent needs.
 """ + _VOLUME_NOTE
 
 SYSTEM_LIFT_CRITIC = _COMMON + """
@@ -393,7 +441,8 @@ LIFT_WORKER_INSTRUCTIONS = {
     ),
     "asset_ir": (
         "SPATIAL LIFT. base_document is the approved Source Asset IR. Change it only if the lifted "
-        "presentation needs different resources; otherwise reply {\"operations\":[],\"no_change_reason\":\"...\",\"evidence\":[\"<id from evidence_menu>\"]}."
+        "presentation needs different resources (e.g. a thicker vector_shape depth so a drawn piece reads as "
+        "a solid inside the cube; keep its shapes and colours); otherwise reply {\"operations\":[],\"no_change_reason\":\"...\",\"evidence\":[\"<id from evidence_menu>\"]}."
     ),
     "scene_ir": (
         "SPATIAL LIFT. base_document is the approved Source Scene IR. Keep ids and bindings; adjust only what "

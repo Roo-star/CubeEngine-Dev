@@ -1,0 +1,1681 @@
+{
+ "note": "Paid staged Scene replies (2026-09-27 19:44, openai/gpt-6-sol). Attempts 2 and 3 declare a required unresolved item owned by rule_ir_and_scene_ir: the accepted Rule had no winner/draw state.",
+ "scene_replies": [
+  {
+   "definition": {
+    "metadata": {
+     "title": "Tic Tac Toe",
+     "description": "Source-drawn rounded cells and X/O marks arranged as a selectable 3×3 board, with the original Pygame-font instructions and turn display.",
+     "source_project_hash": "a047aad70934c80e9fa9c332ffd9dc2ea1df95a50c0015b29f6e931c2d25aab5"
+    },
+    "layers": [
+     {
+      "id": "scene:layer.runtime",
+      "name": "Runtime",
+      "kind": "runtime",
+      "visible": true,
+      "pickable": true,
+      "opacity": 1
+     }
+    ],
+    "prefabs": [
+     {
+      "id": "scene:prefab.cell",
+      "name": "Board cell",
+      "root": {
+       "local_id": "cell",
+       "name": "Selectable cell shell",
+       "active": true,
+       "transform": {
+        "translation": [
+         0,
+         0,
+         0
+        ],
+        "rotation_euler_deg": [
+         0,
+         0,
+         0
+        ],
+        "scale": [
+         1,
+         1,
+         1
+        ]
+       },
+       "components": [
+        {
+         "id": "shell",
+         "type": "renderer",
+         "enabled": true,
+         "properties": {
+          "geometry": "builtin:cube",
+          "visible": true,
+          "spatial_role": "cell_shell",
+          "scale": [
+           0.9,
+           0.9,
+           0.14
+          ],
+          "color": [
+           0.164706,
+           0.211765,
+           0.282353,
+           0.15
+          ],
+          "opacity": 0.15
+         }
+        },
+        {
+         "id": "pick",
+         "type": "collider",
+         "enabled": true,
+         "properties": {
+          "shape": "box",
+          "size": [
+           0.94,
+           0.94,
+           0.2
+          ],
+          "is_trigger": false,
+          "selectable": true
+         }
+        }
+       ],
+       "children": [
+        {
+         "local_id": "tile",
+         "name": "Source-drawn rounded cell",
+         "active": true,
+         "transform": {
+          "translation": [
+           0,
+           0,
+           -0.09
+          ],
+          "rotation_euler_deg": [
+           0,
+           0,
+           0
+          ],
+          "scale": [
+           1,
+           1,
+           1
+          ]
+         },
+         "components": [
+          {
+           "id": "tile_art",
+           "type": "renderer",
+           "enabled": true,
+           "properties": {
+            "geometry": "asset:shape.main.l73",
+            "visible": true,
+            "spatial_role": "content",
+            "scale": [
+             0.943,
+             0.943,
+             0.1
+            ]
+           }
+          }
+         ],
+         "children": []
+        },
+        {
+         "local_id": "mark",
+         "name": "Source-drawn player mark",
+         "active": true,
+         "transform": {
+          "translation": [
+           0,
+           0,
+           -0.19
+          ],
+          "rotation_euler_deg": [
+           0,
+           0,
+           0
+          ],
+          "scale": [
+           1,
+           1,
+           1
+          ]
+         },
+         "components": [
+          {
+           "id": "mark_art",
+           "type": "renderer",
+           "enabled": true,
+           "properties": {
+            "geometry": "asset:shape.main.l76",
+            "visible": false,
+            "spatial_role": "content",
+            "scale": [
+             0.943,
+             0.943,
+             0.15
+            ],
+            "variant": "empty",
+            "variants": {
+             "empty": {
+              "visible": false
+             },
+             "x": {
+              "geometry": "asset:shape.main.l76",
+              "visible": true
+             },
+             "o": {
+              "geometry": "asset:shape.main.l79",
+              "visible": true
+             }
+            }
+           }
+          }
+         ],
+         "children": []
+        }
+       ]
+      }
+     }
+    ],
+    "nodes": [
+     {
+      "id": "scene:board",
+      "name": "Three-by-three board",
+      "parent": null,
+      "active": true,
+      "layer": "scene:layer.runtime",
+      "transform": {
+       "translation": [
+        0,
+        -0.04,
+        0
+       ],
+       "rotation_euler_deg": [
+        0,
+        0,
+        0
+       ],
+       "scale": [
+        1,
+        1,
+        1
+       ]
+      },
+      "components": [
+       {
+        "id": "sites",
+        "type": "topology_visualizer",
+        "enabled": true,
+        "properties": {
+         "rule_topology": "rule:topology.board",
+         "prefab": "scene:prefab.cell",
+         "index_to_world": [
+          1.08,
+          0,
+          0,
+          -1.08,
+          0,
+          -1.08,
+          0,
+          1.08,
+          0,
+          0,
+          1.08,
+          0,
+          0,
+          0,
+          0,
+          1
+         ]
+        }
+       }
+      ]
+     },
+     {
+      "id": "scene:camera",
+      "name": "Board overview",
+      "parent": null,
+      "active": true,
+      "layer": "scene:layer.runtime",
+      "transform": {
+       "translation": [
+        0,
+        0,
+        -8
+       ],
+       "rotation_euler_deg": [
+        0,
+        0,
+        0
+       ],
+       "scale": [
+        1,
+        1,
+        1
+       ]
+      },
+      "components": [
+       {
+        "id": "view",
+        "type": "camera",
+        "enabled": true,
+        "properties": {
+         "projection": "orthographic",
+         "near_clip": 0.1,
+         "far_clip": 50,
+         "active": true,
+         "orthographic_size": 4.5
+        }
+       }
+      ]
+     },
+     {
+      "id": "scene:light",
+      "name": "Even board illumination",
+      "parent": null,
+      "active": true,
+      "layer": "scene:layer.runtime",
+      "transform": {
+       "translation": [
+        0,
+        0,
+        -3
+       ],
+       "rotation_euler_deg": [
+        0,
+        0,
+        0
+       ],
+       "scale": [
+        1,
+        1,
+        1
+       ]
+      },
+      "components": [
+       {
+        "id": "ambient",
+        "type": "light",
+        "enabled": true,
+        "properties": {
+         "kind": "ambient",
+         "color": [
+          1,
+          1,
+          1,
+          1
+         ],
+         "intensity": 1
+        }
+       }
+      ]
+     },
+     {
+      "id": "scene:hud.backing",
+      "name": "Source-colour HUD backing",
+      "parent": null,
+      "active": true,
+      "layer": "scene:layer.runtime",
+      "transform": {
+       "translation": [
+        0,
+        0,
+        0
+       ],
+       "rotation_euler_deg": [
+        0,
+        0,
+        0
+       ],
+       "scale": [
+        1,
+        1,
+        1
+       ]
+      },
+      "components": [
+       {
+        "id": "backing",
+        "type": "ui_canvas",
+        "enabled": true,
+        "properties": {
+         "mode": "overlay",
+         "visible": true,
+         "position": [
+          0,
+          0.39
+         ],
+         "size": [
+          0.84,
+          0.21
+         ],
+         "background": {
+          "source_visual": "visual:a375ca74f6d4c10ee1bb"
+         }
+        }
+       }
+      ]
+     },
+     {
+      "id": "scene:hud.status",
+      "name": "Turn status",
+      "parent": null,
+      "active": true,
+      "layer": "scene:layer.runtime",
+      "transform": {
+       "translation": [
+        0,
+        0,
+        0
+       ],
+       "rotation_euler_deg": [
+        0,
+        0,
+        0
+       ],
+       "scale": [
+        1,
+        1,
+        1
+       ]
+      },
+      "components": [
+       {
+        "id": "status",
+        "type": "ui_canvas",
+        "enabled": true,
+        "properties": {
+         "mode": "overlay",
+         "visible": true,
+         "text": "Turn: X",
+         "font": "asset:font.pygame_default",
+         "color": {
+          "source_visual": "visual:9fbe4de0bce1cff3a27a"
+         },
+         "position": [
+          -0.368,
+          0.447
+         ],
+         "origin": [
+          -0.5,
+          0.5
+         ],
+         "scale": 2.53
+        }
+       }
+      ]
+     },
+     {
+      "id": "scene:hud.instructions",
+      "name": "Source instructions",
+      "parent": null,
+      "active": true,
+      "layer": "scene:layer.runtime",
+      "transform": {
+       "translation": [
+        0,
+        0,
+        0
+       ],
+       "rotation_euler_deg": [
+        0,
+        0,
+        0
+       ],
+       "scale": [
+        1,
+        1,
+        1
+       ]
+      },
+      "components": [
+       {
+        "id": "instructions",
+        "type": "ui_canvas",
+        "enabled": true,
+        "properties": {
+         "mode": "overlay",
+         "visible": true,
+         "text": "Click an empty cell. R: restart. Esc: quit.",
+         "font": "asset:font.pygame_default",
+         "color": {
+          "source_visual": "visual:a6306d3919105b55fc99"
+         },
+         "position": [
+          -0.368,
+          0.386
+         ],
+         "origin": [
+          -0.5,
+          0.5
+         ],
+         "scale": 1.75
+        }
+       }
+      ]
+     }
+    ],
+    "bindings": [
+     {
+      "id": "scene:binding.marks",
+      "name": "Show each cell's source-drawn mark",
+      "source": {
+       "kind": "state",
+       "scope": "topology_site",
+       "variable": "rule:state.board"
+      },
+      "target": {
+       "selector": "topology_sites",
+       "node": "scene:board",
+       "visualizer": "sites",
+       "component": "mark_art",
+       "property": "variant"
+      },
+      "transform": {
+       "kind": "map",
+       "cases": [
+        {
+         "equals": 0,
+         "value": "empty"
+        },
+        {
+         "equals": 1,
+         "value": "x"
+        },
+        {
+         "equals": 2,
+         "value": "o"
+        }
+       ]
+      }
+     },
+     {
+      "id": "scene:binding.turn",
+      "name": "Display the current player while play continues",
+      "source": {
+       "kind": "flow",
+       "property": "current_actor"
+      },
+      "target": {
+       "selector": "node",
+       "node": "scene:hud.status",
+       "component": "status",
+       "property": "text"
+      },
+      "transform": {
+       "kind": "map",
+       "cases": [
+        {
+         "equals": "rule:participant.x",
+         "value": "Turn: X"
+        },
+        {
+         "equals": "rule:participant.o",
+         "value": "Turn: O"
+        }
+       ]
+      }
+     }
+    ],
+    "unresolved": [
+     {
+      "path": "/nodes/scene:hud.status",
+      "reason": "The Rule document exposes cell marks and the next current actor, but no winner, draw, or terminal-result state readable by Scene bindings. The source's terminal 'Winner: X/O' and 'Draw' status cannot be reconstructed from the available Scene binding sources; the turn label must not be treated as terminal feedback.",
+      "required": true,
+      "owner": "rule_ir_and_scene_ir",
+      "evidence": "main.py:26-40,66-69"
+     }
+    ]
+   },
+   "evidence": [
+    {
+     "evidence_id": "main.py:1-86@04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+     "path": "main.py",
+     "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+     "span": {
+      "line_start": 1,
+      "line_end": 86
+     },
+     "supports": "/scene_ir"
+    },
+    "visual:a375ca74f6d4c10ee1bb",
+    "visual:9fbe4de0bce1cff3a27a",
+    "visual:a6306d3919105b55fc99",
+    "drawn:bb4bea9cf16f92d4",
+    "drawn:a1fd7948b344c4fd",
+    "drawn:5aa26795dc9d6878"
+   ],
+   "behavior_tests": [],
+   "assumptions": [
+    "The source's screen-downward row order maps to decreasing world Y; the authored camera faces the source-drawn symbols. The shell provides a selectable spatial container while the separately rendered tile and marks retain their extracted source shapes.",
+    "The original screen-fill colour is retained as HUD backing rather than an opaque plane over the playable board."
+   ],
+   "unresolved": [
+    {
+     "path": "/nodes/scene:hud.status",
+     "reason": "Terminal winner/draw feedback needs a Rule-exposed result readable by Scene bindings.",
+     "required": true,
+     "owner": "rule_ir_and_scene_ir"
+    }
+   ],
+   "source_requests": []
+  },
+  {
+   "definition": {
+    "metadata": {
+     "title": "Tic Tac Toe",
+     "description": "Selectable 3×3 board with source-drawn rounded cells, blue X and orange O marks, and Pygame-font HUD.",
+     "source_project_hash": "a047aad70934c80e9fa9c332ffd9dc2ea1df95a50c0015b29f6e931c2d25aab5"
+    },
+    "layers": [
+     {
+      "id": "scene:layer.runtime",
+      "name": "Runtime",
+      "kind": "runtime",
+      "visible": true,
+      "pickable": true,
+      "opacity": 1
+     }
+    ],
+    "prefabs": [
+     {
+      "id": "scene:prefab.cell",
+      "name": "Board cell",
+      "root": {
+       "local_id": "cell",
+       "name": "Selectable cell shell",
+       "active": true,
+       "transform": {
+        "translation": [
+         0,
+         0,
+         0
+        ],
+        "rotation_euler_deg": [
+         0,
+         0,
+         0
+        ],
+        "scale": [
+         1,
+         1,
+         1
+        ]
+       },
+       "components": [
+        {
+         "id": "shell",
+         "type": "renderer",
+         "enabled": true,
+         "properties": {
+          "geometry": "builtin:cube",
+          "visible": true,
+          "spatial_role": "cell_shell",
+          "scale": [
+           0.9,
+           0.9,
+           0.14
+          ],
+          "color": [
+           0.164706,
+           0.211765,
+           0.282353,
+           0.15
+          ],
+          "opacity": 0.15
+         }
+        },
+        {
+         "id": "pick",
+         "type": "collider",
+         "enabled": true,
+         "properties": {
+          "shape": "box",
+          "size": [
+           0.94,
+           0.94,
+           0.2
+          ],
+          "is_trigger": false,
+          "selectable": true
+         }
+        }
+       ],
+       "children": [
+        {
+         "local_id": "tile",
+         "name": "Source-drawn rounded cell",
+         "active": true,
+         "transform": {
+          "translation": [
+           0,
+           0,
+           -0.09
+          ],
+          "rotation_euler_deg": [
+           0,
+           0,
+           0
+          ],
+          "scale": [
+           1,
+           1,
+           1
+          ]
+         },
+         "components": [
+          {
+           "id": "tile_art",
+           "type": "renderer",
+           "enabled": true,
+           "properties": {
+            "geometry": "asset:shape.main.l73",
+            "visible": true,
+            "spatial_role": "content",
+            "scale": [
+             0.943,
+             0.943,
+             0.1
+            ]
+           }
+          }
+         ],
+         "children": []
+        },
+        {
+         "local_id": "mark",
+         "name": "Source-drawn player mark",
+         "active": true,
+         "transform": {
+          "translation": [
+           0,
+           0,
+           -0.19
+          ],
+          "rotation_euler_deg": [
+           0,
+           0,
+           0
+          ],
+          "scale": [
+           1,
+           1,
+           1
+          ]
+         },
+         "components": [
+          {
+           "id": "mark_art",
+           "type": "renderer",
+           "enabled": true,
+           "properties": {
+            "geometry": "asset:shape.main.l76",
+            "visible": false,
+            "spatial_role": "content",
+            "scale": [
+             0.943,
+             0.943,
+             0.15
+            ],
+            "variant": "empty",
+            "variants": {
+             "empty": {
+              "visible": false
+             },
+             "x": {
+              "geometry": "asset:shape.main.l76",
+              "visible": true
+             },
+             "o": {
+              "geometry": "asset:shape.main.l79",
+              "visible": true
+             }
+            }
+           }
+          }
+         ],
+         "children": []
+        }
+       ]
+      }
+     }
+    ],
+    "nodes": [
+     {
+      "id": "scene:board",
+      "name": "Three-by-three board",
+      "parent": null,
+      "active": true,
+      "layer": "scene:layer.runtime",
+      "transform": {
+       "translation": [
+        0,
+        -0.04,
+        0
+       ],
+       "rotation_euler_deg": [
+        0,
+        0,
+        0
+       ],
+       "scale": [
+        1,
+        1,
+        1
+       ]
+      },
+      "components": [
+       {
+        "id": "sites",
+        "type": "topology_visualizer",
+        "enabled": true,
+        "properties": {
+         "rule_topology": "rule:topology.board",
+         "prefab": "scene:prefab.cell",
+         "index_to_world": [
+          1.08,
+          0,
+          0,
+          -1.08,
+          0,
+          -1.08,
+          0,
+          1.08,
+          0,
+          0,
+          1.08,
+          0,
+          0,
+          0,
+          0,
+          1
+         ]
+        }
+       }
+      ]
+     },
+     {
+      "id": "scene:camera",
+      "name": "Board overview",
+      "parent": null,
+      "active": true,
+      "layer": "scene:layer.runtime",
+      "transform": {
+       "translation": [
+        0,
+        0,
+        -8
+       ],
+       "rotation_euler_deg": [
+        0,
+        0,
+        0
+       ],
+       "scale": [
+        1,
+        1,
+        1
+       ]
+      },
+      "components": [
+       {
+        "id": "view",
+        "type": "camera",
+        "enabled": true,
+        "properties": {
+         "projection": "orthographic",
+         "near_clip": 0.1,
+         "far_clip": 50,
+         "active": true,
+         "orthographic_size": 4.5
+        }
+       }
+      ]
+     },
+     {
+      "id": "scene:light",
+      "name": "Even board illumination",
+      "parent": null,
+      "active": true,
+      "layer": "scene:layer.runtime",
+      "transform": {
+       "translation": [
+        0,
+        0,
+        -3
+       ],
+       "rotation_euler_deg": [
+        0,
+        0,
+        0
+       ],
+       "scale": [
+        1,
+        1,
+        1
+       ]
+      },
+      "components": [
+       {
+        "id": "ambient",
+        "type": "light",
+        "enabled": true,
+        "properties": {
+         "kind": "ambient",
+         "color": [
+          1,
+          1,
+          1,
+          1
+         ],
+         "intensity": 1
+        }
+       }
+      ]
+     },
+     {
+      "id": "scene:hud.backing",
+      "name": "Source-colour HUD backing",
+      "parent": null,
+      "active": true,
+      "layer": "scene:layer.runtime",
+      "transform": {
+       "translation": [
+        0,
+        0,
+        0
+       ],
+       "rotation_euler_deg": [
+        0,
+        0,
+        0
+       ],
+       "scale": [
+        1,
+        1,
+        1
+       ]
+      },
+      "components": [
+       {
+        "id": "backing",
+        "type": "ui_canvas",
+        "enabled": true,
+        "properties": {
+         "mode": "overlay",
+         "visible": true,
+         "position": [
+          0,
+          0.39
+         ],
+         "size": [
+          0.84,
+          0.21
+         ],
+         "background": {
+          "source_visual": "visual:a375ca74f6d4c10ee1bb"
+         }
+        }
+       }
+      ]
+     },
+     {
+      "id": "scene:hud.status",
+      "name": "Turn status",
+      "parent": null,
+      "active": true,
+      "layer": "scene:layer.runtime",
+      "transform": {
+       "translation": [
+        0,
+        0,
+        0
+       ],
+       "rotation_euler_deg": [
+        0,
+        0,
+        0
+       ],
+       "scale": [
+        1,
+        1,
+        1
+       ]
+      },
+      "components": [
+       {
+        "id": "status",
+        "type": "ui_canvas",
+        "enabled": true,
+        "properties": {
+         "mode": "overlay",
+         "visible": true,
+         "text": "Turn: X",
+         "font": "asset:font.pygame_default",
+         "color": {
+          "source_visual": "visual:9fbe4de0bce1cff3a27a"
+         },
+         "position": [
+          -0.368,
+          0.447
+         ],
+         "origin": [
+          -0.5,
+          0.5
+         ],
+         "scale": 2.53
+        }
+       }
+      ]
+     },
+     {
+      "id": "scene:hud.instructions",
+      "name": "Source instructions",
+      "parent": null,
+      "active": true,
+      "layer": "scene:layer.runtime",
+      "transform": {
+       "translation": [
+        0,
+        0,
+        0
+       ],
+       "rotation_euler_deg": [
+        0,
+        0,
+        0
+       ],
+       "scale": [
+        1,
+        1,
+        1
+       ]
+      },
+      "components": [
+       {
+        "id": "instructions",
+        "type": "ui_canvas",
+        "enabled": true,
+        "properties": {
+         "mode": "overlay",
+         "visible": true,
+         "text": "Click an empty cell. R: restart. Esc: quit.",
+         "font": "asset:font.pygame_default",
+         "color": {
+          "source_visual": "visual:a6306d3919105b55fc99"
+         },
+         "position": [
+          -0.368,
+          0.386
+         ],
+         "origin": [
+          -0.5,
+          0.5
+         ],
+         "scale": 1.75
+        }
+       }
+      ]
+     }
+    ],
+    "bindings": [
+     {
+      "id": "scene:binding.marks",
+      "name": "Show each cell's source-drawn mark",
+      "source": {
+       "kind": "state",
+       "scope": "topology_site",
+       "variable": "rule:state.board"
+      },
+      "target": {
+       "selector": "topology_sites",
+       "node": "scene:board",
+       "visualizer": "sites",
+       "component": "mark_art",
+       "property": "variant"
+      },
+      "transform": {
+       "kind": "map",
+       "cases": [
+        {
+         "equals": 0,
+         "value": "empty"
+        },
+        {
+         "equals": 1,
+         "value": "x"
+        },
+        {
+         "equals": 2,
+         "value": "o"
+        }
+       ]
+      }
+     },
+     {
+      "id": "scene:binding.turn",
+      "name": "Display the current player while play continues",
+      "source": {
+       "kind": "flow",
+       "property": "current_actor"
+      },
+      "target": {
+       "selector": "node",
+       "node": "scene:hud.status",
+       "component": "status",
+       "property": "text"
+      },
+      "transform": {
+       "kind": "map",
+       "cases": [
+        {
+         "equals": "rule:participant.x",
+         "value": "Turn: X"
+        },
+        {
+         "equals": "rule:participant.o",
+         "value": "Turn: O"
+        }
+       ]
+      }
+     }
+    ],
+    "unresolved": [
+     {
+      "path": "/nodes/scene:hud.status",
+      "reason": "The Rule document exposes marks and the next actor but no winner or draw state readable by Scene bindings. The source's terminal Winner: X/O and Draw labels cannot be reconstructed from these binding sources; the turn label is not terminal feedback.",
+      "required": true,
+      "owner": "rule_ir_and_scene_ir",
+      "evidence": "main.py:26-40,66-69"
+     }
+    ]
+   },
+   "evidence": [
+    {
+     "evidence_id": "main.py:1-86@04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+     "path": "main.py",
+     "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+     "span": {
+      "line_start": 1,
+      "line_end": 86
+     },
+     "supports": "/scene_ir"
+    }
+   ],
+   "behavior_tests": [],
+   "assumptions": [
+    "Screen-downward board rows map to decreasing world Y. A transparent selectable shell surrounds separately rendered source-derived tiles and marks.",
+    "The source screen-fill colour backs the HUD rather than becoming an opaque plane over the playable board."
+   ],
+   "unresolved": [
+    {
+     "path": "/nodes/scene:hud.status",
+     "reason": "Terminal winner/draw feedback needs a Rule-exposed result readable by Scene bindings.",
+     "required": true,
+     "owner": "rule_ir_and_scene_ir"
+    }
+   ],
+   "source_requests": []
+  },
+  {
+   "definition": {
+    "metadata": {
+     "title": "Tic Tac Toe",
+     "description": "Source-derived 3×3 board with rounded cells, blue X and orange O marks, and Pygame-font HUD.",
+     "source_project_hash": "a047aad70934c80e9fa9c332ffd9dc2ea1df95a50c0015b29f6e931c2d25aab5"
+    },
+    "layers": [
+     {
+      "id": "scene:layer.runtime",
+      "name": "Runtime",
+      "kind": "runtime",
+      "visible": true,
+      "pickable": true,
+      "opacity": 1
+     }
+    ],
+    "prefabs": [
+     {
+      "id": "scene:prefab.cell",
+      "name": "Board cell",
+      "root": {
+       "local_id": "cell",
+       "name": "Selectable cell shell",
+       "active": true,
+       "transform": {
+        "translation": [
+         0,
+         0,
+         0
+        ],
+        "rotation_euler_deg": [
+         0,
+         0,
+         0
+        ],
+        "scale": [
+         1,
+         1,
+         1
+        ]
+       },
+       "components": [
+        {
+         "id": "shell",
+         "type": "renderer",
+         "enabled": true,
+         "properties": {
+          "geometry": "builtin:cube",
+          "visible": true,
+          "spatial_role": "cell_shell",
+          "scale": [
+           0.9,
+           0.9,
+           0.14
+          ],
+          "color": [
+           0.164706,
+           0.211765,
+           0.282353,
+           0.15
+          ],
+          "opacity": 0.15
+         }
+        },
+        {
+         "id": "pick",
+         "type": "collider",
+         "enabled": true,
+         "properties": {
+          "shape": "box",
+          "size": [
+           0.94,
+           0.94,
+           0.2
+          ],
+          "is_trigger": false,
+          "selectable": true
+         }
+        }
+       ],
+       "children": [
+        {
+         "local_id": "tile",
+         "name": "Source-drawn rounded cell",
+         "active": true,
+         "transform": {
+          "translation": [
+           0,
+           0,
+           -0.09
+          ],
+          "rotation_euler_deg": [
+           0,
+           0,
+           0
+          ],
+          "scale": [
+           1,
+           1,
+           1
+          ]
+         },
+         "components": [
+          {
+           "id": "tile_art",
+           "type": "renderer",
+           "enabled": true,
+           "properties": {
+            "geometry": "asset:shape.main.l73",
+            "visible": true,
+            "spatial_role": "content",
+            "scale": [
+             0.943,
+             0.943,
+             0.1
+            ]
+           }
+          }
+         ],
+         "children": []
+        },
+        {
+         "local_id": "mark",
+         "name": "Source-drawn player mark",
+         "active": true,
+         "transform": {
+          "translation": [
+           0,
+           0,
+           -0.19
+          ],
+          "rotation_euler_deg": [
+           0,
+           0,
+           0
+          ],
+          "scale": [
+           1,
+           1,
+           1
+          ]
+         },
+         "components": [
+          {
+           "id": "mark_art",
+           "type": "renderer",
+           "enabled": true,
+           "properties": {
+            "geometry": "asset:shape.main.l76",
+            "visible": false,
+            "spatial_role": "content",
+            "scale": [
+             0.943,
+             0.943,
+             0.15
+            ],
+            "variant": "empty",
+            "variants": {
+             "empty": {
+              "visible": false
+             },
+             "x": {
+              "geometry": "asset:shape.main.l76",
+              "visible": true
+             },
+             "o": {
+              "geometry": "asset:shape.main.l79",
+              "visible": true
+             }
+            }
+           }
+          }
+         ],
+         "children": []
+        }
+       ]
+      }
+     }
+    ],
+    "nodes": [
+     {
+      "id": "scene:board",
+      "name": "Three-by-three board",
+      "parent": null,
+      "active": true,
+      "layer": "scene:layer.runtime",
+      "transform": {
+       "translation": [
+        0,
+        -0.04,
+        0
+       ],
+       "rotation_euler_deg": [
+        0,
+        0,
+        0
+       ],
+       "scale": [
+        1,
+        1,
+        1
+       ]
+      },
+      "components": [
+       {
+        "id": "sites",
+        "type": "topology_visualizer",
+        "enabled": true,
+        "properties": {
+         "rule_topology": "rule:topology.board",
+         "prefab": "scene:prefab.cell",
+         "index_to_world": [
+          1.08,
+          0,
+          0,
+          -1.08,
+          0,
+          -1.08,
+          0,
+          1.08,
+          0,
+          0,
+          1.08,
+          0,
+          0,
+          0,
+          0,
+          1
+         ]
+        }
+       }
+      ]
+     },
+     {
+      "id": "scene:camera",
+      "name": "Board overview",
+      "parent": null,
+      "active": true,
+      "layer": "scene:layer.runtime",
+      "transform": {
+       "translation": [
+        0,
+        0,
+        -8
+       ],
+       "rotation_euler_deg": [
+        0,
+        0,
+        0
+       ],
+       "scale": [
+        1,
+        1,
+        1
+       ]
+      },
+      "components": [
+       {
+        "id": "view",
+        "type": "camera",
+        "enabled": true,
+        "properties": {
+         "projection": "orthographic",
+         "near_clip": 0.1,
+         "far_clip": 50,
+         "active": true,
+         "orthographic_size": 4.5
+        }
+       }
+      ]
+     },
+     {
+      "id": "scene:light",
+      "name": "Even board illumination",
+      "parent": null,
+      "active": true,
+      "layer": "scene:layer.runtime",
+      "transform": {
+       "translation": [
+        0,
+        0,
+        -3
+       ],
+       "rotation_euler_deg": [
+        0,
+        0,
+        0
+       ],
+       "scale": [
+        1,
+        1,
+        1
+       ]
+      },
+      "components": [
+       {
+        "id": "ambient",
+        "type": "light",
+        "enabled": true,
+        "properties": {
+         "kind": "ambient",
+         "color": [
+          1,
+          1,
+          1,
+          1
+         ],
+         "intensity": 1
+        }
+       }
+      ]
+     },
+     {
+      "id": "scene:hud.backing",
+      "name": "Source-colour HUD backing",
+      "parent": null,
+      "active": true,
+      "layer": "scene:layer.runtime",
+      "transform": {
+       "translation": [
+        0,
+        0,
+        0
+       ],
+       "rotation_euler_deg": [
+        0,
+        0,
+        0
+       ],
+       "scale": [
+        1,
+        1,
+        1
+       ]
+      },
+      "components": [
+       {
+        "id": "backing",
+        "type": "ui_canvas",
+        "enabled": true,
+        "properties": {
+         "mode": "overlay",
+         "visible": true,
+         "position": [
+          0,
+          0.39
+         ],
+         "size": [
+          0.84,
+          0.21
+         ],
+         "background": {
+          "source_visual": "visual:a375ca74f6d4c10ee1bb"
+         }
+        }
+       }
+      ]
+     },
+     {
+      "id": "scene:hud.status",
+      "name": "Turn status",
+      "parent": null,
+      "active": true,
+      "layer": "scene:layer.runtime",
+      "transform": {
+       "translation": [
+        0,
+        0,
+        0
+       ],
+       "rotation_euler_deg": [
+        0,
+        0,
+        0
+       ],
+       "scale": [
+        1,
+        1,
+        1
+       ]
+      },
+      "components": [
+       {
+        "id": "status",
+        "type": "ui_canvas",
+        "enabled": true,
+        "properties": {
+         "mode": "overlay",
+         "visible": true,
+         "text": "Turn: X",
+         "font": "asset:font.pygame_default",
+         "color": {
+          "source_visual": "visual:9fbe4de0bce1cff3a27a"
+         },
+         "position": [
+          -0.368,
+          0.447
+         ],
+         "origin": [
+          -0.5,
+          0.5
+         ],
+         "scale": 2.53
+        }
+       }
+      ]
+     },
+     {
+      "id": "scene:hud.instructions",
+      "name": "Source instructions",
+      "parent": null,
+      "active": true,
+      "layer": "scene:layer.runtime",
+      "transform": {
+       "translation": [
+        0,
+        0,
+        0
+       ],
+       "rotation_euler_deg": [
+        0,
+        0,
+        0
+       ],
+       "scale": [
+        1,
+        1,
+        1
+       ]
+      },
+      "components": [
+       {
+        "id": "instructions",
+        "type": "ui_canvas",
+        "enabled": true,
+        "properties": {
+         "mode": "overlay",
+         "visible": true,
+         "text": "Click an empty cell. R: restart. Esc: quit.",
+         "font": "asset:font.pygame_default",
+         "color": {
+          "source_visual": "visual:a6306d3919105b55fc99"
+         },
+         "position": [
+          -0.368,
+          0.386
+         ],
+         "origin": [
+          -0.5,
+          0.5
+         ],
+         "scale": 1.75
+        }
+       }
+      ]
+     }
+    ],
+    "bindings": [
+     {
+      "id": "scene:binding.marks",
+      "name": "Show each cell's source-drawn mark",
+      "source": {
+       "kind": "state",
+       "scope": "topology_site",
+       "variable": "rule:state.board"
+      },
+      "target": {
+       "selector": "topology_sites",
+       "node": "scene:board",
+       "visualizer": "sites",
+       "component": "mark_art",
+       "property": "variant"
+      },
+      "transform": {
+       "kind": "map",
+       "cases": [
+        {
+         "equals": 0,
+         "value": "empty"
+        },
+        {
+         "equals": 1,
+         "value": "x"
+        },
+        {
+         "equals": 2,
+         "value": "o"
+        }
+       ]
+      }
+     },
+     {
+      "id": "scene:binding.turn",
+      "name": "Display the current player during play",
+      "source": {
+       "kind": "flow",
+       "property": "current_actor"
+      },
+      "target": {
+       "selector": "node",
+       "node": "scene:hud.status",
+       "component": "status",
+       "property": "text"
+      },
+      "transform": {
+       "kind": "map",
+       "cases": [
+        {
+         "equals": "rule:participant.x",
+         "value": "Turn: X"
+        },
+        {
+         "equals": "rule:participant.o",
+         "value": "Turn: O"
+        }
+       ]
+      }
+     }
+    ],
+    "unresolved": [
+     {
+      "path": "/nodes/scene:hud.status",
+      "reason": "The source displays Winner: X, Winner: O, or Draw after termination. The accepted Rule document exposes only per-site marks and the next actor; it exposes no globally readable terminal result. Scene expressions cannot aggregate the nine topology-site values to derive that result. Add a Rule-exposed terminal result before replacing the turn-label binding with source-equivalent terminal feedback.",
+      "required": true,
+      "owner": "rule_ir_and_scene_ir",
+      "evidence": "main.py:26-40,66-69"
+     }
+    ]
+   },
+   "evidence": [
+    {
+     "evidence_id": "main.py:1-86@04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+     "path": "main.py",
+     "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+     "span": {
+      "line_start": 1,
+      "line_end": 86
+     },
+     "supports": "/scene_ir"
+    }
+   ],
+   "behavior_tests": [],
+   "assumptions": [
+    "Source screen-downward rows map to decreasing world Y. The transparent selectable shell surrounds separate source-derived cell and mark geometry."
+   ],
+   "unresolved": [
+    {
+     "path": "/nodes/scene:hud.status",
+     "reason": "Source terminal winner/draw feedback cannot be bound without a Rule-exposed result; showing the next turn after termination would be incorrect.",
+     "required": true,
+     "owner": "rule_ir_and_scene_ir"
+    }
+   ],
+   "source_requests": []
+  }
+ ]
+}

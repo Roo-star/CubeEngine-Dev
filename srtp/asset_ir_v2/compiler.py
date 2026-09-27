@@ -404,7 +404,7 @@ def _compile_derivation(
         metadata.update(image_metadata)
     elif strategy in (
         "billboard", "extrusion", "cube_face_projection",
-        "mesh_substitution", "procedural_mesh",
+        "mesh_substitution", "procedural_mesh", "vector_shape",
     ):
         if output_media != ASSET_COMPILER_CAPABILITIES["compiled_descriptor_media_type"]:
             raise AssetCompileError("presentation derivation must emit the CubeEngine descriptor media type")
@@ -423,6 +423,12 @@ def _compile_derivation(
                                  size=settings.get('size'), alpha_cutoff=settings.get('alpha_cutoff', 1))
                 except ValueError as exc:
                     raise AssetCompileError('extrusion is not renderable: ' + str(exc)) from exc
+        if strategy == 'vector_shape':
+            from srtp.vector_geometry import extrude_shapes
+            try:
+                extrude_shapes(settings)
+            except (ValueError, KeyError, TypeError) as exc:
+                raise AssetCompileError('vector_shape is not renderable: ' + str(exc)) from exc
         descriptor = {
             "format": "cubeengine.presentation-descriptor/1",
             "strategy": strategy,

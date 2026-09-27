@@ -199,6 +199,7 @@ class FourIRAuditTests(unittest.TestCase):
             return json.dumps(response)
         with tempfile.TemporaryDirectory() as tmp:
             compiler=SourceToIRCompiler(chat_fn=chat,max_repairs=0)
+            compiler.use_lift_templates=False  # the model-authored plan path is under test
             source=compiler.compile(package,out_dir=Path(tmp)/'source')
             self.assertTrue(source.ok,source.diagnostics)
             approve_llm_manifest_file(Path(source.output_dir)/'project.manifest.json')

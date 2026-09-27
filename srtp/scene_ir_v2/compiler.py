@@ -637,7 +637,8 @@ def _compile_binding(
             _compile_binding(dict(value,source=leaf),nodes,topology_sites,entity_visualizers,prefabs,rule_document)
         def read_type(leaf):
             if leaf['kind']=='interaction':return 'boolean'
-            if leaf['kind']=='flow':return 'number' if leaf['property'] in ('tick','turn') else 'string'
+            if leaf['kind']=='flow':
+                return {'tick':'number','turn':'number','terminal':'boolean'}.get(leaf['property'],'string')
             if leaf['kind']=='state':
                 kind=_rule_variables(rule_document)[leaf['variable']].get('type')
                 return {'core:int':'number','core:float':'number','core:bool':'boolean','core:string':'string'}.get(kind)
@@ -848,12 +849,24 @@ def _rule_variables(document: Optional[Mapping[str, Any]]) -> Dict[str, Mapping[
 def _read_binding_source(source: Mapping[str, Any], state: Any, context: Mapping[str, Any]) -> Any:
     kind = source["kind"]
     if kind == "flow":
+        property_name = source["property"]
+        if property_name in ("terminal", "outcome_status", "winner", "outcome"):
+            provider = getattr(state, "outcome_provider", None)
+            if provider is None:
+                raise SceneProjectionError("Rule outcome is unavailable to this projection")
+            outcome = provider(state)
+            return {
+                "terminal": bool(outcome.terminal),
+                "outcome_status": str(outcome.status),
+                "winner": str(outcome.winners[0]) if outcome.winners else "",
+                "outcome": str(outcome.matched_outcomes[0]) if outcome.matched_outcomes else "",
+            }[property_name]
         return {
             "current_actor": state.current_actor,
             "phase": state.phase,
             "tick": state.tick,
             "turn": state.turn_count,
-        }[source["property"]]
+        }[property_name]
     if kind == "entity_component":
         entity_id = context.get("entity_id")
         if entity_id not in state.entities:

@@ -481,13 +481,39 @@ class SrtpWorkbench:
         self._set_play_label("STOP")
         self._message("Source 2D is running in its native Windows game window. Click that window to control it.")
 
+    def _conversion_root(self) -> Path:
+        return PACKAGE_DIR.parent / ".cubeengine_llm" / slugify(self.package.title)
+
+    def _new_run_dir(self, kind: str) -> Path:
+        """A new folder per conversion run: <game>/<kind>_YYYYMMDD-HHMMSS[-N]."""
+        import datetime
+        stamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+        root = self._conversion_root()
+        candidate, index = root / "{0}_{1}".format(kind, stamp), 2
+        while candidate.exists() or candidate.with_name(candidate.name + ".stages.json").exists():
+            candidate, index = root / "{0}_{1}-{2}".format(kind, stamp, index), index + 1
+        return candidate
+
+    def _latest_run(self, kind: str) -> Path:
+        """Newest run folder of this kind with a manifest (older fixed-name folder included)."""
+        root = self._conversion_root()
+        runs = [path for path in [root / kind] + list(root.glob(kind + "_*"))
+                if path.is_dir() and (path / "project.manifest.json").is_file()]
+        if not runs:
+            return root / kind
+        return max(runs, key=lambda path: (path / "project.manifest.json").stat().st_mtime)
+
+    def _stage_checkpoint(self, kind: str) -> Path:
+        """Paid stages stay shared per game, so a new run folder re-validates them instead of paying again."""
+        return self._conversion_root() / "{0}.stages.json".format(kind)
+
     def open_transformed_preview(self) -> None:
         if self.package is None:
             self._message("Select a source game first.")
             return
         self.apply_transform_target(silent=True)
         self.stop_preview(quiet=True)
-        target = PACKAGE_DIR.parent / ".cubeengine_llm" / slugify(self.package.title) / "target" / "project.manifest.json"
+        target = self._latest_run("target") / "project.manifest.json"
         attached = getattr(self, "_attached_target", None)
         explicit_target = bool(attached and attached[0] == str(self.package.entrypoint.resolve()))
         if explicit_target:
@@ -644,10 +670,12 @@ class SrtpWorkbench:
         tag = {'kind':kind,'out_dir':out_dir,'generation':self._source_generation}
         def worker(progress, token):
             compiler=SourceToIRCompiler(progress=progress,cancel_token=token)
+            checkpoint=self._stage_checkpoint(kind)
             if kind=='source':
-                return compiler.compile(package,out_dir=out_dir)
+                return compiler.compile(package,out_dir=out_dir,checkpoint_path=checkpoint)
             return compiler.compile_spatial_lift(package,source_bundle_dir=source_dir,
-                intent_text=intent,target_dimensions=dict(package.transformation.target_dimensions),out_dir=out_dir)
+                intent_text=intent,target_dimensions=dict(package.transformation.target_dimensions),out_dir=out_dir,
+                checkpoint_path=checkpoint)
         if not self.conversion_jobs.submit(tag,worker):
             self._message('A conversion is still running. Cancel it or wait for it to finish.',error=True)
 
@@ -698,7 +726,7 @@ class SrtpWorkbench:
             self._message('Supplied Source IR is already available. Set Inspector dimensions and RUN SPATIAL LIFT.')
             return
         repo_root = PACKAGE_DIR.parent
-        out_dir = repo_root / ".cubeengine_llm" / slugify(self.package.title) / "source"
+        out_dir = self._new_run_dir("source")
         self._pending_llm_source_dir = out_dir
         self._pending_llm_manifest = None
         self._message("Running LLM Source→four-IR (no Spatial Lift yet)…")
@@ -710,6 +738,7 @@ class SrtpWorkbench:
                 self.package,
                 out_dir=out_dir,
                 intent_text=None,
+                checkpoint_path=self._stage_checkpoint("source"),
             )
         except LLMClientError as error:
             self._message("LLM compiler failed: {0}".format(error), error=True)
@@ -781,8 +810,8 @@ class SrtpWorkbench:
             if isinstance(raw, str):
                 intent = raw.strip()
         source_dir = getattr(self, "_pending_llm_source_dir", None)
-        if source_dir is None:
-            source_dir = PACKAGE_DIR.parent / ".cubeengine_llm" / slugify(self.package.title) / "source"
+        if source_dir is None or not (Path(source_dir) / "project.manifest.json").is_file():
+            source_dir = self._latest_run("source")
         source_manifest = Path(source_dir) / "project.manifest.json"
         if not source_manifest.is_file():
             self._message(
@@ -804,8 +833,8 @@ class SrtpWorkbench:
             return
 
         repo_root = PACKAGE_DIR.parent
-        out_dir = repo_root / ".cubeengine_llm" / slugify(self.package.title) / "target"
-        self._message("Running Spatial Lift from approved Source…")
+        out_dir = self._new_run_dir("target")
+        self._message("Running Spatial Lift from approved Source {0}…".format(Path(source_dir).name))
         self._pending_llm_manifest = None
         if self.asynchronous_jobs:
             self._start_conversion_job('target',out_dir,source_dir=Path(source_dir),intent=intent)
@@ -817,6 +846,7 @@ class SrtpWorkbench:
                 intent_text=intent,
                 target_dimensions=dict(self.package.transformation.target_dimensions),
                 out_dir=out_dir,
+                checkpoint_path=self._stage_checkpoint("target"),
             )
         except LLMClientError as error:
             self._message("Spatial Lift failed: {0}".format(error), error=True)

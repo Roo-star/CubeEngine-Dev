@@ -18,6 +18,7 @@ DEFAULT_HTTP_TIMEOUT_S = 180.0
 DEFAULT_MAX_TOKENS = 32768
 DEFAULT_CHAT_RETRIES = 2
 DEFAULT_MAX_REQUESTS = 12
+OUTPUT_FORMATS = ("auto", "json_schema", "json_object")
 
 # Canonical Responses error_type takes priority over a generic error.code.
 # Never echo upstream error.message: it can contain request/source/key data.
@@ -73,6 +74,10 @@ class LLMClientError(RuntimeError):
 
 class LLMTransportError(LLMClientError):
     """Transport, account or refusal failure: do not run semantic repair."""
+
+
+class LLMCostBudgetExceeded(LLMTransportError):
+    """Stopped before a request whose estimated cost exceeds the stage/job allowance."""
 
 
 def _compiler_json(content):
@@ -149,6 +154,10 @@ class OpenRouterLLMClient:
         self.http_requests = 0
         self.max_requests = DEFAULT_MAX_REQUESTS
         self.usage_summary = {'http_requests':0, 'input_tokens':0, 'output_tokens':0, 'reported_cost_usd':None}
+        from .budget import CostBudget
+        self.budget = CostBudget()
+        self.output_format = "auto"
+        self._schema_supported = True
 
     @property
     def cache_identity(self):
@@ -160,6 +169,16 @@ class OpenRouterLLMClient:
     def __enter__(self):
         self.http_requests = 0
         self.usage_summary = {'http_requests':0, 'input_tokens':0, 'output_tokens':0, 'reported_cost_usd':None}
+        from .budget import CostBudget
+        try:
+            self.budget = CostBudget.from_env()
+        except ValueError as error:
+            raise LLMTransportError(str(error)) from None
+        self._publish_budget()
+        self.output_format = os.environ.get("CUBEENGINE_LLM_OUTPUT_FORMAT", "auto").strip() or "auto"
+        if self.output_format not in OUTPUT_FORMATS:
+            raise LLMTransportError("CUBEENGINE_LLM_OUTPUT_FORMAT must be auto, json_schema or json_object.")
+        self._schema_supported = True
         if self._chat_fn is None:
             load_compiler_env(override=True)
             key = openrouter_api_key()
@@ -184,18 +203,41 @@ class OpenRouterLLMClient:
             )
         return self
 
+    def _publish_budget(self):
+        # Only a configured cap changes the reported usage shape.
+        if self.budget.total is not None:
+            self.usage_summary['budget'] = self.budget.summary()
+
     def __exit__(self, *args):
         if self._client is not None:
             self._client.close()
             self._client = None
 
-    def chat_json(self, messages, *, temperature=None, max_tokens=None):
+    def _text_format(self, schema, schema_name):
+        """Structured output when a reply schema is given; JSON mode otherwise.
+
+        Non-strict: IR payloads are open objects that strict schemas cannot
+        express. The envelope is also checked locally after parsing.
+        """
+        if schema and self.output_format != "json_object" and self._schema_supported:
+            return {"type": "json_schema", "name": schema_name, "schema": schema, "strict": False}
+        return {"type": "json_object"}
+
+    def chat_json(self, messages, *, temperature=None, max_tokens=None, schema=None, schema_name="compiler_reply"):
         if self._chat_fn is not None:
+            self.budget.before_request(_estimated_tokens(messages))
             response = self._chat_fn(messages=[dict(item) for item in messages],
                 temperature=self.temperature if temperature is None else temperature,
                 max_tokens=self.max_tokens if max_tokens is None else int(max_tokens))
+            usage = response.get('usage') if isinstance(response, Mapping) else getattr(response, 'usage', None)
+            if isinstance(usage, Mapping):
+                # Offline doubles may report cost like the Responses usage object.
+                self.budget.record(usage.get('cost'), input_tokens=usage.get('input_tokens'),
+                                   output_tokens=usage.get('output_tokens'))
+                self._publish_budget()
             if _response_finish_reason(response) == "length":
-                raise LLMClientError("model response truncated (finish_reason=length)")
+                raise _truncated(LLMClientError("model response truncated (finish_reason=length)"),
+                                 _response_content(response))
             content = _response_content(response)
             try:
                 parsed = extract_json_object(content)
@@ -208,35 +250,37 @@ class OpenRouterLLMClient:
         payload = {
             "model":self.model, "input":[dict(item) for item in messages],
             "instructions":"Return exactly one JSON object for the requested compiler stage. No Markdown fences or commentary.",
-            "text":{"format":{"type":"json_object"}}, "store":False,
+            "text":{"format":self._text_format(schema, schema_name)}, "store":False,
             "max_output_tokens":self.max_tokens if max_tokens is None else int(max_tokens),
             "reasoning":{"effort":self.reasoning_effort},
             "provider":{"require_parameters":True}, "stream":False,
         }
-        body = self._request(payload)
+        try:
+            body = self._request(payload)
+        except LLMTransportError as error:
+            if (payload["text"]["format"]["type"] != "json_schema" or self.output_format != "auto"
+                    or getattr(error, "kind", None) != "invalid_request"):
+                raise
+            # This model/route rejected json_schema: keep JSON mode for the job.
+            self._schema_supported = False
+            self.usage_summary["output_format"] = "json_object (json_schema rejected by provider)"
+            payload["text"] = {"format": {"type": "json_object"}}
+            body = self._request(payload)
         if body.get("status") == "incomplete":
             reason = (body.get("incomplete_details") or {}).get("reason", "unknown")
             if reason == "content_filter":
                 raise LLMTransportError("OpenRouter stopped this response for content filtering; no generated IR was accepted.")
-            raise LLMClientError("OpenRouter response incomplete ({0}); no partial JSON was accepted. "
+            failure = LLMClientError("OpenRouter response incomplete ({0}); no partial JSON was accepted. "
                 "For max_output_tokens, increase CUBEENGINE_LLM_MAX_TOKENS or reduce reasoning/output size.".format(reason))
+            if reason == "max_output_tokens":
+                # Keep the visible partial text: callers may salvage complete
+                # items and ask only for the rest. It is never accepted as IR.
+                failure = _truncated(failure, "".join(_output_texts(body)))
+            raise failure
         if body.get("status") != "completed":
             raise LLMTransportError("OpenRouter response did not complete; status={0}.".format(body.get("status", "missing")))
         messages = [item for item in body.get('output', []) if item.get('type')=='message']
-        # Responses may contain commentary and a separate final message. They
-        # are not fragments of one JSON object and must never be concatenated.
-        final = [item for item in messages if item.get('channel')=='final']
-        selected = final if final else [item for item in messages if item.get('channel') not in ('analysis','commentary')]
-        texts = []
-        for item in selected:
-            if item.get("type") != "message":
-                continue  # Reasoning is not the generated IR.
-            for part in item.get("content", []):
-                if part.get("type") == "refusal":
-                    raise LLMTransportError("OpenRouter refused this compiler request; no generated IR was accepted.")
-                if part.get("type") == "output_text":
-                    texts.append(part.get("text", ""))
-        content = "".join(texts)
+        content = "".join(_output_texts(body))
         # Production JSON mode must return a complete JSON object. Do not use
         # the legacy brace/fence recovery to mask trailing or truncated output.
         try:
@@ -258,6 +302,7 @@ class OpenRouterLLMClient:
         for attempt in range(retries + 1):
             if self.http_requests >= self.max_requests:
                 raise LLMTransportError('Stopped before another paid request: CUBEENGINE_LLM_MAX_REQUESTS={0} reached for this job. Accepted stages are checkpointed; review diagnostics before raising the limit.'.format(self.max_requests))
+            self.budget.before_request(_estimated_tokens(payload.get('input')))
             self.http_requests += 1
             self.usage_summary['http_requests'] = self.http_requests
             try:
@@ -280,6 +325,8 @@ class OpenRouterLLMClient:
                 cost = usage.get('cost')
                 if type(cost) in (float, int) and 0 <= cost < 1_000_000:
                     self.usage_summary['reported_cost_usd'] = (self.usage_summary['reported_cost_usd'] or 0.0) + cost
+                self.budget.record(cost, input_tokens=usage.get('input_tokens'), output_tokens=usage.get('output_tokens'))
+                self._publish_budget()
             if response.is_success:
                 if not isinstance(body, dict):
                     raise LLMTransportError("OpenRouter returned a non-JSON or invalid response envelope.")
@@ -316,7 +363,36 @@ class OpenRouterLLMClient:
                 detail += " Retry-After: {0:g} seconds.".format(retry_after)
             request_id = response.headers.get("x-request-id") or body.get("id", "")
             suffix = " Request ID: " + request_id if isinstance(request_id, str) and re.fullmatch(r"[a-zA-Z0-9_-]{1,100}", request_id) else ""
-            raise LLMTransportError("OpenRouter HTTP {0}: {1} HTTP attempts: {2}.{3}".format(status, detail, attempt + 1, suffix))
+            failure = LLMTransportError("OpenRouter HTTP {0}: {1} HTTP attempts: {2}.{3}".format(status, detail, attempt + 1, suffix))
+            failure.kind = kind  # type: ignore[attr-defined]
+            raise failure
+
+
+def _output_texts(body: Mapping[str, Any]) -> List[str]:
+    """Visible output text of a Responses body (never reasoning)."""
+    messages = [item for item in body.get('output', []) or [] if isinstance(item, Mapping) and item.get('type') == 'message']
+    # Responses may contain commentary and a separate final message. They
+    # are not fragments of one JSON object and must never be concatenated.
+    final = [item for item in messages if item.get('channel') == 'final']
+    selected = final if final else [item for item in messages if item.get('channel') not in ('analysis', 'commentary')]
+    texts = []
+    for item in selected:
+        for part in item.get("content", []) or []:
+            if part.get("type") == "refusal":
+                raise LLMTransportError("OpenRouter refused this compiler request; no generated IR was accepted.")
+            if part.get("type") == "output_text":
+                texts.append(part.get("text", ""))
+    return texts
+
+
+def _truncated(error: LLMClientError, content: str) -> LLMClientError:
+    error.truncated = True  # type: ignore[attr-defined]
+    return _with_content(error, content)
+
+
+def _estimated_tokens(messages: Any) -> int:
+    """Rough input size for cost estimates (about four characters per token)."""
+    return len(json.dumps(messages, ensure_ascii=False, default=str)) // 4
 
 
 def _with_content(error: LLMClientError, content: str) -> LLMClientError:

@@ -49,7 +49,9 @@ class HTTPPipelineTests(unittest.TestCase):
             nonlocal scene_calls
             self.assertEqual(str(request.url),'https://openrouter.ai/api/v1/responses')
             body=json.loads(request.content)
-            self.assertEqual(body['text']['format']['type'],'json_object')
+            # Stage replies carry their envelope schema (structured output).
+            self.assertEqual(body['text']['format']['type'],'json_schema')
+            self.assertIn('definition',body['text']['format']['schema']['properties'])
             self.assertEqual(body['model'],'openai/gpt-6-sol')
             payload=json.loads(body['input'][-1]['content']); slot=payload['stage']
             target=payload['design_intent'] is not None
@@ -67,6 +69,7 @@ class HTTPPipelineTests(unittest.TestCase):
             return completed(response,usage={'input_tokens':10,'output_tokens':10,'cost':0})
         client=OpenRouterLLMClient(transport=httpx.MockTransport(handle))
         compiler=SourceToIRCompiler(client=client,max_repairs=1)
+        compiler.use_lift_templates=False  # this test covers the model-authored Lift over HTTP
         with tempfile.TemporaryDirectory() as temporary:
             root=Path(temporary)
             source=compiler.compile(self.package,out_dir=root/'source')
@@ -101,6 +104,7 @@ class HTTPPipelineTests(unittest.TestCase):
                 self.assertFalse(host.controller.snapshot().terminal)
             finally: host.close()
 
+    @patch.dict(os.environ, {'CUBEENGINE_SCENE_DRAFT': 'off'})  # the model's own repair path is under test
     def test_repeated_invalid_http_response_stops_without_approvable_manifest(self):
         calls=[]
         def handle(request):

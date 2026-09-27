@@ -72,7 +72,9 @@ def _windows_font_path(family, bold, italic):
             name,style=ImageFont.truetype(str(path),16).getname()
         except (OSError,ValueError):
             continue
-        style=style.lower()
+        # Some fonts report no style/family name (None); they cannot match.
+        if not isinstance(name,str):continue
+        style=(style or '').lower()
         if ('bold' in style)==bold and ('italic' in style or 'oblique' in style)==italic:
             matches[normalize(name)]=path.resolve()
     for name in wanted:

@@ -276,15 +276,18 @@ def rule_function_catalog() -> Dict[str, Any]:
 
     from srtp.ir_v2.runtime import _core_functions
 
+    from srtp.ir_v2.function_docs import FUNCTION_DOCS, signature
     functions = []
     for name, spec in sorted(_core_functions(None).items()):
         entry: Dict[str, Any] = {
             "name": name,
+            "signature": signature(name),
             "args": list(spec.argument_types) + (["..."] if spec.variadic else []),
             "returns": spec.result_type,
         }
-        if name in _FUNCTION_NOTES:
-            entry["note"] = _FUNCTION_NOTES[name]
+        note = _FUNCTION_NOTES.get(name) or (FUNCTION_DOCS.get(name) or {}).get("doc")
+        if note:
+            entry["note"] = note
         functions.append(entry)
     try:
         capabilities = json.loads(
@@ -351,9 +354,12 @@ def behavior_probe(
 
     from srtp.ir_v2.runtime import RuleRuntime
 
+    from srtp.session_random import session_sources
+
     report = ProbeReport(ok=True)
     try:
-        runtime = RuleRuntime(rule_document)
+        # Session-seeded streams need host seeds, exactly like the player/host.
+        runtime = RuleRuntime(rule_document, random_sources=session_sources(rule_document))
     except Exception as error:  # noqa: BLE001 - surface any compile failure verbatim
         report.ok = False
         report.errors.append("Rule runtime failed to compile: {0}".format(error))
@@ -407,7 +413,7 @@ def behavior_probe(
     exceptions: List[str] = []
     for game in range(playouts):
         try:
-            session = RuleRuntime(rule_document)
+            session = RuleRuntime(rule_document, random_sources=session_sources(rule_document, game))
         except Exception as error:  # noqa: BLE001
             exceptions.append(str(error))
             break
@@ -472,6 +478,14 @@ def behavior_probe(
         if isinstance(item, Mapping) and item.get("id")
     ]
     unreached = [item for item in declared if item not in matched]
+    readers = _after_turn_actor_outcomes(rule_document)
+    report.facts["after_turn_actor_outcomes"] = readers
+    if readers:
+        report.warnings.append(
+            "Outcomes {0} read flow.current_actor, but outcomes are evaluated after the action and the turn "
+            "advance, when flow.current_actor is the NEXT participant. Correct only if the condition is about "
+            "the player to move (e.g. they have no legal move); a win by the mover would fire one move late."
+            .format(readers))
     if model == "turn_based":
         if lengths and terminated == 0:
             report.warnings.append(
@@ -481,12 +495,32 @@ def behavior_probe(
             report.warnings.append(
                 "Outcomes never reached in {0} random playouts: {1}".format(len(lengths), unreached)
             )
+            suspects = [item for item in _after_turn_actor_outcomes(rule_document) if item in unreached]
+            for outcome_id in suspects:
+                report.warnings.append(
+                    "{0} never occurred and its condition reads flow.current_actor. Outcomes are evaluated "
+                    "AFTER the action and the turn advance, so flow.current_actor is already the NEXT "
+                    "participant: a win test for the mover never sees the mover's mark. Test the mark that "
+                    "was just placed (e.g. grid.has_line for each participant's value) or record the mover "
+                    "in state before the turn passes.".format(outcome_id))
         if lengths and not legal_counts_decrease and runtime.action_count > 1:
             report.warnings.append(
                 "The number of legal actions never decreased during play; preconditions may not "
                 "exclude already-used targets."
             )
     return report
+
+
+def _after_turn_actor_outcomes(rule_document: Mapping[str, Any]) -> List[str]:
+    """Outcomes that read flow.current_actor in a flow whose turn advances after each action."""
+    flow = rule_document.get("flow") if isinstance(rule_document.get("flow"), Mapping) else {}
+    if not flow.get("turn_order"):
+        return []
+    result = []
+    for outcome in rule_document.get("outcomes") or []:
+        if isinstance(outcome, Mapping) and outcome.get("id") and                 '"flow.current_actor"' in json.dumps(outcome.get("condition")):
+            result.append(str(outcome["id"]))
+    return result
 
 
 def _record_overlap(
@@ -653,7 +687,8 @@ def compile_gate(
     rule = documents.get("rule_ir") or {}
     if "rule_ir" in wanted:
         try:
-            compile_rule_ir(rule).close()
+            from srtp.session_random import session_sources
+            compile_rule_ir(rule, random_sources=session_sources(rule)).close()
         except Exception as error:  # noqa: BLE001 - report the compiler's own message
             errors.setdefault("rule_ir", []).append("Rule compiler: {0}".format(error))
     # Scene and Input are also compiled for each other's host-route check, but
@@ -688,6 +723,12 @@ def compile_gate(
         route = _host_route_error(compiled_input, rule, scene, assets)
         if route is not None and route[0] in wanted:
             errors.setdefault(route[0], []).append(route[1])
+    if scene is not None and "scene_ir" in wanted and not errors:
+        # Last and most expensive: what the player would actually see.
+        from .visual_gate import run_visual_check, visual_diagnostics, visual_gate_enabled
+        if visual_gate_enabled():
+            for problem in visual_diagnostics(run_visual_check(documents, Path(asset_root), spatial=_is_spatial(rule))):
+                errors.setdefault("scene_ir", []).append(problem)
     return errors
 
 

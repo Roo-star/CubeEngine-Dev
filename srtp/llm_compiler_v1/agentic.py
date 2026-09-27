@@ -65,7 +65,9 @@ from .agent_tools import (
 from .approval import is_llm_approval_blocker
 from .artifacts import write_compile_artifacts
 from .bootstrap import BootstrapDocuments, bootstrap_documents
-from .client import OpenRouterLLMClient, LLMChatResult, LLMClientError, LLMTransportError
+from .budget import AGENTIC_LIFT_WEIGHTS, AGENTIC_SOURCE_WEIGHTS, budget_stage, made_progress
+from .reply_schemas import WORKER_REPLY, chat_with_schema, reply_errors, reply_schema
+from .client import OpenRouterLLMClient, LLMChatResult, LLMClientError, LLMCostBudgetExceeded, LLMTransportError
 from .compiler import (
     CompileReport,
     SourceToIRCompiler,
@@ -85,8 +87,10 @@ from .contracts import (
     validate_spatial_lift_plan,
 )
 from .evidence import build_evidence_pack, file_sha256
+from .lift_templates import LiftResult, apply_lift_template, template_from_plan
 from .lift_tools import run_behavior_tests, validate_behavior_tests, z_equals_one_equivalence
 from .prompts import design_intent_messages
+from .source_oracle import oracle_diagnostics, oracle_enabled, run_source_oracle
 from .validation import ValidationReport, validate_and_apply_proposal
 
 IR_ORDER = ("rule_ir", "asset_ir", "scene_ir", "input_ir")
@@ -96,6 +100,8 @@ DEFAULT_MAX_LLM_CALLS = 20
 DEFAULT_INVESTIGATE_STEPS = 4
 DEFAULT_REPAIRS_PER_IR = 3
 DEFAULT_REVIEW_ROUNDS = 2
+MAX_CONTINUATIONS = 3
+MAX_TOOL_ROUNDS = 2
 STATE_VERSION = "cubeengine.srtp/agent-state/1"
 STATE_FILE = "agent_state.json"
 
@@ -150,6 +156,8 @@ class _Worker:
     ir_key: str
     messages: List[Dict[str, str]]
     envelope: Optional[Dict[str, Any]] = None
+    last_parsed: Optional[Dict[str, Any]] = None
+    entry_plan: Optional[List[Dict[str, Any]]] = None
 
 
 class AgenticSourceToIRCompiler:
@@ -166,6 +174,8 @@ class AgenticSourceToIRCompiler:
         max_repairs_per_ir: int = DEFAULT_REPAIRS_PER_IR,
         max_review_rounds: int = DEFAULT_REVIEW_ROUNDS,
         probe_playouts: int = 24,
+        use_lift_templates: bool = True,
+        use_source_oracle: Optional[bool] = None,
     ) -> None:
         self.client = client or OpenRouterLLMClient(temperature=temperature, chat_fn=chat_fn)
         self.max_llm_calls = max(1, int(max_llm_calls))
@@ -173,6 +183,10 @@ class AgenticSourceToIRCompiler:
         self.max_repairs_per_ir = max(0, int(max_repairs_per_ir))
         self.max_review_rounds = max(0, int(max_review_rounds))
         self.probe_playouts = max(1, int(probe_playouts))
+        # Engine-owned Spatial Lift transforms before any Rule/Scene/Asset/Input call.
+        self.use_lift_templates = bool(use_lift_templates)
+        # Replay the compiled Rule against the original pygame game during review.
+        self.use_source_oracle = oracle_enabled() if use_source_oracle is None else bool(use_source_oracle)
         self._manifest_builder = SourceToIRCompiler(client=self.client)
         self.last_job: Optional[_Job] = None
 
@@ -184,7 +198,7 @@ class AgenticSourceToIRCompiler:
         *,
         out_dir: Optional[Path] = None,
         title: Optional[str] = None,
-        resume: bool = False,
+        resume: Optional[bool] = None,
     ) -> CompileReport:
         package = SourceGameImporter().import_path(Path(source))
         if title:
@@ -196,9 +210,12 @@ class AgenticSourceToIRCompiler:
         package: SourceGamePackage,
         *,
         out_dir: Optional[Path] = None,
-        resume: bool = False,
+        resume: Optional[bool] = None,
     ) -> CompileReport:
-        """Compile; with ``resume`` continue from ``out_dir/agent_state.json``.
+        """Compile; continue from ``out_dir/agent_state.json`` when it exists.
+
+        ``resume=None`` (default) reuses a compatible checkpoint automatically,
+        ``False`` forces a fresh job, ``True`` states the intent explicitly.
 
         Every accepted stage is checkpointed, so a provider outage mid-job
         (common on free tiers) only costs the unfinished stages.
@@ -227,7 +244,7 @@ class AgenticSourceToIRCompiler:
         out_dir: Optional[Path] = None,
         title: Optional[str] = None,
         language: str = "en",
-        resume: bool = False,
+        resume: Optional[bool] = None,
     ) -> CompileReport:
         package = SourceGameImporter().import_path(Path(source))
         if title:
@@ -245,7 +262,7 @@ class AgenticSourceToIRCompiler:
         intent_text: str,
         out_dir: Optional[Path] = None,
         language: str = "en",
-        resume: bool = False,
+        resume: Optional[bool] = None,
     ) -> CompileReport:
         """Spatial Lift of an approved Source bundle: Design Intent -> lift plan
         -> per-IR Target patches, with Z=1 equivalence and planner tests."""
@@ -279,7 +296,10 @@ class AgenticSourceToIRCompiler:
             _write_source_manifest_sidecar(Path(out_dir), source_report.manifest)
         return report
 
-    def _run_job(self, job: "_Job", *, out_dir: Optional[Path], resume: bool) -> CompileReport:
+    def _run_job(self, job: "_Job", *, out_dir: Optional[Path], resume: Optional[bool]) -> CompileReport:
+        if resume is None:
+            # Accepted stages are frozen: a rerun only redoes what failed.
+            resume = out_dir is not None and (Path(out_dir) / STATE_FILE).is_file()
         if resume and out_dir is not None and (Path(out_dir) / STATE_FILE).is_file():
             job.restore(json.loads((Path(out_dir) / STATE_FILE).read_text(encoding="utf-8")))
             previous = Path(out_dir) / "agent_trace.json"
@@ -287,6 +307,10 @@ class AgenticSourceToIRCompiler:
                 earlier = json.loads(previous.read_text(encoding="utf-8"))
                 job.trace.previous_runs = list(earlier.pop("previous_runs", []) or []) + [earlier]
         with self.client:
+            budget = getattr(self.client, "budget", None)
+            if budget is not None:
+                weights = AGENTIC_LIFT_WEIGHTS if isinstance(job, _LiftJob) else AGENTIC_SOURCE_WEIGHTS
+                budget.plan(list(weights), weights)
             try:
                 report = job.run()
             finally:
@@ -329,6 +353,11 @@ class _Job:
         self.client = compiler.client
         self.package = package
         self.evidence = evidence
+        # Engine-measured assets/drawings/lifecycle keys are part of the base
+        # every worker patches, and are restored after every patch.
+        from .static_facts import collect_static_facts, seed_documents
+        self.facts = collect_static_facts(package)
+        bootstrap = dataclasses.replace(bootstrap, documents=seed_documents(bootstrap.documents, self.facts))
         self.bootstrap = bootstrap
         self.job_id = job_id
         self.base_pins = bootstrap.base_pins()
@@ -340,11 +369,13 @@ class _Job:
         self.reviews: List[Dict[str, Any]] = []
         self.review_skipped: Optional[str] = None
         self.report: Optional[CompileReport] = None
+        self.oracle: Optional[Dict[str, Any]] = None
+        self._oracle_runs: Dict[str, Dict[str, Any]] = {}
         self._catalog = rule_function_catalog()
 
     # ------------------------------------------------------------ plumbing
 
-    def _chat(self, role: str, messages: Sequence[Mapping[str, str]]) -> LLMChatResult:
+    def _chat(self, role: str, messages: Sequence[Mapping[str, str]], *, repair: bool = False) -> LLMChatResult:
         if self.trace.llm_calls >= self.compiler.max_llm_calls:
             raise LLMBudgetExceeded(
                 "LLM call budget of {0} exhausted during {1}".format(self.compiler.max_llm_calls, role)
@@ -352,7 +383,9 @@ class _Job:
         self.trace.llm_calls += 1
         started = time.monotonic()
         try:
-            result = self.client.chat_json(messages)
+            schema = reply_schema(role)
+            with budget_stage(self.client, role, repair=repair):
+                result = chat_with_schema(self.client, messages, schema, "cubeengine_" + role)
         except LLMClientError as error:
             self.trace.record(
                 role, "llm_error", call=self.trace.llm_calls, error=str(error)[:600],
@@ -446,6 +479,7 @@ class _Job:
             input_summary=summarize_input_for_review(documents["input_ir"]),
             probe=probe,
             gaps=gaps,
+            engine_facts=self.facts.to_model(),
         )
 
     def _manifest_kwargs(self) -> Dict[str, Any]:
@@ -462,6 +496,12 @@ class _Job:
 
     def _catalog_all(self) -> Dict[str, Dict[str, Any]]:
         return dict(self._minted_pack()["evidence_by_id"])
+
+    def _default_evidence(self, ir_key: str) -> List[Dict[str, Any]]:
+        """Verified citations for one IR: those supporting it, else the first verified ones."""
+        catalog = [dict(item) for item in self._catalog_all().values() if isinstance(item, Mapping)]
+        own = [item for item in catalog if str(item.get("supports") or "").startswith("/" + ir_key)]
+        return (own or catalog)[:2]
 
     # ------------------------------------------------------------- stages
 
@@ -481,6 +521,8 @@ class _Job:
                         self._last_diagnostics(ir_key) or ["{0} worker failed".format(ir_key)],
                     )
             return self._review_and_finalize()
+        except LLMCostBudgetExceeded as error:
+            return self._failed("agent_budget", [str(error)])
         except LLMTransportError as error:
             return self._failed("agent_transport", [str(error)])
         except LLMBudgetExceeded as error:
@@ -603,35 +645,79 @@ class _Job:
         return result, problems
 
     def _draft(self, ir_key: str) -> bool:
-        worker = _Worker(ir_key=ir_key, messages=worker_messages(
+        worker = _Worker(ir_key=ir_key, messages=self._worker_messages(ir_key))
+        self.workers[ir_key] = worker
+        return self._converge(worker, origin="draft")
+
+    def _worker_messages(self, ir_key: str) -> List[Dict[str, str]]:
+        return worker_messages(
             ir_key=ir_key,
             spec=self.spec or {},
             base_document=self.bootstrap.documents[ir_key],
             evidence_menu=evidence_menu(self._catalog_all()),
             rule_ids=self._rule_ids() if ir_key != "rule_ir" else None,
             function_catalog=self._catalog if ir_key == "rule_ir" else None,
+            mechanics=_mechanics_catalog() if ir_key == "rule_ir" else None,
             inventory=list(self.package.files or []) if ir_key == "asset_ir" else None,
+            drawings=self._source_drawings() if ir_key == "asset_ir" else None,
+            engine_facts=self.facts.to_model() if ir_key in ("asset_ir", "input_ir") else None,
             instruction=self._worker_instruction(ir_key),
-        ))
-        self.workers[ir_key] = worker
-        return self._converge(worker, origin="draft")
+        )
+
+    def _source_drawings(self) -> Dict[str, Any]:
+        from srtp.drawn_shapes import discover_drawn_shapes, drawings_for_model
+
+        root = Path(self.package.root)
+        files = {str(name): root / str(name) for name in self.package.files or []
+                 if (root / str(name)).is_file()}
+        try:
+            groups = discover_drawn_shapes(files)
+        except (ValueError, OSError, RecursionError):
+            groups = []
+        return drawings_for_model(groups)
 
     def _converge(self, worker: _Worker, *, origin: str) -> bool:
         """Ask → validate → repair until the patch passes or attempts run out."""
 
         ir_key = worker.ir_key
         note: Optional[Dict[str, Any]] = None
+        previous: Optional[List[str]] = None
         for attempt in range(self.compiler.max_repairs_per_ir + 1):
             try:
-                result = self._chat(ir_key, _with_note(worker.messages, note))
+                result = self._chat(ir_key, _with_note(worker.messages, note),
+                                    repair=attempt > 0 or origin == "review")
             except LLMTransportError:
                 raise
             except LLMClientError as error:
-                note = _json_retry_note(error, repeated=note is not None)
-                continue
+                salvaged = _salvage_operations(str(getattr(error, "content", "") or "")) \
+                    if getattr(error, "truncated", False) else []
+                if not salvaged:
+                    note = _json_retry_note(error, repeated=note is not None)
+                    continue
+                # Keep the complete operations of a cut-off reply; ask only for the rest.
+                result = self._collect_parts(worker, {"operations": salvaged}, cut=True)
+            else:
+                result = self._answer_tools(worker, result)
+                if result.parsed.get("continue") is True:
+                    result = self._collect_parts(worker, dict(result.parsed), cut=False)
             note = None
-            envelope, unknown = self._envelope(ir_key, result.parsed)
-            diagnostics = self._check(ir_key, envelope, parsed=result.parsed)
+            parsed = dict(result.parsed)
+            if isinstance(parsed.get("evidence"), (str, Mapping)):
+                parsed["evidence"] = [parsed["evidence"]]  # one citation is still a list of one
+            shape = reply_errors(parsed, WORKER_REPLY)
+            if shape:
+                envelope, _ = self._envelope(ir_key, {})
+                unknown = []
+                diagnostics = ["reply envelope: {0}".format(item) for item in shape]
+            else:
+                try:
+                    if worker.entry_plan and parsed.get("entry_fixes") is not None and not parsed.get("operations"):
+                        parsed = _merge_entry_reply(worker.last_parsed or {}, parsed)
+                    envelope, unknown = self._envelope(ir_key, parsed)
+                    diagnostics = self._check(ir_key, envelope, parsed=parsed)
+                except ValueError as error:  # bad {"expr": ...}, mechanics or entry fixes
+                    envelope, _ = self._envelope(ir_key, {})
+                    unknown, diagnostics = [], [str(error)]
             if unknown:
                 diagnostics.insert(0, "evidence ids not in evidence_menu: {0}".format(unknown[:6]))
             worker.messages.append({"role": "assistant", "content": result.content})
@@ -641,28 +727,136 @@ class _Job:
                 worker.envelope = envelope
                 self._checkpoint()
                 return True
+            if previous is not None and not made_progress(previous, diagnostics):
+                # A paid repair fixed none of the previous diagnostics: report
+                # instead of spending the remaining attempts on the same state.
+                self.trace.record(ir_key, "stopped_no_progress", attempt=attempt, diagnostics=diagnostics[:24])
+                return False
+            previous = list(diagnostics)
+            from .entry_repair import INSTRUCTION, failing_entries
+            if parsed.get("operations"):
+                worker.last_parsed = parsed
+            worker.entry_plan = failing_entries(ir_key, _root_values(parsed.get("operations")), diagnostics) \
+                if parsed.get("operations") else None
+            from .static_facts import enrich_diagnostics
             worker.messages.append(repair_message(
                 ir_key=ir_key,
                 origin=_diagnostic_origin(diagnostics[0]),
-                diagnostics=diagnostics,
+                diagnostics=enrich_diagnostics(diagnostics, self.facts),
+                extra={"failing_entries": worker.entry_plan, "instruction": INSTRUCTION} if worker.entry_plan else None,
             ))
         return False
+
+    def _answer_tools(self, worker: _Worker, result: LLMChatResult) -> LLMChatResult:
+        """Run the worker's local self-checks and ask again (bounded); no attempt is used."""
+        for round_index in range(MAX_TOOL_ROUNDS):
+            requests = result.parsed.get("tool_requests")
+            if not isinstance(requests, list) or not requests or result.parsed.get("operations"):
+                return result
+            answers = [self._run_self_check(worker.ir_key, request) for request in requests[:8]]
+            self.trace.record(worker.ir_key, "self_check", round=round_index + 1,
+                              results=[{"tool": a.get("tool"), "ok": a.get("ok")} for a in answers])
+            worker.messages.append({"role": "assistant", "content": result.content})
+            worker.messages.append(tool_result_message({"tool_results": answers,
+                                                        "instruction": "Now reply with your patch (or one more tool round)."}))
+            result = self._chat(worker.ir_key, worker.messages)
+        return result
+
+    def _run_self_check(self, ir_key: str, request: Any) -> Dict[str, Any]:
+        from .self_check import check_entry, check_expression
+        if not isinstance(request, Mapping):
+            return {"tool": None, "ok": False, "diagnostics": ["tool request must be an object"]}
+        applied = self._apply()
+        documents = applied.documents if applied.ok else self.bootstrap.documents
+        if request.get("tool") == "check_expression":
+            return check_expression(documents.get("rule_ir") or {}, request)
+        if request.get("tool") == "check_entry":
+            return check_entry(ir_key, documents[ir_key], request)
+        return {"tool": request.get("tool"), "ok": False, "diagnostics": ["tool must be check_expression or check_entry"]}
+
+    def _collect_parts(self, worker: _Worker, first: Dict[str, Any], *, cut: bool) -> LLMChatResult:
+        """Merge a patch sent in parts (continue:true) or salvaged from a cut-off reply."""
+        merged = dict(first)
+        operations = list(first.get("operations") or [])
+        more = True
+        for part in range(MAX_CONTINUATIONS):
+            if not more:
+                break
+            request = list(worker.messages) + [
+                {"role": "assistant", "content": json.dumps({"operations": operations}, ensure_ascii=False)},
+                {"role": "user", "content": json.dumps({
+                    "task": "{0}_continue".format(worker.ir_key), "received_operations": len(operations),
+                    "instruction": ("Your reply was cut off by the output limit; the complete operations above are kept. "
+                                    if cut else "Operations received. ") +
+                                   'Reply {"operations":[...remaining operations only...]} plus evidence/assumptions/'
+                                   'unresolved; add "continue": true only if still more remain. Use {"expr": ...} '
+                                   'for Rule expressions to keep parts short.',
+                }, ensure_ascii=False)},
+            ]
+            try:
+                reply = self._chat(worker.ir_key, request)
+                parsed, cut = dict(reply.parsed), False
+            except LLMTransportError:
+                raise
+            except LLMClientError as error:
+                salvaged = _salvage_operations(str(getattr(error, "content", "") or "")) \
+                    if getattr(error, "truncated", False) else []
+                if not salvaged:
+                    break
+                parsed, cut = {"operations": salvaged, "continue": True}, True
+            operations.extend(item for item in parsed.get("operations") or [] if isinstance(item, Mapping))
+            for key in ("evidence", "assumptions", "unresolved", "no_change_reason", "outcome_order"):
+                if parsed.get(key):
+                    merged[key] = parsed[key]
+            more = parsed.get("continue") is True
+            self.trace.record(worker.ir_key, "continuation", part=part + 1, operations=len(operations), cut=cut)
+        merged["operations"] = operations
+        merged.pop("continue", None)
+        return LLMChatResult(json.dumps(merged, ensure_ascii=False), self.trace.provider, self.trace.model, merged)
 
     def _envelope(self, ir_key: str, parsed: Mapping[str, Any]) -> Tuple[Dict[str, Any], List[str]]:
         pin = self.base_pins[ir_key]
         operations = parsed.get("operations")
         if operations is None and isinstance(parsed.get("patch"), list):
             operations = parsed.get("patch")
+        if ir_key == "rule_ir" and parsed.get("mechanics") is not None:
+            # Selected engine mechanics become appends after the model's own operations.
+            from .mechanics import expand_mechanics, mechanics_operations
+            operations = list(operations if isinstance(operations, list) else []) +                 mechanics_operations(expand_mechanics(parsed["mechanics"]))
+        if ir_key == "rule_ir" and isinstance(operations, list):
+            # Compact {"expr": "..."} expressions are lowered to Rule ASTs here,
+            # exactly as the staged compiler does; a bad one names its pointer.
+            from .program_builder import lower
+            operations = [dict(item, value=lower(item["value"], "/operations/{0}/value".format(index)))
+                          if isinstance(item, Mapping) and "value" in item else item
+                          for index, item in enumerate(operations)]
+        normalized: List[str] = []
+        if isinstance(operations, list):
+            from .normalize import normalize_operation_value
+            operations = [dict(item, value=normalize_operation_value(
+                              ir_key, str(item.get("path") or ""), item["value"], normalized,
+                              "/operations/{0}/value".format(index)))
+                          if isinstance(item, Mapping) and "value" in item else item
+                          for index, item in enumerate(operations)]
+            if normalized:
+                self.trace.record(ir_key, "normalized", changes=normalized[:32])
         evidence, unknown = expand_evidence_refs(parsed.get("evidence"), self._catalog_all())
         unresolved = parsed.get("unresolved") if isinstance(parsed.get("unresolved"), list) else []
         assumptions = parsed.get("assumptions") if isinstance(parsed.get("assumptions"), list) else []
+        if not evidence and operations:
+            # The patch follows the verified Game Spec / approved Source bundle;
+            # cite the verified evidence for this IR instead of a paid repair.
+            evidence = self._default_evidence(ir_key)
+            if evidence:
+                assumptions = list(assumptions) + ["engine cited verified evidence {0} (reply gave none)".format(
+                    [item.get("evidence_id") for item in evidence])]
         return {
             "document_id": pin["document_id"],
             "base_revision": pin["revision"],
             "base_content_hash": pin["content_hash"],
             "operations": operations if isinstance(operations, list) else [],
             "evidence": evidence,
-            "assumptions": assumptions,
+            "assumptions": list(assumptions) + ["engine normalized " + item for item in normalized[:32]],
             "unresolved": unresolved,
         }, unknown
 
@@ -700,6 +894,7 @@ class _Job:
             source_package_hash=self.bootstrap.source_package_hash,
             evidence_pack=self._minted_pack(),
             source_root=Path(self.package.root),
+            locked=self.facts,
         )
 
     def _check(
@@ -764,6 +959,12 @@ class _Job:
                 if worker is None:
                     continue
                 accepted = worker.envelope
+                if not worker.messages:
+                    # Engine-authored stage (template/carry-over): give the model
+                    # the full worker context before the reviewer's issues.
+                    worker.messages = self._worker_messages(ir_key)
+                    worker.messages.append({"role": "assistant", "content": json.dumps(
+                        {"operations": accepted.get("operations", []) if accepted else []}, ensure_ascii=False)})
                 worker.messages.append(repair_message(
                     ir_key=ir_key, origin="review", diagnostics=messages,
                     extra={"instruction": (
@@ -798,18 +999,41 @@ class _Job:
     def _compile_errors(self, documents: Mapping[str, Mapping[str, Any]]) -> Dict[str, List[str]]:
         return compile_gate(documents, asset_root=Path(self.package.root))
 
+    def _source_oracle(self, documents: Mapping[str, Mapping[str, Any]]) -> Optional[Dict[str, Any]]:
+        """Differential replay against the original game (Source jobs; cached per Rule/Input pair)."""
+        if self.VARIANT != "source" or not self.compiler.use_source_oracle:
+            return None
+        key = json.dumps([documents["rule_ir"], documents["input_ir"]], sort_keys=True, default=str)
+        if key not in self._oracle_runs:
+            try:
+                report = run_source_oracle(self.package, documents)
+            except Exception as error:  # noqa: BLE001 - the oracle is advisory; never lose accepted work
+                report = {"status": "error", "reason": "{0}: {1}".format(type(error).__name__, error)}
+            self._oracle_runs[key] = report
+            self.trace.record("engine", "source_oracle", status=report.get("status"),
+                              checked_steps=report.get("checked_steps"), reason=report.get("reason"))
+        self.oracle = self._oracle_runs[key]
+        return self.oracle
+
     def _critique(self, documents: Mapping[str, Mapping[str, Any]], gaps: Sequence[str]) -> Dict[str, List[str]]:
         issues: Dict[str, List[str]] = {}
         probe = self.probe.to_mapping() if self.probe else {}
         for item in (self.probe.errors if self.probe else []):
             issues.setdefault("rule_ir", []).append("runtime probe error: {0}".format(item))
+        for item in (self.probe.warnings if self.probe else []):
+            if "flow.current_actor is already the NEXT participant" in item:
+                issues.setdefault("rule_ir", []).append("runtime probe: {0}".format(item))
         for ir_key, messages in self._compile_errors(documents).items():
             issues.setdefault(ir_key, []).extend("compile gate: {0}".format(item) for item in messages)
         for gap in gaps:
-            issues.setdefault(_gap_owner(gap), []).append("required unresolved: {0}".format(gap))
+            for ir_key in _gap_owners(gap):
+                prefix = "required unresolved" if ir_key == _gap_owner(gap) else                     "needed by {0} (it cannot change {1}; add it here)".format(_gap_owner(gap), ir_key)
+                issues.setdefault(ir_key, []).append("{0}: {1}".format(prefix, gap))
 
         final_errors, _ = self._final_checks(documents)
         for item in final_errors:
+            issues.setdefault("rule_ir", []).append(item)
+        for item in oracle_diagnostics(self._source_oracle(documents) or {}):
             issues.setdefault("rule_ir", []).append(item)
         try:
             result = self._chat("critic", self._critic_request(documents, gaps, probe))
@@ -840,6 +1064,7 @@ class _Job:
                 if isinstance(item.get("source"), Mapping):
                     text += " (source {0})".format(json.dumps(item["source"], ensure_ascii=False))
                 issues.setdefault(ir_key, []).append(text)
+        issues = {key: issues[key] for key in IR_ORDER if key in issues}  # upstream IRs are repaired first
         self.trace.record("critic", "review", verdict=review.get("verdict"),
                           routed={key: len(value) for key, value in issues.items()})
         return issues
@@ -855,6 +1080,7 @@ class _Job:
             source_package_hash=self.bootstrap.source_package_hash,
             evidence_pack=self._minted_pack(),
             source_root=Path(self.package.root),
+            locked=self.facts,
         )
         if not applied.ok:
             return self._failed("agent_finalize", list(applied.diagnostics) + list(extra_diagnostics),
@@ -870,6 +1096,9 @@ class _Job:
         diagnostics = list(extra_diagnostics)
         if self.review_skipped:
             diagnostics.append(self.review_skipped)
+        # Advisory at the end: the counterexample was already a repair input.
+        diagnostics.extend("unverified: {0}".format(item)
+                           for item in oracle_diagnostics(self._source_oracle(documents) or {}))
         diagnostics.extend("runtime probe: {0}".format(item) for item in self.probe.errors)
         diagnostics.extend(compile_errors)
         diagnostics.extend(final_errors)
@@ -944,6 +1173,8 @@ class _Job:
             _write_json(root / "behavior_probe.json", self.probe.to_mapping())
         if self.reviews:
             _write_json(root / "review.json", self.reviews)
+        if self.oracle is not None:
+            _write_json(root / "source_oracle.json", self.oracle)
         _write_json(root / "agent_evidence.json", self.workspace.catalog)
 
 
@@ -976,6 +1207,8 @@ class _LiftJob(_Job):
         self.lift_report: Dict[str, Any] = {}
         self._plan_problems: List[str] = []
         self._tests_enforced = False
+        self._template: Optional[LiftResult] = None
+        self._template_hint: Optional[Dict[str, Any]] = None
         self._adopt_source_evidence()
 
     # ----------------------------------------------------------- hooks
@@ -991,7 +1224,99 @@ class _LiftJob(_Job):
         return dict(value) if isinstance(value, Mapping) else None
 
     def _worker_instruction(self, ir_key: str) -> Optional[str]:
-        return LIFT_WORKER_INSTRUCTIONS.get(ir_key)
+        instruction = LIFT_WORKER_INSTRUCTIONS.get(ir_key)
+        if ir_key == "rule_ir" and self._template_hint:
+            instruction = "{0} The engine lift template could not finish this lift alone: {1}".format(
+                instruction, json.dumps(self._template_hint, ensure_ascii=False)[:4000])
+        return instruction
+
+    # ------------------------------------------------------ lift template
+
+    def _draft(self, ir_key: str) -> bool:
+        """Engine template first; the model only handles what the template cannot."""
+        if not self.compiler.use_lift_templates:
+            return super()._draft(ir_key)
+        if ir_key == "rule_ir" and self._template_rule():
+            return True
+        if ir_key != "rule_ir" and self._template_accepted() and self._carry_over(ir_key):
+            return True
+        return super()._draft(ir_key)
+
+    def _template_accepted(self) -> bool:
+        worker = self.workers.get("rule_ir")
+        return bool(worker is not None and worker.envelope is not None and not worker.messages
+                    and self._plan_template() is not None)
+
+    def _plan_template(self):
+        if not self.compiler.use_lift_templates:
+            return None
+        template, _ = template_from_plan(self.lift_plan or {}, self.source_rule)
+        return template
+
+    def _template_rule(self) -> bool:
+        template, problems = template_from_plan(self.lift_plan or {}, self.source_rule)
+        if template is None:
+            self.lift_report["template"] = {"applied": False, "problems": problems}
+            return False
+        result = apply_lift_template(self.bootstrap.documents["rule_ir"], template)
+        report = result.report()
+        if not result.complete:
+            self.lift_report["template"] = dict(report, applied=False)
+            self._template_hint = {"residual": result.residual, "transforms": result.transforms}
+            return False
+        self._template = result
+        envelope = self._engine_envelope("rule_ir", result.rule)
+        diagnostics = self._check("rule_ir", envelope, parsed={})
+        self.trace.record("rule_ir", "template", ok=not diagnostics, diagnostics=diagnostics[:24], report=report)
+        if diagnostics:
+            # The model repairs from the Source; the planner tests stay enforced for it.
+            self._template = None
+            self._tests_enforced = False
+            self.lift_report["template"] = dict(report, applied=False, diagnostics=diagnostics[:24])
+            self._template_hint = {"diagnostics": diagnostics[:12], "transforms": result.transforms}
+            return False
+        self.workers["rule_ir"] = _Worker(ir_key="rule_ir", messages=[], envelope=envelope)
+        self.lift_report["template"] = dict(report, applied=True)
+        self._checkpoint()
+        return True
+
+    def _carry_over(self, ir_key: str) -> bool:
+        """Accept the retargeted Source document when every gate passes unchanged."""
+        pin = self.base_pins[ir_key]
+        envelope = {"document_id": pin["document_id"], "base_revision": pin["revision"],
+                    "base_content_hash": pin["content_hash"], "operations": [], "evidence": [],
+                    "assumptions": [], "unresolved": []}
+        if ir_key == "scene_ir":
+            from .scene_completion import lift_cell_roles
+            prefabs, notes = lift_cell_roles(self.bootstrap.documents["scene_ir"],
+                                             self.bootstrap.documents.get("asset_ir"))
+            if notes:
+                envelope["operations"] = [{"op": "replace", "path": "/prefabs", "value": prefabs}]
+                envelope["evidence"] = self._default_evidence(ir_key)
+                envelope["assumptions"] = ["engine carry-over for the volume: " + note for note in notes]
+        diagnostics = self._check(ir_key, envelope, parsed={"no_change_reason": "engine carry-over"})
+        self.trace.record(ir_key, "carry_over", ok=not diagnostics, diagnostics=diagnostics[:24])
+        if diagnostics:
+            return False
+        self.workers[ir_key] = _Worker(ir_key=ir_key, messages=[], envelope=envelope)
+        self._checkpoint()
+        return True
+
+    def _engine_envelope(self, ir_key: str, document: Mapping[str, Any]) -> Dict[str, Any]:
+        base = self.bootstrap.documents[ir_key]
+        owned = {"ir_version", "document_id", "revision", "content_hash", "provenance", "dependencies"}
+        operations = [{"op": "replace", "path": "/" + key, "value": deepcopy(value)}
+                      for key, value in document.items() if key not in owned and base.get(key) != value]
+        pin = self.base_pins[ir_key]
+        citations = [item for item in self.evidence.get("evidence") or []
+                     if isinstance(item, Mapping) and str(item.get("supports", "")).startswith("/" + ir_key)]
+        citations = citations or list(self.evidence.get("evidence") or [])
+        return {"document_id": pin["document_id"], "base_revision": pin["revision"],
+                "base_content_hash": pin["content_hash"], "operations": operations,
+                "evidence": [{k: v for k, v in item.items() if k != "snippet"} for item in citations[:2]],
+                "assumptions": ["engine lift template {0}".format(self._template.template.to_mapping()
+                                                                   if self._template else {})],
+                "unresolved": []}
 
     def _rule_checks(self, rule: Mapping[str, Any]) -> List[str]:
         errors = ["lift check: {0}".format(item) for item in self._lift_errors(rule)]
@@ -1061,7 +1386,7 @@ class _LiftJob(_Job):
                 "(the designer must approve the Source Project Manifest first).",
             ]
         recorded = self.source_report.source_package_hash
-        if recorded and recorded != self.bootstrap.source_package_hash:
+        if recorded and recorded != self.bootstrap.source_package_hash and not self._source_files_unchanged():
             return [
                 "Spatial Lift blocked: the source game changed since the approved Source bundle was "
                 "compiled (package hash {0} != {1}); recompile and re-approve the Source.".format(
@@ -1069,6 +1394,34 @@ class _LiftJob(_Job):
                 ),
             ]
         return []
+
+    def _source_files_unchanged(self) -> bool:
+        """The package hash covers the importer's analysis, which changes with the
+        engine. When every source file the approved bundle cited still has the
+        cited SHA-256, the game itself is unchanged and the Lift may proceed."""
+        cited: Dict[str, str] = {}
+
+        def collect(value: Any) -> None:
+            if isinstance(value, Mapping):
+                if isinstance(value.get("path"), str) and isinstance(value.get("file_sha256"), str):
+                    cited[value["path"]] = value["file_sha256"]
+                for item in value.values():
+                    collect(item)
+            elif isinstance(value, list):
+                for item in value:
+                    collect(item)
+
+        for name in ("proposal.json", "agent_evidence.json"):
+            collect(_read_json(self.source_bundle_dir / name))
+        root = Path(self.package.root)
+        for path, digest in cited.items():
+            candidate = root / path
+            if not candidate.is_file() or file_sha256(candidate) != digest:
+                return False
+        if cited:
+            self.trace.record("engine", "source_unchanged", files=sorted(cited),
+                              note="package analysis hash differs; cited source files are byte-identical")
+        return bool(cited)
 
     def _investigate(self) -> None:
         intent = self._draft_design_intent()
@@ -1139,7 +1492,7 @@ class _LiftJob(_Job):
         note: Optional[Dict[str, Any]] = None
         for attempt in range(self.compiler.max_repairs_per_ir + 1):
             try:
-                result = self._chat(role, _with_note(messages, note))
+                result = self._chat(role, _with_note(messages, note), repair=attempt > 0)
             except LLMTransportError:
                 raise
             except LLMClientError as error:
@@ -1189,7 +1542,12 @@ class _LiftJob(_Job):
         return problems
 
     def _lift_errors(self, rule: Mapping[str, Any]) -> List[str]:
-        z1 = z_equals_one_equivalence(self.source_rule, rule)
+        reference = self.source_rule
+        template = self._plan_template()
+        if template is not None and template.set_extents:
+            # The designer resized X/Y too: one Target layer equals the resized Source.
+            reference = apply_lift_template(self.source_rule, template.resize_only()).rule
+        z1 = z_equals_one_equivalence(reference, rule)
         self.lift_report["z_equals_one"] = z1.to_mapping()
         errors = list(z1.errors)
         planned = (self.lift_plan or {}).get("topology") or {}
@@ -1258,6 +1616,9 @@ def _retarget_documents(source_documents: Mapping[str, Mapping[str, Any]]) -> Di
         document["document_id"] = retargeted
         document["revision"] = 0
         document["content_hash"] = ""
+    # An approved bundle from an earlier contract keeps its meaning under renamed fields.
+    from .scene_completion import migrate_aliases
+    documents["scene_ir"] = migrate_aliases(documents["scene_ir"], [])
     sealed = {
         "rule_ir": seal_rule_ir(documents["rule_ir"], revision=0),
         "scene_ir": seal_scene_ir(documents["scene_ir"], revision=0),
@@ -1403,6 +1764,63 @@ def _with_note(messages: Sequence[Mapping[str, str]], note: Optional[Mapping[str
     return result
 
 
+def _root_values(operations: Any) -> Dict[str, Any]:
+    """Root fields a patch sets wholesale (replace/add /field), as a definition-like map."""
+    values: Dict[str, Any] = {}
+    for item in operations if isinstance(operations, list) else []:
+        if not isinstance(item, Mapping):
+            continue  # malformed envelope; its own diagnostics already say so
+        path = str(item.get("path") or "")
+        if item.get("op") in ("replace", "add") and path.count("/") == 1 and "value" in item:
+            values[path[1:]] = item["value"]
+    return values
+
+
+def _merge_entry_reply(base: Mapping[str, Any], reply: Mapping[str, Any]) -> Dict[str, Any]:
+    """Rebuild the previous full patch with the corrected entries merged in."""
+    from .entry_repair import merge_entry_fixes
+    if not base.get("operations"):
+        raise ValueError("entry_fixes need a previous complete patch; send the complete patch")
+    merged = merge_entry_fixes(_root_values(base["operations"]), reply["entry_fixes"], reply.get("remove"))
+    operations = [dict(item, value=merged[str(item["path"])[1:]])
+                  if isinstance(item, Mapping) and str(item.get("path") or "")[1:] in merged
+                  and str(item.get("path") or "").count("/") == 1 and "value" in item else item
+                  for item in base["operations"]]
+    result = dict(base, operations=operations)
+    for key in ("evidence", "assumptions", "unresolved", "outcome_order"):
+        if reply.get(key):
+            result[key] = reply[key]
+    return result
+
+
+def _mechanics_catalog() -> Dict[str, Any]:
+    from .mechanics import catalog_for_model
+    return catalog_for_model()
+
+
+def _salvage_operations(content: str) -> List[Dict[str, Any]]:
+    """Complete operation objects at the start of a cut-off {"operations":[...]} reply."""
+    key = content.find('"operations"')
+    start = content.find("[", key) if key >= 0 else -1
+    if start < 0:
+        return []
+    decoder = json.JSONDecoder()
+    position, operations = start + 1, []
+    while True:
+        while position < len(content) and content[position] in " \r\n\t,":
+            position += 1
+        if position >= len(content) or content[position] == "]":
+            break
+        try:
+            value, position = decoder.raw_decode(content, position)
+        except ValueError:
+            break  # the cut-off element
+        if not isinstance(value, dict):
+            break
+        operations.append(value)
+    return operations
+
+
 def _parse_cite(raw: Any) -> Tuple[str, int, int]:
     if isinstance(raw, list) and raw:
         raw = raw[0]
@@ -1427,7 +1845,10 @@ def _required_gaps(documents: Mapping[str, Mapping[str, Any]]) -> List[str]:
                 continue
             if is_llm_approval_blocker(item):
                 continue
-            gaps.append("{0}{1}: {2}".format(key, item.get("path", ""), item.get("reason", "")))
+            text = "{0}{1}: {2}".format(key, item.get("path", ""), item.get("reason", ""))
+            if item.get("owner"):
+                text += " [owner {0}]".format(item["owner"])
+            gaps.append(text)
     return gaps
 
 
@@ -1436,6 +1857,15 @@ def _gap_owner(gap: str) -> str:
         if gap.startswith(key):
             return key
     return "rule_ir"
+
+
+def _gap_owners(gap: str) -> List[str]:
+    """The declaring IR plus any EARLIER IR its owner names (that IR must supply what is missing)."""
+    declaring = _gap_owner(gap)
+    owner = gap.rsplit("[owner ", 1)[1] if "[owner " in gap else ""
+    earlier = IR_ORDER[:IR_ORDER.index(declaring)] if declaring in IR_ORDER else ()
+    named = [ir for ir in earlier if ir.split("_")[0] in owner.lower()]
+    return named + [declaring]
 
 
 def _clip(value: Any, limit: int = 20000) -> Any:

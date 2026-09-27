@@ -3,7 +3,7 @@ from srtp.scene_ir_v2.component_contracts import COMPONENTS,BUILTIN_GEOMETRY,COL
 from srtp.asset_ir_v2.recipe_contracts import RECIPES
 from srtp.input_adapter_contract import KEY_CONTROLS,MOUSE_CONTROLS,HOST_FOCUS,HOST_VALUE_TYPES
 
-PROFILE_VERSION='cubeengine.ursina-authoring/11'
+PROFILE_VERSION='cubeengine.ursina-authoring/12'
 
 
 def profile():
@@ -26,6 +26,7 @@ def profile():
         'asset_recipe_inputs':'billboard, extrusion and cube_face_projection require one decodable image. Extrusion requires alpha_cutoff 1..255 (default 1), at most 16384 pixels; crop explicitly with atlas_region when intended. Asset compilation verifies the geometry before Scene generation.',
         'bindable_component_properties':BINDABLE,'bindable_node_properties':['active'],
         'scene_binding_sources':['state','flow','entity_component','interaction','expression'],
+        'rule_outcome_bindings':'Result text needs no extra Rule state: source {kind:flow, property:terminal} is true once the game has ended; outcome_status is ongoing or the matched outcome status (e.g. win/draw); winner is the first winning participant id (empty when none); outcome is the matched outcome id. Example HUD: if(read(flow.terminal), <winner/draw text via map on flow.winner or flow.outcome_status>, <turn text via flow.current_actor>).',
         'scene_binding_transforms':['direct','not','map','numeric','format','digit','integer_format'],
         'number_display':'digit {place:0 units/1 tens/2 hundreds, minimum:0, maximum:999, values:[ten original digit texture IDs]} reads numeric Rule state and drives renderer.texture. integer_format {width:3,minimum:0,maximum:999} gives zero-padded text. Keep source sprite typography via digit when source uses an atlas.',
         'pointer_feedback':'interaction {property:pressed or hovered, scope:target or any, control:mouse.button.primary (optional), node:scene node subtree filter (optional)} is host visual state. Bind to renderer.pressed; pressed_style overrides its current Rule variant during a valid hold, reverting on release/drag/cancel. Each Rule variant may have its own pressed_style. Face buttons can use target scope, board-wide excited face uses any + board node filter. This feedback requires no gameplay Rule action and no extra game state.',

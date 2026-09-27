@@ -55,7 +55,7 @@
           "type": "object", "additionalProperties": false,
           "required": ["uri", "content_hash", "byte_size"],
           "properties": {
-            "uri": {"type": "string", "pattern": "^(project://[^\\\\]+|runtime://pygame/default-font)$"},
+            "uri": {"type": "string", "pattern": "^(project://[^\\\\]+|runtime://pygame/default-font|runtime://(pygame/sysfont|system/font)/[^/\\\\]+/[01]/[01])$"},
             "content_hash": {"$ref": "#/$defs/sha256"},
             "byte_size": {"type": "integer", "minimum": 0}
           }
@@ -81,7 +81,7 @@
         "name": {"type": "string", "minLength": 1},
         "kind": {"enum": ["image", "audio", "font", "model", "material", "data", "text", "binary"]},
         "media_type": {"$ref": "#/$defs/mediaType"},
-        "strategy": {"enum": ["identity", "atlas_region", "billboard", "extrusion", "cube_face_projection", "mesh_substitution", "procedural_mesh", "custom_renderer"]},
+        "strategy": {"enum": ["identity", "atlas_region", "billboard", "extrusion", "cube_face_projection", "mesh_substitution", "procedural_mesh", "vector_shape", "custom_renderer"]},
         "inputs": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/assetId"}},
         "settings": {"type": "object"},
         "expected_content_hash": {"type": "string", "pattern": "^$|^[0-9a-f]{64}$"},
@@ -109,7 +109,7 @@
         "name": {"type": "string", "minLength": 1},
         "source_role": {"$ref": "#/$defs/assetId"},
         "target_resource": {"$ref": "#/$defs/assetId"},
-        "strategy": {"enum": ["billboard", "extrusion", "cube_face_projection", "mesh_substitution", "procedural_mesh", "custom_renderer"]},
+        "strategy": {"enum": ["billboard", "extrusion", "cube_face_projection", "mesh_substitution", "procedural_mesh", "vector_shape", "custom_renderer"]},
         "fidelity": {"enum": ["source_exact", "source_derived", "designer_substitution"]},
         "settings": {"type": "object"}
       }

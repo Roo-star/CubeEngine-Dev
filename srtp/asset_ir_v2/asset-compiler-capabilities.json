@@ -2,7 +2,7 @@
   "capability_id": "cubeengine.asset-compiler/2.0-alpha.1",
   "asset_ir_version": "cubeengine.asset-ir/2.0-alpha.1",
   "source_schemes": ["project", "runtime"],
-  "runtime_resources": ["runtime://pygame/default-font"],
+  "runtime_resources": ["runtime://pygame/default-font", "runtime://pygame/sysfont/{family}/{bold}/{italic}", "runtime://system/font/{family}/{bold}/{italic}"],
   "importers": {
     "cubeengine.raw-file": ["1.0"],
     "cubeengine.image": ["1.0"],
@@ -16,7 +16,8 @@
     "extrusion",
     "cube_face_projection",
     "mesh_substitution",
-    "procedural_mesh"
+    "procedural_mesh",
+    "vector_shape"
   ],
   "declared_but_extension_required": ["custom_renderer"],
   "presentation_mapping_strategies": [
@@ -25,6 +26,7 @@
     "cube_face_projection",
     "mesh_substitution",
     "procedural_mesh",
+    "vector_shape",
     "custom_renderer"
   ],
   "compiled_descriptor_media_type": "application/vnd.cubeengine.presentation+json",

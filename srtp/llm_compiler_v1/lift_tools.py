@@ -19,6 +19,13 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 
 
+def _runtime(rule: Mapping[str, Any], seed: int = 0) -> Any:
+    """Runtime with host session seeds, so session-seeded streams replay alike."""
+    from srtp.ir_v2.runtime import RuleRuntime
+    from srtp.session_random import session_sources
+    return RuleRuntime(rule, random_sources=session_sources(rule, seed))
+
+
 @dataclass
 class LiftCheckReport:
     ok: bool
@@ -70,7 +77,6 @@ def z_equals_one_equivalence(
     max_steps: int = 400,
     seed: int = 11,
 ) -> LiftCheckReport:
-    from srtp.ir_v2.runtime import RuleRuntime
 
     report = LiftCheckReport(ok=True)
     extra = added_axes(source_rule, target_rule)
@@ -92,7 +98,7 @@ def z_equals_one_equivalence(
         report.warnings.append("Z=1 equivalence skipped: simultaneous flow is not replayed here.")
         return report
     try:
-        RuleRuntime(variant).close()
+        _runtime(variant).close()
     except Exception as error:  # noqa: BLE001
         report.ok = False
         report.errors.append("Z=1 variant of the Target does not compile: {0}".format(error))
@@ -132,8 +138,10 @@ def z_equals_one_equivalence(
     rng = random.Random(seed)
     compared_steps = 0
     for game in range(playouts):
-        source = RuleRuntime(source_rule)
-        target = RuleRuntime(variant)
+        # Same seed per game: equal stream ids draw equal values, and Z=1 site
+        # lists enumerate in the same order as the Source sites.
+        source = _runtime(source_rule, game)
+        target = _runtime(variant, game)
         try:
             for step in range(max_steps):
                 source_legal = {key(item, False): item for item in source.legal_actions()}
@@ -221,7 +229,6 @@ def validate_behavior_tests(tests: Any) -> List[str]:
 def run_behavior_tests(target_rule: Mapping[str, Any], tests: Sequence[Mapping[str, Any]]) -> LiftCheckReport:
     """Play each scripted test on the Target runtime and compare the result."""
 
-    from srtp.ir_v2.runtime import RuleRuntime
 
     report = LiftCheckReport(ok=True)
     turn_order = [str(item) for item in (target_rule.get("flow") or {}).get("turn_order") or []]
@@ -231,7 +238,7 @@ def run_behavior_tests(target_rule: Mapping[str, Any], tests: Sequence[Mapping[s
         expect = test.get("expect") or {}
         moves = list(test.get("moves") or [])
         failure = None
-        runtime = RuleRuntime(target_rule)
+        runtime = _runtime(target_rule, int(test.get("seed") or 0))
         try:
             for index, move in enumerate(moves):
                 legal = runtime.legal_actions()

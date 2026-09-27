@@ -1,0 +1,345 @@
+{
+  "ir_version": "cubeengine.rule-ir/2.0-alpha.1",
+  "document_id": "rule:game.tic.tac.toe.source",
+  "revision": 1,
+  "content_hash": "6341ed0fa916a600aba1b21bc65ba9273a01a97e9275b2ee6c4c116e0b2824a3",
+  "metadata": {
+    "title": "Tic Tac Toe",
+    "description": "Two human players alternate placing X and O on a 3×3 board. Three in a row wins; a full board without a line is a draw.",
+    "source_project_hash": "a047aad70934c80e9fa9c332ffd9dc2ea1df95a50c0015b29f6e931c2d25aab5",
+    "determinism": "deterministic"
+  },
+  "dependencies": {
+    "scene_ir": null,
+    "asset_ir": null,
+    "input_ir": null,
+    "extensions": []
+  },
+  "parameters": [],
+  "types": [],
+  "participants": [
+    {
+      "id": "rule:participant.x",
+      "name": "X",
+      "kind": "human"
+    },
+    {
+      "id": "rule:participant.o",
+      "name": "O",
+      "kind": "human"
+    }
+  ],
+  "topologies": [
+    {
+      "id": "rule:topology.board",
+      "name": "Board",
+      "kind": "rect_grid",
+      "anchor": "cell",
+      "axes": [
+        {
+          "name": "x",
+          "extent": 3,
+          "boundary": "bounded"
+        },
+        {
+          "name": "y",
+          "extent": 3,
+          "boundary": "bounded"
+        }
+      ],
+      "neighborhoods": []
+    }
+  ],
+  "state": {
+    "variables": [
+      {
+        "id": "rule:state.board",
+        "name": "Cell marks (0 empty, 1 X, 2 O)",
+        "type": "core:int",
+        "scope": "topology_site",
+        "topology": "rule:topology.board",
+        "initial": {
+          "op": "literal",
+          "value": 0
+        }
+      }
+    ],
+    "entity_types": [],
+    "initial_effects": [],
+    "information_model": "perfect"
+  },
+  "queries": [],
+  "events": [],
+  "actions": [
+    {
+      "id": "rule:action.place",
+      "name": "Place mark",
+      "actor": {
+        "op": "ref",
+        "path": "flow.current_actor"
+      },
+      "parameters": [
+        {
+          "name": "coordinate",
+          "type": "core:coord",
+          "domain": {
+            "op": "call",
+            "function": "core:topology.sites",
+            "args": [
+              {
+                "op": "literal",
+                "value": "rule:topology.board"
+              }
+            ]
+          }
+        }
+      ],
+      "precondition": {
+        "op": "and",
+        "args": [
+          {
+            "op": "call",
+            "function": "core:topology.contains",
+            "args": [
+              {
+                "op": "literal",
+                "value": "rule:topology.board"
+              },
+              {
+                "op": "param",
+                "name": "coordinate"
+              }
+            ]
+          },
+          {
+            "op": "call",
+            "function": "core:grid.equals",
+            "args": [
+              {
+                "op": "literal",
+                "value": "rule:state.board"
+              },
+              {
+                "op": "param",
+                "name": "coordinate"
+              },
+              {
+                "op": "literal",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      "effects": [
+        {
+          "op": "grid.set",
+          "state": "rule:state.board",
+          "coordinate": {
+            "op": "param",
+            "name": "coordinate"
+          },
+          "value": {
+            "op": "if",
+            "condition": {
+              "op": "eq",
+              "args": [
+                {
+                  "op": "ref",
+                  "path": "flow.current_actor"
+                },
+                {
+                  "op": "literal",
+                  "value": "rule:participant.x"
+                }
+              ]
+            },
+            "then": {
+              "op": "literal",
+              "value": 1
+            },
+            "else": {
+              "op": "literal",
+              "value": 2
+            }
+          }
+        }
+      ],
+      "timing": {
+        "phase": "rule:phase.input"
+      },
+      "encoding": {
+        "kind": "parameter_product"
+      }
+    }
+  ],
+  "systems": [],
+  "flow": {
+    "model": "turn_based",
+    "phases": [
+      {
+        "id": "rule:phase.input",
+        "order": 100
+      }
+    ],
+    "initial_phase": "rule:phase.input",
+    "turn_order": [
+      "rule:participant.x",
+      "rule:participant.o"
+    ],
+    "scheduler": {
+      "clock": "turn",
+      "tick_hz": null,
+      "ordering": "phase_priority_id"
+    }
+  },
+  "random_streams": [],
+  "goals": [],
+  "outcomes": [
+    {
+      "id": "rule:outcome.x_win",
+      "name": "X wins",
+      "priority": 100,
+      "condition": {
+        "op": "call",
+        "function": "core:grid.has_line",
+        "args": [
+          {
+            "op": "literal",
+            "value": "rule:state.board"
+          },
+          {
+            "op": "literal",
+            "value": 1
+          },
+          {
+            "op": "literal",
+            "value": 3
+          }
+        ]
+      },
+      "result": {
+        "status": "x_win",
+        "terminal": true,
+        "winners": [
+          {
+            "op": "literal",
+            "value": "rule:participant.x"
+          }
+        ],
+        "losers": [
+          {
+            "op": "literal",
+            "value": "rule:participant.o"
+          }
+        ]
+      }
+    },
+    {
+      "id": "rule:outcome.o_win",
+      "name": "O wins",
+      "priority": 100,
+      "condition": {
+        "op": "call",
+        "function": "core:grid.has_line",
+        "args": [
+          {
+            "op": "literal",
+            "value": "rule:state.board"
+          },
+          {
+            "op": "literal",
+            "value": 2
+          },
+          {
+            "op": "literal",
+            "value": 3
+          }
+        ]
+      },
+      "result": {
+        "status": "o_win",
+        "terminal": true,
+        "winners": [
+          {
+            "op": "literal",
+            "value": "rule:participant.o"
+          }
+        ],
+        "losers": [
+          {
+            "op": "literal",
+            "value": "rule:participant.x"
+          }
+        ]
+      }
+    },
+    {
+      "id": "rule:outcome.draw",
+      "name": "Draw",
+      "priority": 10,
+      "condition": {
+        "op": "call",
+        "function": "core:grid.none_equal",
+        "args": [
+          {
+            "op": "literal",
+            "value": "rule:state.board"
+          },
+          {
+            "op": "literal",
+            "value": 0
+          }
+        ]
+      },
+      "result": {
+        "status": "draw",
+        "terminal": true
+      }
+    }
+  ],
+  "modes": [
+    {
+      "id": "rule:mode.default",
+      "name": "Default",
+      "overrides": []
+    }
+  ],
+  "invariants": [],
+  "extensions": {},
+  "provenance": {
+    "patch_history": [
+      {
+        "base_revision": 0,
+        "base_content_hash": "6a33377ed5b22fc5ceedbf3370376025aea868715e0b145f9a2324d0673ab626",
+        "evidence": [
+          {
+            "evidence_id": "main.py:1-86@04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "path": "main.py",
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 1,
+              "line_end": 86
+            },
+            "supports": "/rule_ir"
+          },
+          {
+            "evidence_id": "README.md:1-9@3d673b3e5751a6a6db08768f6e277d7d9bf49608a92ec0327e092ee7aa1fc554",
+            "path": "README.md",
+            "file_sha256": "3d673b3e5751a6a6db08768f6e277d7d9bf49608a92ec0327e092ee7aa1fc554",
+            "span": {
+              "line_start": 1,
+              "line_end": 9
+            },
+            "supports": "/rule_ir"
+          }
+        ],
+        "assumptions": [
+          "This stage models the original two-dimensional source board. The README's 3×3×3 no-gravity board is a separately requested spatial transformation, not the source game's initial topology."
+        ],
+        "operation_count": 18
+      }
+    ]
+  },
+  "unresolved": []
+}

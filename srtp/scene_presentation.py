@@ -229,6 +229,9 @@ class ScenePresentation:
             mesh=extrude_rgba(source._payload, depth=settings['depth'], axis=settings['axis'],
                               size=settings.get('size'), alpha_cutoff=settings.get('alpha_cutoff',1))
             return {'primitive':'source_mesh','mesh_data':mesh,'dimensions':[1,1,1]}
+        if strategy == 'vector_shape':
+            from .vector_geometry import extrude_shapes
+            return {'primitive':'source_mesh','mesh_data':extrude_shapes(settings),'dimensions':[1,1,1]}
         raise PresentationError('Presentation recipe is not implemented by this renderer: ' + strategy)
 
     def diagnostics(self, node_ids=None, *, include_variants=True):

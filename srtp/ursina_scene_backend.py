@@ -6,6 +6,7 @@ import math
 from pathlib import Path
 
 from .scene_presentation import PresentationError
+from .ursina_fonts import ursina_font
 
 
 def rgba255(r, g, b, a=255):
@@ -38,10 +39,9 @@ class UrsinaSceneBackend:
                                       model=u.Mesh(vertices=vertices,triangles=edges,mode='line',thickness=2),
                                       color=rgba255(255, 214, 95, 255), enabled=False, unlit=True)
         self.paths = presentation.assets.materialize(cache_root)
-        from panda3d.core import Filename
         fallback_font = Path('C:/Windows/Fonts/arial.ttf')
         if fallback_font.is_file():
-            u.Text.default_font = Filename.from_os_specific(str(fallback_font)).get_fullpath()
+            u.Text.default_font = ursina_font(fallback_font)
         self.selected_layer = None
         self.sync()
 
@@ -238,7 +238,7 @@ class UrsinaSceneBackend:
             if props.get('text'):
                 font = props.get('font')
                 from panda3d.core import Filename
-                kwargs = {'font': Filename.from_os_specific(str(self.paths[font])).get_fullpath()} if font else {}
+                kwargs = {'font': ursina_font(self.paths[font])} if font else {}
                 u.Text(parent=holder, text=str(props['text']), origin=(0,0),
                        position=(0, 0, -.52), scale=float(props.get('text_scale', 5)),
                        color=rgba255(*(v * 255 for v in (list(props.get('text_color', [0,0,0,1])) + [1])[:4])),
@@ -252,8 +252,10 @@ class UrsinaSceneBackend:
                 props['position']=position
             host = u.Entity(parent=u.camera.ui if props['mode'] == 'overlay' else parent,
                             enabled=bool(enabled and props.get('visible',True) and parent.enabled))
+            if props['mode'] == 'overlay':
+                self.overlay_hosts = [h for h in getattr(self, 'overlay_hosts', []) if h] + [host]
             from panda3d.core import Filename
-            kwargs={'font':Filename.from_os_specific(str(self.paths[props['font']])).get_fullpath()} if props.get('font') else {}
+            kwargs={'font':ursina_font(self.paths[props['font']])} if props.get('font') else {}
             if props.get('background'):
                 u.Entity(parent=host,model='quad',position=tuple(props.get('position',[-.85,.45])),
                          scale=tuple(props.get('size',[.4,.12])),color=rgba255(*(v*255 for v in (list(props['background'])+[1])[:4])))
