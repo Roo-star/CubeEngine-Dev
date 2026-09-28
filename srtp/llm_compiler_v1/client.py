@@ -18,6 +18,7 @@ DEFAULT_HTTP_TIMEOUT_S = 180.0
 DEFAULT_MAX_TOKENS = 32768
 DEFAULT_CHAT_RETRIES = 2
 DEFAULT_MAX_REQUESTS = 12
+DEFAULT_INFLIGHT_WAIT_S = 180.0
 OUTPUT_FORMATS = ("auto", "json_schema", "json_object")
 
 # Canonical Responses error_type takes priority over a generic error.code.
@@ -112,6 +113,14 @@ def _resolve_chat_retries():
         return min(5, max(0, int(os.environ.get("CUBEENGINE_LLM_CHAT_RETRIES", DEFAULT_CHAT_RETRIES))))
     except ValueError:
         return DEFAULT_CHAT_RETRIES
+
+
+def _resolve_inflight_wait_s():
+    """Longest Retry-After worth waiting for when OpenRouter's in-flight budget is occupied."""
+    try:
+        return min(600.0, max(0.0, float(os.environ.get("CUBEENGINE_LLM_INFLIGHT_WAIT_S", DEFAULT_INFLIGHT_WAIT_S))))
+    except ValueError:
+        return DEFAULT_INFLIGHT_WAIT_S
 
 
 def _resolve_timeout_s():
@@ -345,8 +354,10 @@ class OpenRouterLLMClient:
             except ValueError:
                 pass
             if inflight:
-                transient = 0 < retry_after <= 30 and not response.is_success
-            if retry_after > 30:
+                # The in-flight budget frees itself as earlier requests settle; nothing was
+                # generated or charged, so wait out an explicit, bounded Retry-After.
+                transient = 0 < retry_after <= _resolve_inflight_wait_s() and not response.is_success
+            elif retry_after > 30:
                 transient = False  # Do not retry before the advertised wait.
             delay = max(min(30.0, 2.0 ** (attempt + 1)), retry_after)
             if transient and attempt < retries:

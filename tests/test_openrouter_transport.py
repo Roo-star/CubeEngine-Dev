@@ -155,8 +155,18 @@ class OpenRouterTransportTests(unittest.TestCase):
             self.assertEqual(client.chat_json([]).parsed,{})
         sleep.assert_called_once_with(7.0)
         sleep.reset_mock()
-        with self.client(lambda r:httpx.Response(402,json=error,headers={'retry-after':'60'})) as client:
-            with self.assertRaisesRegex(LLMTransportError,'Retry-After: 60'): client.chat_json([])
+        # Field failure 2026-09-28: Retry-After 120 is waited out, not surfaced as a failed stage.
+        replies=iter([httpx.Response(402,json=error,headers={'retry-after':'120'}),completed({})])
+        with self.client(lambda r:next(replies)) as client:
+            self.assertEqual(client.chat_json([]).parsed,{})
+            self.assertEqual(client.http_requests,2)
+        sleep.assert_called_once_with(120.0)
+        sleep.reset_mock()
+        with self.client(lambda r:httpx.Response(402,json=error,headers={'retry-after':'300'})) as client:
+            with self.assertRaisesRegex(LLMTransportError,'Retry-After: 300'): client.chat_json([])
+        sleep.assert_not_called()
+        with self.client(lambda r:httpx.Response(402,json=error)) as client:
+            with self.assertRaisesRegex(LLMTransportError,'temporarily occupied'): client.chat_json([])
         sleep.assert_not_called()
 
     @patch('srtp.llm_compiler_v1.client.time.sleep')
