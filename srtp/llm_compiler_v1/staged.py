@@ -12,7 +12,7 @@ from .program_builder import definition_proposal, authoring_schema, ENGINE_OWNED
 from .source_workspace import SourceWorkspace
 from .validation import validate_and_apply_proposal
 from srtp.session_random import session_sources
-from .behavior_runtime import test_runtime
+from .behavior_runtime import test_runtime, BehaviorReplay
 
 ORDER = ('rule_ir', 'asset_ir', 'scene_ir', 'input_ir')
 from srtp.ir_contracts import IR_SCHEMA_FILES as SCHEMAS
@@ -60,6 +60,7 @@ empty cell, N in a row, full-board draw); the engine expands them into actions/o
 match the source exactly; write everything else yourself.
 For rule_ir supply executable behavior_tests: {"name":"...","steps":[{"action":"rule:action.ID","parameters":{},"accepted":true}],
 "expect":{"cells":[{"state":"rule:state.ID","coordinate":[0,0],"value":1}],"terminal":false}}.
+For timed behavior tests, use backend_profile.behavior_steps. A step checks its action BEFORE any attached advance_ticks or advance_ns; time advances AFTER the action. Use a separate clock-only step to wait first.
 Tests must include legal changes and a rejected move or terminal sequence derived from the actual game. They supplement independent acceptance.
 Every command must match its op-specific schema, not merely use a listed op name.
 foreach uses query (collection expression), as (local name string), effects (commands). It does NOT use domain/scope.
@@ -75,6 +76,7 @@ including family names resolved from literal JSON configuration. Use its exact U
 Do not mark an indexed runtime font as missing just because no font file is inside the game directory.
 Turtle.write(..., font=(family,size,style)) fonts are also indexed under runtime://system/font/ with exact family/style.
 Scene supports digit transforms for clamped decimal atlas digits and integer_format for zero-padded text.
+Scene may read immutable Rule parameters with source {kind:parameter, parameter:<Rule parameter ID>}; mutable selections still require Rule state and actions. Outcome text can use source {kind:outcome, property:status or terminal} or the existing flow terminal/outcome_status/winner/outcome properties.
 Use host interaction bindings plus renderer.pressed/pressed_style for transient mouse-down and cancel feedback;
 these are available presentation capabilities, not unresolved Rule semantics. Consult backend_profile for exact fields.
 For compound presentation conditions use source.kind=expression. Compose read leaves for Rule state,
@@ -102,6 +104,7 @@ For Spatial Lift rank-3 rectangular grids, backend_profile.spatial_grid_layout i
 one centered orthogonal volume, cubic cell shells and colliders, common pitch and overview camera.
 Supply topology_visualizer and per-state appearance; do not build exploded layers or separate flat boards.
 Use backend_profile.presentation_patterns: declare spatial_role on each renderer.
+For opaque interior boards, backend_profile.depth_view provides an optional host-only slice: the player can show one layer while keeping the default all-visible depth focus. Do not invent gameplay Rule actions or Input bindings for this view control, and do not mark interior access unresolved when this capability suffices.
 cell_shell is only the transparent container; content preserves source meshes, surfaces, sprites and numbered tiles.
 source_backdrop is omitted only from the spatial view; world_decoration is retained.
 Use marker placement=cell_center and billboard=false for solid spatial pieces; surface is for face symbols.
@@ -228,47 +231,37 @@ def run_behavior_tests(rule, tests):
     if len(tests) > 32:
         raise ValueError('At most 32 behavior tests per generation stage')
     results = []
+    failures = []
     exercised_transition = False
     exercised_boundary = False
     for test in tests:
-        runtime = test_runtime(rule,test)
+        runtime = None
         try:
+            runtime = test_runtime(rule,test)
             steps = test.get('steps', [])
             if not steps or len(steps) > 256:
-                raise ValueError('Behavior test needs 1..256 action steps')
+                raise ValueError('Behavior test needs 1..256 steps')
+            replay = BehaviorReplay(runtime, test.get('name', 'unnamed'))
             for step in steps:
-                if 'advance_ns' in step:
-                    duration = step['advance_ns']
-                    if type(duration) is not int or not 0 <= duration <= 10_000_000_000:
-                        raise ValueError('Test clock advance must be within 10 seconds')
-                    runtime.advance_time_ns(duration)
-                    exercised_transition = True
-                    continue
-                if step.get('action') not in {a['id'] for a in rule.get('actions', [])}:
-                    raise ValueError('Behavior test references an undeclared action')
-                candidates = [a for a in runtime.all_actions() if a.action_id == step['action']
-                              and _equal(dict(a.parameters), step.get('parameters', {}))]
-                legal = len(candidates) == 1 and runtime.is_legal(candidates[0])
-                if type(step.get('accepted')) is not bool:
-                    raise ValueError('Every test action requires an explicit accepted boolean')
-                if legal != step['accepted']:
-                    raise ValueError('Test {0}: expected accepted={1} for {2}, got {3}'.format(test.get('name'),step['accepted'],step['action'],legal))
-                if legal:
-                    runtime.apply_action(candidates[0])
-                    exercised_transition = True
-                else:
-                    exercised_boundary = True
+                change = replay.execute(step)
+                exercised_transition |= change['changed']
+                exercised_boundary |= change['rejected']
             expected = test.get('expect', {})
             if not expected:
                 raise ValueError('Behavior tests require an observable expected result')
-            if set(expected) - {'terminal', 'status', 'current_actor', 'cells', 'globals', 'winners'}:
-                raise ValueError('Behavior test contains unsupported assertions: ' + str(sorted(set(expected) - {'terminal', 'status', 'current_actor', 'cells', 'globals', 'winners'})))
+            supported = {'terminal', 'status', 'current_actor', 'cells', 'globals', 'winners', 'phase', 'tick'}
+            if set(expected) - supported:
+                raise ValueError('Behavior test contains unsupported assertions: ' + str(sorted(set(expected) - supported)))
             outcome = runtime.evaluate_outcome()
             for key in ('terminal', 'status'):
                 if key in expected and getattr(outcome, key) != expected[key]:
                     raise ValueError('Test {0}: {1} was {2}, expected {3}'.format(test.get('name'),key,getattr(outcome,key),expected[key]))
             if 'current_actor' in expected and runtime.state.current_actor != expected['current_actor']:
                 raise ValueError('Test {0}: incorrect next actor'.format(test.get('name')))
+            for key in ('phase', 'tick'):
+                if key in expected and getattr(runtime.state, key) != expected[key]:
+                    raise ValueError('Test {0}: {1} was {2}, expected {3}'.format(
+                        test.get('name'), key, getattr(runtime.state, key), expected[key]))
             for cell in expected.get('cells', []):
                 actual = runtime.state.grids[cell['state']][tuple(cell['coordinate'])]
                 if not _equal(actual, cell['value']):
@@ -279,9 +272,16 @@ def run_behavior_tests(rule, tests):
             if 'winners' in expected and not _equal(list(outcome.winners), expected['winners']):
                 raise ValueError('Test {0}: incorrect winners'.format(test.get('name')))
             exercised_boundary = exercised_boundary or expected.get('terminal') is True
-            results.append({'name':test.get('name','unnamed'), 'passed':True, 'state_hash':runtime.state.state_hash()})
+            results.append({'name':test.get('name','unnamed'), 'passed':True,
+                            'state_hash':runtime.state.state_hash(), 'phase':runtime.state.phase,
+                            'tick':runtime.state.tick, 'executed_ticks':replay.ticks})
+        except (ValueError, TypeError, KeyError, RuntimeError) as error:
+            failures.append('{0}: {1}'.format(test.get('name','unnamed'), error))
         finally:
-            runtime.close()
+            if runtime is not None:
+                runtime.close()
+    if failures:
+        raise ValueError('Behavior test failures:\n- ' + '\n- '.join(failures))
     if not exercised_transition or not exercised_boundary:
         raise ValueError('Behavior tests must exercise a legal transition and rejection or terminal outcome')
     return results
@@ -307,15 +307,11 @@ def _execute_stage(slot, documents, root, tests, *, spatial=False):
             graph = ScenePresentation(scene, assets, volume_rule=documents['rule_ir'] if spatial else None)
             projection=scene.create_projection_session()
             runtime = test_runtime(documents['rule_ir'],case)
+            replay = BehaviorReplay(runtime, case.get('name', 'unnamed'))
             try:
                 for step in [None]+case.get('steps',[]):
                     if step is not None:
-                        if 'advance_ns' in step: runtime.advance_time_ns(step['advance_ns'])
-                        elif step.get('accepted'):
-                            candidates=[a for a in runtime.all_actions() if a.action_id==step['action'] and _equal(dict(a.parameters),step.get('parameters',{}))]
-                            if len(candidates)!=1 or not runtime.is_legal(candidates[0]):
-                                raise ValueError('Scene replay action unavailable in '+case.get('name','test'))
-                            runtime.apply_action(candidates[0])
+                        replay.execute(step)
                     graph.synchronize(projection,runtime.state)
                     errors = graph.diagnostics()
                     if errors:
@@ -560,7 +556,7 @@ def run_stages(compiler, *, package, evidence, documents, job_id, design_intent=
         Path(__file__).with_name('backend_contract.py'), Path(__file__).with_name('input_acceptance.py'),
         Path(__file__).with_name('presentation_acceptance.py')]
     engine_files += [Path(__file__).resolve().parents[1]/p for p in
-        ('ir_v2/runtime.py','ir_v2/sequence_functions.py','session_random.py','llm_compiler_v1/behavior_runtime.py','scene_presentation.py','volume_layout.py','presentation_patterns.py','ursina_scene_backend.py','source_visuals.py','sprite_geometry.py',
+        ('ir_v2/runtime.py','ir_v2/sequence_functions.py','session_random.py','llm_compiler_v1/behavior_runtime.py','scene_presentation.py','volume_layout.py','depth_view.py','presentation_patterns.py','ursina_scene_backend.py','source_visuals.py','sprite_geometry.py',
          'bundle_assets.py','runtime_assets.py','system_fonts.py','drawn_shapes.py','vector_geometry.py','ir_contracts.py','input_adapter_contract.py','input_pointer_contract.py','pointer_gesture.py','asset_ir_v2/recipe_contracts.py',
          'scene_ir_v2/component_contracts.py','scene_ir_v2/binding_expressions.py','ir_v2/expression_contracts.py','asset_ir_v2/compiler.py','asset_ir_v2/asset_ir.py','visual_timeline.py','ir_v2/command_contracts.py','ir_v2/rule_ir.py','ir_v2/types.py','scene_ir_v2/compiler.py','scene_ir_v2/scene_ir.py',
          'scene_ir_v2/scene-compiler-capabilities.json','input_ir_v2/compiler.py','input_ir_v2/input_ir.py',

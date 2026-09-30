@@ -100,6 +100,15 @@ class SourceWorkspace:
         self.preflight_errors = []
         try:
             self.runtime_assets = discover_runtime_assets(self.files)
+            # Fail locally if an indexed font cannot fit the model-facing
+            # Asset definition, before asking the model to use it.
+            from .program_builder import authoring_schema
+            from srtp.ir_contracts import _document_schema, errors
+            schema = authoring_schema(_document_schema('asset_ir'))
+            for asset in self.runtime_assets:
+                self.preflight_errors.extend(
+                    'Indexed runtime resource ' + asset['id'] + ': ' + message
+                    for message in errors(asset, schema['$defs']['sourceAsset'], root=schema))
         except (ValueError, OSError) as error:
             self.runtime_assets = []
             self.preflight_errors.append(str(error))

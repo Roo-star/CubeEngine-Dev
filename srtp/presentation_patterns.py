@@ -5,7 +5,7 @@ from the artwork it contains, so lifting cannot erase source visual content.
 """
 from copy import deepcopy
 
-PATTERN_VERSION = 'cubeengine.presentation-patterns/1'
+PATTERN_VERSION = 'cubeengine.presentation-patterns/2'
 SPATIAL_ROLES = ('cell_shell', 'content', 'source_backdrop', 'world_decoration')
 
 
@@ -21,6 +21,7 @@ def model_contract():
         'source_surface': 'Reference original asset/atlas region and preserve every state-to-surface mapping. Use cube_face_projection for source tile faces; do not infer atlas indices from a different game.',
         'numbered_tile': 'Preserve source value->background/text/font mappings; fit large values without clipping. Tile content stays opaque when grid containers are transparent.',
         'layer_focus': 'Focus changes picking/emphasis only. Off-layer pieces, revealed values, flags and result state must remain visible.',
+        'optional_depth_slice': 'The player may explicitly choose Only this layer to hide off-depth cells for interior access; this leaves Rule state, authored artwork and the default all-visible focus mode unchanged.',
         'quality_dimensions': ['source_behavior_equivalence', 'spatial_rules', 'visual_state_coverage',
             'source_asset_fidelity', 'camera_and_internal_picking', 'lifecycle_and_feedback',
             'gesture_conflicts', 'performance', 'fresh_pipeline_provenance'],

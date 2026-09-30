@@ -43,6 +43,7 @@ class UrsinaSceneBackend:
         if fallback_font.is_file():
             u.Text.default_font = ursina_font(fallback_font)
         self.selected_layer = None
+        self.slice_layer = None
         self.sync()
 
     def close(self):
@@ -63,6 +64,9 @@ class UrsinaSceneBackend:
 
     def _node_enabled(self, node_id):
         from .input_pointer_contract import scene_parent
+        from .depth_view import visible_in_depth
+        if not visible_in_depth(self.presentation, node_id, self.slice_layer):
+            return False
         node=self.presentation.nodes.get(node_id)
         while node:
             if not node.get('active',True) or not self.presentation.layers.get(node.get('layer'),{}).get('visible',True):
@@ -95,10 +99,11 @@ class UrsinaSceneBackend:
 
     def sync(self, incremental=False):
         graph, u = self.presentation, self.u
-        sync_key = (graph.change_serial, self.selected_layer)
+        sync_key = (graph.change_serial, self.selected_layer, self.slice_layer)
         if incremental and self.last_sync == sync_key:
             return
-        all_nodes = not incremental or graph.all_dirty or self.last_sync is None or self.last_sync[1] != self.selected_layer
+        all_nodes = (not incremental or graph.all_dirty or self.last_sync is None or
+                     self.last_sync[1:] != sync_key[1:])
         for node_id in set(self.entities) - set(graph.nodes):
             if self.hover_outline.parent == self.entities[node_id]:
                 self.hover_outline.parent = self.root
@@ -118,7 +123,7 @@ class UrsinaSceneBackend:
             entity.parent = parent
             self._matrix(entity, node['local_matrix'])
             layer = graph.layers.get(node.get('layer'), {})
-            entity.enabled = bool(node.get('active', True) and layer.get('visible', True))
+            entity.enabled = self._node_enabled(node_id)
             entity.rule_context = node.get('rule_context', {})
             entity.scene_node_id = node_id
             effective_active=self._node_enabled(node_id)
@@ -132,7 +137,8 @@ class UrsinaSceneBackend:
                 # Geometry is immutable and cached by Asset ID; do not serialize
                 # thousands of vertices for every board cell on every tick.
                 component_enabled=component['enabled'] and effective_active
-                signature = json.dumps([component_enabled, {k:v for k,v in effective.items() if k != 'mesh'},
+                visibility_only = kind in ('renderer', 'ui_canvas')
+                signature = json.dumps([None if visibility_only else component_enabled, {k:v for k,v in effective.items() if k != 'mesh'},
                     (list(entity.world_position)+list(entity.world_rotation)) if kind=='camera' else None], sort_keys=True)
                 if signature != self.signatures.get(key):
                     if key in self.components:
@@ -141,6 +147,8 @@ class UrsinaSceneBackend:
                     if target is not None:
                         self.components[key] = target
                     self.signatures[key] = signature
+                if visibility_only and key in self.components:
+                    self.components[key].enabled = bool(component_enabled and effective.get('visible', True))
             # Colliders select the logical node, independent of how many
             # renderers/labels its prefab contains.
             colliders = [c for c in node['components'].values() if c['type'] == 'collider' and c['enabled']]
@@ -430,6 +438,8 @@ class UrsinaSceneBackend:
         while hovered is not None and hovered != self.root:
             context = getattr(hovered, 'rule_context', None)
             identifier = getattr(hovered, 'scene_node_id', None)
+            if identifier in self.entities and not self._node_enabled(identifier):
+                return {}
             if context or identifier:
                 if identifier:
                     from .input_pointer_contract import scene_pick_context

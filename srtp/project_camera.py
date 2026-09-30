@@ -134,6 +134,8 @@ class ProjectCameraRig:
         self.overlay_adjusted = self._clear_overlays(bounds, overlay_rects(backend))
         self.initial_pose = (tuple(self.editor.position), tuple(self.editor.rotation), tuple(camera.position))
         self.initial_lens = (camera.orthographic, camera.fov)
+        self.volume_center = tuple(center)
+        self._depth_overview = None
         if not bounds_in_view(bounds):
             raise ValueError('Initial camera could not frame the compiled board')
 
@@ -173,3 +175,31 @@ class ProjectCameraRig:
         camera.orthographic, camera.fov = self.initial_lens
         self.editor.target_z = camera.z
         self.editor.target_fov = camera.fov
+        self._depth_overview = None
+
+    def focus_depth(self, layer):
+        """Face an optional depth slice and restore the previous orbit on exit."""
+        from ursina import camera
+        if layer is None:
+            if self._depth_overview is None:
+                return
+            position, rotation, camera_position, orthographic, fov = self._depth_overview
+            self.editor.position = position
+            self.editor.rotation = rotation
+            self.editor.smoothing_helper.rotation = rotation
+            camera.position = camera_position
+            camera.rotation = (0, 0, 0)
+            camera.orthographic, camera.fov = orthographic, fov
+            self.editor.target_z, self.editor.target_fov = camera.z, fov
+            self._depth_overview = None
+            return
+        if self._depth_overview is None:
+            self._depth_overview = (tuple(self.editor.position), tuple(self.editor.rotation),
+                                    tuple(camera.position), camera.orthographic, camera.fov)
+        self.editor.position = self.volume_center
+        self.editor.rotation = (0, 0, 0)
+        self.editor.smoothing_helper.rotation = (0, 0, 0)
+        camera.position = self.initial_pose[2]
+        camera.rotation = (0, 0, 0)
+        camera.orthographic, camera.fov = self.initial_lens
+        self.editor.target_z, self.editor.target_fov = camera.z, camera.fov

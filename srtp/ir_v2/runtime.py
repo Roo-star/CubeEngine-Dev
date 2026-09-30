@@ -134,6 +134,7 @@ class RuleState:
     ) -> None:
         self.document = document
         self.type_registry = type_registry
+        self.parameter_values = deepcopy(dict(parameters or {}))
         # Set by RuleRuntime; lets presentation read the outcome without mutating state.
         self.outcome_provider: Optional[_OutcomeProvider] = None
         self.topologies: Dict[str, Tuple[int, ...]] = {
@@ -200,6 +201,12 @@ class RuleState:
             else:
                 raise RuleRuntimeError("unsupported state scope: {0}".format(scope))
 
+    def parameter_value(self, identifier: str) -> Any:
+        for parameter in self.document.get('parameters', []):
+            if parameter['id'] == identifier:
+                return deepcopy(self.parameter_values[parameter['key']])
+        raise RuleRuntimeError('unknown Rule parameter: ' + identifier)
+
     def state_value(self, identifier: str, scope_key: Optional[Any] = None) -> Any:
         definition = self._state_definition(identifier)
         scope = definition.get("scope")
@@ -264,6 +271,7 @@ class RuleState:
         # potentially large Rule IR document and expression graph.
         result = copy(self)
         result.topologies = dict(self.topologies)
+        result.parameter_values = deepcopy(self.parameter_values)
         result.globals = deepcopy(self.globals)
         result.grids = {key: value.copy() for key, value in self.grids.items()}
         result.scoped = deepcopy(self.scoped)

@@ -470,6 +470,7 @@ class SceneProjectionSession:
         self.mode = mode
         self._last_state_hash = None
         self._last_interaction = None
+        self._last_parameters = None
         self._properties: Dict[Tuple[str, Optional[str], str], Any] = {}
         self._entities: Dict[str, Dict[str, Dict[str, Any]]] = {
             key: {} for key in scene.entity_visualizers
@@ -489,16 +490,19 @@ class SceneProjectionSession:
         if interaction.get('hovered'): interaction['hovered']=enrich(interaction['hovered'])
         if interaction.get('pressed'):
             interaction['pressed']={key:enrich(value) for key,value in interaction['pressed'].items()}
-        if before_hash == self._last_state_hash and interaction == self._last_interaction:
+        parameters = getattr(rule_state, 'parameter_values', {})
+        if (before_hash == self._last_state_hash and interaction == self._last_interaction
+                and parameters == self._last_parameters):
             return SceneDelta(self.scene.document_id, int(rule_state.revision), before_hash, ())
         previous_properties = deepcopy(self._properties)
         previous_entities = deepcopy(self._entities)
         try:
             commands: List[SceneCommand] = []
             self._synchronize_entities(rule_state, commands)
+            read_cache = {}
             for binding in self.scene.bindings:
                 for context in self._binding_targets(binding):
-                    source = _read_scene_source(binding.source, rule_state, context, interaction)
+                    source = _read_scene_source(binding.source, rule_state, context, interaction, read_cache)
                     value = _apply_binding_transform(binding.transform, source)
                     target = binding.target
                     component = target.get("component")
@@ -525,6 +529,7 @@ class SceneProjectionSession:
             raise
         self._last_state_hash = after_hash
         self._last_interaction = interaction
+        self._last_parameters = deepcopy(parameters)
         return SceneDelta(
             scene_document_id=self.scene.document_id,
             rule_revision=int(rule_state.revision),
@@ -637,8 +642,12 @@ def _compile_binding(
             _compile_binding(dict(value,source=leaf),nodes,topology_sites,entity_visualizers,prefabs,rule_document)
         def read_type(leaf):
             if leaf['kind']=='interaction':return 'boolean'
+            if leaf['kind']=='outcome':return 'boolean' if leaf['property']=='terminal' else 'string'
             if leaf['kind']=='flow':
                 return {'tick':'number','turn':'number','terminal':'boolean'}.get(leaf['property'],'string')
+            if leaf['kind']=='parameter':
+                kind=next(p['type'] for p in rule_document.get('parameters',[]) if p['id']==leaf['parameter'])
+                return {'core:int':'number','core:float':'number','core:bool':'boolean','core:string':'string'}.get(kind)
             if leaf['kind']=='state':
                 kind=_rule_variables(rule_document)[leaf['variable']].get('type')
                 return {'core:int':'number','core:float':'number','core:bool':'boolean','core:string':'string'}.get(kind)
@@ -651,6 +660,10 @@ def _compile_binding(
     node_id = str(target["node"])
     if node_id not in nodes:
         raise SceneCompileError("binding target was not compiled: {0}".format(node_id))
+    if source_kind == 'parameter':
+        identifiers = {p['id'] for p in (rule_document or {}).get('parameters', [])}
+        if source['parameter'] not in identifiers:
+            raise SceneCompileError('binding references unknown Rule parameter: ' + source['parameter'])
     state_definition = None
     if source_kind == "state":
         variables = _rule_variables(rule_document)
@@ -848,6 +861,8 @@ def _rule_variables(document: Optional[Mapping[str, Any]]) -> Dict[str, Mapping[
 
 def _read_binding_source(source: Mapping[str, Any], state: Any, context: Mapping[str, Any]) -> Any:
     kind = source["kind"]
+    if kind == 'parameter':
+        return state.parameter_value(source['parameter'])
     if kind == "flow":
         property_name = source["property"]
         if property_name in ("terminal", "outcome_status", "winner", "outcome"):
@@ -921,11 +936,30 @@ def _apply_binding_transform(transform: Mapping[str, Any], source: Any) -> Any:
     return str(transform["template"]).replace("{value}", str(source))
 
 
-def _read_scene_source(source, state, context, interaction):
+def _read_scene_source(source, state, context, interaction, read_cache=None):
+    read_cache = {} if read_cache is None else read_cache
+    if source['kind']=='outcome' or (source['kind']=='flow' and source['property'] in
+                                     ('terminal', 'outcome_status', 'winner', 'outcome')):
+        if 'outcome' not in read_cache:
+            provider = getattr(state, 'outcome_provider', None)
+            if provider is None:
+                raise SceneProjectionError('Rule outcome is unavailable to this projection')
+            read_cache['outcome'] = provider(state)
+        outcome = read_cache['outcome']
+        if source['kind']=='outcome':
+            return getattr(outcome, source['property'])
+        return {'terminal': bool(outcome.terminal), 'outcome_status': str(outcome.status),
+                'winner': str(outcome.winners[0]) if outcome.winners else '',
+                'outcome': str(outcome.matched_outcomes[0]) if outcome.matched_outcomes else ''}[source['property']]
+    if source['kind']=='parameter':
+        key = ('parameter', source['parameter'])
+        if key not in read_cache:
+            read_cache[key] = state.parameter_value(source['parameter'])
+        return deepcopy(read_cache[key])
     if source['kind']=='interaction':return _read_interaction(source,context,interaction)
     if source['kind']=='expression':
         from .binding_expressions import evaluate_expression
-        return evaluate_expression(source['expression'],lambda leaf:_read_scene_source(leaf,state,context,interaction))
+        return evaluate_expression(source['expression'],lambda leaf:_read_scene_source(leaf,state,context,interaction,read_cache))
     return _read_binding_source(source,state,context)
 
 

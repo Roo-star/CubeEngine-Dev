@@ -109,15 +109,20 @@ def main():
         host.close()
         raise ValueError('Compiled presentation cannot run: ' + '; '.join(errors[:6]))
     backend = UrsinaSceneBackend(host.presentation, args.manifest.parent / 'render_cache')
+    camera_rig = None
     class ProjectView(Entity):
         def __init__(self):
             super().__init__()
             self.layer = None
+            self.slice_only = False
             self.failed = False
             self.last_revision = None
             from .pointer_gesture import PointerGesture
             self.pointer = PointerGesture()
-            self.message = 'Right-drag: orbit   Wheel: zoom' + chr(10) + '[ / ]: select depth   Restart: new game'
+            self.message = ('Right-drag: orbit   Wheel: zoom' + chr(10) +
+                            ('[ / ]: select depth   Z: only this layer   V: all layers   Restart: new game'
+                             if host.presentation.volume_layout else
+                             '[ / ]: select depth   Restart: new game'))
             self.header = Text(text='', position=(-window.aspect_ratio/2+.02, .47), scale=.7)
             right = window.aspect_ratio/2 - .08
             self.controls = [
@@ -125,6 +130,11 @@ def main():
                 Button(text='Previous', position=(right-.16,.46), scale=(.14,.045), on_click=lambda:self.step_layer(-1)),
                 Button(text='Next', position=(right,.46), scale=(.12,.045), on_click=lambda:self.step_layer(1)),
                 Button(text='Restart', position=(right,.40), scale=(.12,.045), on_click=self.restart)]
+            self.slice_button = None
+            if host.presentation.volume_layout:
+                self.slice_button = Button(text='Only this layer', position=(right-.46,.40),
+                                           scale=(.18,.045), on_click=self.toggle_slice)
+                self.controls.append(self.slice_button)
             self.refresh()
 
         def restart(self):
@@ -138,6 +148,23 @@ def main():
             self.pointer.clear()
             host.interaction = {}
             self.layer = layer
+            if self.slice_only:
+                if layer is None:
+                    self.slice_only = False
+                if camera_rig is not None:
+                    camera_rig.focus_depth(layer)
+            self.refresh()
+
+        def toggle_slice(self):
+            if not host.presentation.volume_layout:
+                return
+            self.pointer.clear()
+            host.interaction = {}
+            self.slice_only = not self.slice_only
+            if self.slice_only and self.layer is None:
+                self.layer = 0
+            if camera_rig is not None:
+                camera_rig.focus_depth(self.layer if self.slice_only else None)
             self.refresh()
 
         def step_layer(self, delta):
@@ -148,19 +175,27 @@ def main():
         def refresh(self):
             host.refresh_scene()
             backend.selected_layer = self.layer
+            backend.slice_layer = self.layer if self.slice_only else None
             backend.sync(incremental=True)
             state = host.controller.snapshot()
             self.last_revision = state.revision
             self.header.text = (state.label + ' | ' + ' x '.join(map(str, dims)) +
                 ' | depth: ' + ('all' if self.layer is None else str(self.layer)) +
+                (' (only this layer)' if self.slice_only else '') +
                 '\n' + (('Finished: ' + ', '.join(state.winners)) if state.terminal else 'Turn: ' + state.current_actor_name) +
                 '\n' + self.message + ('\n' + host.presentation_notice if host.presentation_notice else ''))
+            if self.slice_button is not None:
+                self.slice_button.text = 'Show every layer' if self.slice_only else 'Only this layer'
 
         def input(self, key):
             try:
                 if key in ('[', ']'):
                     # All cells remain visible. Only picking changes with depth.
                     self.step_layer(1 if key == ']' else -1)
+                elif host.presentation.volume_layout and key == 'z':
+                    self.toggle_slice()
+                elif host.presentation.volume_layout and key == 'v':
+                    self.set_layer(None)
                 elif key in ('left mouse down', 'right mouse down', 'left mouse up', 'right mouse up'):
                     context = backend.pick_context(mouse.hovered_entity)
                     control = 'mouse.button.primary' if key.startswith('left') else 'mouse.button.secondary'
@@ -193,7 +228,9 @@ def main():
             try:
                 self.header.x = -window.aspect_ratio/2+.02
                 right = window.aspect_ratio/2-.08
-                for button, offset in zip(self.controls, (-.33,-.16,0,0,-.16)):
+                offsets = ((-.33,-.16,0,0,-.46,-.16) if self.slice_button is not None
+                           else (-.33,-.16,0,0,-.16))
+                for button, offset in zip(self.controls, offsets):
                     button.x = right+offset
                 backend.hover(mouse.hovered_entity)
                 backend.advance_visuals(min(time.dt, .25))
@@ -216,6 +253,7 @@ def main():
         view.refresh()
     def restore_camera():
         camera_rig.restore()
+        view.slice_only = False
         view.pointer.clear()
         host.interaction = {}
         view.refresh()

@@ -5,7 +5,7 @@ from srtp.input_ir_v2 import PhysicalInputEvent, InputDispatchError
 from srtp.ir_v2 import compile_rule_ir
 from srtp.scene_presentation import ScenePresentation
 from srtp.session_random import session_sources
-from .behavior_runtime import test_runtime
+from .behavior_runtime import test_runtime, BehaviorReplay
 from srtp.input_pointer_contract import pointer_data,scene_pick_context,scene_parent
 
 
@@ -38,16 +38,12 @@ def verify_host_routes(compiled,rule,scene,assets,tests=(),*,spatial=False):
     # behavior states rather than inventing picked coordinates/entity IDs.
     for case in tests or [{'steps':[]}]:
         runtime=test_runtime(rule,case)
+        replay=BehaviorReplay(runtime,case.get('name','unnamed'))
         graph=ScenePresentation(scene,assets,volume_rule=rule if spatial else None); projection=scene.create_projection_session()
         try:
             for step in [None]+case.get('steps',[]):
-                if step:
-                    if 'advance_ns' in step: runtime.advance_time_ns(step['advance_ns'])
-                    elif step.get('accepted'):
-                        candidates=[a for a in runtime.all_actions() if a.action_id==step['action'] and
-                            json.dumps(dict(a.parameters),sort_keys=True)==json.dumps(step.get('parameters',{}),sort_keys=True)]
-                        if len(candidates)!=1: raise ValueError('Input replay action unavailable')
-                        runtime.apply_action(candidates[0])
+                if step is not None:
+                    replay.execute(step)
                 graph.synchronize(projection,runtime.state)
                 mouse_data=None
                 for obligation,(intent,required_binding) in list(pending.items()):

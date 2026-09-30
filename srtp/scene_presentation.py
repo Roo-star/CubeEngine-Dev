@@ -114,7 +114,9 @@ class ScenePresentation:
                     node = self.nodes[node_id]
                     node.setdefault('logical_parent',node.get('parent'))
                     node['parent'] = None
-                    node['local_matrix'] = matrix_for(_entity_coordinate(entity, descriptor), extents, offset)
+                    coordinate = _entity_coordinate(entity, descriptor)
+                    node['local_matrix'] = matrix_for(coordinate, extents, offset)
+                    node['rule_context'] = dict(node.get('rule_context', {}), coordinate=list(coordinate))
                     self.dirty_nodes.add(node_id)
         self.revision = delta.rule_revision
         return delta

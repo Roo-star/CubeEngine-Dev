@@ -27,7 +27,7 @@ OPERATORS = {
 def contract():
     return {'limits': {'depth': MAX_DEPTH, 'nodes': MAX_NODES},
             'literal': {'op': 'literal', 'value': 'JSON scalar'},
-            'read': {'op': 'read', 'source': 'state / flow / entity_component / interaction descriptor'},
+            'read': {'op': 'read', 'source': 'state / parameter / outcome / flow / entity_component / interaction descriptor'},
             'operators': {op: {'min_args': lo, 'max_args': hi, 'operands': kind}
                           for op, (lo, hi, kind) in OPERATORS.items()},
             'evaluation': 'Pure; all/any/if short-circuit. Missing references and invalid types fail explicitly. No gameplay effects.'}
@@ -69,7 +69,7 @@ def validate_expression(value, validate_read, path='/expression'):
             source = node.get('source')
             if set(node) != {'op', 'source'} or not isinstance(source, Mapping):
                 issues.append(pointer + ': read requires only op/source'); return
-            if source.get('kind') not in ('state', 'flow', 'entity_component', 'interaction'):
+            if source.get('kind') not in ('state', 'parameter', 'outcome', 'flow', 'entity_component', 'interaction'):
                 issues.append(pointer + ': read requires an existing non-expression Scene source'); return
             issues.extend(validate_read(source, pointer + '/source'))
             reads.append(source)
