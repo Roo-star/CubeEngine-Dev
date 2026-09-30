@@ -356,6 +356,13 @@ class InputRouter:
                     if not binding.enabled or not _trigger_matches(binding.trigger, event, held_for_match):
                         continue
                     intent = self.compiled.intents_by_id[binding.intent_id]
+                    when = intent.target.get('when') if intent.target['kind']=='host_command' else None
+                    if when is not None:
+                        if rule_runtime is None:
+                            continue
+                        current = rule_runtime.state.state_value(when['state'])
+                        if not any(_json_equal(current, value) for value in when['one_of']):
+                            continue
                     value = _intent_value(intent.value_type, binding.trigger, binding.processing, event, after)
                     try:
                         request = _rule_action_request(intent, value, event, self.compiled._type_registry)
@@ -447,6 +454,7 @@ def compile_input_ir(
     ) for item in staged.get("intents", []))
     if rule_document is not None:
         _validate_rule_action_targets(intents, rule_document, type_registry)
+        _validate_host_command_guards(intents, rule_document, type_registry)
     bindings = tuple(CompiledBinding(
         id=str(item["id"]), name=str(item["name"]), context_id=str(item["context"]),
         intent_id=str(item["intent"]), priority=int(item["priority"]),
@@ -515,6 +523,22 @@ def _validate_rule_action_targets(
                 raise InputCompileError(
                     "dynamic Input parameter type does not match Rule action parameter {0}".format(name)
                 )
+
+
+def _validate_host_command_guards(intents, rule_document, type_registry):
+    variables = {item['id']: item for item in rule_document.get('state', {}).get('variables', [])}
+    for intent in intents:
+        if intent.target.get('kind') != 'host_command' or 'when' not in intent.target:
+            continue
+        guard = intent.target['when']
+        variable = variables.get(guard['state'])
+        if variable is None or variable.get('scope') != 'global':
+            raise InputCompileError('Host command guard must reference a global Rule state variable: ' + guard['state'])
+        for value in guard['one_of']:
+            try:
+                type_registry.validate(value, variable['type'], 'host command guard')
+            except Exception as exc:
+                raise InputCompileError('Host command guard value has the wrong Rule type: ' + str(exc)) from exc
 
 
 def _analyse_conflicts(

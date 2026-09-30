@@ -7,7 +7,7 @@
   "intent_value_types": ["digital", "scalar", "vector2", "pointer", "text"],
   "focus_scopes": ["global", "viewport", "ui", "text_entry"],
   "consume_policies": ["binding", "first_match", "first_legal", "all_events"],
-  "pointer_filters": ["node", "subtree", "topology", "gesture"],
+  "pointer_filters": ["node", "subtree", "topology", "gesture", "direction", "min_distance_px"],
   "target_kinds": ["semantic", "rule_action", "host_command"],
   "host_commands": ["quit", "restart"],
   "parameter_sources": ["constant", "intent_value", "event_value", "event_position", "event_delta", "event_data"],

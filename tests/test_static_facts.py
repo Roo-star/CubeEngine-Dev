@@ -198,6 +198,19 @@ class LockTests(unittest.TestCase):
         self.assertEqual(applied.documents['input_ir']['content_hash'],
                          canonical_input_ir_hash(applied.documents['input_ir']), 'resealed after restoring')
 
+    def test_source_locked_quit_key_accepts_explicit_stage_guard(self):
+        facts=collect_static_facts(package('pygame_2048','main.py'))
+        document=seed_documents(bootstrap_documents(title='2048',source_package_hash='source:test').documents,facts)['input_ir']
+        guarded=deepcopy(document)
+        guard={'state':'rule:state.stage','one_of':[0,1]}
+        guarded['intents'][0]['target']['when']=guard
+        restored,_=enforce_locked('input_ir',guarded,facts)
+        self.assertEqual(restored['intents'][0]['target']['when'],guard)
+        self.assertEqual(restored['bindings'][0]['trigger']['control'],'keyboard.key.q')
+        no_binding=deepcopy(guarded);no_binding['bindings']=[]
+        restored,_=enforce_locked('input_ir',no_binding,facts)
+        self.assertNotIn('when',restored['intents'][0]['target'])
+
     def test_agentic_job_and_prompts_carry_locked_facts(self):
         from srtp.llm_compiler_v1.agent_prompts import critic_messages, worker_messages
         from srtp.llm_compiler_v1.agentic import AgenticSourceToIRCompiler, _Job

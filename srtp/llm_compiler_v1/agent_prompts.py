@@ -10,7 +10,7 @@ from __future__ import annotations
 import json
 from typing import Any, Dict, List, Mapping, Optional, Sequence
 
-AGENT_PROMPT_VERSION = "cubeengine.srtp/llm-agent-prompt/2.0"
+AGENT_PROMPT_VERSION = "cubeengine.srtp/llm-agent-prompt/2.1"
 
 _COMMON = (
     "Reply with ONE JSON object only: no markdown, no prose. "
@@ -269,7 +269,13 @@ INPUT_SHAPES: Dict[str, Any] = {
         "Bind the source's quit key (e.g. Escape) and full-restart key to host_command intents; closing the "
         "window is handled by the host and needs no binding. " + _LIFECYCLE_NOTE,
         "Lifecycle keys found in the source are already bound in base_document (context "
-        "input:context.application, see engine_facts); they are locked. Add only gameplay controls.",
+        "input:context.application, see engine_facts). Preserve their key and command. If a source key "
+        "works only in certain game stages, add target.when={state:<global Rule state ID>,one_of:[values]} "
+        "to its locked intent. A different key for the same command can have its own guarded intent.",
+        "A click outside all Scene buttons uses pointer:{gesture:'background_click'} and cannot hit "
+        "a button. A primary-button drag can use pointer:{gesture:'swipe',direction:'left|right|up|down',"
+        "min_distance_px:<positive integer>}. Use first_legal when multiple actions share a key; "
+        "give modal N quit higher priority than gameplay N restart when the source requires it.",
     ],
 }
 

@@ -3,7 +3,7 @@ from srtp.scene_ir_v2.component_contracts import COMPONENTS,BUILTIN_GEOMETRY,COL
 from srtp.asset_ir_v2.recipe_contracts import RECIPES
 from srtp.input_adapter_contract import KEY_CONTROLS,MOUSE_CONTROLS,HOST_FOCUS,HOST_VALUE_TYPES
 
-PROFILE_VERSION='cubeengine.ursina-authoring/13'
+PROFILE_VERSION='cubeengine.ursina-authoring/14'
 
 
 def profile():
@@ -39,20 +39,21 @@ def profile():
         'scene_binding_note':'Use source {kind:expression,expression:AST} for combinations of Rule state, flow and host interaction. Example: all(read(interaction.pressed), eq(read(state),literal(value))). Each operand is an explicit {op:read,source:existing descriptor}, {op:literal,value:...}, or {op:operator,args:[...]}. No arbitrary Python, mutations or additional Rule state for purely visual conditions. Use if for conditional appearance/texture/text; existing transforms apply to the computed result. topology_sites/entity_nodes component selectors may name a uniquely identified component in a prefab child; ambiguous descendant IDs are rejected.',
         'input_controls':{'keyboard':KEY_CONTROLS,'mouse':MOUSE_CONTROLS},
         'input_focus':HOST_FOCUS,'input_value_types':HOST_VALUE_TYPES,
-        'input_phases':['press','release'],'input_event_data':['rule_coordinate','rule_entity_id','scene_node_id','rule_topology','pointer_click'],
-        'pointer_routing':{'filter_fields':['node','subtree','topology','gesture'],
+        'input_phases':['press','release'],'input_event_data':['rule_coordinate','rule_entity_id','scene_node_id','rule_topology','pointer_click','pointer_gesture','pointer_swipe_direction','pointer_swipe_distance_px'],
+        'pointer_routing':{'filter_fields':['node','subtree','topology','gesture','direction','min_distance_px'],
             'trigger_example':{'kind':'control','device':'mouse','control':'mouse.button.primary','phase':'release','modifiers':[],'modifier_policy':'exact','pointer':{'node':'scene:button','gesture':'click'}},
-            'semantics':'ProjectView buffers pointer input until a same-target press/release without drag. It then emits press/release with pointer_click=true; drag, different release target, UI background, view reset and layer change cancel the pending gesture. pointer.node matches scene_node_id, subtree=true includes descendants; topology restricts the Rule board. Exact node filters work for non-grid buttons too. Use pointer.gesture=click for confirmed clicks. This requires no Rule gesture state.',
-            'phase_note':'Mouse press/release phases are delivered together after a completed click, not raw mouse-down timing. Continuous/raw pointer gameplay is not supported by this click adapter.'},
+            'semantics':'ProjectView buffers pointer input until release. Same-target press/release emits click; an empty viewport click emits background_click; primary-button drag emits swipe with dominant direction and physical viewport-pixel distance. UI host buttons are excluded. Drag does not also emit click. Right-drag remains camera orbit. Use pointer.gesture=background_click for only blank space, or gesture=swipe with direction and min_distance_px for source swipes. pointer.node matches scene_node_id, subtree=true includes descendants; topology restricts the Rule board.',
+            'phase_note':'Mouse press/release phases are delivered together after a completed gesture, not as raw mouse-down timing. Continuous/raw pointer movement remains unsupported.'},
         'input_consume_policies':['binding','first_match','first_legal','all_events'],
         'input_action_selection':'first_match consumes before Rule legality and is NOT a legal-action fallback. For several actions on one physical control use a first_legal context with distinct binding priorities: the authoritative Rule runtime selects the first currently legal action, consumes once, and applies only that action. Do not make overlapping non-consuming bindings and assume mutual exclusion will fix the conflict.',
         'host_commands':{'quit':'Close only the current game player; no Rule action required.',
             'restart':'Reset the entire Project session, including after a terminal outcome. Use this for full-game restart; gameplay Rule actions are illegal once terminal.'},
-        'host_command_target':{'kind':'host_command','command':'quit or restart'},
-        'lifecycle_note':'Preserve source quit/restart controls using explicit digital host_command intents and bindings. Do not mark source Escape-to-quit unresolved for lack of a Rule quit action. Partial gameplay resets remain Rule actions.',
+        'host_command_target':{'kind':'host_command','command':'quit or restart',
+            'when':'optional {state:<global Rule state ID>,one_of:[typed values]} restricts this host command to source lifecycle stages; use separate intents for differently gated keys'},
+        'lifecycle_note':'Preserve source quit/restart controls using explicit digital host_command intents and bindings. A host command when guard reads authoritative Rule state before routing, without changing it. Partial gameplay resets remain Rule actions.',
         'action_catalogue':'Action parameter domains are evaluated once at runtime construction. Enumerate the complete finite domain (e.g. every board coordinate); express changing eligibility in action legality, not in the domain. Newly spawned entity IDs cannot dynamically extend the action catalogue.',
         'unsupported_in_this_backend':['mesh/capsule picking collider','spot light','mesh_substitution/custom_renderer',
-            'arbitrary Python/Rule effects in Scene expressions','screen pixel event_position/event_delta','touch/gamepad/gesture input',
+            'arbitrary Python/Rule effects in Scene expressions','screen pixel event_position/event_delta','touch/gamepad/continuous gesture input',
             'hold/repeat/axis/scroll/chord input','node transform property bindings','dynamic action catalogue expansion'],
         'coordinates':'Ursina: +X right, +Y up, zero-rotation camera faces +Z (not OpenGL -Z). Scene transform uses world units; index_to_world is a 16-number row-major affine matrix applied to prefab geometry as well as positions; shear also distorts cells. Overlay UI position uses normalized viewport-height units, not source pixels; text scale is a multiplier of default 0.025-high text, not a normalized height.',
         'initial_view':'The viewer frames playable geometry if an authored camera points away or clips the board, and reports the adjustment. This does not certify visual fidelity or fix authored occlusion. For a 3D board use a volumetric orthogonal layout and an oblique overview, not side-by-side 2D layer panels.'}

@@ -84,8 +84,9 @@ flow and interaction with all/any/not/eq/comparisons/if/arithmetic from backend_
 Example: display a transient overlay only when all(pressed, eq(state, required_value), eq(result, playing)).
 Use the published AST objects, not Python text. Do not claim state-plus-interaction is unavailable.
 Input control triggers support pointer:{node:"scene:button",gesture:"click"} and subtree:true or topology filters.
-The host validates same-target press/release and drag cancellation before emitting a completed click's press/release events.
+The host validates same-target press/release; a drag cancels the click and may emit an explicitly bound swipe instead.
 Use the original scene button with host_command restart; a keyboard alternative does not replace source click controls.
+For clicks outside every authored button use pointer.gesture=background_click on a Rule action; it is disjoint from button clicks. For source mouse swipes use pointer.gesture=swipe with direction and min_distance_px, backed by existing Rule move actions. For lifecycle-specific Q/N quit keys use separate host_command intents with target.when selecting the allowed global Rule stage values; do not make quit unconditional.
 For mutually exclusive Rule actions on one control use context.consume_policy=first_legal and distinct priorities.
 This skips illegal alternatives before consuming once; first_match does not. Do not use overlapping non-consuming bindings.
 For a single renderer, each state variant can also provide its own pressed_style; omit it in ineligible variants.

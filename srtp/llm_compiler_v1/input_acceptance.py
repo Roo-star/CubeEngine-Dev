@@ -57,8 +57,24 @@ def verify_host_routes(compiled,rule,scene,assets,tests=(),*,spatial=False):
                         trigger=binding.trigger
                         if trigger.get('kind')!='control': continue
                         if trigger['device']=='mouse':
-                            if mouse_data is None: mouse_data=list(_pick_data(graph))
-                            events=mouse_data
+                            pointer=trigger.get('pointer') or {}
+                            gesture=pointer.get('gesture')
+                            if gesture=='background_click':
+                                events=[pointer_data({},gesture='background_click')]
+                            elif gesture=='swipe':
+                                direction=pointer['direction']
+                                distance=pointer['min_distance_px']
+                                if pointer.get('node') or pointer.get('topology'):
+                                    if mouse_data is None: mouse_data=list(_pick_data(graph))
+                                    events=[dict(data,pointer_click=False,pointer_gesture='swipe',
+                                        pointer_swipe_direction=direction,pointer_swipe_distance_px=distance)
+                                        for data in mouse_data]
+                                else:
+                                    events=[pointer_data({},gesture='swipe',direction=direction,
+                                                         distance_px=distance)]
+                            else:
+                                if mouse_data is None: mouse_data=list(_pick_data(graph))
+                                events=mouse_data
                         else: events=[{}]
                         for data in events:
                             # Same default value (1), screen position and data as

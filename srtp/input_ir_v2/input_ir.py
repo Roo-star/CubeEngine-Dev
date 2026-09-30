@@ -287,8 +287,12 @@ def _validate_intents(value: Any, diagnostics: List[InputIRDiagnostic]) -> bool:
             if set(target) != {"kind"}:
                 diagnostics.append(_error("intent.semantic_fields", path + "/target", "Semantic target contains unsupported fields."))
         elif kind == 'host_command':
-            if set(target)!={'kind','command'} or target.get('command') not in INPUT_COMPILER_CAPABILITIES['host_commands']:
-                diagnostics.append(_error('intent.host_command',path+'/target','Host command must be quit or restart, without arbitrary arguments.'))
+            if set(target)-{'kind','command','when'} or target.get('command') not in INPUT_COMPILER_CAPABILITIES['host_commands']:
+                diagnostics.append(_error('intent.host_command',path+'/target','Host command must be quit or restart.'))
+            when=target.get('when')
+            if when is not None:
+                if not isinstance(when,Mapping) or set(when)!={'state','one_of'} or not isinstance(when.get('state'),str) or not _RULE_ID.fullmatch(when['state']) or not isinstance(when.get('one_of'),list) or not 1<=len(when['one_of'])<=64 or any(type(value) not in (str,int,bool) for value in when['one_of']):
+                    diagnostics.append(_error('intent.host_when',path+'/target/when','Host command guard requires a global Rule state ID and 1..64 scalar one_of values.'))
             if item.get('value_type')!='digital':
                 diagnostics.append(_error('intent.host_value_type',path+'/value_type','Host commands require digital input.'))
         elif kind == "rule_action":

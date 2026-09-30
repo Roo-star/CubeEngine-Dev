@@ -36,7 +36,8 @@ _PROCESSING = {"dead_zone": 0, "sensitivity_numerator": 1, "sensitivity_denomina
 LOCKED_NOTE = (
     "Engine-locked static facts: the assets, derivations and application host_command bindings already in the "
     "base document were measured from the source. Reference their ids; never redeclare, rename or remove them "
-    "(the engine restores them after every patch)."
+    "(the engine restores them after every patch). A host_command intent may add a Rule-state when guard "
+    "for its existing locked key when the source handles that key only in specific stages."
 )
 
 
@@ -258,11 +259,35 @@ def enforce_locked(slot: str, document: Mapping[str, Any], facts: Optional[Stati
         entries = facts.input_entries()
         locked_triggers = {_trigger_key(b["trigger"]) for b in entries["bindings"]}
         commands = {i["target"]["command"]: i["id"] for i in entries["intents"]}
+        guarded = {}
+        proposed_intents = {i.get("id"): i for i in result.get("intents") or [] if isinstance(i, Mapping)}
+        for binding in result.get("bindings") or []:
+            if not isinstance(binding, Mapping) or _trigger_key(binding.get("trigger")) not in locked_triggers:
+                continue
+            intent = proposed_intents.get(binding.get("intent"))
+            target = intent.get("target") if isinstance(intent, Mapping) else None
+            if not isinstance(target, Mapping) or target.get("kind") != "host_command" or "when" not in target:
+                continue
+            for locked_binding in entries["bindings"]:
+                if _trigger_key(binding["trigger"]) == _trigger_key(locked_binding["trigger"]):
+                    locked_intent = next(i for i in entries["intents"] if i["id"] == locked_binding["intent"])
+                    if target.get("command") == locked_intent["target"]["command"]:
+                        guarded[locked_intent["id"]] = target["when"]
+        for intent in entries["intents"]:
+            if intent["id"] in guarded:
+                intent["target"]["when"] = guarded[intent["id"]]
         aliases = {}
         intents = []
         for intent in result.get("intents") or []:
             target = intent.get("target") if isinstance(intent, Mapping) else None
             if isinstance(target, Mapping) and target.get("kind") == "host_command" and target.get("command") in commands:
+                # A second source key can share the command but have a different
+                # Rule-stage guard (2048: Q in play/menu, N in modal prompts).
+                # Folding it into the locked intent would erase that distinction.
+                if "when" in target and (intent.get("id") != commands[target["command"]]
+                                         and target["when"] != guarded.get(commands[target["command"]])):
+                    intents.append(intent)
+                    continue
                 if intent.get("id") != commands[target["command"]]:
                     aliases[str(intent.get("id"))] = commands[target["command"]]
                 continue

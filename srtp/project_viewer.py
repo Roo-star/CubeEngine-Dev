@@ -66,18 +66,26 @@ class ProjectHost:
         session = self.controller.sessions[self.controller.active_key]
         return self.presentation.synchronize(self.projection, session.rule_runtime.state, self.interaction)
 
-    def mouse(self, control, context, phase='press', *, click=False):
+    def mouse(self, control, context, phase='press', *, click=False, gesture=None,
+              direction=None, distance_px=0):
         sequence = self._next_sequence()
         from .input_pointer_contract import pointer_data,scene_pick_context
         if context.get('node_id'):
             context=scene_pick_context(self.presentation.nodes,context['node_id'],context)
-        data = pointer_data(context,click=click)
+        data = pointer_data(context,click=click,gesture=gesture,direction=direction,
+                            distance_px=distance_px)
         return self._host_result(self.controller.dispatch_physical(PhysicalInputEvent(
             sequence, 'mouse', control, phase, position=(0, 0), data=data)))
 
     def mouse_click(self, control, context):
         pressed=self.mouse(control,context,click=True)
         released=self.mouse(control,context,'release',click=True)
+        return released if released.accepted or pressed.code=='input_not_resolved' else pressed
+
+    def mouse_gesture(self, control, context, gesture, *, direction=None, distance_px=0):
+        pressed=self.mouse(control,context,gesture=gesture,direction=direction,distance_px=distance_px)
+        released=self.mouse(control,context,'release',gesture=gesture,direction=direction,
+                            distance_px=distance_px)
         return released if released.accepted or pressed.code=='input_not_resolved' else pressed
 
     def close(self):
@@ -198,14 +206,21 @@ def main():
                     self.set_layer(None)
                 elif key in ('left mouse down', 'right mouse down', 'left mouse up', 'right mouse up'):
                     context = backend.pick_context(mouse.hovered_entity)
+                    if not context and mouse.hovered_entity is None:
+                        context = {'background':True}
                     control = 'mouse.button.primary' if key.startswith('left') else 'mouse.button.secondary'
                     position = (mouse.x, mouse.y)
                     if key.endswith('down'):
-                        self.pointer.press(control, position, context)
+                        if context:
+                            self.pointer.press(control, position, context)
                     else:
-                        clicked = self.pointer.release(control, position, context)
-                        if clicked:
-                            self.message = host.mouse_click(control, clicked).message
+                        gesture = self.pointer.release_event(control, position, context,
+                                                             viewport_height=window.size[1])
+                        if gesture and gesture['gesture']=='click':
+                            self.message = host.mouse_click(control,gesture['context']).message
+                        elif gesture and gesture['gesture'] in ('swipe','background_click'):
+                            self.message = host.mouse_gesture(control,gesture['context'],gesture['gesture'],
+                                direction=gesture.get('direction'),distance_px=gesture.get('distance_px',0)).message
                     host.interaction=self.pointer.presentation_state(context)
                 else:
                     from .input_adapter_contract import keyboard_event
