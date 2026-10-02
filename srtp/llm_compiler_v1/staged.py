@@ -62,6 +62,18 @@ For rule_ir supply executable behavior_tests: {"name":"...","steps":[{"action":"
 "expect":{"cells":[{"state":"rule:state.ID","coordinate":[0,0],"value":1}],"terminal":false}}.
 For timed behavior tests, use backend_profile.behavior_steps. A step checks its action BEFORE any attached advance_ticks or advance_ns; time advances AFTER the action. Use a separate clock-only step to wait first.
 Tests must include legal changes and a rejected move or terminal sequence derived from the actual game. They supplement independent acceptance.
+For rule_ir, when the original implements a board change, a random tile/piece spawn or the game status as a module-level
+function, also return source_equivalence declaring which ORIGINAL function each Rule action/status corresponds to:
+[{"action":"rule:action.ID","function":{"file":"logic.py","name":"move","args":["a","$grid"]},
+"random_fill":{"file":"logic.py","name":"spawn","args":["$grid"],"when":"changed"}},
+{"status":{"file":"logic.py","name":"check","args":["$grid",{"state":"rule:state.ID"}]},
+"cases":{"WIN":{"outcome":"rule:outcome.ID"},"PLAY":{"outcome":null}}}].
+"$grid" is the board in the source's own layout; {"state":ID} passes a global Rule value; "when":"changed" means the
+source only spawns after the board changed. Optional "grid" names the board state and "values" maps Rule cell values to
+source values when they differ. The engine executes the original functions, unchanged, on boards your Rule reaches
+(searching the axis order) and returns the first counterexample. Declare only correspondences you can cite; never
+supply expected results. Mirror the original code's actual behaviour (e.g. its merge order per direction) even where
+it differs from the usual game rules or the README.
 Every command must match its op-specific schema, not merely use a listed op name.
 foreach uses query (collection expression), as (local name string), effects (commands). It does NOT use domain/scope.
 grid.set uses state (literal state ID string), coordinate and value (expressions); state.set uses target and value (expressions).
@@ -195,6 +207,33 @@ def _validated_scene_draft(documents, files, title, evidence, job_id, root, work
     except (ValueError, TypeError, KeyError, RuntimeError, OSError) as error:
         return None, ['draft failed a Scene gate: ' + '; '.join(diagnostic_messages(error))[:1200]]
     return {'payload': payload, 'proposal': proposal, 'applied': applied, 'checks': checks}, []
+
+
+def _provenance():
+    from .provenance import provenance
+    try:
+        return provenance()
+    except Exception as error:  # noqa: BLE001 - never lose a compile report over its metadata
+        return {'error': '{0}: {1}'.format(type(error).__name__, error)}
+
+
+def _source_equivalence_gate(root, rule, reply):
+    """Run the model-declared source_equivalence; counterexamples become Rule repair diagnostics.
+
+    Advisory outcomes (unsupported, worker error) are recorded, never failed.
+    """
+    from .source_equivalence import check_source_equivalence, equivalence_diagnostics
+    report = check_source_equivalence(Path(root), rule, reply['source_equivalence'])
+    problems = equivalence_diagnostics(report)
+    if problems:
+        from .program_builder import DefinitionValidationError
+        action = (report.get('counterexample') or {}).get('action')
+        actions = (reply.get('definition') or {}).get('actions') or []
+        index = next((i for i, item in enumerate(actions) if isinstance(item, dict) and item.get('id') == action), None)
+        # Point at the action entry so the repair can target only that entry.
+        prefix = '/actions/{0}: '.format(index) if index is not None else ''
+        raise DefinitionValidationError([prefix + problem for problem in problems])
+    return {'source_equivalence': {key: value for key, value in report.items() if key != 'counterexample'}}
 
 
 def _oracle_report(package, documents):
@@ -561,7 +600,7 @@ def run_stages(compiler, *, package, evidence, documents, job_id, design_intent=
          'bundle_assets.py','runtime_assets.py','system_fonts.py','drawn_shapes.py','vector_geometry.py','ir_contracts.py','input_adapter_contract.py','input_pointer_contract.py','pointer_gesture.py','asset_ir_v2/recipe_contracts.py',
          'scene_ir_v2/component_contracts.py','scene_ir_v2/binding_expressions.py','ir_v2/expression_contracts.py','asset_ir_v2/compiler.py','asset_ir_v2/asset_ir.py','visual_timeline.py','ir_v2/command_contracts.py','ir_v2/rule_ir.py','ir_v2/types.py','scene_ir_v2/compiler.py','scene_ir_v2/scene_ir.py',
          'scene_ir_v2/scene-compiler-capabilities.json','input_ir_v2/compiler.py','input_ir_v2/input_ir.py',
-         'input_ir_v2/input-compiler-capabilities.json','project_manifest_v2/compiler.py','project_viewer.py','project_camera.py','ir_acceptance.py',*SCHEMAS.values())]
+         'input_ir_v2/input-compiler-capabilities.json','llm_compiler_v1/source_equivalence.py','source_function_worker.py','project_manifest_v2/compiler.py','project_viewer.py','project_camera.py','ir_acceptance.py',*SCHEMAS.values())]
     engine_hash = hashlib.sha256(b''.join(path.read_bytes() for path in engine_files)).hexdigest()
     input_identity=_stage_input_identity(compiler,package,evidence,documents,design_intent,source_manifest_hash,workspace)
     input_signature = hashlib.sha256(json.dumps(input_identity,sort_keys=True).encode()).hexdigest()
@@ -801,6 +840,8 @@ def run_stages(compiler, *, package, evidence, documents, job_id, design_intent=
                                 item for item in reply.get(key) or [] if item not in (entry_base.get(key) or [])]
                         if reply.get('behavior_tests'):
                             previous['behavior_tests'] = reply['behavior_tests']
+                        if reply.get('source_equivalence') is not None:
+                            previous['source_equivalence'] = reply['source_equivalence']
                         previous['entry_repair'] = [row['field'] + ':' + str(row['id']) for row in entry_plan]
                 proposal = definition_proposal(previous,slot=slot,documents=result.documents,evidence_pack=evidence,job_id=job_id,design_intent=design_intent,source_root=root,visual_catalog=workspace.visuals,locked=facts)
                 applied = validate_and_apply_proposal(proposal,result.documents,
@@ -811,6 +852,8 @@ def run_stages(compiler, *, package, evidence, documents, job_id, design_intent=
                 candidate = applied.documents[slot]
                 cases=previous.get('behavior_tests',[]) if slot=='rule_ir' else accepted_payloads.get('rule_ir',{}).get('behavior_tests',[])
                 checks = _execute_stage(slot,applied.documents,root,cases,spatial=design_intent is not None)
+                if slot == 'rule_ir' and design_intent is None and previous.get('source_equivalence'):
+                    checks = list(checks) + [_source_equivalence_gate(root, applied.documents['rule_ir'], previous)]
                 if design_intent and slot == 'rule_ir':
                     plan = previous.get('plan')
                     if not isinstance(plan, dict):
@@ -1081,4 +1124,5 @@ def compile_staged_report(compiler, *, package, evidence, documents, job_id, pro
                            'scene_draft':outcome.scene_draft,
                            'quality_assessment':quality,
                            'api_usage':usage,
+                           'provenance':_provenance(),
                            'verification':'stage execution and generated behavior tests; independent source equivalence not yet certified'})

@@ -26,6 +26,7 @@ STAGE_REPLY = {"type": "object", "properties": {
     "behavior_tests": {"type": "array", "items": {"type": "object"}},
     "assumptions": {"type": "array"}, "unresolved": {"type": "array"}, "plan": {"type": "object"},
     "source_requests": {"type": "array", "items": {"type": "object"}},
+    "source_equivalence": {"type": "array", "items": {"type": "object"}},
     "entry_fixes": {"type": "object"}, "remove": {"type": "object"},
     "upstream_requests": {"type": "array", "items": {"type": "object", "required": ["ir", "requirement"], "properties": {
         "ir": {"enum": ["rule_ir", "asset_ir", "scene_ir"]}, "requirement": {"type": "string"}}}},

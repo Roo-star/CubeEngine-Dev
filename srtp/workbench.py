@@ -666,6 +666,12 @@ class SrtpWorkbench:
 
     def _start_conversion_job(self, kind, out_dir, *, source_dir=None, intent=''):
         from copy import deepcopy
+        try:
+            from srtp.llm_compiler_v1.provenance import describe, provenance
+            # Shown before any paid request so a stale checkout is noticed first.
+            self._message(describe(provenance()))
+        except Exception:  # noqa: BLE001 - informational only
+            pass
         package = deepcopy(self.package)
         tag = {'kind':kind,'out_dir':out_dir,'generation':self._source_generation}
         def worker(progress, token):
