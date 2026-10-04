@@ -5,6 +5,16 @@
 
 ## 当前开发主线：完成 Workbench 内的自动游戏转换
 
+### 2026-10-02：AI 自對弈接入 Workbench（`improve_stability`，未提交）
+
+- [x] AlphaZero 轉接設定 1.1：由 Rule 推導並在 Rule Runtime 上驗證（盤面＝完整狀態、網路只看格子、換邊與對稱逐項驗證）。付費 3D／2D 井字棋 Rule 未修改即合格；2048、隱藏資訊、角色不對稱案例列出原因。見 [AI 自對弈說明](AI_SELF_PLAY_WORKBENCH.md)。
+- [x] 訓練子程序：AI-Dev `Coach.learn()` 原樣執行；進度、取消、Arena 對局記錄與 Runtime 重放、checkpoint binding、只續跑相同 binding 的 run。
+- [x] Workbench「AI Self-Play (AlphaZero)」面板：合格檢查、參數、開始／續跑／取消、進度。
+- [x] AI-Dev 取用：worktree `C:\repo\CubeEngine-AI-Dev`（分支 `ai-dev` 追蹤 `origin/dev`）。
+- [x] 真實網路短程訓練驗收（PyTorch 2.5.1+cu124，快速設定）：3 輪 38.8 秒；續跑、取消、再續跑；重新載入的模型不搜尋對隨機 38 勝 2 負（未訓練 16:24）；Arena 56／56 局重放一致。見 [AI 自對弈說明](AI_SELF_PLAY_WORKBENCH.md)。
+- [x] Transformed 3D PLAY 與 AI 對戰：每局讀取最新被接受的模型；訓練原子發布模型，可與對戰並行；AI 在 CPU 背景思考，經 Rule Runtime 套用；輪到 AI 時擋住棋盤輸入。見 [AI 自對弈說明](AI_SELF_PLAY_WORKBENCH.md)。
+- [ ] 限制：AI-Dev 網路只接受 3×3×3；系統、事件、每位玩家的狀態、多座標動作尚不支援。
+
 ### 2026-10-02：2048 穩定性：原版函數等價檢查（`SRTP_agentic`，未提交）
 
 - [x] 新增函數層級的源碼等價檢查（`llm_compiler_v1/source_equivalence.py`、`source_function_worker.py`）。模型只聲明 Rule 動作／勝負對應哪個原版函數，不提供預期結果；引擎在獨立的無畫面程序中執行原版函數，作用於 Rule 自己走到的盤面。同一狀態以多個隨機流狀態重放，拆出確定部分與隨機部分，比較格子、隨機生成的位置、數值、個數與頻率，以及勝負判定。原 source oracle 遇隨機即不支援，此檢查補上這個缺口。
@@ -19,6 +29,42 @@
 - [x] `.env.example` 補上 `CUBEENGINE_LLM_MAX_COST_USD`。金額上限早已由 `budget.py` 實作，本輪未重做。
 - [ ] 限制：只比較原版寫成可匯入函數的機制，且需模型聲明對應；延遲事件造成的效果（例如新局 `sleep(1)` 後生成）不在比較範圍；只能檢查 Rule 接受的動作，無法發現 Rule 錯誤拒絕的合法動作；agentic 流程尚未接入。
 - [ ] 付費驗收：用最新程式跑 2048 Source → Lift。需先加值並核准預算，建議 `CUBEENGINE_LLM_MAX_COST_USD=3`；指紋相符時重用已付費階段。
+
+### 2026-09-27：Source 穩定性改良第二輪（`SRTP_agentic`）
+
+- [x] 原遊戲差分對照：原 pygame 遊戲在獨立程序中照原樣執行，以 Input IR 綁定重播 Rule 的合法／非法動作並逐步比較棋盤；反例進入 agentic 審查修復，staged 則在四階段通過後有界地重開 Rule 一次（不改善就還原，不會讓已通過的編譯失敗）。
+- [x] 局部修復：診斷都指向具名條目時只重做那些條目，其餘逐字保留（兩條流程）。
+- [x] 無損正規化：只做唯一含義的型別／形狀轉換並記錄於 assumptions。
+- [x] Worker 自我檢查：`check_expression`／`check_entry`，不佔修復次數（但每輪仍是一次模型呼叫）。
+- [x] Source 機制庫：`turn_state`、`place_on_empty`、`line_win`、`full_board_draw`，由引擎展開為一般 Rule IR。
+- [x] 修正：agentic probe／compile gate 未提供 session 隨機種子（2048 類 Rule 確定失敗）。
+- [x] 重播工具 `llm_compiler_v1.replay`：以已付費回覆離線衡量目前 pipeline；據此修正 Lift 誤擋、Scene 欄位改名、點選碰撞體、多餘 remove、缺引用、函式參數說明、判定順序說明與外觀對應提示（見說明第三部分）。
+- [ ] 對照尚未涵蓋：勝負標籤／HUD／計時、隨機或時間驅動遊戲、非 pygame 來源。
+- [x] 已授權付費驗收（tictactoe）：Source 5/8 次請求、US$0.463 通過（對照一致、Viewer 等效點擊一致）；Lift 3×3×3 0/6 次請求通過（引擎模板）。唯一一次修復的原因（布林狀態條件型別）已修正。見 [第二輪說明](PIPELINE_STABILITY_20260927.md) 第四部分。
+- [x] 結構性改良（見說明第六部分）：下游可要求重開上游 IR；引擎起草 Source Scene（通過全部閘門才提供，模型只審閱／修改差異，失敗時採用草稿）；離屏渲染畫面閘門（棋盤可見、落子可見、3D 格子非薄板）。
+- [ ] 尚未驗證：其他遊戲（minesweeper、2048、snake）的新生成；Scene 草稿尚未涵蓋這些遊戲。
+- [x] 2048 付費測試（上限 US$1）：4 次請求、US$0.462，Rule 停在模型自標的順序疑問；三個引擎原因與據重播找到的後續問題（疑問回饋、簡短審查、相依檔預附、後續階段的 Rule 原文、提示快取、metadata、選單畫面誤擋）已修正，見 [2048 說明](RUN_PROVENANCE_AND_2048_RECHECK_20261001.md) 第 6 部分。
+- [ ] 2048 續跑（同一 US$1 上限，剩約 US$0.54）：預期先送 1 個簡短審查請求通過 Rule，再做 Asset／Scene／Input；剩下的預算不一定夠完成 Input。
+
+### 2026-09-26：Source／Lift 穩定性改良（`SRTP_agentic`）
+
+- [x] 靜態事實鎖定：素材檔、runtime 字體、`pygame.draw` 圖形、quit/restart 按鍵由引擎量測、預填並在每次 patch 後還原（兩條流程）。
+- [x] Lift 模板：加軸／調整軸長／數量策略由引擎改寫 Rule 並以 Z=1 與規劃者測試驗收；其他 IR 先原樣沿用；Inspector 升維可零模型呼叫。
+- [x] 預算與重試：`CUBEENGINE_LLM_MAX_COST_USD` 按階段分配並保留修復備用金；修復沒有進展就停止；agentic 預設接續 checkpoint（`--fresh`）。
+- [x] Structured output：`json_schema`（被拒時降級 `json_object`），agentic 回覆外層結構先行檢查。
+- [x] 精簡輸出：agentic `expr` 簡寫、截斷續寫與主動分段；staged 截斷後依根欄位分段請求。
+- [x] 順帶修正：Windows 字體探測崩潰、Asset wire schema 不接受系統字體 URI。
+- [x] 離線：596 項（當時沒有 pygame；安裝後發現 4 個本輪回歸，已於 09-27 修正，見 [第二輪說明](PIPELINE_STABILITY_20260927.md) 的更正一節）。
+- [ ] 新模型生成驗收：尚未執行，需使用者審核範圍與預算。
+
+### 2026-09-26：程式繪製圖形與向量擠出（`SRTP_agentic`，使用者指定分支）
+
+- [x] 失敗分類（`python -m srtp.llm_compiler_v1.failure_report`）：tictactoe Source／Lift 最後殘留的主要是引擎能力缺口，不是模型隨機錯誤。重複出現的有「role 無資源」和「plane 只是載體」。
+- [x] Asset 新增 `vector_shape`（無輸入；pygame.draw line／lines／polygon／rect／circle／ellipse，含線寬、圓角、顏色，擠出為封閉 mesh）；已同步 schema、能力清單、驗證器、編譯器、Scene 幾何與模型正規化。
+- [x] `srtp/drawn_shapes.py` 靜態抽取 pygame.draw 繪圖（不執行原始碼），換算到格子座標並附上條件與出處；無法證明的值會標 unresolved，不做猜測。抽取結果經由 `source_workspace.source_drawings` 和 agentic Asset worker 的 `source_drawings` 交給模型。
+- [x] 離線驗證：tictactoe 抽取值與原始碼一致；改名、class、模組層級的案例；拒絕案例；mesh 與獨立 2D 光柵化的重疊率 > 0.93；封閉性與繪圖順序；staged builder 與 Asset 階段；保存的 tictactoe 失敗重播（原回應仍被拒；另以明確標記的測試修正走完 Rule→Scene，兩步棋顯示原色 X／O）。全量 556 項，失敗集合與改動前相同。
+- [ ] Ursina 實際渲染：`python -m tests.ursina_vector_shape_probe`（本機未安裝 Ursina／pygame，尚未執行）。
+- [ ] 新模型生成驗收：尚未執行。需要使用者審核範圍與預算後再進行。
 
 ### 2026-09-24：Spatial Lift 的本地 Input 基線損壞
 
