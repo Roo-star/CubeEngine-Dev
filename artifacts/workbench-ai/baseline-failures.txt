@@ -1,0 +1,93 @@
+test_host_restart_after_terminal_and_quit_do_not_forge_rule_actions (tests.test_host_input_commands.HostCommandTests) ... FAIL
+test_original_model_report_remains_blocked_not_silently_cleared (tests.test_host_input_commands.HostCommandTests) ... FAIL
+test_original_response_reports_all_independent_scene_errors_in_one_pass (tests.test_llm_backend_contract.BackendContractTests) ... FAIL
+test_production_repair_loop_distinguishes_progress_and_publishes_test_bundle (tests.test_presentation_composition.PresentationCompositionTests) ... FAIL
+test_real_target_against_all_49_native_reference_lines (tests.test_presentation_patterns.PresentationPatternTests) ... ERROR
+test_compiled_source_and_lift_pass (tests.test_scene_draft.VisualGateTests) ... FAIL
+test_flat_volume_cells_fail (tests.test_scene_draft.VisualGateTests) ... FAIL
+test_hidden_pieces_fail_with_the_cell_named (tests.test_scene_draft.VisualGateTests) ... FAIL
+
+======================================================================
+ERROR: test_real_target_against_all_49_native_reference_lines (tests.test_presentation_patterns.PresentationPatternTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "E:\CubeEngine\work\agentic-srtp-integration\tests\test_presentation_patterns.py", line 53, in test_real_target_against_all_49_native_reference_lines
+    result=verify_all_lines(root/'tests/fixtures/generated_tictactoe_target_20260923/project.manifest.json',
+  File "E:\CubeEngine\work\agentic-srtp-integration\tests\reference_tictactoe_acceptance.py", line 13, in verify_all_lines
+    spec.loader.exec_module(oracle)
+  File "<frozen importlib._bootstrap_external>", line 786, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 922, in get_code
+  File "<frozen importlib._bootstrap_external>", line 979, in get_data
+FileNotFoundError: [Errno 2] No such file or directory: 'E:\\CubeEngine\\work\\Dev\\3D\\tictactoe3d_logic.py'
+
+======================================================================
+FAIL: test_host_restart_after_terminal_and_quit_do_not_forge_rule_actions (tests.test_host_input_commands.HostCommandTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "E:\CubeEngine\work\agentic-srtp-integration\tests\test_host_input_commands.py", line 59, in test_host_restart_after_terminal_and_quit_do_not_forge_rule_actions
+    self.assertTrue(report.ok,report.diagnostics)
+AssertionError: False is not true : ['asset_ir: patches.asset_ir[0].evidence[0].file_sha256 does not match on-disk file']
+
+======================================================================
+FAIL: test_original_model_report_remains_blocked_not_silently_cleared (tests.test_host_input_commands.HostCommandTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "E:\CubeEngine\work\agentic-srtp-integration\tests\test_host_input_commands.py", line 32, in test_original_model_report_remains_blocked_not_silently_cleared
+    self.assertIn('unresolved',' '.join(result.diagnostics))
+AssertionError: 'unresolved' not found in 'asset_ir: patches.asset_ir[0].evidence[0].file_sha256 does not match on-disk file'
+
+======================================================================
+FAIL: test_original_response_reports_all_independent_scene_errors_in_one_pass (tests.test_llm_backend_contract.BackendContractTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "E:\CubeEngine\work\agentic-srtp-integration\tests\test_llm_backend_contract.py", line 99, in test_original_response_reports_all_independent_scene_errors_in_one_pass
+    for slot in ('rule_ir','asset_ir'): self.apply(fixture['accepted_stages'][slot],slot)
+  File "E:\CubeEngine\work\agentic-srtp-integration\tests\test_llm_backend_contract.py", line 56, in apply
+    self.assertTrue(applied.ok,applied.diagnostics); self.docs=applied.documents
+AssertionError: False is not true : ['patches.asset_ir[0].evidence[0].file_sha256 does not match on-disk file']
+
+======================================================================
+FAIL: test_production_repair_loop_distinguishes_progress_and_publishes_test_bundle (tests.test_presentation_composition.PresentationCompositionTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "E:\CubeEngine\work\agentic-srtp-integration\tests\test_presentation_composition.py", line 168, in test_production_repair_loop_distinguishes_progress_and_publishes_test_bundle
+    self.assertEqual(len(repairs),3)
+AssertionError: 2 != 3
+
+======================================================================
+FAIL: test_compiled_source_and_lift_pass (tests.test_scene_draft.VisualGateTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "E:\CubeEngine\work\agentic-srtp-integration\tests\test_scene_draft.py", line 215, in test_compiled_source_and_lift_pass
+    self.assertEqual(result['status'], 'passed', result)
+AssertionError: 'error' != 'passed'
+- error
++ passed
+ : {'status': 'error', 'errors': [], 'warnings': [], 'facts': {}, 'reason': "TypeError: 'NoneType' object is not subscriptable"}
+
+======================================================================
+FAIL: test_flat_volume_cells_fail (tests.test_scene_draft.VisualGateTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "E:\CubeEngine\work\agentic-srtp-integration\tests\test_scene_draft.py", line 245, in test_flat_volume_cells_fail
+    self.assertEqual(result['status'], 'failed', result)
+AssertionError: 'error' != 'failed'
+- error
++ failed
+ : {'status': 'error', 'errors': [], 'warnings': [], 'facts': {}, 'reason': "TypeError: 'NoneType' object is not subscriptable"}
+
+======================================================================
+FAIL: test_hidden_pieces_fail_with_the_cell_named (tests.test_scene_draft.VisualGateTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "E:\CubeEngine\work\agentic-srtp-integration\tests\test_scene_draft.py", line 225, in test_hidden_pieces_fail_with_the_cell_named
+    self.assertEqual(result['status'], 'failed', result)
+AssertionError: 'error' != 'failed'
+- error
++ failed
+ : {'status': 'error', 'errors': [], 'warnings': [], 'facts': {}, 'reason': "TypeError: 'NoneType' object is not subscriptable"}
+
+----------------------------------------------------------------------
+Ran 8 tests in 17.646s
+
+FAILED (failures=7, errors=1)

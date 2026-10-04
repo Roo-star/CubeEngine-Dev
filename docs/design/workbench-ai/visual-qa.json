@@ -1,0 +1,82 @@
+{
+  "screens": [
+    {
+      "concept": "studio",
+      "overflow": false
+    },
+    {
+      "concept": "flow",
+      "overflow": false
+    },
+    {
+      "concept": "lab",
+      "overflow": false
+    },
+    {
+      "width": 1366,
+      "concept": "studio",
+      "overflow": false
+    },
+    {
+      "width": 1366,
+      "concept": "flow",
+      "overflow": false
+    },
+    {
+      "width": 1366,
+      "concept": "lab",
+      "overflow": false
+    },
+    {
+      "width": 1024,
+      "concept": "studio",
+      "overflow": false
+    },
+    {
+      "width": 1024,
+      "concept": "flow",
+      "overflow": false
+    },
+    {
+      "width": 1024,
+      "concept": "lab",
+      "overflow": false
+    },
+    {
+      "width": 768,
+      "concept": "studio",
+      "overflow": false
+    },
+    {
+      "width": 768,
+      "concept": "flow",
+      "overflow": false
+    },
+    {
+      "width": 768,
+      "concept": "lab",
+      "overflow": false
+    },
+    {
+      "width": 390,
+      "concept": "studio",
+      "overflow": false
+    },
+    {
+      "width": 390,
+      "concept": "flow",
+      "overflow": false
+    },
+    {
+      "width": 390,
+      "concept": "lab",
+      "overflow": false
+    }
+  ],
+  "interactions": [
+    "Minesweeper is ineligible with actionable reason",
+    "Settings / start / safe cancel / resume / results",
+    "Source/Target switch and layer isolation"
+  ],
+  "errors": []
+}

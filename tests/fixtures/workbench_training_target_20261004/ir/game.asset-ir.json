@@ -1,0 +1,102 @@
+{
+  "ir_version": "cubeengine.asset-ir/2.0-alpha.1",
+  "document_id": "asset:game.tic.tac.toe.target",
+  "revision": 1,
+  "content_hash": "b8fa70384641140b4e91d5a0cb75c4d01a7914b549215b12406ea7005fef50f2",
+  "metadata": {
+    "title": "Tic Tac Toe",
+    "description": "Source-drawn board cells and X/O marks require no imported images or meshes. Status and instructions use Pygame's bundled default font.",
+    "source_project_hash": "0d1eb621de47c8b965b2e5c179bc90184758d4cd8ac1d52eaaa8a1ba82875d62"
+  },
+  "assets": [
+    {
+      "id": "asset:font.pygame_default",
+      "name": "Pygame bundled default font",
+      "kind": "font",
+      "media_type": "font/ttf",
+      "source": {
+        "uri": "runtime://pygame/default-font",
+        "content_hash": "bf9251269f11e4b35582a99376096deee3d0c4973a459cbd97b0bebc01f440ad",
+        "byte_size": 98600
+      },
+      "license": {
+        "spdx_id": "LicenseRef-Pygame-Bundled-Font",
+        "attribution": "Pygame bundled freesansbold.ttf",
+        "source_uri": null,
+        "redistribution": "unknown"
+      },
+      "importer": {
+        "capability": "cubeengine.raw-file",
+        "version": "1.0",
+        "settings": {}
+      },
+      "metadata": {
+        "dependency": "pygame",
+        "version": "2.6.1",
+        "source_references": [
+          {
+            "path": "main.py",
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 48,
+              "line_end": 49
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "derivations": [],
+  "roles": [
+    {
+      "id": "asset:role.hud-font",
+      "name": "Status and instruction font",
+      "semantic": "hud.font",
+      "resource": "asset:font.pygame_default",
+      "usage": "ui_font",
+      "required": true
+    }
+  ],
+  "presentation_mappings": [],
+  "provenance": {
+    "patch_history": [
+      {
+        "base_revision": 0,
+        "base_content_hash": "4b8f0b0c2b9c1a0fb68169e587ee15c5edf6e32f7d8c87022094d53dfee7dafd",
+        "evidence": [
+          {
+            "evidence_id": "main.py:1-86@04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "path": "main.py",
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 1,
+              "line_end": 86
+            },
+            "supports": "/asset_ir"
+          }
+        ],
+        "assumptions": [],
+        "operation_count": 6
+      },
+      {
+        "base_revision": 0,
+        "base_content_hash": "334a0dcd5314a719638cd7313ef9914ff9a05977763d27fab09697b2b331b286",
+        "evidence": [
+          {
+            "evidence_id": "main.py:1-86@04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "path": "main.py",
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 1,
+              "line_end": 86
+            },
+            "supports": "/asset_ir"
+          }
+        ],
+        "assumptions": [],
+        "operation_count": 6
+      }
+    ]
+  },
+  "unresolved": []
+}

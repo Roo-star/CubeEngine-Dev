@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>CubeEngine — Workbench design studies</title>
+  <link rel="stylesheet" href="studies.css">
+</head>
+<body>
+  <div class="reviewbar">
+    <div class="review-title"><span class="tiny overline">CUBEENGINE / DESIGN STUDIES</span><strong>選一個適合你的創作節奏。</strong></div>
+    <nav class="concept-switch" aria-label="設計提案">
+      <button data-concept="studio" aria-pressed="true"><span>A</span> Prism Studio</button>
+      <button data-concept="flow" aria-pressed="false"><span>B</span> Flow Atelier</button>
+      <button data-concept="lab" aria-pressed="false"><span>C</span> Signal Lab</button>
+    </nav>
+    <span class="prototype-label">互動設計提案 · 所有操作與資料為示意</span>
+  </div>
+  <main id="app" class="app studio" aria-label="CubeEngine 桌面工作臺設計提案"></main>
+  <div class="rationale" aria-live="polite"><div><span id="study-number">01 / 03</span><h1 id="study-title">Prism Studio</h1></div><p id="study-description"></p><span id="study-tradeoff"></span></div>
+  <dialog id="settings-dialog"><form method="dialog"><div class="section-head"><span class="overline">TRAINING SETUP</span><button class="icon-button" aria-label="關閉">×</button></div><h2>從一個小實驗開始</h2><p>目前遊戲 · 3D 井字棋<br>示意設定不會啟動實際訓練。</p><div class="form-grid"><label>追加迭代<input name="iterations" type="number" min="1" max="1000" value="1"></label><label>每輪自對弈<input name="episodes" type="number" min="1" max="1000" value="2"></label><label>MCTS / 每步<input name="simulations" type="number" min="2" max="1600" value="8"></label><label>Arena 對局<input name="arena" type="number" min="2" max="200" step="2" value="2"></label><label>訓練 epochs<input name="epochs" type="number" min="1" max="100" value="1"></label><label>運算裝置<select><option>CPU · 本機</option><option>CUDA · 若環境支援</option></select></label></div><label>輸出位置<input value="CubeEngine / training / 3d-tictactoe" aria-label="示意輸出位置"></label><details><summary>進階參數與相容存檔</summary><p>初版只支援 3 × 3 × 3 網路。續跑檔案必須符合目前 Rule、adapter、網路與訓練器版本。</p><label>Checkpoint<select id="checkpoint-choice"><option>從初始模型開始</option><option>相容 · 3D 井字棋 / 迭代 1</option><option disabled>不相容 · 另一款遊戲</option></select></label></details><button class="primary" id="save-settings">套用示意設定</button></form></dialog>
+  <dialog id="detail-dialog"><div class="section-head"><span class="overline">WORKBENCH / DETAILS</span><button class="icon-button" id="close-detail" aria-label="關閉詳細資訊">×</button></div><h2 id="detail-title"></h2><div id="detail-content"></div></dialog>
+  <div id="toast" role="status" aria-live="polite"></div>
+  <script src="studies.js"></script>
+</body>
+</html>

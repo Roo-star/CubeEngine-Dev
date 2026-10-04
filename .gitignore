@@ -10,3 +10,6 @@ __pycache__/
 .env
 
 .cubeengine_llm/
+.venv-training/
+.cubeengine_training/
+artifacts/workbench-ai/ursina/

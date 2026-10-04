@@ -1,0 +1,508 @@
+{
+  "passed": true,
+  "target": "E:\\CubeEngine\\work\\agentic-srtp-integration\\tests\\fixtures\\workbench_training_target_20261004\\project.manifest.json",
+  "project_hash": "015df03bf3e70c0c9705b17650c7d1f1c76f68743383d6174b972656e8929a28",
+  "rule_hash": "1cef7b35eaf325d29b9014dbf5f1316a11ad73c5d4b8013ea7c37a012274f7e5",
+  "conformance": {
+    "passed": true,
+    "checks": {
+      "getInitBoard.independent": true,
+      "getBoardSize.shape": true,
+      "getActionSize.positive": true,
+      "stringRepresentation.stable": true,
+      "getCanonicalForm.involution": true,
+      "getSymmetries.nonempty": true,
+      "getSymmetries.policy_permutation": true,
+      "getValidMoves.binary": true,
+      "getNextState.pure_deterministic": true,
+      "getGameEnded.terminal_reached": true,
+      "rollout.bound": true
+    },
+    "plies": 7,
+    "terminal_value": -1.0,
+    "messages": []
+  },
+  "first": {
+    "root": "E:\\CubeEngine\\work\\agentic-srtp-integration\\.cubeengine_training\\acceptance\\run-20261004-235303-f2910660",
+    "report": {
+      "status": "completed",
+      "binding": {
+        "trainer_version": "cubeengine.workbench-training/1.0",
+        "implementation_hash": "e91dba6bae50c8895eccea82ed6688f75aa2c054a6739d221ec6443194afafd1",
+        "project_id": "project:tic.tac.toe.llm.source.target",
+        "project_hash": "015df03bf3e70c0c9705b17650c7d1f1c76f68743383d6174b972656e8929a28",
+        "rule_id": "rule:game.tic.tac.toe.target",
+        "rule_version": "cubeengine.rule-ir/2.0-alpha.1",
+        "rule_revision": 1,
+        "rule_hash": "1cef7b35eaf325d29b9014dbf5f1316a11ad73c5d4b8013ea7c37a012274f7e5",
+        "adapter_version": "cubeengine.alternating-placement-adapter/1.0",
+        "adapter_revision": 0,
+        "adapter_hash": "0632046446406d658e0fce8f6b1945ddfb0188f39ab57e319994ec4a2f91b705",
+        "network": {
+          "architecture": "ai-dev-3d-cnn/2f42b6b",
+          "shape": [
+            3,
+            3,
+            3
+          ],
+          "actions": 27,
+          "channels": 16
+        }
+      },
+      "error": null,
+      "checkpoint": "E:\\CubeEngine\\work\\agentic-srtp-integration\\.cubeengine_training\\acceptance\\run-20261004-235303-f2910660\\checkpoint-0001\\checkpoint.json",
+      "completed_iteration": 1,
+      "counters": {
+        "self_play_games": 2,
+        "arena_games": 2,
+        "samples": 11,
+        "optimizer_steps": 1
+      },
+      "results": [
+        {
+          "iteration": 1,
+          "arena": {
+            "previous": 0,
+            "candidate": 2,
+            "draws": 0
+          },
+          "accepted": true,
+          "acceptance_threshold": 0.55
+        }
+      ],
+      "elapsed_seconds": 5.797,
+      "finished_at": "2026-10-04T15:53:09.576105+00:00",
+      "resume_semantics": "Last fully completed iteration; partial candidate work is not resumed."
+    },
+    "event_count": 39,
+    "cancel_latency_seconds": null
+  },
+  "resumed": {
+    "root": "E:\\CubeEngine\\work\\agentic-srtp-integration\\.cubeengine_training\\acceptance\\run-20261004-235310-d1d64c57",
+    "report": {
+      "status": "completed",
+      "binding": {
+        "trainer_version": "cubeengine.workbench-training/1.0",
+        "implementation_hash": "e91dba6bae50c8895eccea82ed6688f75aa2c054a6739d221ec6443194afafd1",
+        "project_id": "project:tic.tac.toe.llm.source.target",
+        "project_hash": "015df03bf3e70c0c9705b17650c7d1f1c76f68743383d6174b972656e8929a28",
+        "rule_id": "rule:game.tic.tac.toe.target",
+        "rule_version": "cubeengine.rule-ir/2.0-alpha.1",
+        "rule_revision": 1,
+        "rule_hash": "1cef7b35eaf325d29b9014dbf5f1316a11ad73c5d4b8013ea7c37a012274f7e5",
+        "adapter_version": "cubeengine.alternating-placement-adapter/1.0",
+        "adapter_revision": 0,
+        "adapter_hash": "0632046446406d658e0fce8f6b1945ddfb0188f39ab57e319994ec4a2f91b705",
+        "network": {
+          "architecture": "ai-dev-3d-cnn/2f42b6b",
+          "shape": [
+            3,
+            3,
+            3
+          ],
+          "actions": 27,
+          "channels": 16
+        }
+      },
+      "error": null,
+      "checkpoint": "E:\\CubeEngine\\work\\agentic-srtp-integration\\.cubeengine_training\\acceptance\\run-20261004-235310-d1d64c57\\checkpoint-0002\\checkpoint.json",
+      "completed_iteration": 2,
+      "counters": {
+        "self_play_games": 4,
+        "arena_games": 4,
+        "samples": 24,
+        "optimizer_steps": 3
+      },
+      "results": [
+        {
+          "iteration": 2,
+          "arena": {
+            "previous": 0,
+            "candidate": 2,
+            "draws": 0
+          },
+          "accepted": true,
+          "acceptance_threshold": 0.55
+        }
+      ],
+      "elapsed_seconds": 5.922,
+      "finished_at": "2026-10-04T15:53:16.585526+00:00",
+      "resume_semantics": "Last fully completed iteration; partial candidate work is not resumed."
+    },
+    "event_count": 43,
+    "cancel_latency_seconds": null
+  },
+  "continuous": {
+    "root": "E:\\CubeEngine\\work\\agentic-srtp-integration\\.cubeengine_training\\acceptance\\run-20261004-235317-d2fcd994",
+    "report": {
+      "status": "completed",
+      "binding": {
+        "trainer_version": "cubeengine.workbench-training/1.0",
+        "implementation_hash": "e91dba6bae50c8895eccea82ed6688f75aa2c054a6739d221ec6443194afafd1",
+        "project_id": "project:tic.tac.toe.llm.source.target",
+        "project_hash": "015df03bf3e70c0c9705b17650c7d1f1c76f68743383d6174b972656e8929a28",
+        "rule_id": "rule:game.tic.tac.toe.target",
+        "rule_version": "cubeengine.rule-ir/2.0-alpha.1",
+        "rule_revision": 1,
+        "rule_hash": "1cef7b35eaf325d29b9014dbf5f1316a11ad73c5d4b8013ea7c37a012274f7e5",
+        "adapter_version": "cubeengine.alternating-placement-adapter/1.0",
+        "adapter_revision": 0,
+        "adapter_hash": "0632046446406d658e0fce8f6b1945ddfb0188f39ab57e319994ec4a2f91b705",
+        "network": {
+          "architecture": "ai-dev-3d-cnn/2f42b6b",
+          "shape": [
+            3,
+            3,
+            3
+          ],
+          "actions": 27,
+          "channels": 16
+        }
+      },
+      "error": null,
+      "checkpoint": "E:\\CubeEngine\\work\\agentic-srtp-integration\\.cubeengine_training\\acceptance\\run-20261004-235317-d2fcd994\\checkpoint-0002\\checkpoint.json",
+      "completed_iteration": 2,
+      "counters": {
+        "self_play_games": 4,
+        "arena_games": 4,
+        "samples": 24,
+        "optimizer_steps": 3
+      },
+      "results": [
+        {
+          "iteration": 1,
+          "arena": {
+            "previous": 0,
+            "candidate": 2,
+            "draws": 0
+          },
+          "accepted": true,
+          "acceptance_threshold": 0.55
+        },
+        {
+          "iteration": 2,
+          "arena": {
+            "previous": 0,
+            "candidate": 2,
+            "draws": 0
+          },
+          "accepted": true,
+          "acceptance_threshold": 0.55
+        }
+      ],
+      "elapsed_seconds": 7.218,
+      "finished_at": "2026-10-04T15:53:24.864883+00:00",
+      "resume_semantics": "Last fully completed iteration; partial candidate work is not resumed."
+    },
+    "event_count": 75,
+    "cancel_latency_seconds": null
+  },
+  "resume_matches_continuous_cpu_weights": true,
+  "cancellations": {
+    "self_play_move": {
+      "cancelled": {
+        "root": "E:\\CubeEngine\\work\\agentic-srtp-integration\\.cubeengine_training\\acceptance\\run-20261004-235325-207ef3fb",
+        "report": {
+          "status": "cancelled",
+          "binding": {
+            "trainer_version": "cubeengine.workbench-training/1.0",
+            "implementation_hash": "e91dba6bae50c8895eccea82ed6688f75aa2c054a6739d221ec6443194afafd1",
+            "project_id": "project:tic.tac.toe.llm.source.target",
+            "project_hash": "015df03bf3e70c0c9705b17650c7d1f1c76f68743383d6174b972656e8929a28",
+            "rule_id": "rule:game.tic.tac.toe.target",
+            "rule_version": "cubeengine.rule-ir/2.0-alpha.1",
+            "rule_revision": 1,
+            "rule_hash": "1cef7b35eaf325d29b9014dbf5f1316a11ad73c5d4b8013ea7c37a012274f7e5",
+            "adapter_version": "cubeengine.alternating-placement-adapter/1.0",
+            "adapter_revision": 0,
+            "adapter_hash": "0632046446406d658e0fce8f6b1945ddfb0188f39ab57e319994ec4a2f91b705",
+            "network": {
+              "architecture": "ai-dev-3d-cnn/2f42b6b",
+              "shape": [
+                3,
+                3,
+                3
+              ],
+              "actions": 27,
+              "channels": 16
+            }
+          },
+          "error": "Cancellation requested; resume from the last complete iteration.",
+          "checkpoint": "E:\\CubeEngine\\work\\agentic-srtp-integration\\.cubeengine_training\\acceptance\\run-20261004-235325-207ef3fb\\checkpoint-0000\\checkpoint.json",
+          "completed_iteration": 0,
+          "counters": {
+            "self_play_games": 0,
+            "arena_games": 0,
+            "samples": 0,
+            "optimizer_steps": 0
+          },
+          "results": [],
+          "elapsed_seconds": 2.765,
+          "finished_at": "2026-10-04T15:53:28.744567+00:00",
+          "resume_semantics": "Last fully completed iteration; partial candidate work is not resumed."
+        },
+        "event_count": 8,
+        "cancel_latency_seconds": 0.297
+      },
+      "restarted": {
+        "root": "E:\\CubeEngine\\work\\agentic-srtp-integration\\.cubeengine_training\\acceptance\\run-20261004-235329-87bcaf57",
+        "report": {
+          "status": "completed",
+          "binding": {
+            "trainer_version": "cubeengine.workbench-training/1.0",
+            "implementation_hash": "e91dba6bae50c8895eccea82ed6688f75aa2c054a6739d221ec6443194afafd1",
+            "project_id": "project:tic.tac.toe.llm.source.target",
+            "project_hash": "015df03bf3e70c0c9705b17650c7d1f1c76f68743383d6174b972656e8929a28",
+            "rule_id": "rule:game.tic.tac.toe.target",
+            "rule_version": "cubeengine.rule-ir/2.0-alpha.1",
+            "rule_revision": 1,
+            "rule_hash": "1cef7b35eaf325d29b9014dbf5f1316a11ad73c5d4b8013ea7c37a012274f7e5",
+            "adapter_version": "cubeengine.alternating-placement-adapter/1.0",
+            "adapter_revision": 0,
+            "adapter_hash": "0632046446406d658e0fce8f6b1945ddfb0188f39ab57e319994ec4a2f91b705",
+            "network": {
+              "architecture": "ai-dev-3d-cnn/2f42b6b",
+              "shape": [
+                3,
+                3,
+                3
+              ],
+              "actions": 27,
+              "channels": 16
+            }
+          },
+          "error": null,
+          "checkpoint": "E:\\CubeEngine\\work\\agentic-srtp-integration\\.cubeengine_training\\acceptance\\run-20261004-235329-87bcaf57\\checkpoint-0001\\checkpoint.json",
+          "completed_iteration": 1,
+          "counters": {
+            "self_play_games": 2,
+            "arena_games": 2,
+            "samples": 11,
+            "optimizer_steps": 1
+          },
+          "results": [
+            {
+              "iteration": 1,
+              "arena": {
+                "previous": 0,
+                "candidate": 2,
+                "draws": 0
+              },
+              "accepted": true,
+              "acceptance_threshold": 0.55
+            }
+          ],
+          "elapsed_seconds": 5.875,
+          "finished_at": "2026-10-04T15:53:35.474740+00:00",
+          "resume_semantics": "Last fully completed iteration; partial candidate work is not resumed."
+        },
+        "event_count": 40,
+        "cancel_latency_seconds": null
+      }
+    },
+    "training_batch": {
+      "cancelled": {
+        "root": "E:\\CubeEngine\\work\\agentic-srtp-integration\\.cubeengine_training\\acceptance\\run-20261004-235335-46bc45a9",
+        "report": {
+          "status": "cancelled",
+          "binding": {
+            "trainer_version": "cubeengine.workbench-training/1.0",
+            "implementation_hash": "e91dba6bae50c8895eccea82ed6688f75aa2c054a6739d221ec6443194afafd1",
+            "project_id": "project:tic.tac.toe.llm.source.target",
+            "project_hash": "015df03bf3e70c0c9705b17650c7d1f1c76f68743383d6174b972656e8929a28",
+            "rule_id": "rule:game.tic.tac.toe.target",
+            "rule_version": "cubeengine.rule-ir/2.0-alpha.1",
+            "rule_revision": 1,
+            "rule_hash": "1cef7b35eaf325d29b9014dbf5f1316a11ad73c5d4b8013ea7c37a012274f7e5",
+            "adapter_version": "cubeengine.alternating-placement-adapter/1.0",
+            "adapter_revision": 0,
+            "adapter_hash": "0632046446406d658e0fce8f6b1945ddfb0188f39ab57e319994ec4a2f91b705",
+            "network": {
+              "architecture": "ai-dev-3d-cnn/2f42b6b",
+              "shape": [
+                3,
+                3,
+                3
+              ],
+              "actions": 27,
+              "channels": 16
+            }
+          },
+          "error": "Cancellation requested; resume from the last complete iteration.",
+          "checkpoint": "E:\\CubeEngine\\work\\agentic-srtp-integration\\.cubeengine_training\\acceptance\\run-20261004-235335-46bc45a9\\checkpoint-0000\\checkpoint.json",
+          "completed_iteration": 0,
+          "counters": {
+            "self_play_games": 2,
+            "arena_games": 0,
+            "samples": 11,
+            "optimizer_steps": 4
+          },
+          "results": [],
+          "elapsed_seconds": 5.328,
+          "finished_at": "2026-10-04T15:53:41.902166+00:00",
+          "resume_semantics": "Last fully completed iteration; partial candidate work is not resumed."
+        },
+        "event_count": 28,
+        "cancel_latency_seconds": 0.406
+      },
+      "restarted": {
+        "root": "E:\\CubeEngine\\work\\agentic-srtp-integration\\.cubeengine_training\\acceptance\\run-20261004-235342-83a90ea4",
+        "report": {
+          "status": "completed",
+          "binding": {
+            "trainer_version": "cubeengine.workbench-training/1.0",
+            "implementation_hash": "e91dba6bae50c8895eccea82ed6688f75aa2c054a6739d221ec6443194afafd1",
+            "project_id": "project:tic.tac.toe.llm.source.target",
+            "project_hash": "015df03bf3e70c0c9705b17650c7d1f1c76f68743383d6174b972656e8929a28",
+            "rule_id": "rule:game.tic.tac.toe.target",
+            "rule_version": "cubeengine.rule-ir/2.0-alpha.1",
+            "rule_revision": 1,
+            "rule_hash": "1cef7b35eaf325d29b9014dbf5f1316a11ad73c5d4b8013ea7c37a012274f7e5",
+            "adapter_version": "cubeengine.alternating-placement-adapter/1.0",
+            "adapter_revision": 0,
+            "adapter_hash": "0632046446406d658e0fce8f6b1945ddfb0188f39ab57e319994ec4a2f91b705",
+            "network": {
+              "architecture": "ai-dev-3d-cnn/2f42b6b",
+              "shape": [
+                3,
+                3,
+                3
+              ],
+              "actions": 27,
+              "channels": 16
+            }
+          },
+          "error": null,
+          "checkpoint": "E:\\CubeEngine\\work\\agentic-srtp-integration\\.cubeengine_training\\acceptance\\run-20261004-235342-83a90ea4\\checkpoint-0001\\checkpoint.json",
+          "completed_iteration": 1,
+          "counters": {
+            "self_play_games": 2,
+            "arena_games": 2,
+            "samples": 11,
+            "optimizer_steps": 1
+          },
+          "results": [
+            {
+              "iteration": 1,
+              "arena": {
+                "previous": 0,
+                "candidate": 2,
+                "draws": 0
+              },
+              "accepted": true,
+              "acceptance_threshold": 0.55
+            }
+          ],
+          "elapsed_seconds": 6.14,
+          "finished_at": "2026-10-04T15:53:49.032097+00:00",
+          "resume_semantics": "Last fully completed iteration; partial candidate work is not resumed."
+        },
+        "event_count": 40,
+        "cancel_latency_seconds": null
+      }
+    },
+    "arena_move": {
+      "cancelled": {
+        "root": "E:\\CubeEngine\\work\\agentic-srtp-integration\\.cubeengine_training\\acceptance\\run-20261004-235349-717d77a7",
+        "report": {
+          "status": "cancelled",
+          "binding": {
+            "trainer_version": "cubeengine.workbench-training/1.0",
+            "implementation_hash": "e91dba6bae50c8895eccea82ed6688f75aa2c054a6739d221ec6443194afafd1",
+            "project_id": "project:tic.tac.toe.llm.source.target",
+            "project_hash": "015df03bf3e70c0c9705b17650c7d1f1c76f68743383d6174b972656e8929a28",
+            "rule_id": "rule:game.tic.tac.toe.target",
+            "rule_version": "cubeengine.rule-ir/2.0-alpha.1",
+            "rule_revision": 1,
+            "rule_hash": "1cef7b35eaf325d29b9014dbf5f1316a11ad73c5d4b8013ea7c37a012274f7e5",
+            "adapter_version": "cubeengine.alternating-placement-adapter/1.0",
+            "adapter_revision": 0,
+            "adapter_hash": "0632046446406d658e0fce8f6b1945ddfb0188f39ab57e319994ec4a2f91b705",
+            "network": {
+              "architecture": "ai-dev-3d-cnn/2f42b6b",
+              "shape": [
+                3,
+                3,
+                3
+              ],
+              "actions": 27,
+              "channels": 16
+            }
+          },
+          "error": "Cancellation requested; resume from the last complete iteration.",
+          "checkpoint": "E:\\CubeEngine\\work\\agentic-srtp-integration\\.cubeengine_training\\acceptance\\run-20261004-235349-717d77a7\\checkpoint-0000\\checkpoint.json",
+          "completed_iteration": 0,
+          "counters": {
+            "self_play_games": 2,
+            "arena_games": 0,
+            "samples": 11,
+            "optimizer_steps": 1
+          },
+          "results": [],
+          "elapsed_seconds": 5.265,
+          "finished_at": "2026-10-04T15:53:55.415388+00:00",
+          "resume_semantics": "Last fully completed iteration; partial candidate work is not resumed."
+        },
+        "event_count": 23,
+        "cancel_latency_seconds": 0.438
+      },
+      "restarted": {
+        "root": "E:\\CubeEngine\\work\\agentic-srtp-integration\\.cubeengine_training\\acceptance\\run-20261004-235355-686f74ec",
+        "report": {
+          "status": "completed",
+          "binding": {
+            "trainer_version": "cubeengine.workbench-training/1.0",
+            "implementation_hash": "e91dba6bae50c8895eccea82ed6688f75aa2c054a6739d221ec6443194afafd1",
+            "project_id": "project:tic.tac.toe.llm.source.target",
+            "project_hash": "015df03bf3e70c0c9705b17650c7d1f1c76f68743383d6174b972656e8929a28",
+            "rule_id": "rule:game.tic.tac.toe.target",
+            "rule_version": "cubeengine.rule-ir/2.0-alpha.1",
+            "rule_revision": 1,
+            "rule_hash": "1cef7b35eaf325d29b9014dbf5f1316a11ad73c5d4b8013ea7c37a012274f7e5",
+            "adapter_version": "cubeengine.alternating-placement-adapter/1.0",
+            "adapter_revision": 0,
+            "adapter_hash": "0632046446406d658e0fce8f6b1945ddfb0188f39ab57e319994ec4a2f91b705",
+            "network": {
+              "architecture": "ai-dev-3d-cnn/2f42b6b",
+              "shape": [
+                3,
+                3,
+                3
+              ],
+              "actions": 27,
+              "channels": 16
+            }
+          },
+          "error": null,
+          "checkpoint": "E:\\CubeEngine\\work\\agentic-srtp-integration\\.cubeengine_training\\acceptance\\run-20261004-235355-686f74ec\\checkpoint-0001\\checkpoint.json",
+          "completed_iteration": 1,
+          "counters": {
+            "self_play_games": 2,
+            "arena_games": 2,
+            "samples": 11,
+            "optimizer_steps": 1
+          },
+          "results": [
+            {
+              "iteration": 1,
+              "arena": {
+                "previous": 0,
+                "candidate": 2,
+                "draws": 0
+              },
+              "accepted": true,
+              "acceptance_threshold": 0.55
+            }
+          ],
+          "elapsed_seconds": 5.843,
+          "finished_at": "2026-10-04T15:54:02.280973+00:00",
+          "resume_semantics": "Last fully completed iteration; partial candidate work is not resumed."
+        },
+        "event_count": 40,
+        "cancel_latency_seconds": null
+      }
+    }
+  },
+  "api_calls": 0,
+  "limitation": "Short pipeline acceptance, not evidence of playing strength or new source conversion."
+}

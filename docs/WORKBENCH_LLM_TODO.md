@@ -1,5 +1,15 @@
 # Workbench / LLM 待办
 
+## 2026-10-04：WorkbenchAI（使用者指定，基於 SRTP_agentic）
+
+- [x] 右下自對弈訓練入口、當前批准 Target 資格及原因、參數／輸出設定、背景進度、安全取消與相容 checkpoint 續跑。
+- [x] 真實 3D 井字棋 Target → 原 Rule Runtime → AI-Dev MCTS／3D CNN → 訓練／Arena／存檔／重放；9 次短程驗收，37 項相關測試通過，49 條原生獲勝線對照通過，0 API。
+- [x] 全库 8 項失敗在原 agentic Workbench 同環境重現，詳見交付報告；未宣稱完整渲染回歸全部通過。
+- [x] AI 接入研究、UX 旅程與 A/B/C 三款可互動設計稿。
+- [ ] 使用者選稿後實裝整體 UI；目前只增加功能 dock，保留既有工作流程。
+
+詳見 [WorkbenchAI 交付](WORKBENCH_AI_DELIVERY_20261004.md)及[研究／設計依據](WORKBENCH_AI_RESEARCH_20261004.md)。2048 新轉換不在本輪接入工作範圍。
+
 更新：2026-09-24。开发目录：`E:/CubeEngine/CubeEngine-SRTP`，开发分支：`SRTP`。
 `llm` 是工程师交付分支，只拉取和测试；本地修复及更新均进入 `SRTP`。
 

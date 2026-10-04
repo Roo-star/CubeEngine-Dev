@@ -1,0 +1,8 @@
+{
+  "passed": true,
+  "rendered_frames_during_run": 228,
+  "run": "E:\\CubeEngine\\work\\agentic-srtp-integration\\.cubeengine_training\\run-20261004-235347-3cc90b1e",
+  "resume_selected": "E:\\CubeEngine\\work\\agentic-srtp-integration\\.cubeengine_training\\run-20261004-235347-3cc90b1e\\checkpoint-0001\\checkpoint.json",
+  "replay_status": "Verified 4 saved games against their original Rule.",
+  "method": "Actual Dear PyGui widget callbacks and framebuffer; no synthetic mouse input."
+}

@@ -1,0 +1,302 @@
+{
+  "ir_version": "cubeengine.input-ir/2.0-alpha.1",
+  "document_id": "input:game.tic.tac.toe.target",
+  "revision": 1,
+  "content_hash": "2f198aa38c32d7ca77e527398e823f9c81a73719938ab4a7c60aebe00798dbe6",
+  "metadata": {
+    "title": "Tic Tac Toe",
+    "description": "Click a board cell to place the current player's mark. R restarts the full session, including after a result; Escape quits.",
+    "source_project_hash": "0d1eb621de47c8b965b2e5c179bc90184758d4cd8ac1d52eaaa8a1ba82875d62"
+  },
+  "dependencies": {
+    "rule_ir": {
+      "document_id": "rule:game.tic.tac.toe.target",
+      "content_hash": "1cef7b35eaf325d29b9014dbf5f1316a11ad73c5d4b8013ea7c37a012274f7e5"
+    },
+    "extensions": []
+  },
+  "contexts": [
+    {
+      "id": "input:context.application",
+      "name": "Application controls",
+      "priority": 1000,
+      "enabled_by_default": true,
+      "focus": "global",
+      "consume_policy": "first_match",
+      "exclusive_group": null
+    },
+    {
+      "id": "input:context.gameplay",
+      "name": "Board placement",
+      "priority": 100,
+      "enabled_by_default": true,
+      "focus": "viewport",
+      "consume_policy": "first_legal",
+      "exclusive_group": null
+    }
+  ],
+  "intents": [
+    {
+      "id": "input:intent.quit",
+      "name": "Quit player",
+      "value_type": "digital",
+      "required": true,
+      "target": {
+        "kind": "host_command",
+        "command": "quit"
+      }
+    },
+    {
+      "id": "input:intent.restart",
+      "name": "Restart session",
+      "value_type": "digital",
+      "required": true,
+      "target": {
+        "kind": "host_command",
+        "command": "restart"
+      }
+    },
+    {
+      "id": "input:intent.place",
+      "name": "Place mark in selected cell",
+      "value_type": "pointer",
+      "required": true,
+      "target": {
+        "kind": "rule_action",
+        "action": "rule:action.place",
+        "parameters": {
+          "coordinate": {
+            "source": "event_data",
+            "value_type": "core:coord",
+            "key": "rule_coordinate"
+          }
+        }
+      }
+    }
+  ],
+  "bindings": [
+    {
+      "id": "input:binding.quit.escape",
+      "name": "Escape quits",
+      "context": "input:context.application",
+      "intent": "input:intent.quit",
+      "priority": 100,
+      "enabled": true,
+      "consume": true,
+      "rebindable": false,
+      "slot": "primary",
+      "accessibility_label": "Quit the game player",
+      "trigger": {
+        "kind": "control",
+        "device": "keyboard",
+        "control": "keyboard.key.escape",
+        "phase": "press",
+        "modifiers": [],
+        "modifier_policy": "exact"
+      },
+      "processing": {
+        "dead_zone": 0,
+        "sensitivity_numerator": 1,
+        "sensitivity_denominator": 1,
+        "invert": false,
+        "clamp_min": -32768,
+        "clamp_max": 32767
+      }
+    },
+    {
+      "id": "input:binding.restart.r",
+      "name": "R restarts",
+      "context": "input:context.application",
+      "intent": "input:intent.restart",
+      "priority": 100,
+      "enabled": true,
+      "consume": true,
+      "rebindable": false,
+      "slot": "primary",
+      "accessibility_label": "Restart the game, including after a result",
+      "trigger": {
+        "kind": "control",
+        "device": "keyboard",
+        "control": "keyboard.key.r",
+        "phase": "press",
+        "modifiers": [],
+        "modifier_policy": "exact"
+      },
+      "processing": {
+        "dead_zone": 0,
+        "sensitivity_numerator": 1,
+        "sensitivity_denominator": 1,
+        "invert": false,
+        "clamp_min": -32768,
+        "clamp_max": 32767
+      }
+    },
+    {
+      "id": "input:binding.place.click",
+      "name": "Click a board cell to place",
+      "context": "input:context.gameplay",
+      "intent": "input:intent.place",
+      "priority": 100,
+      "enabled": true,
+      "consume": true,
+      "rebindable": false,
+      "slot": "primary",
+      "accessibility_label": "Place the current player's mark in the selected empty cell",
+      "trigger": {
+        "kind": "control",
+        "device": "mouse",
+        "control": "mouse.button.primary",
+        "phase": "release",
+        "modifiers": [],
+        "modifier_policy": "exact",
+        "pointer": {
+          "node": "scene:board",
+          "subtree": true,
+          "topology": "rule:topology.board",
+          "gesture": "click"
+        }
+      },
+      "processing": {
+        "dead_zone": 0,
+        "sensitivity_numerator": 1,
+        "sensitivity_denominator": 1,
+        "invert": false,
+        "clamp_min": -32768,
+        "clamp_max": 32767
+      }
+    }
+  ],
+  "provenance": {
+    "patch_history": [
+      {
+        "base_revision": 0,
+        "base_content_hash": "b8b8ca04631ba0207e7e486dcc2696d589e7f0486ad4e102c7c2aca8e245eff2",
+        "evidence": [
+          {
+            "evidence_id": "main.py:1-86@04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "path": "main.py",
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 1,
+              "line_end": 86
+            },
+            "supports": "/input_ir"
+          },
+          {
+            "evidence_id": "ev:binding.0",
+            "path": "main.py",
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "kind": "static",
+            "span": {
+              "line_start": 58,
+              "line_end": 58
+            },
+            "supports": "/input_ir/bindings",
+            "topic": "direction_input",
+            "confidence": 0.8
+          },
+          {
+            "evidence_id": "ev:binding.1",
+            "path": "main.py",
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "kind": "static",
+            "span": {
+              "line_start": 60,
+              "line_end": 60
+            },
+            "supports": "/input_ir/bindings",
+            "topic": "direction_input",
+            "confidence": 0.8
+          },
+          {
+            "evidence_id": "ev:binding.2",
+            "path": "main.py",
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "kind": "static",
+            "span": {
+              "line_start": 62,
+              "line_end": 62
+            },
+            "supports": "/input_ir/bindings",
+            "topic": "direction_input",
+            "confidence": 0.8
+          }
+        ],
+        "assumptions": [
+          "The engine restores the measured Escape-to-quit and R-to-restart intents and bindings; they are not redeclared. A confirmed click on a selectable board cell supplies its Rule coordinate, replacing the source's screen-pixel-to-cell calculation."
+        ],
+        "operation_count": 6
+      },
+      {
+        "base_revision": 0,
+        "base_content_hash": "64367a9d9d9152e16e37105191b8fab9b21196d8bbce6a3a33469f97d6aae679",
+        "evidence": [
+          {
+            "evidence_id": "main.py:1-86@04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "path": "main.py",
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 1,
+              "line_end": 86
+            },
+            "supports": "/input_ir"
+          },
+          {
+            "evidence_id": "README.md:1-9@3d673b3e5751a6a6db08768f6e277d7d9bf49608a92ec0327e092ee7aa1fc554",
+            "path": "README.md",
+            "file_sha256": "3d673b3e5751a6a6db08768f6e277d7d9bf49608a92ec0327e092ee7aa1fc554",
+            "span": {
+              "line_start": 1,
+              "line_end": 9
+            },
+            "supports": "/input_ir"
+          },
+          {
+            "evidence_id": "ev:binding.0",
+            "path": "main.py",
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "kind": "static",
+            "span": {
+              "line_start": 58,
+              "line_end": 58
+            },
+            "supports": "/input_ir/bindings",
+            "topic": "direction_input",
+            "confidence": 0.8
+          },
+          {
+            "evidence_id": "ev:binding.1",
+            "path": "main.py",
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "kind": "static",
+            "span": {
+              "line_start": 60,
+              "line_end": 60
+            },
+            "supports": "/input_ir/bindings",
+            "topic": "direction_input",
+            "confidence": 0.8
+          },
+          {
+            "evidence_id": "ev:binding.2",
+            "path": "main.py",
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "kind": "static",
+            "span": {
+              "line_start": 62,
+              "line_end": 62
+            },
+            "supports": "/input_ir/bindings",
+            "topic": "direction_input",
+            "confidence": 0.8
+          }
+        ],
+        "assumptions": [
+          "A confirmed click on a selectable cell supplies its three-component Rule coordinate; the host handles drag cancellation and same-target release. Window-close quitting is handled by the host rather than a keyboard or pointer binding."
+        ],
+        "operation_count": 6
+      }
+    ]
+  },
+  "unresolved": []
+}
