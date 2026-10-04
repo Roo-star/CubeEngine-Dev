@@ -441,8 +441,21 @@ class SourceToIRCompiler:
         from contextlib import nullcontext
         guard = self.cancel_token.publication() if self.cancel_token is not None else nullcontext()
         with guard:
+            self._attach_provenance(out_dir, report)
             kwargs['asset_project_root'] = self.asset_project_root
             return write_compile_artifacts(out_dir, report, **kwargs)
+
+    def _attach_provenance(self, out_dir, report):
+        """Best effort: a provenance problem is recorded, never allowed to block publishing the run."""
+        from .provenance import build_provenance
+        log = getattr(self.client, 'request_log', None) or []
+        try:
+            report.request_records = list(log[getattr(self, '_request_log_start', 0):])
+            report.provenance = build_provenance(report, self.client, report.request_records,
+                extra={'checkpoint_path': str(self.checkpoint_path) if self.checkpoint_path else None,
+                       'out_dir': str(out_dir)})
+        except Exception as error:  # noqa: BLE001
+            report.provenance = {'error': '{0}: {1}'.format(type(error).__name__, error)}
 
     def compile_path(
         self,
@@ -475,6 +488,7 @@ class SourceToIRCompiler:
 
         self.check_cancelled()
         self.asset_project_root = Path(package.root)
+        self._request_log_start = len(getattr(self.client, 'request_log', None) or [])
         self.checkpoint_path = Path(checkpoint_path) if checkpoint_path else (
             Path(out_dir).with_name(Path(out_dir).name + '.stages.json') if out_dir else None)
         evidence = build_evidence_pack(package)
@@ -539,6 +553,7 @@ class SourceToIRCompiler:
         intent = str(intent_text or "").strip()
         self.check_cancelled()
         self.asset_project_root = Path(package.root)
+        self._request_log_start = len(getattr(self.client, 'request_log', None) or [])
         self.checkpoint_path = Path(checkpoint_path) if checkpoint_path else (
             Path(out_dir).with_name(Path(out_dir).name + '.stages.json') if out_dir else None)
         if not intent and not target_dimensions:

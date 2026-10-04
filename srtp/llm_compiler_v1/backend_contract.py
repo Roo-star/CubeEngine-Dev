@@ -15,6 +15,7 @@ def profile():
         'presentation_patterns':model_contract(),
         'depth_view':depth_contract(),
         'behavior_steps':behavior_step_contract(),
+        'step_order':'One Rule step: action effects run; rule:event.action_applied is emitted; every event/state_changed/phase triggered system and its cascades, plus scheduled events whose due tick has arrived, run to completion in the same step; the turn advances; invariants are checked; THEN outcomes are evaluated on the committed state. Startup: initial_effects, then phase_enter systems, complete before the first outcome check. Events scheduled with delay_ticks run on a later tick. Assert ordering you depend on in behavior_tests instead of marking it unresolved.',
         'session_random':'Host supplies integer seeds for seed_policy=session. Compilation uses deterministic seed 0; interactive sessions retain fresh seeds for replay. Do not add a fixed seed to repair a session declaration.',
         'algorithm_methods':{
             'grid.flood_region':'Arguments: state_id, start_coordinate, through_values, blocked_values, diagonal, include_boundary, blocked_coordinates. Returns a finite connected region, expands through through_values, includes nonblocked boundary if requested. Can implement zero-area opening with numbered boundary.',
@@ -99,3 +100,31 @@ def references(documents):
         'rule_actions':[{'id':a['id'],'parameters':a.get('parameters',[])} for a in rule.get('actions',[])],
         'asset_resources':[{'id':a['id'],'kind':a['kind'],'media_type':a['media_type']}
             for key in ('assets','derivations') for a in documents['asset_ir'].get(key,[])]}
+
+
+# Which profile sections each IR author needs. Every profile key must be
+# assigned (tests enforce it), so a new capability reaches both pipelines.
+PROFILE_SECTIONS = {
+    'rule_ir': ('version', 'backend', 'step_order', 'session_random', 'algorithm_methods', 'action_catalogue', 'behavior_steps',
+                'unsupported_in_this_backend'),
+    'asset_ir': ('version', 'backend', 'asset_recipes', 'asset_recipe_inputs', 'unsupported_in_this_backend'),
+    'scene_ir': ('version', 'backend', 'presentation_patterns', 'spatial_grid_layout', 'depth_view', 'scene_components',
+                 'builtin_geometry', 'collider_shapes', 'light_kinds', 'bindable_component_properties',
+                 'bindable_node_properties', 'scene_binding_sources', 'scene_binding_transforms', 'scene_binding_note',
+                 'scene_parameter_bindings', 'rule_outcome_bindings', 'number_display', 'pointer_feedback',
+                 'presentation_expression', 'coordinates', 'initial_view', 'unsupported_in_this_backend'),
+    'input_ir': ('version', 'backend', 'input_controls', 'input_focus', 'input_value_types', 'input_phases',
+                 'input_event_data', 'pointer_routing', 'input_consume_policies', 'input_action_selection',
+                 'host_commands', 'host_command_target', 'lifecycle_note', 'depth_view', 'unsupported_in_this_backend'),
+}
+
+
+def profile_for(ir_key):
+    """The executable capability sections one IR's author needs (same source as the staged payload)."""
+    full = profile()
+    return {key: full[key] for key in PROFILE_SECTIONS.get(ir_key, ()) if key in full}
+
+
+def unassigned_profile_sections():
+    assigned = {key for keys in PROFILE_SECTIONS.values() for key in keys}
+    return sorted(set(profile()) - assigned)

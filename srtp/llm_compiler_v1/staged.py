@@ -43,7 +43,8 @@ node=visualizer HOST node, visualizer=its component ID, component=the PREFAB ren
 Use transform kind=map with cases:[{equals:0,value:"empty"},...] and complete state coverage.
 Overlay UI position/size are normalized viewport-height units, not pixel coordinates. Font size uses scale, not size.
 Available references: flow.current_actor, flow.phase; param.NAME. var.NAME is ONLY a local foreach/random binding.
-Evaluation order: an action's effects run, the turn advances (flow.turn_order), THEN outcomes are evaluated, so flow.current_actor in an outcome is the NEXT participant. Test the mark just placed, not the current actor's.
+Evaluation order (backend_profile.step_order): an action's effects run, rule:event.action_applied is emitted, every triggered system and its cascades (and scheduled events already due) run to completion, the turn advances (flow.turn_order), THEN outcomes are evaluated, so flow.current_actor in an outcome is the NEXT participant. Test the mark just placed, not the current actor's. At startup initial_effects and phase_enter systems complete before any outcome check.
+If you are unsure how the runtime orders something, assert it in a behavior test instead of marking it unresolved.
 Read declared game state with {"expr":"state.get('rule:state.ID')"}, not var.NAME.
 Calls use runtime function names without core:. For AST calls use op:"call", function:"core:state.get", args:[ASTs];
 Compact Python // keeps floor-division semantics (including negative values); AST div requires exact division.
@@ -153,6 +154,7 @@ class StageResult:
     source_oracle: dict = field(default_factory=dict)
     upstream_rounds: list = field(default_factory=list)
     scene_draft: dict = field(default_factory=dict)
+    cache: dict = field(default_factory=dict)
 
 
 DRAFT_INSTRUCTION = (
@@ -325,6 +327,104 @@ def run_behavior_tests(rule, tests):
     if not exercised_transition or not exercised_boundary:
         raise ValueError('Behavior tests must exercise a legal transition and rejection or terminal outcome')
     return results
+
+
+_SEALERS = {'rule_ir': ('srtp.ir_v2.rule_ir', 'seal_rule_ir'), 'asset_ir': ('srtp.asset_ir_v2.asset_ir', 'seal_asset_ir'),
+            'scene_ir': ('srtp.scene_ir_v2.scene_ir', 'seal_scene_ir'), 'input_ir': ('srtp.input_ir_v2.input_ir', 'seal_input_ir')}
+
+
+STABLE_PAYLOAD_KEYS = ('backend_profile', 'runtime_capabilities', 'evidence_pack')
+
+
+def stable_first(payload):
+    """Same content, run-constant fields first: every stage and repair shares one cacheable prompt prefix.
+
+    The source workspace is put in front of these by SourceWorkspace.chat.
+    """
+    return dict([(k, payload[k]) for k in STABLE_PAYLOAD_KEYS if k in payload] +
+                [(k, v) for k, v in payload.items() if k not in STABLE_PAYLOAD_KEYS])
+
+
+def _declared_ids(value):
+    found = set()
+    if isinstance(value, dict):
+        if isinstance(value.get('id'), str):
+            found.add(value['id'])
+        for item in value.values():
+            found |= _declared_ids(item)
+    elif isinstance(value, list):
+        for item in value:
+            found |= _declared_ids(item)
+    return found
+
+
+def model_documents(documents, accepted_payloads, slot):
+    """current_documents for a later stage: an accepted Rule as its authored definition.
+
+    The sealed Rule spells every expression as an operator tree (about four
+    times the authored text). The authored definition is shown instead when it
+    declares exactly the same ids; engine pins stay on the sealed document.
+    """
+    shown = dict(documents)
+    authored = (accepted_payloads.get('rule_ir') or {}).get('definition')
+    sealed = documents.get('rule_ir')
+    if slot != 'rule_ir' and isinstance(authored, dict) and isinstance(sealed, dict) and 'mechanics' not in authored \
+            and _declared_ids(authored) == _declared_ids({k: v for k, v in sealed.items() if k != 'provenance'}):
+        shown['rule_ir'] = dict(deepcopy(authored), document_id=sealed.get('document_id'),
+                                content_hash=sealed.get('content_hash'),
+                                note='authored form of the accepted Rule (ids identical to the sealed document)')
+    return shown
+
+
+def required_unresolved(document):
+    """(index, item) for each required unresolved item the model declared in a stage document."""
+    items = document.get('unresolved') if isinstance(document, dict) else None
+    return [(i, item) for i, item in enumerate(items or []) if isinstance(item, dict) and item.get('required') is True]
+
+
+def _checked_stage(slot, documents, root, tests, *, spatial=False):
+    """Run the stage gates; a declared required unresolved item gets one precise diagnostic.
+
+    The compilers refuse any document with a required unresolved item, which
+    used to surface as the same opaque line once per behaviour test. Here the
+    gates also run on a copy with those items set aside (diagnosis only; the
+    copy is never accepted), so the repair learns exactly which item blocks
+    and whether anything else is wrong.
+    """
+    blockers = required_unresolved(documents.get(slot))
+    if not blockers:
+        return _execute_stage(slot, documents, root, tests, spatial=spatial)
+    import importlib
+    module, name = _SEALERS[slot]
+    probe = dict(documents)
+    probe[slot] = getattr(importlib.import_module(module), name)(dict(
+        documents[slot], unresolved=[item for item in documents[slot].get('unresolved') or []
+                                     if not (isinstance(item, dict) and item.get('required') is True)]))
+    unresolved_only = False
+    try:
+        _execute_stage(slot, probe, root, tests, spatial=spatial)
+        unresolved_only = True
+        other = ('With these items set aside, every other {0} gate{1} passed, so only this decision blocks the stage.'
+                 .format(slot, ' and all {0} behavior_tests'.format(len(tests)) if slot == 'rule_ir' else ''))
+    except (ValueError, TypeError, KeyError, RuntimeError, OSError) as error:
+        other = 'With these items set aside, these checks still fail (fix them too): ' + ' | '.join(
+            diagnostic_messages(error))[:1500]
+    from .program_builder import DefinitionValidationError
+    error = DefinitionValidationError(['{0} /unresolved/{1} is required and blocks compilation (path {2}): {3}'.format(
+        slot, index, item.get('path', '?'), str(item.get('reason', ''))[:400]) for index, item in blockers] + [
+        other + ' A required item means the source has semantics this IR cannot express. If it is a question about '
+        'how the runtime behaves (e.g. backend_profile.step_order), the contract answers it: assert the behaviour '
+        'in behavior_tests and clear the item. Keep it required only when a needed capability is truly absent.'])
+    # Only the declaration blocks: the repair can be a short unresolved review, not a regeneration.
+    error.unresolved_only = unresolved_only
+    raise error
+
+
+UNRESOLVED_INSTRUCTION = (
+    'Your previous definition passed every gate except the required unresolved items in unresolved_review.declared; '
+    'it is kept exactly. Do not resend the definition. Reply {"unresolved": [the complete new definition.unresolved '
+    'list, [] when the contract answers every item], "behavior_tests": [optional extra tests asserting the behaviour '
+    'in question], "evidence": [...]}. Send a complete definition only if the source really needs other changes.')
 
 
 def _execute_stage(slot, documents, root, tests, *, spatial=False):
@@ -560,6 +660,30 @@ def _dependency_proposal(slot, documents, evidence, job_id, design_intent):
     return proposal
 
 
+def stage_signatures(compiler, package, evidence, documents, design_intent, source_manifest_hash, workspace=None):
+    """Checkpoint identity: the inputs (source, intent, model, base documents) and the engine contract."""
+    engine_files = [Path(__file__), Path(__file__).with_name('program_builder.py'),
+        Path(__file__).with_name('source_workspace.py'), Path(__file__).with_name('compiler.py'),
+        Path(__file__).with_name('client.py'), Path(__file__).with_name('env.py'),
+        Path(__file__).with_name('backend_contract.py'), Path(__file__).with_name('input_acceptance.py'),
+        Path(__file__).with_name('presentation_acceptance.py'), Path(__file__).with_name('scene_draft.py'),
+        Path(__file__).with_name('scene_completion.py'), Path(__file__).with_name('upstream.py'),
+        Path(__file__).with_name('visual_gate.py'), Path(__file__).with_name('normalize.py'),
+        Path(__file__).with_name('mechanics.py'), Path(__file__).with_name('static_facts.py')]
+    engine_files += [Path(__file__).resolve().parents[1]/p for p in
+        ('ir_v2/runtime.py','ir_v2/function_docs.py','visual_check_worker.py','ir_v2/sequence_functions.py','session_random.py','llm_compiler_v1/behavior_runtime.py','scene_presentation.py','volume_layout.py','depth_view.py','presentation_patterns.py','ursina_scene_backend.py','source_visuals.py','sprite_geometry.py',
+        'bundle_assets.py','runtime_assets.py','system_fonts.py','drawn_shapes.py','vector_geometry.py','ir_contracts.py','input_adapter_contract.py','input_pointer_contract.py','pointer_gesture.py','asset_ir_v2/recipe_contracts.py',
+        'scene_ir_v2/component_contracts.py','scene_ir_v2/binding_expressions.py','ir_v2/expression_contracts.py','asset_ir_v2/compiler.py','asset_ir_v2/asset_ir.py','visual_timeline.py','ir_v2/command_contracts.py','ir_v2/rule_ir.py','ir_v2/types.py','scene_ir_v2/compiler.py','scene_ir_v2/scene_ir.py',
+        'scene_ir_v2/scene-compiler-capabilities.json','input_ir_v2/compiler.py','input_ir_v2/input_ir.py',
+        'input_ir_v2/input-compiler-capabilities.json','llm_compiler_v1/source_equivalence.py','source_function_worker.py','project_manifest_v2/compiler.py','project_viewer.py','project_camera.py','ir_acceptance.py',*SCHEMAS.values())]
+    engine_hash = hashlib.sha256(b''.join(path.read_bytes() for path in engine_files)).hexdigest()
+    input_identity=_stage_input_identity(compiler,package,evidence,documents,design_intent,source_manifest_hash,workspace)
+    input_signature = hashlib.sha256(json.dumps(input_identity,sort_keys=True).encode()).hexdigest()
+    signature = hashlib.sha256(json.dumps(dict(input_identity,compiler_contract=engine_hash),sort_keys=True).encode()).hexdigest()
+    return {'engine_hash': engine_hash, 'input_identity': input_identity,
+            'input_signature': input_signature, 'signature': signature}
+
+
 def run_stages(compiler, *, package, evidence, documents, job_id, design_intent=None, source_manifest_hash=None):
     from srtp.ir_v2.runtime import _core_functions
     from srtp.ir_v2.capabilities import RULE_RUNTIME_CAPABILITIES
@@ -590,23 +714,14 @@ def run_stages(compiler, *, package, evidence, documents, job_id, design_intent=
         result.diagnostics = ['Local dependency preflight failed before model call: ' + message for message in workspace.preflight_errors]
         return result
     cache_path = compiler.checkpoint_path
-    engine_files = [Path(__file__), Path(__file__).with_name('program_builder.py'),
-        Path(__file__).with_name('source_workspace.py'), Path(__file__).with_name('compiler.py'),
-        Path(__file__).with_name('client.py'), Path(__file__).with_name('env.py'),
-        Path(__file__).with_name('backend_contract.py'), Path(__file__).with_name('input_acceptance.py'),
-        Path(__file__).with_name('presentation_acceptance.py')]
-    engine_files += [Path(__file__).resolve().parents[1]/p for p in
-        ('ir_v2/runtime.py','ir_v2/sequence_functions.py','session_random.py','llm_compiler_v1/behavior_runtime.py','scene_presentation.py','volume_layout.py','depth_view.py','presentation_patterns.py','ursina_scene_backend.py','source_visuals.py','sprite_geometry.py',
-         'bundle_assets.py','runtime_assets.py','system_fonts.py','drawn_shapes.py','vector_geometry.py','ir_contracts.py','input_adapter_contract.py','input_pointer_contract.py','pointer_gesture.py','asset_ir_v2/recipe_contracts.py',
-         'scene_ir_v2/component_contracts.py','scene_ir_v2/binding_expressions.py','ir_v2/expression_contracts.py','asset_ir_v2/compiler.py','asset_ir_v2/asset_ir.py','visual_timeline.py','ir_v2/command_contracts.py','ir_v2/rule_ir.py','ir_v2/types.py','scene_ir_v2/compiler.py','scene_ir_v2/scene_ir.py',
-         'scene_ir_v2/scene-compiler-capabilities.json','input_ir_v2/compiler.py','input_ir_v2/input_ir.py',
-         'input_ir_v2/input-compiler-capabilities.json','llm_compiler_v1/source_equivalence.py','source_function_worker.py','project_manifest_v2/compiler.py','project_viewer.py','project_camera.py','ir_acceptance.py',*SCHEMAS.values())]
-    engine_hash = hashlib.sha256(b''.join(path.read_bytes() for path in engine_files)).hexdigest()
-    input_identity=_stage_input_identity(compiler,package,evidence,documents,design_intent,source_manifest_hash,workspace)
-    input_signature = hashlib.sha256(json.dumps(input_identity,sort_keys=True).encode()).hexdigest()
-    signature = hashlib.sha256(json.dumps(dict(input_identity,compiler_contract=engine_hash),sort_keys=True).encode()).hexdigest()
+    signatures = stage_signatures(compiler, package, evidence, documents, design_intent, source_manifest_hash, workspace)
+    engine_hash, input_identity = signatures['engine_hash'], signatures['input_identity']
+    input_signature, signature = signatures['input_signature'], signatures['signature']
     cached = {}
     rejected_cache = {}
+    result.cache = {'checkpoint': str(cache_path) if cache_path else None, 'exists': bool(cache_path and cache_path.is_file()),
+                    'signature': signature, 'input_signature': input_signature, 'engine_contract_sha256': engine_hash,
+                    'matched_by': None}
     oracle_rounds = {}
     upstream_records = {}
     cache_recovery = None
@@ -614,14 +729,21 @@ def run_stages(compiler, *, package, evidence, documents, job_id, design_intent=
         try:
             stored = json.loads(cache_path.read_text(encoding='utf-8'))
             matches = stored.get('signature') == signature or stored.get('input_signature') == input_signature
+            result.cache['matched_by'] = ('signature' if stored.get('signature') == signature else
+                                          'input_signature (engine code changed; stages re-validated)'
+                                          if stored.get('input_signature') == input_signature else None)
+            result.cache['stored_signature'] = stored.get('signature')
             if not matches and _legacy_target_checkpoint_matches(stored,input_identity,documents):
                 matches = True
                 cache_recovery = 'legacy_target_bootstrap; exact source/intent/model pins; current gates rerun'
+                result.cache['matched_by'] = 'legacy_target_bootstrap'
             if matches:
                 # Reuse paid definitions across engine fixes, never validation
                 # results: every cached stage runs all current gates below.
                 cached = stored.get('stages', {})
                 rejected_cache = stored.get('rejected_stages', {})
+                result.cache['accepted_stages_available'] = sorted(cached)
+                result.cache['rejected_stages_available'] = sorted(rejected_cache)
                 oracle_rounds = stored.get('source_oracle_rounds', {})
                 upstream_records = stored.get('upstream_rounds', {})
                 result.provider, result.model = stored.get('provider', ''), stored.get('model', '')
@@ -714,7 +836,7 @@ def run_stages(compiler, *, package, evidence, documents, job_id, design_intent=
                         from .program_builder import DefinitionValidationError
                         raise DefinitionValidationError(applied.diagnostics)
                     documents_now = applied.documents
-                checks = _execute_stage(slot, documents_now, root, cases, spatial=True)
+                checks = _checked_stage(slot, documents_now, root, cases, spatial=True)
                 if slot == 'rule_ir':
                     result.plan = engine_lift['plan']
                     accepted_payloads[slot] = engine_payload
@@ -743,7 +865,7 @@ def run_stages(compiler, *, package, evidence, documents, job_id, design_intent=
                 if slot == 'rule_ir':
                     engine_lift = dict(engine_lift, applied=False)
                     result.lift_template = dict(result.lift_template, applied=False, diagnostics=list(feedback))
-        entry_plan, entry_base = None, None
+        entry_plan, entry_base, unresolved_base = None, None, None
         draft = None
         if slot == 'scene_ir' and design_intent is None and not reopening and _scene_draft_mode(compiler) != 'off':
             draft, draft_reasons = _validated_scene_draft(
@@ -773,7 +895,7 @@ def run_stages(compiler, *, package, evidence, documents, job_id, design_intent=
                 compiler.progress({'stage':slot,'attempt':attempt+1,'cached':use_cache})
             payload = {'task':'build_' + slot, 'stage':slot, 'schema':schema, 'evidence_pack':evidence,
                        'engine_owned_fields':sorted(ENGINE_OWNED_FIELDS),
-                       'current_documents':result.documents, 'design_intent':design_intent,
+                       'current_documents':model_documents(result.documents,accepted_payloads,slot), 'design_intent':design_intent,
                        'source_manifest_hash':source_manifest_hash, 'spatial_plan':result.plan,
                        'repair_diagnostics':feedback, 'repair_history':repair_history, 'previous_definition':previous,
                        'runtime_capabilities':RULE_RUNTIME_CAPABILITIES,
@@ -793,8 +915,12 @@ def run_stages(compiler, *, package, evidence, documents, job_id, design_intent=
             if entry_plan:
                 from .entry_repair import INSTRUCTION
                 payload['entry_repair'] = {'failing_entries': entry_plan, 'instruction': INSTRUCTION}
+            if unresolved_base:
+                payload['unresolved_review'] = {'declared': [item for _, item in required_unresolved(
+                    unresolved_base['definition'])], 'instruction': UNRESOLVED_INSTRUCTION}
             if design_intent and slot == 'rule_ir':
                 payload['plan_requirement'] = 'Also return plan with topology, source_xy_policy, target_z, neighborhood, movement, outcomes, presentation, input, z_equals_one_tests, z_gt_one_tests, alternatives and unresolved.'
+            payload = stable_first(payload)
             try:
                 if use_cache:
                     previous = deepcopy(cached[slot])
@@ -809,7 +935,7 @@ def run_stages(compiler, *, package, evidence, documents, job_id, design_intent=
                         with budget_stage(compiler.client, slot, repair=bool(repair_history)):
                             response = workspace.chat(compiler.client,[{'role':'system','content':SYSTEM},
                                 {'role':'user','content':json.dumps(payload,ensure_ascii=False,separators=(',',':'))}],
-                                schema=STAGE_REPLY)
+                                schema=STAGE_REPLY, tool_context={'slot': slot, 'documents': result.documents})
                     result.provider, result.model = response.provider, response.model
                     previous = dict(response.parsed)
                     if draft is not None and not entry_plan and not isinstance(previous.get('definition'), dict) and (
@@ -843,6 +969,20 @@ def run_stages(compiler, *, package, evidence, documents, job_id, design_intent=
                         if reply.get('source_equivalence') is not None:
                             previous['source_equivalence'] = reply['source_equivalence']
                         previous['entry_repair'] = [row['field'] + ':' + str(row['id']) for row in entry_plan]
+                    elif unresolved_base and isinstance(previous.get('unresolved'), list) \
+                            and not isinstance(previous.get('definition'), dict):
+                        # Unresolved review: only the declaration changes; added tests must also pass.
+                        reply = previous
+                        previous = deepcopy(unresolved_base)
+                        previous['definition']['unresolved'] = deepcopy(reply['unresolved'])
+                        names = {test.get('name') for test in previous.get('behavior_tests') or [] if isinstance(test, dict)}
+                        previous['behavior_tests'] = list(previous.get('behavior_tests') or []) + [
+                            test for test in reply.get('behavior_tests') or []
+                            if isinstance(test, dict) and test.get('name') not in names]
+                        for key in ('evidence', 'assumptions'):
+                            previous[key] = list(unresolved_base.get(key) or []) + [
+                                item for item in reply.get(key) or [] if item not in (unresolved_base.get(key) or [])]
+                        previous['unresolved_review'] = len(reply['unresolved'])
                 proposal = definition_proposal(previous,slot=slot,documents=result.documents,evidence_pack=evidence,job_id=job_id,design_intent=design_intent,source_root=root,visual_catalog=workspace.visuals,locked=facts)
                 applied = validate_and_apply_proposal(proposal,result.documents,
                     source_package_hash=evidence['source_package_hash'],evidence_pack=evidence,source_root=root,locked=facts)
@@ -851,7 +991,7 @@ def run_stages(compiler, *, package, evidence, documents, job_id, design_intent=
                     raise DefinitionValidationError(applied.diagnostics)
                 candidate = applied.documents[slot]
                 cases=previous.get('behavior_tests',[]) if slot=='rule_ir' else accepted_payloads.get('rule_ir',{}).get('behavior_tests',[])
-                checks = _execute_stage(slot,applied.documents,root,cases,spatial=design_intent is not None)
+                checks = _checked_stage(slot,applied.documents,root,cases,spatial=design_intent is not None)
                 if slot == 'rule_ir' and design_intent is None and previous.get('source_equivalence'):
                     checks = list(checks) + [_source_equivalence_gate(root, applied.documents['rule_ir'], previous)]
                 if design_intent and slot == 'rule_ir':
@@ -879,6 +1019,7 @@ def run_stages(compiler, *, package, evidence, documents, job_id, design_intent=
                 result.trace.append({'stage':slot,'attempt':attempt+1,'passed':True,'checks':checks,
                                      'cached':use_cache,'behavior_tests':previous.get('behavior_tests',[]),
                                      'entry_repair':previous.get('entry_repair'),
+                                     'unresolved_review':previous.get('unresolved_review'),
                                      'engine_draft_review':previous.get('engine_draft_review'),
                                      'ignored_engine_fields':sorted(set(previous.get('definition',{})) & ENGINE_OWNED_FIELDS)})
                 if draft is not None:
@@ -909,6 +1050,8 @@ def run_stages(compiler, *, package, evidence, documents, job_id, design_intent=
                 definition = previous.get('definition') if isinstance(previous, dict) else None
                 entry_plan = failing_entries(slot, definition, feedback) if isinstance(definition, dict) else None
                 entry_base = deepcopy(previous) if entry_plan else None
+                unresolved_base = deepcopy(previous) if getattr(error, 'unresolved_only', False) \
+                    and isinstance(definition, dict) else None
                 # Stop when a paid repair fixed none of the previous diagnostics
                 # (same or superset), instead of spending the remaining attempts.
                 from .budget import made_progress
@@ -1122,6 +1265,7 @@ def compile_staged_report(compiler, *, package, evidence, documents, job_id, pro
                            'source_oracle':outcome.source_oracle,
                            'upstream_rounds':outcome.upstream_rounds,
                            'scene_draft':outcome.scene_draft,
+                           'cache':outcome.cache,
                            'quality_assessment':quality,
                            'api_usage':usage,
                            'provenance':_provenance(),

@@ -281,6 +281,9 @@ def compile_alphazero_game(
         raise AlphaZeroAdapterError("AlphaZero adapter has required unresolved semantics")
     if manifest.get("content_hash") != canonical_alphazero_manifest_hash(manifest):
         raise AlphaZeroAdapterError("AlphaZero adapter manifest is not sealed or its content hash changed")
+    from .derived import ALPHAZERO_DERIVED_VERSION, DerivedAlphaZeroGame
+    if manifest.get("adapter_version") == ALPHAZERO_DERIVED_VERSION:
+        return DerivedAlphaZeroGame(document, manifest)
     _validate_rule_value_coverage(document, manifest)
     game = AlphaZeroGame(document, manifest)
     _validate_initial_role_symmetry(game)

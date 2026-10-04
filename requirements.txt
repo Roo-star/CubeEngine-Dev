@@ -10,3 +10,6 @@ pygame>=2.5,<3
 ursina>=5.2,<6; python_version < "3.10"
 ursina>=7,<8; python_version >= "3.10" and python_version < "3.12"
 ursina>=8.3,<9; python_version >= "3.12"
+# AI self-play training (AI-Dev network): CUDA 12.4 build from the PyTorch index
+--extra-index-url https://download.pytorch.org/whl/cu124
+torch==2.5.1+cu124

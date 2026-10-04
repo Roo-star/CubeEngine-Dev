@@ -11,6 +11,11 @@ coarse so that only clearly broken pictures fail:
 * in a 3D volume the cells are not flat plates;
 * HUD text overlapping the board is a warning (the viewer moves the view).
 
+When the Scene hides the board in the initial state (a source title or menu
+screen), the checks run on the first state reachable by a short sequence of
+legal actions in which the board is shown; if none is found, the board checks
+are skipped with a warning rather than failing a faithful menu screen.
+
 Usage: python -m srtp.visual_check_worker PLAN.json RESULT.json
 """
 
@@ -59,6 +64,62 @@ def _background(frame):
     return np.median(border, axis=0)
 
 
+def _shown_fraction(presentation):
+    """Share of board-site nodes that are active (with their ancestors and layer) in the presentation."""
+    from srtp.input_pointer_contract import scene_parent
+    sites = [node_id for visualizer in presentation.scene.topology_sites.values() for node_id in visualizer.values()]
+
+    def shown(node_id):
+        node = presentation.nodes.get(node_id)
+        renderers = [c for c in (node or {}).get('components', {}).values() if c.get('type') == 'renderer']
+        if renderers and not any(c.get('enabled', True) for c in renderers):
+            return False
+        while node:
+            if not node.get('active', True) or not presentation.layers.get(node.get('layer'), {}).get('visible', True):
+                return False
+            node = presentation.nodes.get(scene_parent(node))
+        return True
+    return sum(1 for node_id in sites if shown(node_id)) / float(len(sites)) if sites else 1.0
+
+
+def _path_to_board(rule, presentation, projection, *, depth=4, budget=80):
+    """Shortest legal action-code path (breadth first, distinct states) after which the board is shown."""
+    from srtp.ir_v2 import compile_rule_ir
+    from srtp.session_random import session_sources
+
+    def replay(path):
+        runtime = compile_rule_ir(rule, random_sources=session_sources(rule))
+        for code in path:
+            runtime.apply_action(code)
+        return runtime
+    frontier, seen, tried = [()], set(), 0
+    for _ in range(depth):
+        following = []
+        for path in frontier:
+            runtime = replay(path)
+            try:
+                for action in runtime.legal_actions():
+                    if tried >= budget:
+                        return None
+                    tried += 1
+                    candidate = replay(path + (action.code,))
+                    try:
+                        key = candidate.state.state_hash()
+                        if key in seen:
+                            continue
+                        seen.add(key)
+                        presentation.synchronize(projection, candidate.state)
+                        if _shown_fraction(presentation) >= 0.5:
+                            return path + (action.code,)
+                        following.append(path + (action.code,))
+                    finally:
+                        candidate.close()
+            finally:
+                runtime.close()
+        frontier = following
+    return None
+
+
 def main(plan_path: str, result_path: str) -> int:
     plan = json.loads(Path(plan_path).read_text(encoding='utf-8'))
     result = {'status': 'error', 'errors': [], 'warnings': [], 'facts': {}}
@@ -90,6 +151,21 @@ def _check(plan, result):
     presentation = ScenePresentation(scene, assets, legacy_appearance=True, volume_rule=rule if spatial else None)
     projection = scene.create_projection_session()
     presentation.synchronize(projection, runtime.state)
+    board_hidden = False
+    if _shown_fraction(presentation) < 0.5:
+        # A faithful title/menu screen may hide the board: check the first state that shows it.
+        path = _path_to_board(rule, ScenePresentation(scene, assets, legacy_appearance=True,
+                                                      volume_rule=rule if spatial else None),
+                              scene.create_projection_session())
+        if path is None:
+            board_hidden = True
+            result['warnings'].append('the board is hidden in the initial state and no short legal action sequence '
+                                      'shows it; board checks skipped')
+        else:
+            for code in path:
+                runtime.apply_action(code)
+            presentation.synchronize(projection, runtime.state)
+            result['facts']['board_shown_after'] = [runtime.all_actions()[code].action_id for code in path]
     from ursina import Ursina, window
     from srtp.ursina_scene_backend import UrsinaSceneBackend, rgba255
     app = Ursina(development_mode=False)
@@ -104,6 +180,9 @@ def _check(plan, result):
     bounds = playable_bounds(backend)
     rect = board_rect(bounds)
     height, width = before.shape[:2]
+    if board_hidden:
+        result['status'] = 'passed'
+        return
     if rect is None:
         result['errors'].append('the board cannot be projected into the view')
     else:

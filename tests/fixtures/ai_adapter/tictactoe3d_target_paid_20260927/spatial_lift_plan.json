@@ -1,0 +1,57 @@
+{
+  "topology": {
+    "id": "rule:topology.board",
+    "add_axes": [
+      {
+        "name": "z",
+        "extent": 3,
+        "boundary": "bounded"
+      }
+    ],
+    "set_extents": {}
+  },
+  "source_xy_policy": "Source rules unchanged; engine template add axis z with extent 3",
+  "target_z": 3,
+  "neighborhood": "Runtime topology functions are rank-generic; neighbors/lines now include the new axis.",
+  "movement": "Unchanged Source actions over the lifted topology.",
+  "outcomes": "Unchanged Source outcomes; rank-generic grid functions and site-count expressions extend to the Target.",
+  "presentation": "Engine-owned spatial grid layout.",
+  "input": "Pointer event_data.rule_coordinate carries the full Target coordinate.",
+  "z_equals_one_tests": [
+    {
+      "engine_check": "z_equals_one",
+      "reference": "source",
+      "compared_steps": 522
+    }
+  ],
+  "z_gt_one_tests": [],
+  "alternatives": [],
+  "unresolved": [],
+  "engine_template": {
+    "template": {
+      "template_version": "cubeengine.srtp/lift-template/1.0",
+      "topology": "rule:topology.board",
+      "set_extents": {},
+      "add_axes": [
+        {
+          "name": "z",
+          "extent": 3,
+          "boundary": "bounded"
+        }
+      ],
+      "count_policy": "keep",
+      "movement": null
+    },
+    "transforms": [
+      "add axis z with extent 3"
+    ],
+    "replaced_constants": [],
+    "padded_coordinates": [],
+    "residual": [],
+    "warnings": []
+  },
+  "plan_version": "cubeengine.srtp/spatial-lift-plan/1.0",
+  "plan_id": "lift:job.c057905d9b1d413c",
+  "source_manifest_hash": "b67e4b2fecdeabbc956d4e259c7fff9ee5bcad8bdd6305ec16b700478bb765b0",
+  "design_intent_id": "intent:aefdac7b8503"
+}

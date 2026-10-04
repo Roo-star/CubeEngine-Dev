@@ -770,6 +770,13 @@ class RuleRuntime:
         except (ExpressionError, RuleRuntimeError, KeyError, TypeError, ValueError):
             return False
 
+    def action_actor(self, action: Union[int, ActionInstance]) -> Optional[str]:
+        """The participant who performs ``action`` in the current state (its actor expression)."""
+        instance = self._resolve_action(action)
+        definition = self._actions_by_id[instance.action_id]
+        actor = self.evaluator.evaluate(definition["actor"], self._context(instance.parameters))
+        return None if actor is None else str(actor)
+
     def _is_legal_nonterminal(self, instance: ActionInstance) -> bool:
         try:
             definition = self._actions_by_id[instance.action_id]
@@ -1455,7 +1462,10 @@ def compile_rule_ir(
     if errors:
         raise RuleRuntimeError("Rule IR validation failed at {0}: {1}".format(errors[0].path, errors[0].message))
     if not is_rule_ir_compile_ready(document):
-        raise RuleRuntimeError("Rule IR contains required unresolved semantics or no executable mechanic")
+        unresolved = ["{0}: {1}".format(item.get("path", "?"), item.get("reason", "Unresolved"))
+                      for item in document.get("unresolved", []) if isinstance(item, Mapping) and item.get("required")]
+        raise RuleRuntimeError("Rule IR contains required unresolved semantics or no executable mechanic"
+                               + ("; " + "; ".join(unresolved) if unresolved else ""))
     capability_errors = runtime_capability_diagnostics(document)
     if capability_errors:
         first = capability_errors[0]

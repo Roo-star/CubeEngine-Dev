@@ -2,6 +2,8 @@
 
 from .compiler import AlphaZeroAdapterError, AlphaZeroGame, compile_alphazero_game
 from .conformance import AlphaZeroConformanceReport, assess_alphazero_conformance
+from .derive import AdapterDerivation, derive_alphazero_adapter, static_eligibility
+from .derived import ALPHAZERO_DERIVED_VERSION, DerivedAlphaZeroGame
 from .manifest import (
     ALPHAZERO_ADAPTER_VERSION,
     ALPHAZERO_CAPABILITIES,
@@ -19,6 +21,11 @@ from .manifest import (
 )
 
 __all__ = [
+    "ALPHAZERO_DERIVED_VERSION",
+    "AdapterDerivation",
+    "DerivedAlphaZeroGame",
+    "derive_alphazero_adapter",
+    "static_eligibility",
     "ALPHAZERO_ADAPTER_VERSION",
     "ALPHAZERO_CAPABILITY_ID",
     "ALPHAZERO_CAPABILITIES",

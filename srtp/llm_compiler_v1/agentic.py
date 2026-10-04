@@ -306,6 +306,7 @@ class AgenticSourceToIRCompiler:
             if previous.is_file():
                 earlier = json.loads(previous.read_text(encoding="utf-8"))
                 job.trace.previous_runs = list(earlier.pop("previous_runs", []) or []) + [earlier]
+        log_start = len(getattr(self.client, "request_log", None) or [])
         with self.client:
             budget = getattr(self.client, "budget", None)
             if budget is not None:
@@ -318,6 +319,13 @@ class AgenticSourceToIRCompiler:
                 job.trace.usage = dict(getattr(self.client, "usage_summary", None) or {})
         if out_dir is not None:
             root = Path(out_dir)
+            from .provenance import build_provenance
+            try:  # best effort: never blocks publishing the run
+                report.request_records = list((getattr(self.client, "request_log", None) or [])[log_start:])
+                report.provenance = build_provenance(report, self.client, report.request_records,
+                                                     extra={"pipeline": "agentic", "out_dir": str(root)})
+            except Exception as error:  # noqa: BLE001
+                report.provenance = {"error": "{0}: {1}".format(type(error).__name__, error)}
             report.output_dir = str(write_compile_artifacts(root, report))
             job.write_agent_artifacts(root)
         job.report = report
@@ -972,10 +980,16 @@ class _Job:
                         "Return the COMPLETE corrected patch; keep everything else unchanged."
                     )},
                 ))
-                if self._converge(worker, origin="review"):
+                converged = self._converge(worker, origin="review")
+                if converged:
                     changed = True
                 else:
                     worker.envelope = accepted
+                # Cross-stage repair lineage: what sent this IR back and whether it changed.
+                self.trace.record(ir_key, "repair_round", round=round_index + 1, converged=converged,
+                                  changed=worker.envelope != accepted,
+                                  origins=sorted({_issue_origin(item) for item in messages}),
+                                  issues=[str(item)[:300] for item in messages[:12]])
             if not changed:
                 break
         return self._finalize()
@@ -1850,6 +1864,18 @@ def _required_gaps(documents: Mapping[str, Mapping[str, Any]]) -> List[str]:
                 text += " [owner {0}]".format(item["owner"])
             gaps.append(text)
     return gaps
+
+
+def _issue_origin(text: str) -> str:
+    """Where a review issue came from (for the repair lineage)."""
+    lowered = str(text).lower()
+    for prefix, origin in (("runtime probe", "behavior_probe"), ("compile gate: visual check", "visual_check"),
+                           ("compile gate", "compile_gate"), ("source oracle", "source_oracle"),
+                           ("needed by", "downstream_requirement"), ("required unresolved", "required_unresolved"),
+                           ("reviewer", "critic"), ("lift check", "lift_check")):
+        if lowered.startswith(prefix):
+            return origin
+    return "final_check"
 
 
 def _gap_owner(gap: str) -> str:

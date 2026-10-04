@@ -1,0 +1,297 @@
+{
+  "ir_version": "cubeengine.asset-ir/2.0-alpha.1",
+  "document_id": "asset:game.tic.tac.toe.target",
+  "revision": 0,
+  "content_hash": "966b55a90f5bd981b4f9c13ea5e2166dbe746d34e3482a7e6c69681e441b1b76",
+  "metadata": {
+    "title": "Tic Tac Toe",
+    "description": "Source-drawn rounded cells, blue X marks and amber O marks, with the indexed Pygame default font for status and instructions.",
+    "source_project_hash": "a047aad70934c80e9fa9c332ffd9dc2ea1df95a50c0015b29f6e931c2d25aab5"
+  },
+  "assets": [
+    {
+      "id": "asset:font.pygame_default",
+      "name": "Pygame bundled default font",
+      "kind": "font",
+      "media_type": "font/ttf",
+      "source": {
+        "uri": "runtime://pygame/default-font",
+        "content_hash": "bf9251269f11e4b35582a99376096deee3d0c4973a459cbd97b0bebc01f440ad",
+        "byte_size": 98600
+      },
+      "license": {
+        "spdx_id": "LicenseRef-Pygame-Bundled-Font",
+        "attribution": "Pygame bundled freesansbold.ttf",
+        "source_uri": null,
+        "redistribution": "unknown"
+      },
+      "importer": {
+        "capability": "cubeengine.raw-file",
+        "version": "1.0",
+        "settings": {}
+      },
+      "metadata": {
+        "dependency": "pygame",
+        "version": "2.6.1",
+        "source_references": [
+          {
+            "path": "main.py",
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 48,
+              "line_end": 48
+            }
+          },
+          {
+            "path": "main.py",
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 49,
+              "line_end": 49
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "derivations": [
+    {
+      "id": "asset:shape.main.l73",
+      "name": "Source drawing main.py:73-73",
+      "kind": "model",
+      "media_type": "application/vnd.cubeengine.presentation+json",
+      "strategy": "vector_shape",
+      "inputs": [],
+      "settings": {
+        "canvas": [
+          132,
+          132
+        ],
+        "shapes": [
+          {
+            "op": "rect",
+            "rect": [
+              0,
+              0,
+              132,
+              132
+            ],
+            "width": 0,
+            "border_radius": 12,
+            "color": [
+              0.164706,
+              0.211765,
+              0.282353,
+              1.0
+            ]
+          }
+        ],
+        "depth": 0.1,
+        "axis": "z",
+        "size": [
+          1.0,
+          1.0
+        ]
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:shape.main.l76",
+      "name": "Source drawing main.py:76-77",
+      "kind": "model",
+      "media_type": "application/vnd.cubeengine.presentation+json",
+      "strategy": "vector_shape",
+      "inputs": [],
+      "settings": {
+        "canvas": [
+          132,
+          132
+        ],
+        "shapes": [
+          {
+            "op": "line",
+            "points": [
+              [
+                30,
+                30
+              ],
+              [
+                102,
+                102
+              ]
+            ],
+            "width": 8,
+            "color": [
+              0.27451,
+              0.745098,
+              0.980392,
+              1.0
+            ]
+          },
+          {
+            "op": "line",
+            "points": [
+              [
+                102,
+                30
+              ],
+              [
+                30,
+                102
+              ]
+            ],
+            "width": 8,
+            "color": [
+              0.27451,
+              0.745098,
+              0.980392,
+              1.0
+            ]
+          }
+        ],
+        "depth": 0.15,
+        "axis": "z",
+        "size": [
+          1.0,
+          1.0
+        ]
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:shape.main.l79",
+      "name": "Source drawing main.py:79-79",
+      "kind": "model",
+      "media_type": "application/vnd.cubeengine.presentation+json",
+      "strategy": "vector_shape",
+      "inputs": [],
+      "settings": {
+        "canvas": [
+          132,
+          132
+        ],
+        "shapes": [
+          {
+            "op": "circle",
+            "center": [
+              66,
+              66
+            ],
+            "radius": 40,
+            "width": 8,
+            "color": [
+              0.980392,
+              0.666667,
+              0.294118,
+              1.0
+            ]
+          }
+        ],
+        "depth": 0.2,
+        "axis": "z",
+        "size": [
+          1.0,
+          1.0
+        ]
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    }
+  ],
+  "roles": [
+    {
+      "id": "asset:role.cell",
+      "name": "Rounded board cell",
+      "semantic": "board.cell",
+      "resource": "asset:shape.main.l73",
+      "usage": "world_mesh",
+      "required": true
+    },
+    {
+      "id": "asset:role.x",
+      "name": "Blue X mark",
+      "semantic": "board.mark.x",
+      "resource": "asset:shape.main.l76",
+      "usage": "world_mesh",
+      "required": true
+    },
+    {
+      "id": "asset:role.o",
+      "name": "Amber O mark",
+      "semantic": "board.mark.o",
+      "resource": "asset:shape.main.l79",
+      "usage": "world_mesh",
+      "required": true
+    },
+    {
+      "id": "asset:role.status.font",
+      "name": "Status font",
+      "semantic": "hud.status.font",
+      "resource": "asset:font.pygame_default",
+      "usage": "ui_font",
+      "required": true
+    },
+    {
+      "id": "asset:role.instructions.font",
+      "name": "Instruction font",
+      "semantic": "hud.instructions.font",
+      "resource": "asset:font.pygame_default",
+      "usage": "ui_font",
+      "required": true
+    }
+  ],
+  "presentation_mappings": [
+    {
+      "id": "asset:mapping.cell",
+      "name": "Source rounded cell geometry",
+      "source_role": "asset:role.cell",
+      "target_resource": "asset:shape.main.l73",
+      "strategy": "vector_shape",
+      "fidelity": "source_derived",
+      "settings": {}
+    },
+    {
+      "id": "asset:mapping.x",
+      "name": "Source X geometry",
+      "source_role": "asset:role.x",
+      "target_resource": "asset:shape.main.l76",
+      "strategy": "vector_shape",
+      "fidelity": "source_derived",
+      "settings": {}
+    },
+    {
+      "id": "asset:mapping.o",
+      "name": "Source O geometry",
+      "source_role": "asset:role.o",
+      "target_resource": "asset:shape.main.l79",
+      "strategy": "vector_shape",
+      "fidelity": "source_derived",
+      "settings": {}
+    }
+  ],
+  "provenance": {
+    "patch_history": [
+      {
+        "base_revision": 0,
+        "base_content_hash": "63182a9f7a767e9c279c1437a9a53270b90007993e26fd05f729cdfe36c114f6",
+        "evidence": [
+          {
+            "evidence_id": "main.py:1-86@04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "path": "main.py",
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 1,
+              "line_end": 86
+            },
+            "supports": "/"
+          }
+        ],
+        "assumptions": [],
+        "operation_count": 6
+      }
+    ]
+  },
+  "unresolved": []
+}

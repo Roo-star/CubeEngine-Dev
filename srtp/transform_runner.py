@@ -39,15 +39,19 @@ class TransformedGameProcess:
 
 
 class TransformedGameRunner:
-    def launch_project(self, manifest: Path, source_root: Path) -> TransformedGameProcess:
+    def launch_project(self, manifest: Path, source_root: Path, *, ai_opponent: str = "off",
+                       ai_training_roots=()) -> TransformedGameProcess:
         from .llm_compiler_v1.compiler import load_compile_report_from_bundle
         report = load_compile_report_from_bundle(manifest.parent, manifest_path=manifest)
         if not report.compile_ready:
             raise RuntimeError("Approve the generated Target before 3D Play.")
         root = Path(__file__).resolve().parents[1]
+        command = [sys.executable, "-m", "srtp.project_viewer", "--manifest", str(manifest.resolve()),
+                   "--source-root", str(source_root.resolve()), "--ai-opponent", ai_opponent]
+        for training_root in ai_training_roots:
+            command.extend(["--ai-training-root", str(Path(training_root).resolve())])
         process = subprocess.Popen(
-            [sys.executable, "-m", "srtp.project_viewer", "--manifest", str(manifest.resolve()),
-             "--source-root", str(source_root.resolve())], cwd=str(root),
+            command, cwd=str(root),
             stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
             text=True, encoding="utf-8", errors="replace",
         )

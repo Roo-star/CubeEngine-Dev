@@ -139,6 +139,9 @@ def validate_alphazero_manifest(
     diagnostics: List[AlphaZeroDiagnostic] = []
     if not isinstance(manifest, Mapping):
         return [_error("root.type", "$", "Manifest root must be an object.")]
+    from .derived import ALPHAZERO_DERIVED_VERSION, validate_derived_manifest
+    if manifest.get("adapter_version") == ALPHAZERO_DERIVED_VERSION:
+        return validate_derived_manifest(manifest, rule_document)
     missing = _ROOT_FIELDS - set(manifest)
     extra = set(manifest) - _ROOT_FIELDS
     for key in sorted(missing):

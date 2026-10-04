@@ -78,6 +78,10 @@ class SrtpWorkbench:
         self.conversion_jobs = ConversionJobs()
         self.asynchronous_jobs = asynchronous_jobs
         self._source_generation = 0
+        from srtp.ai_training.workbench_panel import AiTrainingPanel
+        self.ai_panel = AiTrainingPanel(dpg, target_manifest=self._current_target_manifest,
+                                        output_root=lambda: self._conversion_root() / "ai_training",
+                                        message=self._message)
 
     def load_selected_reference(self, sender=None, app_data=None, user_data=None) -> None:
         path = REFERENCE_GAMES.get(self.dpg.get_value("srtp_reference_selector"))
@@ -503,6 +507,51 @@ class SrtpWorkbench:
             return root / kind
         return max(runs, key=lambda path: (path / "project.manifest.json").stat().st_mtime)
 
+    def _current_target_manifest(self) -> Optional[Path]:
+        """The Target AI training uses: the one attached for this source, else the newest generated one."""
+        if self.package is None:
+            return None
+        attached = getattr(self, "_attached_target", None)
+        if attached and attached[0] == str(self.package.entrypoint.resolve()):
+            return Path(attached[1])
+        path = self._latest_run("target") / "project.manifest.json"
+        return path if path.is_file() else None
+
+    CONVERSION_START = ("Continue from saved stages", "Start from scratch (pays every stage again)")
+
+    def _checkpoint_for_run(self, kind: str) -> Path:
+        """The stage checkpoint a new run uses, per the Workbench choice.
+
+        Continue: the shared <kind>.stages.json; accepted stages are re-validated and
+        reused, rejected ones are re-checked locally before paying.
+        From scratch: the old checkpoint is renamed to a timestamped backup (paid
+        replies are kept on disk, never deleted) and this run starts an empty one.
+        """
+        import datetime
+        import json as _json
+        checkpoint = self._stage_checkpoint(kind)
+        choice = self.dpg.get_value("srtp_conversion_start") if self.dpg.does_item_exist("srtp_conversion_start") else None
+        if choice == self.CONVERSION_START[1]:
+            if checkpoint.is_file():
+                stamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+                backup = checkpoint.with_name("{0}.stages.{1}.bak.json".format(kind, stamp))
+                checkpoint.replace(backup)
+                self._message("Starting {0} from scratch: every stage is generated again (paid). "
+                              "Earlier stages kept as {1}.".format(kind, backup.name))
+            else:
+                self._message("Starting {0} from scratch (no saved stages).".format(kind))
+            return checkpoint
+        try:
+            stored = _json.loads(checkpoint.read_text(encoding="utf-8"))
+            accepted = sorted((stored.get("stages") or {}))
+            rejected = sorted((stored.get("rejected_stages") or {}))
+            self._message("Continuing {0} from {1}: accepted {2}; rejected {3} (re-checked locally before any "
+                          "payment). Stages are reused only if the source and model settings still match.".format(
+                              kind, checkpoint.name, ", ".join(accepted) or "none", ", ".join(rejected) or "none"))
+        except (OSError, ValueError):
+            self._message("Continuing {0}: no saved stages yet, every stage is generated.".format(kind))
+        return checkpoint
+
     def _stage_checkpoint(self, kind: str) -> Path:
         """Paid stages stay shared per game, so a new run folder re-validates them instead of paying again."""
         return self._conversion_root() / "{0}.stages.json".format(kind)
@@ -525,12 +574,17 @@ class SrtpWorkbench:
                 report = load_compile_report_from_bundle(target.parent)
                 if not explicit_target and report.source_package_hash != build_evidence_pack(self.package)["source_package_hash"]:
                     raise ValueError("Generated Target belongs to a different source version. Recompile and approve first.")
-                self.transformed_process = self.transformed_runner.launch_project(target, Path(self.package.root))
+                opponent = self.ai_panel.play_opponent()
+                self.transformed_process = self.transformed_runner.launch_project(
+                    target, Path(self.package.root), ai_opponent=opponent,
+                    ai_training_roots=self.ai_panel.training_roots(target) if opponent != "off" else ())
             except (OSError, RuntimeError, ValueError) as error:
                 self._message("Generated Target could not open: {0}".format(error), error=True)
                 return
             self._set_play_label("STOP")
-            self._message("Ursina is running the approved Target through Project IR: {0}. Game rules come from this bundle.".format(target))
+            self._message("Ursina is running the approved Target through Project IR: {0}. Game rules come from this bundle.{1}".format(
+                target, " AI opponent moves {0}; each new game loads the newest trained model.".format(opponent)
+                if opponent != "off" else ""))
             return
         if not self.package.transformation.adapter_id:
             self._message(
@@ -578,6 +632,8 @@ class SrtpWorkbench:
             self._set_play_label("PLAY")
 
     def close(self) -> None:
+        if self.ai_panel.run is not None and self.ai_panel.run.running:
+            self.ai_panel.run.cancel()  # stops at the next game or move; the accepted checkpoint stays
         self.conversion_jobs.close()
         self.stop_preview(quiet=True)
         if self.core_controller is not None:
@@ -674,9 +730,12 @@ class SrtpWorkbench:
             pass
         package = deepcopy(self.package)
         tag = {'kind':kind,'out_dir':out_dir,'generation':self._source_generation}
+        if self.conversion_jobs.active:
+            self._message('A conversion is still running. Cancel it or wait for it to finish.',error=True)
+            return
+        checkpoint=self._checkpoint_for_run(kind)
         def worker(progress, token):
             compiler=SourceToIRCompiler(progress=progress,cancel_token=token)
-            checkpoint=self._stage_checkpoint(kind)
             if kind=='source':
                 return compiler.compile(package,out_dir=out_dir,checkpoint_path=checkpoint)
             return compiler.compile_spatial_lift(package,source_bundle_dir=source_dir,
@@ -744,7 +803,7 @@ class SrtpWorkbench:
                 self.package,
                 out_dir=out_dir,
                 intent_text=None,
-                checkpoint_path=self._stage_checkpoint("source"),
+                checkpoint_path=self._checkpoint_for_run("source"),
             )
         except LLMClientError as error:
             self._message("LLM compiler failed: {0}".format(error), error=True)
@@ -852,7 +911,7 @@ class SrtpWorkbench:
                 intent_text=intent,
                 target_dimensions=dict(self.package.transformation.target_dimensions),
                 out_dir=out_dir,
-                checkpoint_path=self._stage_checkpoint("target"),
+                checkpoint_path=self._checkpoint_for_run("target"),
             )
         except LLMClientError as error:
             self._message("Spatial Lift failed: {0}".format(error), error=True)
@@ -1537,6 +1596,9 @@ def main() -> None:
                         "No Project IR is attached to this source.",
                         tag="srtp_core_attachment", wrap=215, color=(178, 185, 198),
                     )
+                    dpg.add_text("Conversion start:", color=(178, 185, 198))
+                    dpg.add_radio_button(items=list(SrtpWorkbench.CONVERSION_START), tag="srtp_conversion_start",
+                                         default_value=SrtpWorkbench.CONVERSION_START[0])
                     dpg.add_button(
                         label="COMPILE LLM → SOURCE IR", width=-1,
                         callback=controller.compile_llm_source_to_ir,
@@ -1568,6 +1630,7 @@ def main() -> None:
                         tag="srtp_core_activity", multiline=True, readonly=True,
                         width=-1, height=150,
                     )
+                controller.ai_panel.build()
                 with dpg.collapsing_header(label="Function 2 Handoff"):
                     dpg.add_input_text(tag="srtp_handoff", multiline=True, readonly=True, width=-1, height=180)
 
@@ -1689,6 +1752,8 @@ def main() -> None:
         dpg.render_dearpygui_frame()
         controller.poll_conversion()
         frame += 1
+        if frame % 10 == 0:
+            controller.ai_panel.poll()
         if frame % 30 == 0:
             controller.poll_processes()
     controller.close()

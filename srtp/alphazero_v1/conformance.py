@@ -7,7 +7,7 @@ from typing import Any, Dict, Mapping, Tuple
 
 import numpy as np
 
-from .compiler import AlphaZeroAdapterError, AlphaZeroGame
+from .compiler import AlphaZeroAdapterError, AlphaZeroGame  # noqa: F401 - AlphaZeroGame kept for callers
 
 
 @dataclass(frozen=True)
@@ -39,7 +39,9 @@ def assess_alphazero_conformance(
         first = game.getInitBoard()
         second = game.getInitBoard()
         checks["getInitBoard.independent"] = first is not second and np.array_equal(first, second)
-        checks["getBoardSize.shape"] = tuple(first.shape) == tuple(game.getBoardSize())
+        # 1.1 boards pack the whole state; the network sees ``observation`` (getBoardSize).
+        observed = game.observation(first) if hasattr(game, "observation") else first
+        checks["getBoardSize.shape"] = tuple(observed.shape) == tuple(game.getBoardSize())
         checks["getActionSize.positive"] = game.getActionSize() > 0
         representation = game.stringRepresentation(first)
         checks["stringRepresentation.stable"] = (

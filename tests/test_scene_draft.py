@@ -225,6 +225,49 @@ class VisualGateTests(unittest.TestCase):
         self.assertEqual(result['status'], 'failed', result)
         self.assertIn('changed nothing on screen', result['errors'][0])
 
+    def _behind_start_screen(self, shown_when_started=True):
+        """The board is hidden until a start action, like a source title/menu screen."""
+        from srtp.ir_v2.rule_ir import seal_rule_ir
+        from srtp.scene_ir_v2 import seal_scene_ir
+        documents = copy.deepcopy(self.source.documents)
+        rule = documents['rule_ir']
+        rule['state']['variables'].append({'id': 'rule:state.started', 'name': 'Started', 'type': 'core:bool',
+                                           'scope': 'global', 'initial': {'op': 'literal', 'value': False}})
+        place = rule['actions'][0]
+        place['precondition'] = {'op': 'and', 'args': [
+            {'op': 'call', 'function': 'core:state.get', 'args': [{'op': 'literal', 'value': 'rule:state.started'}]},
+            place['precondition']]}
+        rule['actions'].append({
+            'id': 'rule:action.start', 'name': 'Start', 'actor': place['actor'], 'parameters': [],
+            'precondition': {'op': 'not', 'args': [{'op': 'call', 'function': 'core:state.get',
+                                                    'args': [{'op': 'literal', 'value': 'rule:state.started'}]}]},
+            'effects': [{'op': 'state.set', 'target': {'op': 'literal', 'value': 'rule:state.started'}, 'value': {'op': 'literal', 'value': True}}],
+            'timing': place['timing'], 'encoding': {'kind': 'finite_catalogue'}})
+        documents['rule_ir'] = seal_rule_ir(rule)
+        scene = documents['scene_ir']
+        scene['dependencies']['rule_ir']['content_hash'] = documents['rule_ir']['content_hash']
+        board = next(node['id'] for node in scene['nodes']
+                     if any(c['type'] == 'topology_visualizer' for c in node['components']))
+        scene['bindings'].append({
+            'id': 'scene:binding.board_after_start', 'name': 'Board after start',
+            'source': {'kind': 'state', 'scope': 'global', 'variable': 'rule:state.started'},
+            'target': {'selector': 'node', 'node': board, 'property': 'active'},
+            'transform': {'kind': 'map', 'cases': [{'equals': True, 'value': shown_when_started},
+                                                   {'equals': False, 'value': False}]}})
+        documents['scene_ir'] = seal_scene_ir(scene)
+        return documents
+
+    def test_a_board_hidden_behind_a_start_screen_is_checked_after_starting(self):
+        result = self.check(self._behind_start_screen())
+        self.assertEqual(result['status'], 'passed', result)
+        self.assertEqual(result['facts']['board_shown_after'], ['rule:action.start'])
+        self.assertGreater(result['facts']['move']['changed_fraction'], 0.005)
+
+    def test_a_board_that_never_shows_is_not_judged_from_the_menu(self):
+        result = self.check(self._behind_start_screen(shown_when_started=False))
+        self.assertEqual(result['status'], 'passed', result)
+        self.assertIn('board checks skipped', result['warnings'][0])
+
     def test_flat_volume_cells_fail(self):
         from srtp.scene_ir_v2 import seal_scene_ir
         documents = copy.deepcopy(self.target.documents)
