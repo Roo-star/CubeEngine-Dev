@@ -1,0 +1,11 @@
+{
+  "date": "2026-10-05",
+  "method": "Windows Computer Use: observed screenshots and actual mouse/key input, not programmatic DPG callback invocation",
+  "workbench_title": "CubeEngine · Prism Studio",
+  "target": "tests/fixtures/workbench_training_target_20261004/project.manifest.json",
+  "preview_input": {"coordinate": [0, 0, 2], "accepted": true, "revision": 1, "visible_marker": "X"},
+  "training": {"start_clicked": true, "details_opened": true, "status": "completed", "iteration": 1, "self_play_games": 2, "arena_games": 2, "samples": 11, "report": "native-training-report.json"},
+  "formal_player": {"launched_from_workbench": true, "window_title": "srtp", "mouse_input_accepted": true, "revision": 1, "turn_before": "X", "turn_after": "O", "escape_closed_player": true, "workbench_remained_running": true},
+  "scope": "One preview placement, one short training run and one formal-player placement. Does not establish all renderer/terminal rules or new model conversion.",
+  "api_calls": 0
+}

@@ -13,3 +13,5 @@ __pycache__/
 .venv-training/
 .cubeengine_training/
 artifacts/workbench-ai/ursina/
+.cubeengine_workbench/
+tests/fixtures/**/render_cache/

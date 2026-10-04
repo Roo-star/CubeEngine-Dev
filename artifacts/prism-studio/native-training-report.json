@@ -1,0 +1,50 @@
+{
+  "status": "completed",
+  "binding": {
+    "trainer_version": "cubeengine.workbench-training/1.0",
+    "implementation_hash": "e91dba6bae50c8895eccea82ed6688f75aa2c054a6739d221ec6443194afafd1",
+    "project_id": "project:tic.tac.toe.llm.source.target",
+    "project_hash": "015df03bf3e70c0c9705b17650c7d1f1c76f68743383d6174b972656e8929a28",
+    "rule_id": "rule:game.tic.tac.toe.target",
+    "rule_version": "cubeengine.rule-ir/2.0-alpha.1",
+    "rule_revision": 1,
+    "rule_hash": "1cef7b35eaf325d29b9014dbf5f1316a11ad73c5d4b8013ea7c37a012274f7e5",
+    "adapter_version": "cubeengine.alternating-placement-adapter/1.0",
+    "adapter_revision": 0,
+    "adapter_hash": "0632046446406d658e0fce8f6b1945ddfb0188f39ab57e319994ec4a2f91b705",
+    "network": {
+      "architecture": "ai-dev-3d-cnn/2f42b6b",
+      "shape": [
+        3,
+        3,
+        3
+      ],
+      "actions": 27,
+      "channels": 16
+    }
+  },
+  "error": null,
+  "checkpoint": "E:\\CubeEngine\\work\\agentic-srtp-integration\\.cubeengine_training\\run-20261005-002729-76ad1258\\checkpoint-0001\\checkpoint.json",
+  "completed_iteration": 1,
+  "counters": {
+    "self_play_games": 2,
+    "arena_games": 2,
+    "samples": 11,
+    "optimizer_steps": 1
+  },
+  "results": [
+    {
+      "iteration": 1,
+      "arena": {
+        "previous": 0,
+        "candidate": 2,
+        "draws": 0
+      },
+      "accepted": true,
+      "acceptance_threshold": 0.550000011920929
+    }
+  ],
+  "elapsed_seconds": 6.125,
+  "finished_at": "2026-10-04T16:27:35.890275+00:00",
+  "resume_semantics": "Last fully completed iteration; partial candidate work is not resumed."
+}

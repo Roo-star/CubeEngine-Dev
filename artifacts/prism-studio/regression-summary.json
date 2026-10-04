@@ -1,0 +1,20 @@
+{
+  "total": 690,
+  "passed": 681,
+  "skipped": 1,
+  "failures": 7,
+  "errors": 1,
+  "same_failure_names_as_previous": true,
+  "failed_tests": [
+    "ERROR: test_real_target_against_all_49_native_reference_lines (test_presentation_patterns.PresentationPatternTests)",
+    "FAIL: test_host_restart_after_terminal_and_quit_do_not_forge_rule_actions (test_host_input_commands.HostCommandTests)",
+    "FAIL: test_original_model_report_remains_blocked_not_silently_cleared (test_host_input_commands.HostCommandTests)",
+    "FAIL: test_original_response_reports_all_independent_scene_errors_in_one_pass (test_llm_backend_contract.BackendContractTests)",
+    "FAIL: test_production_repair_loop_distinguishes_progress_and_publishes_test_bundle (test_presentation_composition.PresentationCompositionTests)",
+    "FAIL: test_compiled_source_and_lift_pass (test_scene_draft.VisualGateTests)",
+    "FAIL: test_flat_volume_cells_fail (test_scene_draft.VisualGateTests)",
+    "FAIL: test_hidden_pieces_fail_with_the_cell_named (test_scene_draft.VisualGateTests)"
+  ],
+  "baseline": "artifacts/workbench-ai/full-regression.txt",
+  "notes": "The previous delivery reproduced these eight failures with baseline SRTP_agentic Workbench; this comparison checks names, not a second baseline execution. PAID REQUEST log lines are mocked budget tests, not real calls."
+}

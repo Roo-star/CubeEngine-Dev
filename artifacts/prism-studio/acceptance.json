@@ -1,0 +1,42 @@
+{
+  "passed": true,
+  "layouts": [
+    {
+      "name": "1440x940 / 100%",
+      "cancel_and_resume_visible": true,
+      "toolbar_no_overlap": true
+    },
+    {
+      "name": "1440x940 / 125%",
+      "cancel_and_resume_visible": true,
+      "toolbar_no_overlap": true
+    },
+    {
+      "name": "1440x940 / 150%",
+      "cancel_and_resume_visible": true,
+      "toolbar_no_overlap": true
+    },
+    {
+      "name": "1366x768 / 100%",
+      "cancel_and_resume_visible": true,
+      "toolbar_no_overlap": true
+    },
+    {
+      "name": "1024x768 / 100%",
+      "cancel_and_resume_visible": true,
+      "toolbar_no_overlap": true
+    },
+    {
+      "name": "Completed run / controls retained",
+      "cancel_and_resume_visible": true,
+      "toolbar_no_overlap": true
+    }
+  ],
+  "real_game_input_transitions": 5,
+  "source_switch_clears_target": true,
+  "training_rendered_frames": 252,
+  "run": "E:\\CubeEngine\\work\\agentic-srtp-integration\\.cubeengine_training\\run-20261005-003356-9dd70f7b",
+  "resume": "E:\\CubeEngine\\work\\agentic-srtp-integration\\.cubeengine_training\\run-20261005-003356-9dd70f7b\\checkpoint-0001\\checkpoint.json",
+  "replay": "Verified 4 saved games against their original Rule.",
+  "method": "Real DPG callbacks/framebuffer and RuleRuntime, real CPU worker; no paid API."
+}

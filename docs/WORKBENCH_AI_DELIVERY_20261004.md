@@ -1,6 +1,8 @@
 # WorkbenchAI 交付與驗收
 
-基準：`SRTP_agentic` / `c22f6de`。本輪開發：`WorkbenchAI`。原 `Dev` 訓練分支、2048 轉換程式及原生成 Target 不修改。整體 UI 重構尚未實裝，等待使用者從三稿選擇。
+基準：`SRTP_agentic` / `c22f6de`。本輪開發：`WorkbenchAI`。原 `Dev` 訓練分支、2048 轉換程式及原生成 Target 不修改。
+
+2026-10-05 更新：使用者選定 **A Prism Studio**，已實裝到原生工作臺。請以 [A 版交付與最新操作入口](PRISM_STUDIO_DELIVERY_20261005.md) 為準；下文保留第一階段訓練接入的驗收紀錄。
 
 ## 現在可以操作什麼
 
@@ -62,4 +64,4 @@ python -m tests.workbench_training_probe
 
 `docs/design/workbench-ai/index.html` 是本機可開啟的互動提案，完全不呼叫實際訓練。上方切換 A／B／C；切換遊戲可看不適用入口，也可以示意開始、取消、續跑與結果。三張 PNG 分別為 `studio.png`、`flow.png`、`lab.png`。互動、控制台錯誤與 1440／1366／1024／768／390 寬度已做瀏覽器檢查，結果在 visual-qa.json。
 
-建議 A Prism Studio 作實裝基準；B 偏第一次轉換的引導，C 偏創作工具品牌感。**依使用者要求，選稿後才進行整體 UI 實裝。**
+A Prism Studio 已獲使用者選定並實裝；B 偏第一次轉換的引導，C 偏創作工具品牌感，保留為設計探索紀錄。

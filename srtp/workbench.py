@@ -78,6 +78,7 @@ class SrtpWorkbench:
         self.conversion_jobs = ConversionJobs()
         self.asynchronous_jobs = asynchronous_jobs
         self._source_generation = 0
+        self.studio = None
         from srtp.training.panel import TrainingPanel
         self.training_panel = TrainingPanel(dpg)
 
@@ -115,6 +116,11 @@ class SrtpWorkbench:
         # preview look like the new project's conversion result.
         self.stop_preview(quiet=True)
         self._detach_core()
+        self._pending_llm_manifest = None
+        self._pending_llm_source_dir = None
+        self._attached_target = None
+        if self.dpg.does_item_exist("srtp_llm_manifest_path"):
+            self.dpg.set_value("srtp_llm_manifest_path", "")
         try:
             imported = self.importer.import_path(Path(raw_path.strip()))
         except Exception as error:
@@ -975,6 +981,8 @@ class SrtpWorkbench:
 
     def _render_package(self) -> None:
         assert self.package is not None
+        if self.studio is not None:
+            self.studio.source_changed()
         package = self.package
         target = package.transformation.target_dimensions
         source = package.transformation.source_dimensions
@@ -1078,6 +1086,8 @@ class SrtpWorkbench:
         self.core_controller = None
         self.core_source = None
         self.core_last_result = {}
+        if self.studio is not None:
+            self.studio.source_changed()
         for tag, value in (
             ("srtp_core_attachment", "No Project IR is attached to this source."),
             ("srtp_core_rule_summary", ""),
@@ -1171,6 +1181,9 @@ class SrtpWorkbench:
             json.dumps(core.rule_summary(), ensure_ascii=False, indent=2),
         )
         self._render_core_inspector(state)
+        if self.studio is not None:
+            self.studio.set_state(state)
+            return
         if not all(hasattr(self.dpg, name) for name in ("delete_item", "add_text", "add_button")):
             return
         self.dpg.delete_item("srtp_core_scene_layers", children_only=True)
@@ -1237,6 +1250,9 @@ class SrtpWorkbench:
         )
 
     def _show_core_view(self, enabled: bool) -> None:
+        if self.studio is not None:
+            self.studio.dirty = True
+            return
         if not hasattr(self.dpg, "configure_item"):
             return
         self.dpg.configure_item("srtp_standard_view", show=not enabled)
@@ -1363,6 +1379,8 @@ class SrtpWorkbench:
         return any(process is not None and process.running for process in (self.original_process, self.transformed_process))
 
     def _set_play_label(self, label: str) -> None:
+        if self.studio is not None:
+            label = "■  停止" if label == "STOP" else "試玩"
         if hasattr(self.dpg, "configure_item"):
             self.dpg.configure_item("srtp_play", label=label)
 
@@ -1457,277 +1475,73 @@ def _build_theme(dpg):
 
 def main() -> None:
     import argparse
-    parser = argparse.ArgumentParser(description="CubeEngine Spatial Rule Workbench")
-    parser.add_argument("--project", type=Path, help="Open an existing approved Project Manifest")
-    parser.add_argument("--capture", type=Path, help="Save a diagnostic framebuffer PNG and exit")
+    parser = argparse.ArgumentParser(description="CubeEngine Prism Studio")
+    parser.add_argument("--project", type=Path, help="Open an approved Project Manifest")
+    parser.add_argument("--capture", type=Path, help="Save the native framebuffer and exit")
+    parser.add_argument("--size", help="Explicit viewport size; default fits the desktop work area")
+    parser.add_argument("--ui-scale", type=float, default=1.0, choices=(1.0, 1.25, 1.5))
     options = parser.parse_args()
     try:
         import dearpygui.dearpygui as dpg
     except ModuleNotFoundError as error:
-        raise SystemExit("Dear PyGui is required for SRTP Workbench.") from error
-
-    controller = SrtpWorkbench(dpg, asynchronous_jobs=True)
+        raise SystemExit("Install the Workbench requirements first: " + str(error))
+    from srtp.prism_studio import PrismStudio, fit_initial_viewport
+    width, height = (int(value) for value in (options.size or "1440x940").lower().split("x"))
     dpg.create_context()
     dpg.configure_app(manual_callback_management=True)
-    dpg.create_viewport(title=VIEWPORT_TITLE, width=1440, height=880, min_width=1180, min_height=720, resizable=True)
-    dpg.bind_theme(_build_theme(dpg))
-
-    with dpg.file_dialog(directory_selector=False, show=False, callback=controller.choose_source, tag="srtp_file_dialog", width=760, height=520):
-        dpg.add_file_extension(".py")
-        dpg.add_file_extension(".pyw")
-        dpg.add_file_extension(".html")
-        dpg.add_file_extension(".*")
-    with dpg.file_dialog(directory_selector=True, show=False, callback=controller.choose_directory, tag="srtp_directory_dialog", width=760, height=520):
+    width, height, x, y = (width, height, 20, 20) if options.size else fit_initial_viewport(width, height)
+    dpg.create_viewport(title="CubeEngine · Prism Studio", width=width, height=height,
+                        x_pos=x, y_pos=y, min_width=min(1024, width), min_height=min(720, height), resizable=True)
+    controller = SrtpWorkbench(dpg, asynchronous_jobs=True)
+    studio = PrismStudio(dpg, controller, REFERENCE_GAMES)
+    with dpg.file_dialog(directory_selector=False, show=False, callback=controller.choose_source,
+                         tag="srtp_file_dialog", width=760, height=520):
+        for extension in (".py", ".pyw", ".html", ".*"):
+            dpg.add_file_extension(extension)
+    with dpg.file_dialog(directory_selector=True, show=False, callback=controller.choose_directory,
+                         tag="srtp_directory_dialog", width=760, height=520):
         pass
-    with dpg.file_dialog(
-        directory_selector=False, show=False, callback=controller.choose_rule_ir,
-        tag="srtp_rule_ir_dialog", width=760, height=520,
-    ):
-        dpg.add_file_extension(".json")
-        dpg.add_file_extension(".*")
-    with dpg.file_dialog(
-        directory_selector=False, show=False, callback=controller.choose_project_manifest,
-        tag="srtp_project_manifest_dialog", width=760, height=520,
-    ):
-        dpg.add_file_extension(".json")
-        dpg.add_file_extension(".*")
-
+    for tag, callback in (("srtp_rule_ir_dialog", controller.choose_rule_ir),
+                          ("srtp_project_manifest_dialog", controller.choose_project_manifest)):
+        with dpg.file_dialog(directory_selector=False, show=False, callback=callback,
+                             tag=tag, width=760, height=520):
+            dpg.add_file_extension(".json")
     controller.training_panel.build_dialogs()
-
-    with dpg.window(label="SRTP", tag="srtp_primary"):
-        with dpg.menu_bar():
-            with dpg.menu(label="File"):
-                dpg.add_menu_item(label="Open Entry Point...", callback=lambda: dpg.show_item("srtp_file_dialog"))
-                dpg.add_menu_item(label="Open Project...", callback=lambda: dpg.show_item("srtp_directory_dialog"))
-                dpg.add_separator()
-                dpg.add_menu_item(label="Attach Rule IR...", callback=lambda: dpg.show_item("srtp_rule_ir_dialog"))
-                dpg.add_menu_item(label="Attach Project Manifest...", callback=lambda: dpg.show_item("srtp_project_manifest_dialog"))
-                dpg.add_menu_item(label="Save Analysis Package", callback=lambda: controller.save_package())
-            with dpg.menu(label="View"):
-                dpg.add_menu_item(label="Source 2D", callback=lambda: (dpg.set_value("srtp_preview_mode", "Source 2D"), controller.set_preview_mode()))
-                dpg.add_menu_item(label="Transformed 3D", callback=lambda: (dpg.set_value("srtp_preview_mode", "Transformed 3D"), controller.set_preview_mode()))
-                dpg.add_menu_item(label="Project Session", callback=lambda: (dpg.set_value("srtp_preview_mode", "Project Session"), controller.set_preview_mode()))
-        with dpg.group(horizontal=True):
-            dpg.add_text("CubeEngine", color=(105, 177, 245))
-            dpg.add_text("SRTP / Function 1", color=(150, 158, 173))
-            dpg.add_spacer(width=30)
-            dpg.add_radio_button(
-                items=["Source 2D", "Transformed 3D", "Project Session"], horizontal=True,
-                default_value="Source 2D", tag="srtp_preview_mode", callback=controller.set_preview_mode,
-            )
-            dpg.add_spacer(width=18)
-            dpg.add_button(label="PLAY", tag="srtp_play", callback=lambda: controller.toggle_preview(), width=82)
-        dpg.add_separator()
-
-        with dpg.group(horizontal=True):
-            with dpg.child_window(tag="srtp_library_column", width=245, height=735, border=True):
-                dpg.add_text("SOURCE LIBRARY", color=(132, 142, 160))
-                dpg.add_combo(
-                    items=list(REFERENCE_GAMES), default_value=next(iter(REFERENCE_GAMES)),
-                    tag="srtp_reference_selector", callback=controller.load_selected_reference, width=-1,
-                )
-                dpg.add_spacer(height=4)
-                dpg.add_text("PROJECT", color=(132, 142, 160))
-                dpg.add_input_text(tag="srtp_source_path", readonly=True, multiline=True, height=72, width=-1)
-                with dpg.group(horizontal=True):
-                    dpg.add_button(label="ENTRY...", callback=lambda: dpg.show_item("srtp_file_dialog"), width=105)
-                    dpg.add_button(label="PROJECT...", callback=lambda: dpg.show_item("srtp_directory_dialog"), width=105)
-                dpg.add_separator()
-                dpg.add_text("", tag="srtp_library_details", wrap=215, color=(174, 181, 193))
-                dpg.add_spacer(height=12)
-                dpg.add_text("ANALYSIS", color=(132, 142, 160))
-                with dpg.collapsing_header(label="Source Evidence"):
-                    dpg.add_input_text(tag="srtp_source_summary", multiline=True, readonly=True, width=-1, height=180)
-                with dpg.collapsing_header(label="Rule Schema IR"):
-                    dpg.add_input_text(tag="srtp_schema_output", multiline=True, readonly=True, width=-1, height=220)
-                with dpg.collapsing_header(label="Diagnostics"):
-                    dpg.add_input_text(tag="srtp_diagnostics", multiline=True, readonly=True, width=-1, height=180)
-                with dpg.collapsing_header(label="Project Session Core"):
-                    dpg.add_text(
-                        "No Project IR is attached to this source.",
-                        tag="srtp_core_attachment", wrap=215, color=(178, 185, 198),
-                    )
-                    dpg.add_button(
-                        label="COMPILE LLM → SOURCE IR", width=-1,
-                        callback=controller.compile_llm_source_to_ir,
-                    )
-                    dpg.add_button(
-                        label="APPROVE LLM MANIFEST", width=-1,
-                        callback=controller.approve_pending_llm_manifest,
-                    )
-                    dpg.add_input_text(
-                        tag="srtp_llm_intent",
-                        callback=controller.intent_changed,
-                        hint="Design Intent for 3D lift (after Source approved)",
-                        width=-1,
-                    )
-                    dpg.add_button(
-                        label="RUN SPATIAL LIFT → TARGET", width=-1,
-                        callback=controller.run_spatial_lift,
-                    )
-                    dpg.add_button(label="CANCEL CONVERSION", width=-1, callback=controller.cancel_conversion)
-                    dpg.add_button(
-                        label="ATTACH PROJECT MANIFEST...", width=-1,
-                        callback=lambda: dpg.show_item("srtp_project_manifest_dialog"),
-                    )
-                    dpg.add_button(
-                        label="ATTACH RULE IR...", width=-1,
-                        callback=lambda: dpg.show_item("srtp_rule_ir_dialog"),
-                    )
-                    dpg.add_input_text(
-                        tag="srtp_core_activity", multiline=True, readonly=True,
-                        width=-1, height=150,
-                    )
-                with dpg.collapsing_header(label="Function 2 Handoff"):
-                    dpg.add_input_text(tag="srtp_handoff", multiline=True, readonly=True, width=-1, height=180)
-
-            with dpg.child_window(tag="srtp_viewport_column", width=800, height=735, border=True):
-                with dpg.group(horizontal=True):
-                    dpg.add_text("VIEWPORT", color=(132, 142, 160))
-                    dpg.add_spacer(width=545)
-                    dpg.add_text("Native Windows preview", color=(104, 112, 128))
-                dpg.add_separator()
-                with dpg.child_window(tag="srtp_viewport_content", height=590, border=False):
-                    with dpg.group(tag="srtp_standard_view"):
-                        dpg.add_spacer(height=145)
-                        dpg.add_text("No source game selected", tag="srtp_viewport_heading", indent=55, color=(220, 224, 231))
-                        dpg.add_spacer(height=18)
-                        dpg.add_text(
-                            "Choose a game from the Source Library or import a project.",
-                            tag="srtp_viewport_body", indent=55, wrap=650, color=(145, 154, 170),
-                        )
-                    with dpg.group(tag="srtp_core_view", show=False):
-                        with dpg.group(horizontal=True):
-                            dpg.add_combo(
-                                items=[], tag="srtp_core_project", width=250,
-                                callback=controller.select_core_project,
-                            )
-                            dpg.add_button(label="RESET", width=72, callback=controller.reset_core)
-                            dpg.add_button(label="VERIFY REPLAY", width=118, callback=controller.verify_core_replay)
-                            dpg.add_button(
-                                label="CORE SELF-TEST", width=118,
-                                callback=lambda: controller.run_core_self_test("gate"),
-                            )
-                            dpg.add_button(
-                                label="9-API SELF-TEST", width=118,
-                                callback=lambda: controller.run_core_self_test("ai"),
-                            )
-                        dpg.add_text(
-                            "No compiled Project Session", tag="srtp_core_scene_title",
-                            color=(218, 223, 231),
-                        )
-                        dpg.add_text(
-                            "Attach a Project Manifest produced by the LLM/compiler.",
-                            tag="srtp_core_scene_help", wrap=750, color=(145, 155, 172),
-                        )
-                        dpg.add_separator()
-                        with dpg.child_window(tag="srtp_core_scene_layers", height=390, border=False):
-                            pass
-                        dpg.add_separator()
-                        dpg.add_text("PROJECT EVENT LOG", color=(132, 142, 160))
-                        dpg.add_input_text(
-                            tag="srtp_core_activity_view", multiline=True, readonly=True,
-                            width=-1, height=92,
-                        )
-                dpg.add_separator()
-                dpg.add_text("CONSOLE", color=(132, 142, 160))
-                dpg.add_text("Ready", tag="srtp_status", wrap=750, color=(160, 170, 188))
-
-            with dpg.child_window(tag="srtp_right_column", width=345, height=735, border=False):
-                with dpg.child_window(tag="srtp_inspector_dock", height=305, border=True):
-                    dpg.add_text("INSPECTOR", color=(132, 142, 160))
-                    dpg.add_separator()
-                    dpg.add_text("SPACE LIFT", color=(132, 142, 160))
-                    dpg.add_text("Source plane")
-                    dpg.add_text("—", tag="srtp_source_plane", color=(190, 198, 211))
-                    with dpg.group(horizontal=True):
-                        dpg.add_input_int(label="X", tag="srtp_target_x", default_value=4, min_value=2, min_clamped=True, width=86, callback=controller.apply_transform_target)
-                        dpg.add_input_int(label="Y", tag="srtp_target_y", default_value=4, min_value=2, min_clamped=True, width=86, callback=controller.apply_transform_target)
-                        dpg.add_input_int(label="Z", tag="srtp_target_z", default_value=3, min_value=2, min_clamped=True, width=86, callback=controller.apply_transform_target)
-                    dpg.add_text("Target volume")
-                    dpg.add_text("—", tag="srtp_target_volume", color=(105, 177, 245))
-                    dpg.add_text("", tag="srtp_lift_policy", wrap=315, color=(150, 160, 178))
-                    dpg.add_spacer(height=8)
-                    dpg.add_text("TRANSFORMATION", color=(132, 142, 160))
-                    with dpg.child_window(tag="srtp_transform_rows", height=132, border=False):
-                        pass
-                    dpg.add_text("SOURCE PARAMETERS", color=(132, 142, 160))
-                    with dpg.child_window(tag="srtp_parameter_rows", height=260, border=False):
-                        pass
-                    with dpg.collapsing_header(label="Create Source Variant"):
-                        dpg.add_combo(items=["N/A"], tag="srtp_safe_parameter", callback=lambda: controller.select_safe_parameter(), width=-1)
-                        dpg.add_input_text(tag="srtp_safe_parameter_value", width=-1)
-                        dpg.add_button(label="APPLY TO COPY", callback=lambda: controller.apply_safe_source_parameter(), width=-1)
-                    with dpg.collapsing_header(label="Project Session / Rule Inspector"):
-                        dpg.add_input_text(
-                            tag="srtp_core_session_summary", multiline=True, readonly=True,
-                            width=-1, height=180,
-                        )
-                        dpg.add_text("DECLARED RULE", color=(132, 142, 160))
-                        dpg.add_input_text(
-                            tag="srtp_core_rule_summary", multiline=True, readonly=True,
-                            width=-1, height=210,
-                        )
-                        dpg.add_text("LAST INPUT / TRANSITION", color=(132, 142, 160))
-                        dpg.add_input_text(
-                            tag="srtp_core_last_result", multiline=True, readonly=True,
-                            width=-1, height=130,
-                        )
-                        dpg.add_text("VERIFICATION", color=(132, 142, 160))
-                        dpg.add_input_text(
-                            tag="srtp_core_verification", multiline=True, readonly=True,
-                            width=-1, height=210,
-                        )
-                    with dpg.collapsing_header(label="Export"):
-                        dpg.add_input_text(tag="srtp_output_path", hint="source-game-package.json", width=-1)
-                        dpg.add_button(label="SAVE ANALYSIS PACKAGE", callback=lambda: controller.save_package(), width=-1)
-                    dpg.add_input_text(tag="srtp_parameters", show=False)
-                    dpg.add_input_text(tag="srtp_transform", show=False)
-
-                with dpg.child_window(tag="srtp_training_dock", height=-1, border=True):
-                    controller.training_panel.build()
-
+    studio.build()
+    controller.studio = studio
     dpg.set_primary_window("srtp_primary", True)
     dpg.setup_dearpygui()
     dpg.show_viewport()
-    def resize_workbench(sender=None, app_data=None):
-        width = dpg.get_viewport_client_width()
-        height = max(580, dpg.get_viewport_client_height() - 110)
-        center = max(450, width - 645)
-        for tag in ("srtp_library_column", "srtp_viewport_column", "srtp_right_column"):
-            dpg.configure_item(tag, height=height)
-        dpg.configure_item("srtp_viewport_column", width=center)
-        dpg.configure_item("srtp_viewport_content", height=max(360, height - 135))
-        dpg.configure_item("srtp_inspector_dock", height=max(180, min(305, height - 400)))
-    dpg.set_viewport_resize_callback(resize_workbench)
-    resize_workbench()
-    with dpg.handler_registry():
-        dpg.add_key_press_handler(callback=controller.handle_core_key)
-    controller.load_selected_reference()
+    dpg.set_viewport_resize_callback(studio.resize)
+    studio.set_scale(options.ui_scale)
     if options.project:
         controller.open_project_manifest(options.project)
+    else:
+        controller.load_selected_reference()
     if os.environ.get("CUBEENGINE_SRTP_WORKBENCH_SMOKE") == "1":
         controller.close()
         dpg.destroy_context()
         return
-    frame = 0
-    capture_requested = False
-    while dpg.is_dearpygui_running():
-        dpg.run_callbacks(dpg.get_callback_queue())
-        dpg.render_dearpygui_frame()
-        controller.poll_conversion()
-        controller.training_panel.poll()
-        frame += 1
-        if options.capture and not capture_requested and frame > 90 and controller.training_panel.future is None:
-            options.capture.parent.mkdir(parents=True, exist_ok=True)
-            dpg.output_frame_buffer(str(options.capture))
-            capture_requested = True
-        if capture_requested and frame > 120:
-            break
-        if frame % 30 == 0:
-            controller.poll_processes()
-    controller.close()
-    dpg.destroy_context()
+    frame, captured = 0, False
+    try:
+        while dpg.is_dearpygui_running():
+            dpg.run_callbacks(dpg.get_callback_queue())
+            dpg.render_dearpygui_frame()
+            controller.poll_conversion()
+            controller.training_panel.poll()
+            studio.poll()
+            frame += 1
+            if options.capture and not captured and frame > 90 and controller.training_panel.future is None:
+                options.capture.parent.mkdir(parents=True, exist_ok=True)
+                dpg.output_frame_buffer(str(options.capture))
+                captured = True
+            if captured and frame > 120:
+                break
+            if frame % 30 == 0:
+                controller.poll_processes()
+    finally:
+        controller.close()
+        dpg.destroy_context()
 
 
 if __name__ == "__main__":
