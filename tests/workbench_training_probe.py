@@ -15,7 +15,7 @@ def run():
     output = root / "artifacts/workbench-ai"
     output.mkdir(exist_ok=True, parents=True)
     target = root / "tests/fixtures/workbench_training_target_20261004/project.manifest.json"
-    sys.argv = ["workbench", "--project", str(target)]
+    sys.argv = ["workbench", "--legacy-ui", "--project", str(target)]
     original = dpg.render_dearpygui_frame
     started = False
     verified = False

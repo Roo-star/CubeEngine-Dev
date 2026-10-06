@@ -968,6 +968,7 @@ class SrtpWorkbench:
             self._message("Project bundle could not open: {0}".format(error), error=True)
             return
         self._attach_core_to_current_source()
+        self._studio_manifest_path = Path(path).resolve()
         if manifest.get("variant") == "target":
             self._attached_target = (str(self.package.entrypoint.resolve()), Path(path).resolve())
             self.training_panel.attach(path)
@@ -1080,6 +1081,7 @@ class SrtpWorkbench:
         return self.core_controller
 
     def _detach_core(self) -> None:
+        self._studio_manifest_path = None
         self.training_panel.attach(None)
         if self.core_controller is not None:
             self.core_controller.close()
@@ -1473,7 +1475,7 @@ def _build_theme(dpg):
     return theme
 
 
-def main() -> None:
+def legacy_main() -> None:
     import argparse
     parser = argparse.ArgumentParser(description="CubeEngine Prism Studio")
     parser.add_argument("--project", type=Path, help="Open an approved Project Manifest")
@@ -1542,6 +1544,24 @@ def main() -> None:
     finally:
         controller.close()
         dpg.destroy_context()
+
+
+def main() -> None:
+    """The scene-centred native Studio is the product entry point."""
+    import sys
+    if '--legacy-ui' in sys.argv:
+        sys.argv.remove('--legacy-ui')
+        legacy_main()
+        return
+    try:
+        import PySide6
+    except ImportError:
+        local = Path(__file__).resolve().parents[1] / '.venv-workbench/Scripts/python.exe'
+        if local.is_file() and Path(sys.executable).resolve() != local.resolve():
+            os.execv(str(local), [str(local), '-m', 'srtp.workbench', *sys.argv[1:]])
+        raise SystemExit('Install requirements-workbench.txt in .venv-workbench before starting CubeEngine Studio.')
+    from srtp.studio.app import main as studio_main
+    studio_main()
 
 
 if __name__ == "__main__":

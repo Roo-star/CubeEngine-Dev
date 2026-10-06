@@ -1,0 +1,40 @@
+Loaded Tic Tac Toe · 4/7 rule categories proven · 3D adapter: not available
+Sealed Project Manifest compiled into a live Project Session.
+package_folder: C:\Users\Yingr\.pyenv\pyenv-win\versions\3.9.1\lib\site-packages\ursina
+asset_folder: E:\CubeEngine\work\agentic-srtp-integration\srtp
+:prc(warning): Invalid integer value for ConfigVariable win-size: 1280.0
+:prc(warning): Invalid integer value for ConfigVariable win-size: 2048.0
+Known pipe types:
+wglGraphicsPipe
+(3 aux display modules not yet loaded.)
+:display:windisplay(warning): SetForegroundWindow() failed!
+:prc(warning): changing default value for ConfigVariable paste-emit-keystrokes from '1' to '0'.
+1.0
+:pnmimage:png(warning): iCCP: known incorrect sRGB profile
+screen resolution: (2560, 1600)
+os: Windows
+development mode: False
+application successfully started
+info: changed aspect ratio: 1.742 -> 1.742
+info: changed aspect ratio: 1.742 -> 1.742
+info: changed aspect ratio: 1.434 -> 1.434
+info: changed aspect ratio: 1.742 -> 1.742
+Loaded Pygame Minesweeper · 7/7 rule categories proven · 3D adapter: minesweeper
+Sealed Project Manifest compiled into a live Project Session.
+package_folder: C:\Users\Yingr\.pyenv\pyenv-win\versions\3.9.1\lib\site-packages\ursina
+asset_folder: E:\CubeEngine\work\agentic-srtp-integration\srtp
+:prc(warning): Invalid integer value for ConfigVariable win-size: 1280.0
+:prc(warning): Invalid integer value for ConfigVariable win-size: 2048.0
+Known pipe types:
+wglGraphicsPipe
+(3 aux display modules not yet loaded.)
+:display:windisplay(warning): SetForegroundWindow() failed!
+:prc(warning): changing default value for ConfigVariable paste-emit-keystrokes from '1' to '0'.
+1.0
+:pnmimage:png(warning): iCCP: known incorrect sRGB profile
+screen resolution: (2560, 1600)
+os: Windows
+development mode: False
+application successfully started
+info: changed aspect ratio: 1.742 -> 1.742
+info: changed aspect ratio: 1.742 -> 1.742

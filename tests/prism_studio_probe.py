@@ -15,7 +15,7 @@ def run():
     output = root / "artifacts/prism-studio"
     output.mkdir(exist_ok=True, parents=True)
     target = root / "tests/fixtures/workbench_training_target_20261004/project.manifest.json"
-    sys.argv = ["workbench", "--project", str(target), "--size", "1440x940"]
+    sys.argv = ["workbench", "--legacy-ui", "--project", str(target), "--size", "1440x940"]
     original_init, original_frame = PrismStudio.__init__, dpg.render_dearpygui_frame
     holder = {}
 

@@ -98,6 +98,11 @@ def main():
     parser.add_argument('--source-root', type=Path)
     parser.add_argument('--smoke', action='store_true', help='Render briefly and exit for host verification.')
     parser.add_argument('--screenshot', type=Path, help='Save this rendered board for verification.')
+    parser.add_argument('--parent-window', type=int, help='Native Studio scene surface HWND')
+    parser.add_argument('--studio', action='store_true', help='Scene editor with supervised local command pipe')
+    parser.add_argument('--studio-probe', action='store_true', help=argparse.SUPPRESS)
+    parser.add_argument('--width', type=int, default=1280)
+    parser.add_argument('--height', type=int, default=800)
     args = parser.parse_args()
     host = ProjectHost(args.manifest, args.source_root)
     from ursina import Ursina, Entity, EditorCamera, Text, Button, color, mouse, time, application, invoke, window
@@ -106,7 +111,14 @@ def main():
     if font.exists():
         from .ursina_fonts import ursina_font
         Text.default_font = ursina_font(font)
-    app = Ursina(borderless=False, fullscreen=False, size=(1280, 800), development_mode=False)
+    if args.parent_window:
+        from panda3d.core import loadPrcFileData, WindowProperties
+        loadPrcFileData('', 'parent-window-handle {0}\nwin-origin 0 0'.format(args.parent_window))
+    app = Ursina(borderless=bool(args.parent_window), fullscreen=False,
+                 size=(args.width, args.height), development_mode=False)
+    if args.parent_window:
+        props = WindowProperties(); props.setParentWindow(args.parent_window); props.setOrigin(0, 0)
+        props.setSize(args.width, args.height); app.win.requestProperties(props)
     window.title = 'CubeEngine - Project IR / Ursina 3D'
     from .ursina_scene_backend import UrsinaSceneBackend, rgba255
     window.color = rgba255(20, 25, 36)
@@ -118,6 +130,7 @@ def main():
         raise ValueError('Compiled presentation cannot run: ' + '; '.join(errors[:6]))
     backend = UrsinaSceneBackend(host.presentation, args.manifest.parent / 'render_cache')
     camera_rig = None
+    bridge = None
     class ProjectView(Entity):
         def __init__(self):
             super().__init__()
@@ -197,6 +210,11 @@ def main():
 
         def input(self, key):
             try:
+                if bridge is not None and (not bridge.playing or bridge.paused):
+                    if key == 'left mouse down':
+                        context = backend.pick_context(mouse.hovered_entity)
+                        bridge.select(context.get('node_id'))
+                    return
                 if key in ('[', ']'):
                     # All cells remain visible. Only picking changes with depth.
                     self.step_layer(1 if key == ']' else -1)
@@ -236,8 +254,13 @@ def main():
             except Exception as exc:
                 self.failed = True
                 self.header.text = 'Runtime error: ' + str(exc)
+                if bridge is not None: bridge.emit('error',message=self.header.text)
 
         def update(self):
+            if bridge is not None:
+                bridge.update()
+                if not bridge.playing or bridge.paused:
+                    return
             if self.failed:
                 return
             try:
@@ -260,6 +283,7 @@ def main():
             except Exception as exc:
                 self.failed = True
                 self.header.text = 'Runtime error: ' + str(exc)
+                if bridge is not None: bridge.emit('error',message=self.header.text)
     view = ProjectView()
     from .project_camera import ProjectCameraRig
     camera_rig = ProjectCameraRig(backend)
@@ -273,6 +297,9 @@ def main():
         host.interaction = {}
         view.refresh()
     view.controls.append(Button(text='Reset view', position=(window.aspect_ratio/2-.24,.40), scale=(.14,.045), on_click=restore_camera))
+    if args.studio:
+        from .studio.scene_bridge import SceneBridge
+        bridge = SceneBridge(host, backend, view, camera_rig, app, args.manifest, args.studio_probe)
     if args.smoke:
         invoke(application.quit, delay=2)
     if args.screenshot:

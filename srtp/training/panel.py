@@ -1,4 +1,7 @@
-"""Dear PyGui training dock. All widget access stays on the render thread."""
+"""Training controller shared by the Qt field port and legacy DPG dock.
+
+All widget access stays on the UI thread; training and eligibility are workers.
+"""
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 import json
@@ -30,6 +33,7 @@ class TrainingPanel:
         self.closed = False
         self.reasons = ["Approve and attach a converted Target to check training eligibility."]
         self.run_title = ""
+        self.run_target = None
 
     def set(self, key, value):
         tag = "training_" + key
@@ -51,6 +55,7 @@ class TrainingPanel:
         self.snapshot = None
         self.set("resume", "")
         self.configure("start", enabled=False)
+        self.configure("resume_last", enabled=False)
         if self.session.running:
             self.session.cancel()
             self.set("status", "Game changed. Safely stopping the previous run.")
@@ -85,6 +90,7 @@ class TrainingPanel:
             root = self.session.start(self.snapshot, self.config, output,
                                       python=self.get("python", default_python()), resume=resume)
             self.run_title = self.snapshot["title"]
+            self.run_target = self.target
             self.started = time.monotonic()
             self.checkpoint, self.events, self.last_event, self.base_iteration = None, [], {}, 0
             self.set("progress", 0.0)

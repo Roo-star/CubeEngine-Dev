@@ -1,0 +1,25 @@
+{
+  "format": "cubeengine.scene-layout-draft/1.0",
+  "project_hash": "015df03bf3e70c0c9705b17650c7d1f1c76f68743383d6174b972656e8929a28",
+  "manifest": "E:\\CubeEngine\\work\\agentic-srtp-integration\\tests\\fixtures\\workbench_training_target_20261004\\project.manifest.json",
+  "overrides": {
+    "scene:board.site.0_0_2": {
+      "position": [
+        -0.65,
+        -1.0,
+        1.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        -0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    }
+  },
+  "semantics": "Editor presentation draft only. Does not change approved gameplay or training."
+}

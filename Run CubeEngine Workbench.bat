@@ -2,6 +2,7 @@
 setlocal
 cd /d "%~dp0"
 set "CUBEENGINE_PYTHON=C:\Users\Yingr\.pyenv\pyenv-win\versions\3.9.1\python.exe"
+if exist "%~dp0.venv-workbench\Scripts\python.exe" set "CUBEENGINE_PYTHON=%~dp0.venv-workbench\Scripts\python.exe"
 if not exist "%CUBEENGINE_PYTHON%" (
     echo CubeEngine Python 3.9.1 was not found:
     echo %CUBEENGINE_PYTHON%

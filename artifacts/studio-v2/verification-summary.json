@@ -1,0 +1,30 @@
+{
+  "integration_checks_passed": 30,
+  "api_calls": 0,
+  "baseline_commit": "000fd8f",
+  "focused_tests": {
+    "total": 62,
+    "passed": 59,
+    "preexisting_failures": 3
+  },
+  "post_numeric_control_tests": {
+    "total": 35,
+    "passed": 35
+  },
+  "sha256": {
+    "tests\\fixtures\\workbench_training_target_20261004\\project.manifest.json": "be1d12a6655b2f8a130976439bb6b90589601aae33191e34000d80280010b647",
+    "E:\\CubeEngine\\CubeEngine-SRTP\\.cubeengine_llm\\pygame.minesweeper\\target\\project.manifest.json": "63d6a4e97d89407fd829ea3d27321854fde14f03e853007af08b5ceb2cee098b",
+    "artifacts\\studio-v2\\compact-layout.png": "ef1c8ebe1f166538b1ad9dea0eb0331fe29de94d96ed2aba9188a35e25e494e3",
+    "artifacts\\studio-v2\\embedded-game.png": "2a62b6f5e13c69074acf5a96f4eff26f54c30530ca2e1dbe02f51e81d24e3b0b",
+    "artifacts\\studio-v2\\embedded-minesweeper.png": "f8719f818048b1d23e0d2fd70dad649ce014d81f5c94df9255d732c90914af1e",
+    "artifacts\\studio-v2\\embedded-source-2d.png": "c0900f649af0e4b8014e455693b80df66741144a9a805efb2e1a6ea1aeb9a664",
+    "artifacts\\studio-v2\\minesweeper-3d.png": "2612cd154fd0748849167228e44fcb9e782e9810d59f4e529ff06264cabb4cd7",
+    "artifacts\\studio-v2\\played-renderer.png": "e395b918d48c76b1c2e6deec528884ff0571077e4d77f9afef65a1130be01f25",
+    "artifacts\\studio-v2\\scene-editor.png": "c24b87f186779c327d2eab3fc58313c403816ac66eda4a557a66c69cc85536c0",
+    "artifacts\\studio-v2\\scene-renderer.png": "5c126a554f26203c2ea1bede6919a3b8a1a4fa1687b7327f7a73a44a3e5633ea",
+    "artifacts\\studio-v2\\source-mines-renderer.png": "1116760c6e66b15b7ff9dc36b14d9b569123cd5647d42c5b96152127a6c2376b",
+    "artifacts\\studio-v2\\source-ttt-renderer.png": "2756016c49275d7557f8beec6600f452fe46038e0042f0d9055a00268ab29478",
+    "artifacts\\studio-v2\\training-completed.png": "156294f6b1ec07a6d5acb56565a41c2d5931e48a0f9678f9ac827f5f669988e1",
+    "artifacts\\studio-v2\\training-settings.png": "a1ac1a5c208802a1ef2f6c17998dbe52d35e42c6919d6161fb57628023dca0c9"
+  }
+}

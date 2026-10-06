@@ -1,0 +1,32 @@
+test_host_restart_after_terminal_and_quit_do_not_forge_rule_actions (tests.test_host_input_commands.HostCommandTests) ... FAIL
+test_original_model_report_remains_blocked_not_silently_cleared (tests.test_host_input_commands.HostCommandTests) ... FAIL
+test_frontend_verification_actions_call_the_real_gate_and_ai_adapter (tests.test_ir_acceptance_workbench.IRAcceptanceControllerTests) ... FAIL
+
+======================================================================
+FAIL: test_host_restart_after_terminal_and_quit_do_not_forge_rule_actions (tests.test_host_input_commands.HostCommandTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "E:\CubeEngine\work\agentic-srtp-integration\tests\test_host_input_commands.py", line 59, in test_host_restart_after_terminal_and_quit_do_not_forge_rule_actions
+    self.assertTrue(report.ok,report.diagnostics)
+AssertionError: False is not true : ['asset_ir: patches.asset_ir[0].evidence[0].file_sha256 does not match on-disk file']
+
+======================================================================
+FAIL: test_original_model_report_remains_blocked_not_silently_cleared (tests.test_host_input_commands.HostCommandTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "E:\CubeEngine\work\agentic-srtp-integration\tests\test_host_input_commands.py", line 32, in test_original_model_report_remains_blocked_not_silently_cleared
+    self.assertIn('unresolved',' '.join(result.diagnostics))
+AssertionError: 'unresolved' not found in 'asset_ir: patches.asset_ir[0].evidence[0].file_sha256 does not match on-disk file'
+
+======================================================================
+FAIL: test_frontend_verification_actions_call_the_real_gate_and_ai_adapter (tests.test_ir_acceptance_workbench.IRAcceptanceControllerTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "E:\CubeEngine\work\agentic-srtp-integration\tests\test_ir_acceptance_workbench.py", line 87, in test_frontend_verification_actions_call_the_real_gate_and_ai_adapter
+    self.assertTrue(gate["passed"])
+AssertionError: False is not true
+
+----------------------------------------------------------------------
+Ran 3 tests in 1.184s
+
+FAILED (failures=3)

@@ -1,5 +1,7 @@
 # A · Prism Studio 原生工作臺交付
 
+> 歷史記錄：使用者於 2026-10-06 要求重做中央場景及交互。預設產品已由 [真正嵌入场景的新 Studio](STUDIO_SCENE_DELIVERY_20261006.md) 取代；下文的拓樸預覽與外部遊戲視窗只描述舊版。
+
 使用者選定 A 後，在 `WorkbenchAI` 實裝。基於前一階段 `0b378d9` 的自對弈後端與 [研究／旅程設計](WORKBENCH_AI_RESEARCH_20261004.md)，使用原有 Dear PyGui、Workbench 控制器與正式播放器。HTML 三稿保留為設計提案；本次截圖來自實際軟體。
 
 ## 開啟與現在可操作的內容

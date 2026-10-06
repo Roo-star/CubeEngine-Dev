@@ -1,0 +1,20 @@
+{
+  "target_path": "E:\\CubeEngine\\work\\agentic-srtp-integration\\tests\\fixtures\\workbench_training_target_20261004\\project.manifest.json",
+  "project_hash": "015df03bf3e70c0c9705b17650c7d1f1c76f68743383d6174b972656e8929a28",
+  "rule_hash": "1cef7b35eaf325d29b9014dbf5f1316a11ad73c5d4b8013ea7c37a012274f7e5",
+  "config": {
+    "iterations": 1,
+    "episodes": 2,
+    "simulations": 8,
+    "epochs": 1,
+    "arena_games": 2,
+    "channels": 16,
+    "batch_size": 32,
+    "seed": 7,
+    "learning_rate": 0.001,
+    "acceptance": 0.55,
+    "device": "cpu"
+  },
+  "resume": null,
+  "supervised": true
+}

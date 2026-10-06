@@ -1,0 +1,19 @@
+{
+  "passed": true,
+  "checks": {
+    "getInitBoard.independent": true,
+    "getBoardSize.shape": true,
+    "getActionSize.positive": true,
+    "stringRepresentation.stable": true,
+    "getCanonicalForm.involution": true,
+    "getSymmetries.nonempty": true,
+    "getSymmetries.policy_permutation": true,
+    "getValidMoves.binary": true,
+    "getNextState.pure_deterministic": true,
+    "getGameEnded.terminal_reached": true,
+    "rollout.bound": true
+  },
+  "plies": 7,
+  "terminal_value": -1.0,
+  "messages": []
+}

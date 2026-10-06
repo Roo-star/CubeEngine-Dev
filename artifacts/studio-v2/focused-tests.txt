@@ -1,0 +1,91 @@
+test_model_updates_do_not_retrigger_user_edit_handlers (tests.test_studio_scene.DesktopBindingTests) ... ok
+test_rebuilding_source_parameters_drops_deleted_widget_bindings (tests.test_studio_scene.DesktopBindingTests) ... ok
+test_same_entity_set_rebuilds_after_reopening (tests.test_studio_scene.DesktopBindingTests) ... ok
+test_source_switch_clears_inspector_and_scene_identity (tests.test_studio_scene.DesktopBindingTests) ... ok
+test_nonfinite_extreme_bool_and_degenerate_transforms_rejected (tests.test_studio_scene.SceneDraftTests) ... ok
+test_other_game_or_version_rejected (tests.test_studio_scene.SceneDraftTests) ... ok
+test_unknown_node_or_property_rejected (tests.test_studio_scene.SceneDraftTests) ... ok
+test_valid_draft_copies_values (tests.test_studio_scene.SceneDraftTests) ... ok
+test_valid_first_object_does_not_partially_modify_on_later_error (tests.test_studio_scene.SceneDraftTests) ... ok
+test_complete_source_import (tests.test_project_viewer.CompleteGameTests) ... ok
+test_draw (tests.test_project_viewer.CompleteGameTests) ... ok
+test_win_illegal_move_and_restart (tests.test_project_viewer.CompleteGameTests) ... ok
+test_coordinate_parameter_alias_from_live_response (tests.test_project_viewer.ProjectHostTests) ... ok
+test_dict_state_reference_is_rejected_without_hash_crash (tests.test_project_viewer.ProjectHostTests) ... ok
+test_empty_board_is_valid (tests.test_project_viewer.ProjectHostTests) ... ok
+test_malformed_model_patch_becomes_diagnostic_not_uncaught_exception (tests.test_project_viewer.ProjectHostTests) ... ok
+test_spatial_win_occupancy_and_terminal_rejection (tests.test_project_viewer.ProjectHostTests) ... ok
+test_canonical_moves_match_native_runtime_for_many_seeded_games (tests.test_workbench_training.AdapterTests) ... ok
+test_changed_rule_or_adapter_seal_cannot_compile (tests.test_workbench_training.AdapterTests) ... ok
+test_existing_generated_target_passes_without_mutating_rule (tests.test_workbench_training.AdapterTests) ... ok
+test_non_opponent_and_hidden_games_have_specific_reasons (tests.test_workbench_training.AdapterTests) ... ok
+test_renamed_rule_and_participants_use_same_contract (tests.test_workbench_training.AdapterTests) ... ok
+test_unapproved_and_source_targets_are_blocked (tests.test_workbench_training.AdapterTests) ... ok
+test_unencoded_state_unbalanced_outcome_and_wrong_shape_are_blocked (tests.test_workbench_training.AdapterTests) ... ok
+test_checkpoint_code_identity_survives_git_line_ending_conversion (tests.test_workbench_training.ConfigAndPinTests) ... ok
+test_corrupt_checkpoint_samples_are_rejected (tests.test_workbench_training.ConfigAndPinTests) ... ok
+test_cross_game_and_network_checkpoint_are_rejected_before_loading_weights (tests.test_workbench_training.ConfigAndPinTests) ... ok
+test_invalid_training_budgets_are_rejected (tests.test_workbench_training.ConfigAndPinTests) ... ok
+test_async_eligibility_and_switch_invalidates_old_target (tests.test_workbench_training.PanelTests) ... ok
+test_close_cancels_own_worker (tests.test_workbench_training.PanelTests) ... ok
+test_source_switch_requests_cancel_and_clears_resume (tests.test_workbench_training.PanelTests) ... ok
+test_json_generation_buttons_apply_and_show_rejection (tests.test_workbench_controller.WorkbenchControllerTests) ... ok
+test_ursina_launch_receives_complete_rule_object_not_only_xyz (tests.test_workbench_controller.WorkbenchControllerTests) ... ok
+test_xyz_template_updates_current_json_without_discarding_rules (tests.test_workbench_controller.WorkbenchControllerTests) ... ok
+test_attach_blocked_until_designer_approves_llm_manifest (tests.test_srtp_workbench.SrtpWorkbenchTests) ... ok
+test_failed_project_import_clears_previous_game_instead_of_reusing_its_adapter (tests.test_srtp_workbench.SrtpWorkbenchTests) ... ok
+test_generated_target_is_used_instead_of_adapter (tests.test_srtp_workbench.SrtpWorkbenchTests) ... ok
+test_original_launch_uses_source_runtime_not_generic_ursina_schema (tests.test_srtp_workbench.SrtpWorkbenchTests) ... ok
+test_project_session_arrow_key_dispatches_input_ir (tests.test_srtp_workbench.SrtpWorkbenchTests) ... ok
+test_real_reference_populates_runtime_evidence_and_source_dimensions (tests.test_srtp_workbench.SrtpWorkbenchTests) ... ok
+test_registered_source_adapter_launches_playable_3d_preview (tests.test_srtp_workbench.SrtpWorkbenchTests) ... ok
+test_stale_target_does_not_fall_back_to_adapter (tests.test_srtp_workbench.SrtpWorkbenchTests) ... ok
+test_standalone_manifest_is_a_conversion_input (tests.test_srtp_workbench.SrtpWorkbenchTests) ... ok
+test_transform_target_defaults_to_source_xy_but_allows_designer_resize (tests.test_srtp_workbench.SrtpWorkbenchTests) ... ok
+test_v1_workbench_hosts_ir_v2_session_and_invalidates_it_on_source_change (tests.test_srtp_workbench.SrtpWorkbenchTests) ... ok
+test_confirmed_click_required_and_filtered_button_never_restarts_board (tests.test_input_pointer_routing.PointerRoutingTests) ... ok
+test_drag_other_target_overlay_and_clear_cancel_before_rule_dispatch (tests.test_input_pointer_routing.PointerRoutingTests) ... ok
+test_first_legal_skips_illegal_high_priority_and_commits_only_one (tests.test_input_pointer_routing.PointerRoutingTests) ... ok
+test_malformed_filters_and_first_legal_without_rule_runtime_rejected (tests.test_input_pointer_routing.PointerRoutingTests) ... ok
+test_neutral_target_filters_and_disjoint_same_priority_buttons (tests.test_input_pointer_routing.PointerRoutingTests) ... ok
+test_original_unresolved_remains_rejected (tests.test_input_pointer_routing.PointerRoutingTests) ... ok
+test_production_input_gate_checks_the_button_even_with_keyboard_fallback (tests.test_input_pointer_routing.PointerRoutingTests) ... ok
+test_real_project_host_click_restart_and_cancellation (tests.test_input_pointer_routing.PointerRoutingTests) ... ok
+test_host_commands_are_explicit_allowlisted_digital_requests (tests.test_host_input_commands.HostCommandTests) ... ok
+test_host_restart_after_terminal_and_quit_do_not_forge_rule_actions (tests.test_host_input_commands.HostCommandTests) ... FAIL
+test_original_model_report_remains_blocked_not_silently_cleared (tests.test_host_input_commands.HostCommandTests) ... FAIL
+test_checked_rule_ir_file_can_open_as_a_real_project_preview (tests.test_ir_acceptance_workbench.IRAcceptanceControllerTests) ... ok
+test_frontend_verification_actions_call_the_real_gate_and_ai_adapter (tests.test_ir_acceptance_workbench.IRAcceptanceControllerTests) ... FAIL
+test_product_host_can_start_empty_and_open_a_sealed_project_bundle (tests.test_ir_acceptance_workbench.IRAcceptanceControllerTests) ... ok
+test_reference_has_independent_source_and_target_project_sessions (tests.test_ir_acceptance_workbench.IRAcceptanceControllerTests) ... ok
+test_reset_and_replay_are_deterministic (tests.test_ir_acceptance_workbench.IRAcceptanceControllerTests) ... ok
+test_ui_click_runs_legality_transition_outcome_and_rejection (tests.test_ir_acceptance_workbench.IRAcceptanceControllerTests) ... ok
+
+======================================================================
+FAIL: test_host_restart_after_terminal_and_quit_do_not_forge_rule_actions (tests.test_host_input_commands.HostCommandTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "E:\CubeEngine\work\agentic-srtp-integration\tests\test_host_input_commands.py", line 59, in test_host_restart_after_terminal_and_quit_do_not_forge_rule_actions
+    self.assertTrue(report.ok,report.diagnostics)
+AssertionError: False is not true : ['asset_ir: patches.asset_ir[0].evidence[0].file_sha256 does not match on-disk file']
+
+======================================================================
+FAIL: test_original_model_report_remains_blocked_not_silently_cleared (tests.test_host_input_commands.HostCommandTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "E:\CubeEngine\work\agentic-srtp-integration\tests\test_host_input_commands.py", line 32, in test_original_model_report_remains_blocked_not_silently_cleared
+    self.assertIn('unresolved',' '.join(result.diagnostics))
+AssertionError: 'unresolved' not found in 'asset_ir: patches.asset_ir[0].evidence[0].file_sha256 does not match on-disk file'
+
+======================================================================
+FAIL: test_frontend_verification_actions_call_the_real_gate_and_ai_adapter (tests.test_ir_acceptance_workbench.IRAcceptanceControllerTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "E:\CubeEngine\work\agentic-srtp-integration\tests\test_ir_acceptance_workbench.py", line 87, in test_frontend_verification_actions_call_the_real_gate_and_ai_adapter
+    self.assertTrue(gate["passed"])
+AssertionError: False is not true
+
+----------------------------------------------------------------------
+Ran 62 tests in 53.992s
+
+FAILED (failures=3)
