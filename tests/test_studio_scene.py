@@ -2,6 +2,8 @@
 import os
 os.environ.setdefault('QT_QPA_PLATFORM','offscreen')
 import unittest
+import tempfile
+from unittest.mock import patch
 from copy import deepcopy
 from pathlib import Path
 from srtp.studio.layout import FORMAT, vector, validate_draft
@@ -99,6 +101,46 @@ class DesktopBindingTests(unittest.TestCase):
         try:
             w.last_tree_ids=('same-id',); w.source_changed()
             self.assertEqual(w.last_tree_ids,())
+        finally:w.close()
+
+    def test_approved_binding_cannot_follow_renamed_or_modified_source(self):
+        w=Studio(); w.timer.stop()
+        root=Path(__file__).resolve().parents[1]
+        target=root/'tests/fixtures/workbench_training_target_20261004/project.manifest.json'
+        original=root/'srtp/reference_games/pygame_tictactoe/main.py'
+        try:
+            with tempfile.TemporaryDirectory() as directory:
+                path=Path(directory)/'neutral_board.py'
+                path.write_text(original.read_text(encoding='utf-8'),encoding='utf-8')
+                w.load_source(path)
+                self.assertFalse(w.source_view.running)
+                w.c.open_project_manifest(target)
+                self.assertEqual(w.manifest,target.resolve())
+                with patch.object(w.c,'open_project_manifest') as attach:
+                    w.load_source(path)
+                    attach.assert_called_once_with(target.resolve())
+                    attach.reset_mock()
+                    path.write_text(path.read_text(encoding='utf-8')+'\nNEW_VERSION = 2\n',encoding='utf-8')
+                    w.load_source(path)
+                    attach.assert_not_called()
+                    self.assertIsNone(w.manifest)
+                    self.assertFalse(w.view_buttons['scene'].isEnabled())
+                    self.assertIsNone(w.c.training_panel.target)
+                    renamed=path.with_name('another_board.py')
+                    renamed.write_text(original.read_text(encoding='utf-8'),encoding='utf-8')
+                    w.load_source(renamed)
+                    attach.assert_not_called()
+        finally:w.close()
+
+    def test_missing_3d_play_stays_on_runnable_source_instead_of_empty_scene(self):
+        w=Studio(); w.timer.stop()
+        try:
+            with patch.object(w,'start_source') as start:
+                w.switch_view('game')
+                self.assertEqual(w.active_view,'source')
+                self.assertIs(w.views.currentWidget(),w.source_view)
+                self.assertIn('尚未掛載',w.status_label.text())
+                start.assert_called_once()
         finally:w.close()
 
 

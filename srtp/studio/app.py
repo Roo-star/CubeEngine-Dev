@@ -100,6 +100,8 @@ class Studio(QMainWindow):
         self.c.studio = self
         self.state, self.dirty = None, False
         self.manifest, self.loaded_manifest, self.package_key = None, None, None
+        self.source_identity, self.source_targets = None, {}
+        self.scene_requested=False
         self.nodes, self.assets, self.scene_data = {}, {}, {}
         self.selected, self.pending_selection = None, None
         self.editing_properties, self.active_view = False, 'scene'
@@ -149,6 +151,8 @@ class Studio(QMainWindow):
         titles, title_layout = box(spacing=2)
         title_layout.addWidget(label('CUBEENGINE  /  WORKSPACE', 'section'))
         self.project_title = label('開始你的空間創作', 'title'); title_layout.addWidget(self.project_title)
+        self.project_title.setMinimumWidth(0)
+        self.project_title.setSizePolicy(QSizePolicy.Ignored,QSizePolicy.Preferred)
         line.addWidget(titles, 1)
         self.project_badge = label('本機工作區', 'badge'); line.addWidget(self.project_badge)
         line.addWidget(button('匯入', 'folder', self.import_menu))
@@ -158,6 +162,14 @@ class Studio(QMainWindow):
         self.splitter = QSplitter(Qt.Horizontal); self.splitter.setChildrenCollapsible(False)
         self.sidebar, left = card(name='sidebar'); self.sidebar.setMinimumWidth(190)
         self.sidebar.setMaximumWidth(340)
+        left.addWidget(label('切換範例並運行', 'section'))
+        self.example_selector = QComboBox()
+        self.example_selector.setAccessibleName('切換範例並運行')
+        self.example_selector.addItem('選擇內建遊戲…', None)
+        for title, path in REFERENCE_GAMES.items():
+            self.example_selector.addItem(title.split(' · ')[0], str(path))
+        self.example_selector.activated.connect(self.select_reference)
+        left.addWidget(self.example_selector)
         browser_title, browser_line = box(horizontal=True)
         browser_line.addWidget(label('場景物件', 'heading'), 1)
         browser_line.addWidget(button('', 'folder', self.project_menu, 'quiet', '目前專案 / 範例', True))
@@ -402,7 +414,7 @@ class Studio(QMainWindow):
         layout.addWidget(label('場景是實際引擎畫面','heading'))
         layout.addWidget(label('在「場景」選取物件，以右側 XYZ 欄位調整佈局；「試玩」才執行遊戲規則。右鍵旋轉、滾輪縮放，聚焦可快速找到選中物件。',wrap=True))
         layout.addWidget(label('來源、規則與編輯草稿各有歸屬','heading'))
-        layout.addWidget(label('原作 2D 在中央直接運行。目前嵌入適配器支援 Pygame。場景編輯儲存為本機佈局草稿；進入試玩會恢復批准的場景。可從匯入選單讀回相同版本的草稿。',wrap=True))
+        layout.addWidget(label('左側「切換範例並運行」會直接啟動內建遊戲。自行匯入來源後，按播放才執行原作。原作 2D 支援 Pygame 與 Turtle；掛載已批准的空間版本後，才能切換 3D 場景及試玩。場景草稿可從匯入選單讀回。',wrap=True))
         layout.addWidget(label('快捷鍵','heading')); layout.addWidget(label('Ctrl+O 匯入  ·  Ctrl+Shift+O 掛載場景\nCtrl+S 儲存草稿  ·  F5 播放 / 停止',wrap=True)); layout.addStretch()
 
     def show_dialog(self,key):
@@ -425,15 +437,38 @@ class Studio(QMainWindow):
         menu=QMenu(self); menu.addAction('開啟目前來源資料夾',self.open_source_folder)
         menu.addAction('版本與引擎檢查…',lambda:self.show_dialog('diagnostics'));menu.addAction('開啟已批准產物資料夾',self.open_bundle)
         menu.addSeparator()
-        for title,path in REFERENCE_GAMES.items(): menu.addAction(icon('file'),title.split(' · ')[0],lambda checked=False,p=path:self.load_source(p))
+        for title,path in REFERENCE_GAMES.items(): menu.addAction(icon('play'),title.split(' · ')[0]+' · 運行',lambda checked=False,p=path:self.load_source(p,run=True))
         menu.exec(self.cursor().pos())
 
     def import_source(self,directory=False):
         value=QFileDialog.getExistingDirectory(self,'選擇遊戲專案',str(ROOT)) if directory else QFileDialog.getOpenFileName(self,'選擇遊戲入口',str(ROOT),'Game source (*.py *.pyw *.html);;All files (*)')[0]
         if value: self.load_source(value)
 
-    def load_source(self,path):
-        self.port.set_value('srtp_source_path',str(path)); self.c.import_source(); self.switch_view('source',start=False)
+    def select_reference(self,index):
+        path=self.example_selector.itemData(index)
+        if path:self.load_source(path,run=True)
+
+    def load_source(self,path,run=False):
+        self.port.set_value('srtp_source_path',str(path)); self.c.import_source()
+        package=self.c.package
+        if not package:
+            self.switch_view('source',start=False)
+            self.source_view.failure(str(self.port.get_value('srtp_status')))
+            return
+        from ..llm_compiler_v1.evidence import source_package_hash
+        self.source_identity=(str(package.entrypoint.resolve()),source_package_hash(package.llm_handoff()))
+        index=self.example_selector.findData(str(package.entrypoint))
+        self.example_selector.setCurrentIndex(max(0,index))
+        previous=self.source_targets.get(self.source_identity)
+        if previous and previous.is_file():self.c.open_project_manifest(previous)
+        if package.runtime.kind=='project_ir':
+            self.switch_view('scene');return
+        self.switch_view('source',start=run)
+        self.scene_requested=False
+        if not run:
+            self.source_view.message.setText('原作已載入\n\n按上方播放，在此執行遊戲。')
+        if not self.manifest:
+            self.tree_note.setText('目前可玩原作 2D。\n掛載已批准的 3D 版本後，這裡會顯示場景物件。')
 
     def attach_target(self):
         path=QFileDialog.getOpenFileName(self,'掛載已批准的 Project Manifest',str(ROOT),'Manifest (*.json)')[0]
@@ -443,20 +478,31 @@ class Studio(QMainWindow):
         if not hasattr(self,'target_view'): return
         self.target_view.stop(); self.source_view.stop()
         self.loaded_manifest,self.manifest,self.state,self.package_key=None,None,None,None
+        self.source_identity=None
+        self.scene_requested=False
         self.nodes,self.assets,self.scene_data={}, {}, {}
         self.selected=None; self.tree.clear(); self.asset_list.clear(); self.last_tree_ids=()
         self.update_inspector(); self.tree_note.setText('掛載場景後顯示實際物件階層')
         self.undo_button.setEnabled(False); self.redo_button.setEnabled(False)
         self.slice_button.setEnabled(False)
+        for key in ('scene','game'):
+            self.view_buttons[key].setEnabled(False)
+            self.view_buttons[key].setToolTip('先掛載這款遊戲已批准的 3D 場景；原作 2D 可直接運行。')
 
     def set_state(self,state):
         self.state=state
+        previous=self.manifest
         core=self.c.core_controller
         if core and core.has_active_project:
             # The controller owns the exact approved path, never a filename guess.
             path=getattr(self.c,'_studio_manifest_path',None)
             if path: self.manifest=Path(path)
             elif self.c.package and self.c.package.runtime.kind=='project_ir': self.manifest=Path(self.c.package.entrypoint)
+            if self.manifest:
+                if self.manifest!=previous:self.scene_requested=True
+                if self.source_identity:self.source_targets[self.source_identity]=self.manifest
+                for key in ('scene','game'):
+                    self.view_buttons[key].setEnabled(True); self.view_buttons[key].setToolTip('')
         self.dirty=True
 
     def open_scene(self):
@@ -467,6 +513,9 @@ class Studio(QMainWindow):
         self.status_label.setText('正在載入 Scene／Asset…')
 
     def switch_view(self,key,start=True):
+        if key!='source' and not self.manifest:
+            self.status_label.setText('尚未掛載已批准的 3D 場景，先在中央運行原作。')
+            key='source'
         self.active_view=key
         for name,w in self.view_buttons.items(): w.setChecked(name==key)
         self.views.setCurrentWidget(self.source_view if key=='source' else self.target_view)
@@ -551,9 +600,12 @@ class Studio(QMainWindow):
         elif kind=='loaded':self.status_label.setText('已載入相同版本的場景草稿')
 
     def source_event(self,event):
-        if event['event']=='source_frame':self.status_label.setText('原作正在中央視窗執行'); self.renderer_label.setText('2D 原作 · 即時運行')
+        if event['event']=='source_frame' and self.active_view=='source':self.status_label.setText('原作正在中央視窗執行'); self.renderer_label.setText('2D 原作 · 即時運行')
         elif event['event']=='source_state' and self.active_view=='source':self.status_label.setText('原作已暫停' if event['paused'] else '原作正在中央視窗執行')
         elif event['event']=='error':self.append_console(event['message']); self.status_label.setText(event['message'][:120])
+        elif event['event']=='stopped' and self.active_view=='source':
+            self.status_label.setText('原作已停止，按播放重新開始。' if not event['code'] else '原作無法執行，原因已顯示在中央。')
+            self.renderer_label.setText('2D 原作 · 已停止')
         self.refresh_play_controls()
 
     def populate_tree(self):
@@ -710,10 +762,13 @@ class Studio(QMainWindow):
         key=str(package.entrypoint) if package else None
         if key!=self.package_key:
             self.package_key=key
-            self.project_title.setText(package.title if package else '開始你的空間創作')
+            index=self.example_selector.findData(key) if key else -1
+            self.project_title.setText(self.example_selector.itemText(index) if index>0 else package.title if package else '開始你的空間創作')
+            self.project_title.setToolTip(package.title if package else '')
             if package and not self.manifest:
                 self.assets={p:str(package.root/p) for p in package.assets}; self.populate_assets()
-        if self.manifest and self.manifest!=self.loaded_manifest:
+        if self.scene_requested and self.manifest and self.manifest!=self.loaded_manifest:
+            self.scene_requested=False
             self.scene_data={}; self.last_tree_ids=(); self.switch_view('scene')
         panel=self.c.training_panel
         eligible=panel.snapshot is not None

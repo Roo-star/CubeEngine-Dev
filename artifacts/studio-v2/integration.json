@@ -33,10 +33,10 @@
     "Single-player Target cannot start self-play",
     "Ineligible Target explains the missing opponent"
   ],
-  "training_run": "E:\\CubeEngine\\work\\agentic-srtp-integration\\.cubeengine_training\\run-20261006-153204-275af397",
+  "training_run": "E:\\CubeEngine\\work\\agentic-srtp-integration\\.cubeengine_training\\run-20261006-160308-98c21686",
   "training_replay": "Verified 4 saved games against their original Rule.",
   "mines_target": "E:\\CubeEngine\\CubeEngine-SRTP\\.cubeengine_llm\\pygame.minesweeper\\target\\project.manifest.json",
   "passed": true,
-  "ui_ticks": 289,
-  "elapsed_seconds": 33.97
+  "ui_ticks": 282,
+  "elapsed_seconds": 33.19
 }

@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 import sys
 import time
-from PySide6.QtCore import Qt, QProcess, QTimer, Signal
+from PySide6.QtCore import Qt, QProcess, QProcessEnvironment, QTimer, Signal
 from PySide6.QtWidgets import QFrame, QVBoxLayout, QLabel, QWidget
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -31,6 +31,7 @@ class EmbeddedViewport(QFrame):
         self.paused = False
         self.probe = False
         self.generation = 0
+        self.last_error = ''
         self.started_at, self.last_frame = 0, None
         layout = QVBoxLayout(self); layout.setContentsMargins(1, 1, 1, 1); layout.setSpacing(0)
         self.message = QLabel('匯入遊戲，或掛載已批准場景\n\n在這裡編輯與試玩你的作品')
@@ -58,9 +59,12 @@ class EmbeddedViewport(QFrame):
         self.generation += 1
         self.mode, self.ready, self.buffer, self.started_at = mode, False, b'', time.monotonic()
         self.paused=False
+        self.last_error=''
         self.message.hide(); self.surface.show()
         self.surface.winId()
         process = QProcess(self); self.process = process
+        env=QProcessEnvironment.systemEnvironment(); env.insert('PYTHONIOENCODING','utf-8')
+        process.setProcessEnvironment(env)
         process.setWorkingDirectory(str(ROOT)); process.setProcessChannelMode(QProcess.MergedChannels)
         process.readyReadStandardOutput.connect(lambda p=process: self.read_output(p))
         process.finished.connect(lambda code, status, p=process: self.finished(p, code))
@@ -78,11 +82,14 @@ class EmbeddedViewport(QFrame):
         self.launch(args, 'target')
 
     def launch_source(self, package):
-        if package.runtime.framework.lower() != 'pygame':
-            self.failure('此來源尚未有嵌入適配器：' + package.runtime.framework + '。請先使用 Pygame 來源。')
+        framework=package.runtime.framework.lower()
+        if framework not in ('pygame', 'turtle'):
+            self.failure('此來源尚未有嵌入適配器：' + package.runtime.framework + '。目前支援 Pygame 與 Turtle。')
             return
+        self.message.hide(); self.surface.show(); self.layout().activate()
         args=['-u', '-m', 'srtp.studio.source_worker', '--entry', str(package.entrypoint),
-              '--cwd', str(package.runtime.cwd), '--parent-window', str(int(self.surface.winId()))]
+              '--cwd', str(package.runtime.cwd), '--framework', framework,
+              '--parent-window', str(int(self.surface.winId()))]
         if self.probe:args.append('--probe')
         self.launch(args,'source')
 
@@ -103,9 +110,13 @@ class EmbeddedViewport(QFrame):
                 if event['event'] in ('scene', 'source_frame'):
                     self.ready = True; self.message.hide(); self.surface.show()
                     self.last_frame = event
+                    if event['event']=='source_frame': self.resize_renderer()
+                if event['event']=='error': self.last_error=str(event.get('message',''))
                 if event['event']=='source_state':self.paused=event['paused']
                 self.event.emit(event)
-            elif text: self.log.emit(text)
+            elif text:
+                self.last_error=text
+                self.log.emit(text)
         if len(self.buffer) > 4_000_000: self.buffer = b''
 
     def send(self, op, **payload):
@@ -117,13 +128,16 @@ class EmbeddedViewport(QFrame):
             width, height = self.dimensions(); self.send('resize', width=width, height=height)
 
     def failure(self, message):
+        self.last_error=message
         self.surface.hide(); self.message.setText(message); self.message.show()
         self.event.emit({'event':'error', 'message':message})
 
     def finished(self, process, code):
+        self.read_output(process)
         if process is self.process:
             self.process = None; self.ready = False
-            self.surface.hide(); self.message.setText('遊戲已停止。點擊播放可重新開啟。' if not code else '場景啟動失敗。請查看診斷。')
+            self.surface.hide(); self.message.setText('遊戲已停止。點擊播放可重新開啟。' if not code else
+                '遊戲無法執行\n\n'+(self.last_error or '程序結束，代碼 '+str(code))+'\n\n可按播放重試；完整記錄在「事件與診斷」。')
             self.message.show(); self.event.emit({'event':'stopped', 'code':code})
         process.deleteLater()
 
@@ -136,6 +150,7 @@ class EmbeddedViewport(QFrame):
             timer=QTimer(process); timer.setSingleShot(True)
             timer.timeout.connect(lambda p=process: p.kill() if p.state() != QProcess.NotRunning else None)
             timer.start(1200)
+        elif process: process.deleteLater()
         self.surface.hide()
         if not keep_message: self.message.setText('場景已停止。點擊播放可重新開啟。')
         self.message.show()
