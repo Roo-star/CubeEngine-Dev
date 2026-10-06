@@ -93,6 +93,18 @@ class EmbeddedViewport(QFrame):
         if self.probe:args.append('--probe')
         self.launch(args,'source')
 
+    def launch_demo(self, package):
+        from ..transform_runner import TransformedGameRunner
+        try: args = ['-u'] + TransformedGameRunner.adapter_arguments(package)
+        except (RuntimeError, ValueError) as error:
+            self.failure(str(error)); return
+        self.message.hide(); self.surface.show(); self.layout().activate()
+        width, height = self.dimensions()
+        args += ['--parent-window', str(int(self.surface.winId())), '--studio',
+                 '--width', str(width), '--height', str(height)]
+        if self.probe: args.append('--studio-probe')
+        self.launch(args, 'demo')
+
     def timeout(self, generation):
         if generation == self.generation and self.running and not self.ready:
             self.failure('場景未能在 18 秒內啟動。請在診斷中查看原因。'); self.stop(keep_message=True)
@@ -107,12 +119,12 @@ class EmbeddedViewport(QFrame):
             if text.startswith('CUBE_STUDIO '):
                 try: event = json.loads(text[len('CUBE_STUDIO '):])
                 except ValueError: continue
-                if event['event'] in ('scene', 'source_frame'):
+                if event['event'] in ('scene', 'source_frame', 'demo_frame'):
                     self.ready = True; self.message.hide(); self.surface.show()
                     self.last_frame = event
-                    if event['event']=='source_frame': self.resize_renderer()
+                    if event['event'] in ('source_frame','demo_frame'): self.resize_renderer()
                 if event['event']=='error': self.last_error=str(event.get('message',''))
-                if event['event']=='source_state':self.paused=event['paused']
+                if event['event'] in ('source_state','demo_state'):self.paused=event['paused']
                 self.event.emit(event)
             elif text:
                 self.last_error=text

@@ -143,5 +143,53 @@ class DesktopBindingTests(unittest.TestCase):
                 start.assert_called_once()
         finally:w.close()
 
+    def test_explicit_demo_does_not_restore_cached_training_target(self):
+        from srtp.studio.demos import DEMOS
+        w=Studio();w.timer.stop()
+        try:
+            path=DEMOS[1][1]
+            w.load_source(path)
+            target=Path(__file__).resolve().parents[1]/'tests/fixtures/workbench_training_target_20261004/project.manifest.json'
+            w.source_targets[w.source_identity]=target
+            with patch.object(w.c,'open_project_manifest') as attach,patch.object(w.demo_view,'launch_demo') as launch:
+                w.demo_actions[1].trigger()
+                attach.assert_not_called();launch.assert_called_once_with(w.c.package)
+            w.poll()
+            self.assertEqual(w.active_view,'demo')
+            self.assertIs(w.views.currentWidget(),w.demo_view)
+            self.assertIsNone(w.manifest);self.assertIsNone(w.c.training_panel.target)
+            self.assertFalse(w.train_start.isEnabled())
+            self.assertIn('未接入',w.training_description.text())
+        finally:w.close()
+
+    def test_normal_source_leaves_demo_and_import_does_not_execute(self):
+        from srtp.studio.demos import DEMOS
+        w=Studio();w.timer.stop()
+        try:
+            with patch.object(w.demo_view,'launch_demo'),patch.object(w,'start_source') as start:
+                w.demo_actions[2].trigger()
+                self.assertTrue(w.demo_selected)
+                w.load_source(DEMOS[0][1])
+                start.assert_not_called()
+            self.assertFalse(w.demo_selected)
+            self.assertEqual(w.active_view,'source')
+            self.assertTrue(w.view_buttons['demo'].isHidden())
+            self.assertFalse(w.view_buttons['scene'].isHidden())
+            self.assertFalse(w.view_buttons['game'].isHidden())
+        finally:w.close()
+
+    def test_unapproved_scene_never_launches_demo_as_fallback(self):
+        from srtp.studio.demos import DEMOS
+        w=Studio();w.timer.stop()
+        try:
+            w.load_source(DEMOS[1][1])
+            with patch.object(w.demo_view,'launch_demo') as launch,patch.object(w,'start_source'):
+                w.switch_view('game')
+                launch.assert_not_called()
+            self.assertFalse(w.demo_selected)
+            self.assertEqual(w.active_view,'source')
+            self.assertIsNone(w.manifest)
+        finally:w.close()
+
 
 if __name__=='__main__':unittest.main()

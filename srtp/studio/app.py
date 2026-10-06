@@ -19,6 +19,7 @@ from .icons import icon
 from .theme import STYLE
 from .port import FieldPort
 from .viewport import EmbeddedViewport, ROOT
+from .demos import DEMOS
 from ..workbench import SrtpWorkbench, REFERENCE_GAMES
 from ..training.config import TrainingConfig
 from ..training.session import default_python
@@ -102,6 +103,7 @@ class Studio(QMainWindow):
         self.manifest, self.loaded_manifest, self.package_key = None, None, None
         self.source_identity, self.source_targets = None, {}
         self.scene_requested=False
+        self.demo_selected=False
         self.nodes, self.assets, self.scene_data = {}, {}, {}
         self.selected, self.pending_selection = None, None
         self.editing_properties, self.active_view = False, 'scene'
@@ -170,6 +172,13 @@ class Studio(QMainWindow):
             self.example_selector.addItem(title.split(' · ')[0], str(path))
         self.example_selector.activated.connect(self.select_reference)
         left.addWidget(self.example_selector)
+        self.demo_menu=QMenu(self)
+        self.demo_actions=[]
+        for title,path in DEMOS:
+            self.demo_actions.append(self.demo_menu.addAction(icon('cube'),title,
+                lambda checked=False,p=path:self.load_demo(p)))
+        self.demo_button=button('3D Demo', 'cube', None, tooltip='開啟原有四款 3D Demo，不需選檔案')
+        self.demo_button.setMenu(self.demo_menu); left.addWidget(self.demo_button)
         browser_title, browser_line = box(horizontal=True)
         browser_line.addWidget(label('場景物件', 'heading'), 1)
         browser_line.addWidget(button('', 'folder', self.project_menu, 'quiet', '目前專案 / 範例', True))
@@ -190,6 +199,9 @@ class Studio(QMainWindow):
             b = button(text, glyph, lambda k=key:self.switch_view(k), 'quiet'); b.setCheckable(True)
             self.view_buttons[key] = b; tools.addWidget(b)
         self.view_buttons['scene'].setChecked(True)
+        demo_tab=button('3D Demo','cube',lambda:self.switch_view('demo'),'quiet')
+        demo_tab.setCheckable(True); demo_tab.hide(); tools.addWidget(demo_tab)
+        self.view_buttons['demo']=demo_tab
         tools.addStretch()
         self.play_button = button('', 'play', self.toggle_play, tooltip='播放 / 停止 · F5', compact=True)
         self.pause_button = button('', 'pause', self.pause, tooltip='暫停 / 繼續', compact=True)
@@ -200,10 +212,11 @@ class Studio(QMainWindow):
         self.center_splitter = QSplitter(Qt.Vertical); self.center_splitter.setChildrenCollapsible(False)
         stage, stage_layout = box(spacing=0)
         self.views = QStackedWidget()
-        self.target_view = EmbeddedViewport(); self.source_view = EmbeddedViewport()
+        self.target_view = EmbeddedViewport(); self.source_view = EmbeddedViewport(); self.demo_view=EmbeddedViewport()
         self.target_view.event.connect(self.scene_event); self.source_view.event.connect(self.source_event)
         self.target_view.log.connect(self.append_console); self.source_view.log.connect(self.append_console)
-        self.views.addWidget(self.target_view); self.views.addWidget(self.source_view)
+        self.demo_view.event.connect(self.demo_event); self.demo_view.log.connect(self.append_console)
+        self.views.addWidget(self.target_view); self.views.addWidget(self.source_view); self.views.addWidget(self.demo_view)
         stage_layout.addWidget(self.views, 1)
         viewport_footer, footer = box(horizontal=True, margins=8, spacing=8)
         self.scene_hint = label('場景內選取物件 · 右鍵旋轉 · 滾輪縮放', 'muted'); footer.addWidget(self.scene_hint, 1)
@@ -216,7 +229,8 @@ class Studio(QMainWindow):
         self.undo_button=button('', 'reset',lambda:self.edit_history('undo'),'quiet','復原 · Ctrl+Z',True)
         self.redo_button=button('', 'arrow',lambda:self.edit_history('redo'),'quiet','重做 · Ctrl+Y',True)
         footer.addWidget(self.undo_button); footer.addWidget(self.redo_button)
-        footer.addWidget(button('', 'focus', lambda:self.target_view.send('camera'), 'quiet', '框選整個場景', True))
+        self.frame_button=button('', 'focus',lambda:(self.demo_view if self.active_view=='demo' else self.target_view).send('camera'), 'quiet', '框選整個場景', True)
+        footer.addWidget(self.frame_button)
         stage_layout.addWidget(viewport_footer)
         self.center_splitter.addWidget(stage)
         self.bottom, bottom_layout = card(name='card'); self.bottom.setMinimumHeight(120)
@@ -412,6 +426,7 @@ class Studio(QMainWindow):
             text=QPlainTextEdit();text.setReadOnly(True);self.port.bind(tag,text);tabs.addTab(text,title)
         d,layout=self.dialog('help','工作臺操作',(650,500))
         layout.addWidget(label('場景是實際引擎畫面','heading'))
+        layout.addWidget(label('原有四款示範在左側「3D Demo」選單：貪吃蛇、掃雷、四子棋、2048。選擇後直接在中央試玩，不需 Manifest 或重新轉換。',wrap=True))
         layout.addWidget(label('在「場景」選取物件，以右側 XYZ 欄位調整佈局；「試玩」才執行遊戲規則。右鍵旋轉、滾輪縮放，聚焦可快速找到選中物件。',wrap=True))
         layout.addWidget(label('來源、規則與編輯草稿各有歸屬','heading'))
         layout.addWidget(label('左側「切換範例並運行」會直接啟動內建遊戲。自行匯入來源後，按播放才執行原作。原作 2D 支援 Pygame 與 Turtle；掛載已批准的空間版本後，才能切換 3D 場景及試玩。場景草稿可從匯入選單讀回。',wrap=True))
@@ -448,7 +463,7 @@ class Studio(QMainWindow):
         path=self.example_selector.itemData(index)
         if path:self.load_source(path,run=True)
 
-    def load_source(self,path,run=False):
+    def load_source(self,path,run=False,restore_target=True):
         self.port.set_value('srtp_source_path',str(path)); self.c.import_source()
         package=self.c.package
         if not package:
@@ -460,7 +475,7 @@ class Studio(QMainWindow):
         index=self.example_selector.findData(str(package.entrypoint))
         self.example_selector.setCurrentIndex(max(0,index))
         previous=self.source_targets.get(self.source_identity)
-        if previous and previous.is_file():self.c.open_project_manifest(previous)
+        if restore_target and previous and previous.is_file():self.c.open_project_manifest(previous)
         if package.runtime.kind=='project_ir':
             self.switch_view('scene');return
         self.switch_view('source',start=run)
@@ -470,6 +485,19 @@ class Studio(QMainWindow):
         if not self.manifest:
             self.tree_note.setText('目前可玩原作 2D。\n掛載已批准的 3D 版本後，這裡會顯示場景物件。')
 
+    def load_demo(self,path):
+        # This is an explicit demo-library action, never a failed-IR fallback.
+        self.load_source(path,restore_target=False)
+        if not self.c.package:return
+        self.demo_selected=True
+        self.view_buttons['demo'].show()
+        for key in ('scene','game'):self.view_buttons[key].hide()
+        self.tree_note.setText('原有 3D Demo · 可直接試玩\n原作素材見下方資產。')
+        self.selected_name.setText('3D Demo')
+        self.selected_type.setText('原有示範版本')
+        self.draft_note.setText('此視圖用於試玩。要編輯正式場景，請掛載已批准版本。')
+        self.switch_view('demo')
+
     def attach_target(self):
         path=QFileDialog.getOpenFileName(self,'掛載已批准的 Project Manifest',str(ROOT),'Manifest (*.json)')[0]
         if path: self.c.open_project_manifest(Path(path))
@@ -477,6 +505,9 @@ class Studio(QMainWindow):
     def source_changed(self):
         if not hasattr(self,'target_view'): return
         self.target_view.stop(); self.source_view.stop()
+        self.demo_view.stop(); self.demo_selected=False
+        self.view_buttons['demo'].hide()
+        for key in ('scene','game'):self.view_buttons[key].show()
         self.loaded_manifest,self.manifest,self.state,self.package_key=None,None,None,None
         self.source_identity=None
         self.scene_requested=False
@@ -499,6 +530,10 @@ class Studio(QMainWindow):
             if path: self.manifest=Path(path)
             elif self.c.package and self.c.package.runtime.kind=='project_ir': self.manifest=Path(self.c.package.entrypoint)
             if self.manifest:
+                if self.demo_selected:
+                    self.demo_view.stop(); self.demo_selected=False
+                    self.view_buttons['demo'].hide()
+                    for key in ('scene','game'):self.view_buttons[key].show()
                 if self.manifest!=previous:self.scene_requested=True
                 if self.source_identity:self.source_targets[self.source_identity]=self.manifest
                 for key in ('scene','game'):
@@ -513,19 +548,26 @@ class Studio(QMainWindow):
         self.status_label.setText('正在載入 Scene／Asset…')
 
     def switch_view(self,key,start=True):
-        if key!='source' and not self.manifest:
+        if key=='demo' and not self.demo_selected:return
+        if key in ('scene','game') and not self.manifest:
             self.status_label.setText('尚未掛載已批准的 3D 場景，先在中央運行原作。')
             key='source'
         self.active_view=key
         for name,w in self.view_buttons.items(): w.setChecked(name==key)
-        self.views.setCurrentWidget(self.source_view if key=='source' else self.target_view)
-        self.layer_combo.setVisible(key!='source')
-        self.slice_button.setVisible(key!='source')
+        self.views.setCurrentWidget(self.demo_view if key=='demo' else self.source_view if key=='source' else self.target_view)
+        for control in (self.layer_combo,self.slice_button,self.undo_button,self.redo_button):control.setVisible(key in ('scene','game'))
+        self.frame_button.setVisible(key!='source')
+        self.demo_view.send('pause',paused=key!='demo')
         if key=='source':
             self.target_view.send('pause',paused=True)
             self.scene_hint.setText('原作 2D · 原始程式直接在此執行')
             if start and not self.source_view.running: self.start_source()
             self.source_view.send('pause',paused=False)
+        elif key=='demo':
+            self.source_view.send('pause',paused=True); self.target_view.send('pause',paused=True)
+            if start and not self.demo_view.running:self.demo_view.launch_demo(self.c.package)
+            self.demo_view.send('pause',paused=False)
+            self.scene_hint.setText('3D Demo · 原有示範 · 右鍵旋轉／滾輪縮放')
         else:
             self.source_view.send('pause',paused=True)
             if self.manifest and not self.target_view.running: self.open_scene()
@@ -541,23 +583,31 @@ class Studio(QMainWindow):
         self.source_view.launch_source(package)
 
     def toggle_play(self):
-        if self.active_view=='source':
+        if self.active_view=='demo':
+            if self.demo_view.running:self.demo_view.stop()
+            else:self.demo_view.launch_demo(self.c.package)
+        elif self.active_view=='source':
             if self.source_view.running:self.source_view.stop()
             else:self.start_source()
         else:self.switch_view('scene' if self.active_view=='game' else 'game')
         self.refresh_play_controls()
 
     def pause(self):
-        if self.active_view=='source':self.source_view.send('pause',paused=not self.source_view.paused)
+        if self.active_view=='demo':self.demo_view.send('pause',paused=not self.demo_view.paused)
+        elif self.active_view=='source':self.source_view.send('pause',paused=not self.source_view.paused)
         else:self.target_view.send('pause',paused=not self.scene_data.get('paused',False))
 
     def restart(self):
-        if self.active_view=='source':self.start_source()
+        if self.active_view=='demo':self.demo_view.send('reset')
+        elif self.active_view=='source':self.start_source()
         else:self.target_view.send('reset')
 
     def refresh_play_controls(self):
-        running=self.source_view.running if self.active_view=='source' else self.active_view=='game'
+        running=self.demo_view.running if self.active_view=='demo' else self.source_view.running if self.active_view=='source' else self.active_view=='game'
         self.play_button.setIcon(icon('stop' if running else 'play','#c8b5ff'))
+        if self.active_view=='demo':
+            self.pause_button.setEnabled(self.demo_view.ready); self.pause_button.setChecked(self.demo_view.paused)
+            self.restart_button.setEnabled(self.demo_view.ready); return
         self.pause_button.setEnabled(self.source_view.ready if self.active_view=='source' else self.active_view=='game' and self.target_view.ready)
         self.pause_button.setChecked(self.source_view.paused if self.active_view=='source' else self.active_view=='game' and self.scene_data.get('paused',False))
         self.restart_button.setEnabled(self.source_view.running if self.active_view=='source' else self.target_view.ready)
@@ -606,6 +656,15 @@ class Studio(QMainWindow):
         elif event['event']=='stopped' and self.active_view=='source':
             self.status_label.setText('原作已停止，按播放重新開始。' if not event['code'] else '原作無法執行，原因已顯示在中央。')
             self.renderer_label.setText('2D 原作 · 已停止')
+        self.refresh_play_controls()
+
+    def demo_event(self,event):
+        if event['event'] in ('demo_frame','demo_state') and self.active_view=='demo':
+            self.renderer_label.setText('3D Demo · 原有示範')
+            self.status_label.setText('3D Demo 已暫停' if event['paused'] else '3D Demo 正在中央視窗執行')
+            self.selected_type.setText(' × '.join(map(str,event['dimensions']))+' · '+str(event['object_count'])+' 個呈現物件')
+        elif event['event']=='error':self.append_console(event['message']); self.status_label.setText(event['message'][:120])
+        elif event['event']=='stopped' and self.active_view=='demo':self.status_label.setText('3D Demo 已停止，可按播放重開。')
         self.refresh_play_controls()
 
     def populate_tree(self):
@@ -776,11 +835,11 @@ class Studio(QMainWindow):
         if self.eligibility.property('state')!=state:
             self.eligibility.setProperty('state',state)
             self.eligibility.style().unpolish(self.eligibility); self.eligibility.style().polish(self.eligibility)
-        self.eligibility.setText('可訓練 · 雙人對弈' if eligible else '正在檢查資格…' if panel.future else '目前不適用' if panel.target else '等待批准版本')
+        self.eligibility.setText('Demo 試玩' if self.demo_selected else '可訓練 · 雙人對弈' if eligible else '正在檢查資格…' if panel.future else '目前不適用' if panel.target else '等待批准版本')
         reasons=' '.join(panel.reasons)
         description='3×3×3 · 完整資訊 · 版本已綁定' if eligible else '這款遊戲沒有雙人對手。' if 'opponent' in reasons else '資格與不合格原因可在詳情查看。' if panel.target else '批准空間版本後，自動檢查對手與狀態編碼。'
-        self.training_description.setText(description)
-        self.run_reasons.setText('\n'.join(panel.reasons) if panel.reasons else '九項 Game API 通過；存檔已綁定目前 Rule 與 adapter。')
+        self.training_description.setText('此示範版本未接入自對弈訓練。' if self.demo_selected else description)
+        self.run_reasons.setText('\n'.join(panel.reasons) if panel.reasons else '九項 Game API 通過；存檔已綁定目前 Rule 與 adapter。' if eligible else '目前沒有可訓練的批准版本。')
         counters=panel.last_event.get('counters',{})
         current_run=bool(panel.started and panel.target and getattr(panel,'run_target',None)==panel.target)
         for key,w in self.metric_labels.items():w.setText(str(panel.last_event.get('iteration',0) if key=='iteration' else counters.get(key,0)) if current_run else '—')
@@ -797,11 +856,11 @@ class Studio(QMainWindow):
         active=bool(self.c.conversion_jobs.active)
         self.compile_button.setEnabled(bool(package) and not active); self.lift_button.setEnabled(bool(package) and not active)
         self.approve_button.setEnabled(bool(getattr(self.c,'_pending_llm_manifest',None)) and not active); self.cancel_conversion.setEnabled(active)
-        self.project_badge.setText('已批准場景' if self.manifest else '來源已載入' if package else '本機工作區')
+        self.project_badge.setText('3D Demo' if self.demo_selected else '已批准場景' if self.manifest else '來源已載入' if package else '本機工作區')
 
     def closeEvent(self,event):
         self.closing=True; self.timer.stop()
-        self.target_view.shutdown(); self.source_view.shutdown(); self.c.close()
+        self.target_view.shutdown(); self.source_view.shutdown(); self.demo_view.shutdown(); self.c.close()
         self.check_pool.shutdown(wait=False,cancel_futures=True)
         for dialog in self.dialogs.values():dialog.close()
         event.accept()

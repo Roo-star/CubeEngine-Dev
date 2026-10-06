@@ -39,6 +39,30 @@ class TransformedGameProcess:
 
 
 class TransformedGameRunner:
+    @staticmethod
+    def adapter_arguments(package: SourceGamePackage):
+        """Shared, validated launch contract for standalone and embedded demos."""
+        plan = package.transformation
+        dimensions = plan.target_dimensions
+        if not plan.adapter_id:
+            raise RuntimeError("No 3D transformation adapter is registered for this source game.")
+        if plan.readiness != "ready":
+            raise RuntimeError("The source mechanics are not fully compiled for 3D preview.")
+        if not all(isinstance(dimensions.get(axis), int) and dimensions[axis] > 0 for axis in ("x", "y", "z")):
+            raise RuntimeError("Set a valid target Z before entering 3D Play Mode.")
+        args = ["-m", "srtp.transformed_viewer", "--adapter", plan.adapter_id,
+                "--x", str(dimensions["x"]), "--y", str(dimensions["y"]), "--z", str(dimensions["z"]),
+                "--source-root", str(package.root)]
+        for flag, parameter, default in (("--source-mines", "source_mine_count", 10),
+                                         ("--tick-ms", "source_tick_ms", 125),
+                                         ("--connect-n", "source_connect_n", 4)):
+            item = package.parameter(parameter)
+            args.extend([flag, str(item.value if item else default)])
+        source = plan.source_dimensions
+        if isinstance(source.get("x"), int) and isinstance(source.get("y"), int):
+            args.extend(["--source-x", str(source["x"]), "--source-y", str(source["y"])])
+        return args
+
     def launch_project(self, manifest: Path, source_root: Path) -> TransformedGameProcess:
         from .llm_compiler_v1.compiler import load_compile_report_from_bundle
         report = load_compile_report_from_bundle(manifest.parent, manifest_path=manifest)
@@ -57,32 +81,8 @@ class TransformedGameRunner:
         return result
 
     def launch(self, package: SourceGamePackage) -> TransformedGameProcess:
-        plan = package.transformation
-        dimensions = plan.target_dimensions
-        if not plan.adapter_id:
-            raise RuntimeError("No 3D transformation adapter is registered for this source game.")
-        if plan.readiness != "ready":
-            raise RuntimeError("The source mechanics are not fully compiled for 3D preview.")
-        if not all(isinstance(dimensions.get(axis), int) and dimensions[axis] > 0 for axis in ("x", "y", "z")):
-            raise RuntimeError("Set a valid target Z before entering 3D Play Mode.")
         root = Path(__file__).resolve().parents[1]
-        command = [
-            sys.executable, "-m", "srtp.transformed_viewer",
-            "--adapter", plan.adapter_id,
-            "--x", str(dimensions["x"]),
-            "--y", str(dimensions["y"]),
-            "--z", str(dimensions["z"]),
-            "--source-root", str(package.root),
-        ]
-        mine_parameter = package.parameter("source_mine_count")
-        tick_parameter = package.parameter("source_tick_ms")
-        source_dimensions = plan.source_dimensions
-        command.extend(["--source-mines", str(mine_parameter.value if mine_parameter else 10)])
-        if isinstance(source_dimensions.get("x"), int) and isinstance(source_dimensions.get("y"), int):
-            command.extend(["--source-x", str(source_dimensions["x"]), "--source-y", str(source_dimensions["y"])])
-        command.extend(["--tick-ms", str(tick_parameter.value if tick_parameter else 125)])
-        connect_parameter = package.parameter("source_connect_n")
-        command.extend(["--connect-n", str(connect_parameter.value if connect_parameter else 4)])
+        command = [sys.executable] + self.adapter_arguments(package)
         env = dict(os.environ)
         env["PYTHONPATH"] = str(root) + (os.pathsep + env["PYTHONPATH"] if env.get("PYTHONPATH") else "")
         process = subprocess.Popen(

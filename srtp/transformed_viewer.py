@@ -13,6 +13,7 @@ from .transformed_games import Connect3D, Game2048_3D, Minesweeper3D, Snake3D
 
 Coordinate = Tuple[int, int, int]
 _ACTIVE_VIEWER: Optional["TransformedGameViewer"] = None
+_STUDIO_BRIDGE = None
 
 
 def layer_display_policy(
@@ -39,6 +40,8 @@ def input(key: str) -> None:
 
 
 def update() -> None:
+    if _STUDIO_BRIDGE is not None:
+        _STUDIO_BRIDGE.update()
     if _ACTIVE_VIEWER is not None:
         _ACTIVE_VIEWER.update()
 
@@ -67,6 +70,7 @@ class TransformedGameViewer:
             "Grid": Grid, "Slider": Slider, "camera": camera, "color": color,
         }
         self.adapter_id = adapter_id
+        self.host_paused = False
         self.dimensions = tuple(int(value) for value in dimensions)
         self.root = Entity()
         self.cells: Dict[Coordinate, object] = {}
@@ -235,6 +239,7 @@ class TransformedGameViewer:
                     self.bounds.append(boundary)
 
     def click(self, coordinate: Coordinate) -> None:
+        if self.host_paused: return
         if self.adapter_id == "minesweeper":
             self.last_message = "Reveal: {0}".format(self.game.reveal(coordinate))
         elif self.adapter_id == "connect":
@@ -251,6 +256,7 @@ class TransformedGameViewer:
         self.render()
 
     def click_direction(self, direction: Tuple[int, int, int]) -> None:
+        if self.host_paused: return
         axis = next(index for index, value in enumerate(direction) if value)
         sign = direction[axis]
         if self.adapter_id == "snake":
@@ -261,6 +267,7 @@ class TransformedGameViewer:
         self.render()
 
     def input(self, key: str) -> None:
+        if self.host_paused: return
         from ursina import held_keys, mouse
 
         if key == "left mouse down":
@@ -364,6 +371,7 @@ class TransformedGameViewer:
             self._rotate_view(90, 0)
 
     def update(self) -> None:
+        if self.host_paused: return
         from ursina import mouse, time
 
         entity = mouse.hovered_entity
@@ -613,7 +621,7 @@ class TransformedGameViewer:
 
 
 def main() -> None:
-    global _ACTIVE_VIEWER
+    global _ACTIVE_VIEWER, _STUDIO_BRIDGE
     parser = argparse.ArgumentParser()
     parser.add_argument("--adapter", choices=("snake", "minesweeper", "connect", "2048"), required=True)
     parser.add_argument("--x", type=int, required=True)
@@ -625,13 +633,27 @@ def main() -> None:
     parser.add_argument("--tick-ms", type=int, default=125)
     parser.add_argument("--source-root")
     parser.add_argument("--connect-n", type=int, default=4)
+    parser.add_argument('--parent-window', type=int)
+    parser.add_argument('--width', type=int, default=1280)
+    parser.add_argument('--height', type=int, default=800)
+    parser.add_argument('--studio', action='store_true')
+    parser.add_argument('--studio-probe', action='store_true', help=argparse.SUPPRESS)
     args = parser.parse_args()
 
     try:
         from ursina import Ursina
     except ModuleNotFoundError as error:
         raise SystemExit("Ursina is required for transformed previews.") from error
-    app = Ursina(borderless=False)
+    if args.parent_window:
+        from panda3d.core import loadPrcFileData
+        loadPrcFileData('', 'parent-window-handle {0}\nwin-origin 0 0'.format(args.parent_window))
+    app = Ursina(borderless=bool(args.parent_window), fullscreen=False,
+                 size=(args.width, args.height), development_mode=False)
+    if args.parent_window:
+        from panda3d.core import WindowProperties
+        props=WindowProperties(); props.setParentWindow(args.parent_window)
+        props.setOrigin(0,0); props.setSize(args.width,args.height)
+        app.win.requestProperties(props)
     _ACTIVE_VIEWER = TransformedGameViewer(
         args.adapter, (args.x, args.y, args.z),
         source_mines=args.source_mines,
@@ -640,6 +662,9 @@ def main() -> None:
         source_root=Path(args.source_root) if args.source_root else None,
         connect_n=args.connect_n,
     )
+    if args.studio:
+        from .studio.demo_bridge import DemoBridge
+        _STUDIO_BRIDGE = DemoBridge(_ACTIVE_VIEWER, app, probe=args.studio_probe)
     app.run()
 
 
