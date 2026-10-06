@@ -3,7 +3,7 @@ import os
 os.environ.setdefault('QT_QPA_PLATFORM','offscreen')
 import unittest
 import tempfile
-from unittest.mock import patch
+from unittest.mock import patch, PropertyMock
 from copy import deepcopy
 from pathlib import Path
 from srtp.studio.layout import FORMAT, vector, validate_draft
@@ -141,6 +141,25 @@ class DesktopBindingTests(unittest.TestCase):
                 self.assertIs(w.views.currentWidget(),w.source_view)
                 self.assertIn('尚未掛載',w.status_label.text())
                 start.assert_called_once()
+        finally:w.close()
+
+    def test_new_target_replaces_running_source_view_and_play_reuses_target(self):
+        w=Studio(); w.timer.stop()
+        try:
+            source=Path('approved-source/project.manifest.json')
+            target=Path('new-target/project.manifest.json')
+            w.manifest=source; w.loaded_manifest=source
+            w.manifest=target
+            with patch.object(type(w.target_view),'running',new_callable=PropertyMock,return_value=True), \
+                    patch.object(w.target_view,'launch_project') as launch, \
+                    patch.object(w.target_view,'send') as send, \
+                    patch.object(w.source_view,'send'), patch.object(w.demo_view,'send'):
+                w.switch_view('scene')
+                launch.assert_called_once_with(target,target.parent)
+                self.assertEqual(w.loaded_manifest,target)
+                w.switch_view('game')
+                launch.assert_called_once()
+                send.assert_any_call('mode',playing=True)
         finally:w.close()
 
     def test_explicit_demo_does_not_restore_cached_training_target(self):

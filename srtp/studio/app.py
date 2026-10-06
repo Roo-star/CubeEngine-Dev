@@ -570,7 +570,10 @@ class Studio(QMainWindow):
             self.scene_hint.setText('3D Demo · 原有示範 · 右鍵旋轉／滾輪縮放')
         else:
             self.source_view.send('pause',paused=True)
-            if self.manifest and not self.target_view.running: self.open_scene()
+            # A running Source preview belongs to its exact bundle. Approval
+            # of a new Target must replace it before routing gameplay input.
+            if self.manifest and (not self.target_view.running or self.manifest != self.loaded_manifest):
+                self.open_scene()
             self.target_view.send('mode',playing=key=='game'); self.target_view.send('pause',paused=False)
             self.scene_hint.setText('點選物件 · 右鍵旋轉 · 滾輪縮放' if key=='scene' else '遊戲執行中 · 輸入交由原規則判定')
         self.set_inspector_enabled(self.selected is not None and key=='scene')

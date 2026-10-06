@@ -1,0 +1,30 @@
+{
+  "api_requests": 0,
+  "source_sequences": 3,
+  "native_3d_winning_lines": 49,
+  "occupied_cell_rejection": true,
+  "terminal_input_rejection": true,
+  "replay": true,
+  "source_restart": true,
+  "approved_manifest_and_ir_unchanged": true,
+  "artifact_sha256": {
+    "E:\\CubeEngine\\work\\agentic-srtp-integration\\.cubeengine_llm\\tic.tac.toe\\source_20261006-220709\\project.manifest.json": "52f64006fab094e62d89031152d5b33cfbb9bf4b3abb7cb6d6e7e2a5bf57fffa",
+    "E:\\CubeEngine\\work\\agentic-srtp-integration\\.cubeengine_llm\\tic.tac.toe\\source_20261006-220709\\ir\\game.asset-ir.json": "fd39460150015fb882aa82eceff2379dcebf889ae8b9c3346dc26e8093647a09",
+    "E:\\CubeEngine\\work\\agentic-srtp-integration\\.cubeengine_llm\\tic.tac.toe\\source_20261006-220709\\ir\\game.input-ir.json": "d90bc5a2a944f44db45d5a315c3bdd50a6ecf74d784da63099249dfc6dccd907",
+    "E:\\CubeEngine\\work\\agentic-srtp-integration\\.cubeengine_llm\\tic.tac.toe\\source_20261006-220709\\ir\\game.rule-ir.json": "723db924ace9e19ed0149d5b53fd4d3e2509bbb4c066a9cd61a03e6215b91e0a",
+    "E:\\CubeEngine\\work\\agentic-srtp-integration\\.cubeengine_llm\\tic.tac.toe\\source_20261006-220709\\ir\\game.scene-ir.json": "d8efa31e9746863e6169039f5d489f3eda8e1f73186f164db0f58da44fa14e03",
+    "E:\\CubeEngine\\work\\agentic-srtp-integration\\.cubeengine_llm\\tic.tac.toe\\target_20261006-220937\\project.manifest.json": "b3358ad9acbd82e0bf163903086fd8087b61c83a5f4b37d020e7d7d370457350",
+    "E:\\CubeEngine\\work\\agentic-srtp-integration\\.cubeengine_llm\\tic.tac.toe\\target_20261006-220937\\ir\\game.asset-ir.json": "74b52bc3431e1dce3e8ece921ac92d0770ebfeb066e1bd790b339b466edf9351",
+    "E:\\CubeEngine\\work\\agentic-srtp-integration\\.cubeengine_llm\\tic.tac.toe\\target_20261006-220937\\ir\\game.input-ir.json": "ed8cda2b519de5f71a5dd4abd6032d7068153b303b3cc95c39e44dcbbe199144",
+    "E:\\CubeEngine\\work\\agentic-srtp-integration\\.cubeengine_llm\\tic.tac.toe\\target_20261006-220937\\ir\\game.rule-ir.json": "d3dfbddd7b3955b38cc52d85f4d9f050e69b4fe34aae5383b3c1546187120038",
+    "E:\\CubeEngine\\work\\agentic-srtp-integration\\.cubeengine_llm\\tic.tac.toe\\target_20261006-220937\\ir\\game.scene-ir.json": "b0e7f9b753bc83a76ed8204e4d2c112adcfaffadba3e4b4055143df8d548acef"
+  },
+  "native_oracle_sha256": "6b4c4eb707c06c7a20d146c4484e2f8d6a8d2196d7d78098237edcae2ac51ed9",
+  "training_eligibility": {
+    "eligible": false,
+    "reasons": [
+      "This generated-Rule encoder requires explicit event-driven alternating placement."
+    ]
+  },
+  "scope": "Offline original-source/native-rule comparison via InputIR press/release; native mouse/UI captured separately. No full performance/visual parity or AI training acceptance."
+}

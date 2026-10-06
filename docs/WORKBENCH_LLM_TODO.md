@@ -1,5 +1,15 @@
 # Workbench / LLM 待办
 
+## 2026-10-06：最新 Studio 完整井字棋轉換及 GIF
+
+- [x] 真實 UI：載入原作 2D → 試玩獲勝 → Compile LLM → Approve Source → 使用者指定 Prompt → Run Lift → Approve Target → 新 3D 切層落子／跨三層獲勝／終局鎖定／重開；已錄製 73.3 秒關鍵節點 GIF。
+- [x] 本輪全新來源／Target，11 次 OpenRouter 請求，US$0.9701117；原始回覆、失敗修正回合、IR、Manifest 與費用回報保留，沒有手改生成內容。
+- [x] 修復 Source 視窗仍執行時未重新載入新 Target 的問題；33 項相關單元通過，同一個原生 Studio 重新掛載 Source → Target 實際確認，無新增 API。
+- [x] 原 2D 三條獲勝／和局序列、新 3D 的 49 條獲勝線及重放離線對照通過；完整效能／外觀相等驗收仍未宣稱通過。
+- [ ] 本輪新的 turn_based Rule 尚不符合既有 event_driven 訓練編碼合約；目前可轉換及試玩，AI 顯示不適用。需先離線驗證新的狀態／動作編碼，禁止修改生成 Rule 或錯用舊 Target checkpoint。
+
+結果與產物：`artifacts/ttt-ui-flow-20261006/walkthrough-status.json`、`offline-output-verification.json`、`tic-tac-toe-workbench-key-moments.gif`。新 Target：`.cubeengine_llm/tic.tac.toe/target_20261006-220937/project.manifest.json`；可由左側「掛載場景」載入或雙擊該錄製目錄的 `Open New 3D Tic Tac Toe.bat`。後續載入／試玩不需新的模型請求。
+
 ## 2026-10-06：恢復原有四款 3D Demo
 
 - [x] 左側可見的「3D Demo」選單；原有貪吃蛇、掃雷、四子棋、2048 直接在中央試玩，無須 Manifest／重新轉換。
