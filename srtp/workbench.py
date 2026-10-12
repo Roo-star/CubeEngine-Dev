@@ -1558,7 +1558,10 @@ def main() -> None:
     except ImportError:
         local = Path(__file__).resolve().parents[1] / '.venv-workbench/Scripts/python.exe'
         if local.is_file() and Path(sys.executable).resolve() != local.resolve():
-            os.execv(str(local), [str(local), '-m', 'srtp.workbench', *sys.argv[1:]])
+            # Direct launches may start outside the repository (for example,
+            # from a PowerShell prompt in the user's home directory). Keep the
+            # script path when restarting so srtp remains importable.
+            os.execv(str(local), [str(local), str(Path(__file__).resolve()), *sys.argv[1:]])
         raise SystemExit('Install requirements-workbench.txt in .venv-workbench before starting CubeEngine Studio.')
     from srtp.studio.app import main as studio_main
     studio_main()
