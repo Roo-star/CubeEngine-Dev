@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "assets": [
+    {
+      "uri": "runtime://pygame/default-font",
+      "content_hash": "bf9251269f11e4b35582a99376096deee3d0c4973a459cbd97b0bebc01f440ad",
+      "byte_size": 98600
+    }
+  ]
+}

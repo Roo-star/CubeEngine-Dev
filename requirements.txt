@@ -10,3 +10,4 @@ pygame>=2.5,<3
 ursina>=5.2,<6; python_version < "3.10"
 ursina>=7,<8; python_version >= "3.10" and python_version < "3.12"
 ursina>=8.3,<9; python_version >= "3.12"
+# Local AI training dependencies are installed separately; see requirements-training.txt.

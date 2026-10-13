@@ -189,10 +189,8 @@ class AlphaZero3DTests(unittest.TestCase):
     def test_real_local_mcts_and_coach_episode_accept_compiled_game(self):
         # The training framework is a sibling project, not the workspace root.
         # An explicit override also supports installations with another layout.
-        configured = os.environ.get('CUBEENGINE_AI_ROOT')
-        framework_root = Path(configured).expanduser().resolve() if configured else ROOT.parent / 'CubeEngine-AI-Dev'
-        if not configured and not (framework_root / 'Coach.py').is_file() and (ROOT.parent / 'Coach.py').is_file():
-            framework_root = ROOT.parent  # Original monorepo layout.
+        from srtp.ai_training.bridge import ai_dev_root
+        framework_root = ai_dev_root()
         missing = [name for name in ('Coach.py', 'MCTS.py', 'Arena.py') if not (framework_root / name).is_file()]
         self.assertFalse(missing, 'Training framework files missing: {0}; set CUBEENGINE_AI_ROOT to the real training checkout.'.format(missing))
         sys.path.insert(0, str(framework_root))

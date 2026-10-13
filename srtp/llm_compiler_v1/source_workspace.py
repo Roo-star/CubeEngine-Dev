@@ -9,6 +9,7 @@ import ast
 import hashlib
 import json
 import os
+import posixpath
 import re
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, Sequence
@@ -18,6 +19,10 @@ from .client import LLMClientError
 _TEXT_SUFFIXES = {".py", ".json", ".toml", ".yaml", ".yml", ".txt", ".md"}
 _EXCLUDED = {".git", ".env", ".venv", "venv", "__pycache__", "node_modules", ".cubeengine_llm"}
 _PRIVATE_NAMES = {"credentials", "secrets", "api_keys", "apikeys"}
+_DATA_SUFFIXES = {".json", ".toml", ".yaml", ".yml", ".txt"}
+# Complete local dependencies sent up front (entry point included). Small
+# multi-file games otherwise spend a full paid request asking for them.
+DEPENDENCY_CHARS = 40_000
 SOURCE_TOOL_INSTRUCTION = '''You may inspect the original source before compiling.
 To read code/configuration, return ONLY {"source_requests":[{"path":"relative/file.py","start_line":1,"end_line":120}]}.
 Request 1 to 16 ranges per turn. An empty source_requests list means inspection is complete and must accompany the compilation definition.
@@ -172,6 +177,55 @@ class SourceWorkspace:
         self.snippets[(relative,start,last)] = result
         return result
 
+    def local_dependencies(self) -> List[str]:
+        """The entry point, then (breadth first) the local modules it imports and the data files they name."""
+        try:
+            entry = self.entrypoint.relative_to(self.root).as_posix()
+        except ValueError:
+            return []
+        order: List[str] = []
+        queue = [entry]
+        while queue:
+            relative = queue.pop(0)
+            if relative in order or relative not in self.files:
+                continue
+            order.append(relative)
+            if not relative.endswith(".py"):
+                continue
+            try:
+                tree = ast.parse(self._text(self.files[relative]))
+            except (SyntaxError, ValueError, OSError):
+                continue
+            folder = posixpath.dirname(relative)
+            for node in ast.walk(tree):
+                names: List[str] = []
+                if isinstance(node, ast.Import):
+                    names = [alias.name for alias in node.names]
+                elif isinstance(node, ast.ImportFrom):
+                    base = folder
+                    for _ in range(max(0, node.level - 1)):
+                        base = posixpath.dirname(base)
+                    module = (node.module or "").replace(".", "/")
+                    prefix = posixpath.join(base, module) if node.level else module
+                    names = [prefix] + [posixpath.join(prefix, alias.name) for alias in node.names]
+                    names = [name.replace("/", ".") for name in names if name]
+                for name in names:
+                    stem = name.replace(".", "/")
+                    for candidate in (posixpath.join(folder, stem + ".py"), posixpath.join(folder, stem, "__init__.py"),
+                                      stem + ".py", posixpath.join(stem, "__init__.py")):
+                        candidate = posixpath.normpath(candidate)
+                        if candidate in self.files:
+                            queue.append(candidate)
+                            break
+                if isinstance(node, ast.Constant) and isinstance(node.value, str) and 0 < len(node.value) < 200 \
+                        and posixpath.splitext(node.value)[1].lower() in _DATA_SUFFIXES:
+                    for candidate in (posixpath.join(folder, node.value), node.value):
+                        candidate = posixpath.normpath(candidate.replace("\\", "/"))
+                        if candidate in self.files:
+                            queue.append(candidate)
+                            break
+        return order
+
     def initial_context(self) -> Dict[str, Any]:
         # Include the original entry point, not just its static summary. All
         # other modules remain explicitly discoverable through line tools.
@@ -180,6 +234,18 @@ class SourceWorkspace:
         except ValueError:
             entry = ""
         snippets = [self.read({"path": entry})] if entry in self.files else []
+        if not getattr(self, "_dependencies_read", False):
+            # Once: complete small dependencies join the retained reads below.
+            self._dependencies_read = True
+            sent = sum(len(s["text"]) for s in snippets)
+            for relative in self.local_dependencies()[1:]:
+                size = len(self._text(self.files[relative]))
+                if 0 < size and sent + size <= DEPENDENCY_CHARS:
+                    try:
+                        self.read({"path": relative})
+                    except (ValueError, OSError):
+                        continue
+                    sent += size
         # Carry inspected dependencies into repair/stage requests instead of
         # paying repeatedly to rediscover the same multi-file source.
         retained=sum(len(s['text']) for s in snippets)
@@ -237,7 +303,7 @@ class SourceWorkspace:
         self.snippets=prioritized
         return len(prioritized)
 
-    def chat(self, client, messages: Sequence[Mapping[str, str]], *, schema=None):
+    def chat(self, client, messages: Sequence[Mapping[str, str]], *, schema=None, tool_context=None):
         if self.preflight_errors:
             from .client import LLMTransportError
             raise LLMTransportError('Local dependency preflight failed before model call: ' + '; '.join(self.preflight_errors))
@@ -245,7 +311,8 @@ class SourceWorkspace:
         conversation[0]["content"] += "\n\n" + SOURCE_TOOL_INSTRUCTION
         context = self.initial_context()
         payload = json.loads(conversation[-1]["content"])
-        payload["source_workspace"] = context
+        # First: the source context is identical across stages, so it starts the cacheable prefix.
+        payload = dict([("source_workspace", context)] + [(k, v) for k, v in payload.items() if k != "source_workspace"])
         conversation[-1]["content"] = json.dumps(payload, ensure_ascii=False)
         for turn in range(9):
             self.check_cancelled()
@@ -257,6 +324,19 @@ class SourceWorkspace:
             from .reply_schemas import chat_with_schema
             result = chat_with_schema(client, conversation, schema, "cubeengine_stage")
             self.check_cancelled()
+            tools = result.parsed.get("tool_requests")
+            if (tools and tool_context is not None and not isinstance(result.parsed.get('definition'), dict)
+                    and getattr(self, 'check_rounds', 0) < 2):
+                # Free local self-checks before the definition (no repair attempt is used).
+                from .self_check import answer_tool_requests
+                self.check_rounds = getattr(self, 'check_rounds', 0) + 1
+                conversation.append({"role": "assistant", "content": result.content})
+                conversation.append({"role": "user", "content": json.dumps({
+                    "tool_results": answer_tool_requests(tools, tool_context),
+                    "instruction": "Local self-check results (free). Now return the complete stage JSON "
+                                   "(definition, evidence, behavior_tests, assumptions, unresolved)."},
+                    ensure_ascii=False, default=str)})
+                continue
             requests = result.parsed.get("source_requests")
             if requests is None or (requests==[] and isinstance(result.parsed.get('definition'),dict)):
                 return result

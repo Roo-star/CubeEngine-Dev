@@ -140,7 +140,10 @@ The v1 Tic-Tac-Toe fixture migrates into v2 and executes entirely through this g
 - connected-set checks;
 - deterministic breadth-first shortest paths with obstacles;
 - generic bracketed-run queries over dense grid state;
-- exact state counts.
+- exact state counts;
+- `core:coord.get(coord, index)`: one integer component of a coordinate (`core:int`, index 0 = first axis). Together with `vector`, `if` and `core:grid.get` it expresses relative-cell rules such as stacking/gravity ("empty, and on the bottom edge or the cell below is occupied") without a game-specific function.
+
+`RuleRuntime.legal_actions()` reports an action whose actor or precondition raises an expression error as illegal, which is safe for play but hides authoring mistakes. `RuleRuntime.unevaluable_actions()` lists those actions with the error, so tooling can tell "not allowed now" from "cannot be evaluated".
 
 The bracketed-run primitive describes a topology relation, not Othello itself.
 The source-derived Othello Rule IR composes it with participant state, action

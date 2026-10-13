@@ -165,6 +165,8 @@ class OpenRouterLLMClient:
         self.usage_summary = {'http_requests':0, 'input_tokens':0, 'output_tokens':0, 'reported_cost_usd':None}
         from .budget import CostBudget
         self.budget = CostBudget()
+        # Every call's exact messages, reply and usage (written as requests.jsonl with each run).
+        self.request_log = []
         self.output_format = "auto"
         self._schema_supported = True
 
@@ -233,6 +235,11 @@ class OpenRouterLLMClient:
         return {"type": "json_object"}
 
     def chat_json(self, messages, *, temperature=None, max_tokens=None, schema=None, schema_name="compiler_reply"):
+        from .provenance import record_request
+        return record_request(self, messages, {"schema_name": schema_name}, lambda: self._chat_json(
+            messages, temperature=temperature, max_tokens=max_tokens, schema=schema, schema_name=schema_name))
+
+    def _chat_json(self, messages, *, temperature=None, max_tokens=None, schema=None, schema_name="compiler_reply"):
         if self._chat_fn is not None:
             self.budget.before_request(_estimated_tokens(messages))
             response = self._chat_fn(messages=[dict(item) for item in messages],
@@ -293,7 +300,9 @@ class OpenRouterLLMClient:
         # Production JSON mode must return a complete JSON object. Do not use
         # the legacy brace/fence recovery to mask trailing or truncated output.
         try:
-            parsed = _compiler_json(content)
+            parsed = _repeated_object(content)
+            if parsed is None:
+                parsed = _compiler_json(content)
             if not isinstance(parsed, dict):
                 raise ValueError("root must be an object")
         except (ValueError, TypeError) as error:
@@ -404,6 +413,29 @@ def _truncated(error: LLMClientError, content: str) -> LLMClientError:
 def _estimated_tokens(messages: Any) -> int:
     """Rough input size for cost estimates (about four characters per token)."""
     return len(json.dumps(messages, ensure_ascii=False, default=str)) // 4
+
+
+def _repeated_object(text: str):
+    """The object when a reply is one JSON object repeated identically (and nothing else); else None.
+
+    Lossless: every copy must parse to the same value. Any other trailing data
+    is still rejected by the strict parser.
+    """
+    decoder = json.JSONDecoder()
+    position, values = 0, []
+    text = (text or "").strip()
+    while position < len(text):
+        try:
+            value, end = decoder.raw_decode(text, position)
+        except ValueError:
+            return None
+        values.append(value)
+        position = end
+        while position < len(text) and text[position].isspace():
+            position += 1
+    if len(values) > 1 and isinstance(values[0], dict) and all(v == values[0] for v in values[1:]):
+        return values[0]
+    return None
 
 
 def _with_content(error: LLMClientError, content: str) -> LLMClientError:

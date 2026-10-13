@@ -68,6 +68,14 @@ def _write_run(
     ir_dir.mkdir(parents=True, exist_ok=True)
 
     _write_json(root / "report.json", report.to_mapping())
+    if isinstance(getattr(report, "provenance", None), dict):
+        _write_json(root / "provenance.json", report.provenance)
+    records = getattr(report, "request_records", None)
+    if isinstance(records, list):
+        # Exact requests and replies, one per line, for audit and offline replay.
+        with open(root / "requests.jsonl", "w", encoding="utf-8") as handle:
+            for record in records:
+                handle.write(json.dumps(record, ensure_ascii=False) + "\n")
     if report.compilation_trace.get('quality_assessment'):
         _write_json(root / 'quality.assessment.json', report.compilation_trace['quality_assessment'])
     if report.proposal is not None:

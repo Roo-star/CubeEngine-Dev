@@ -10,7 +10,7 @@ from __future__ import annotations
 import json
 from typing import Any, Dict, List, Mapping, Optional, Sequence
 
-AGENT_PROMPT_VERSION = "cubeengine.srtp/llm-agent-prompt/2.1"
+AGENT_PROMPT_VERSION = "cubeengine.srtp/llm-agent-prompt/2.2"
 
 _COMMON = (
     "Reply with ONE JSON object only: no markdown, no prose. "
@@ -325,6 +325,9 @@ def worker_messages(
         from .agent_tools import scene_component_properties
 
         payload["component_properties"] = scene_component_properties()
+    from .backend_contract import profile_for
+    # The live executable capability boundary, the same one the staged pipeline sends.
+    payload["backend_profile"] = profile_for(ir_key)
     if inventory is not None:
         payload["source_inventory"] = list(inventory)
     if drawings is not None:

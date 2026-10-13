@@ -1,0 +1,812 @@
+{
+  "ir_version": "cubeengine.scene-ir/2.0-alpha.1",
+  "document_id": "scene:game.tic.tac.toe.target",
+  "revision": 1,
+  "content_hash": "3e4c714865b29816f27385c24d556f7552fc580a08ff7b5105fe2663110625e9",
+  "metadata": {
+    "title": "Tic Tac Toe",
+    "description": "Source-drawn rounded cells and blue X and amber O marks, with the original status and instruction typography.",
+    "source_project_hash": "a047aad70934c80e9fa9c332ffd9dc2ea1df95a50c0015b29f6e931c2d25aab5",
+    "source_visual_bindings": [
+      {
+        "target": "/prefabs/0/root/components/0/properties/color",
+        "id": "visual:60f40b4c44df12b80235",
+        "kind": "color",
+        "value": [
+          0.16470588235294117,
+          0.21176470588235294,
+          0.2823529411764706,
+          1.0
+        ],
+        "source": {
+          "path": "main.py",
+          "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+          "anchor": "line:73:16:color",
+          "line": 73,
+          "expression": "(42, 54, 72)"
+        }
+      },
+      {
+        "target": "/prefabs/0/root/components/0/properties/variants/empty/pressed_style/color",
+        "id": "visual:250984d2d50bec593b55",
+        "kind": "color",
+        "value": [
+          0.27450980392156865,
+          0.7450980392156863,
+          0.9803921568627451,
+          1.0
+        ],
+        "source": {
+          "path": "main.py",
+          "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+          "anchor": "line:76:20:color",
+          "line": 76,
+          "expression": "(70, 190, 250)"
+        }
+      },
+      {
+        "target": "/nodes/1/components/0/properties/color",
+        "id": "visual:a375ca74f6d4c10ee1bb",
+        "kind": "color",
+        "value": [
+          0.08627450980392157,
+          0.10980392156862745,
+          0.1568627450980392,
+          1.0
+        ],
+        "source": {
+          "path": "main.py",
+          "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+          "anchor": "line:65:8:color",
+          "line": 65,
+          "expression": "(22, 28, 40)"
+        }
+      },
+      {
+        "target": "/nodes/3/components/0/properties/color",
+        "id": "visual:9fbe4de0bce1cff3a27a",
+        "kind": "color",
+        "value": [
+          0.9019607843137255,
+          0.9215686274509803,
+          0.9607843137254902,
+          1.0
+        ],
+        "source": {
+          "path": "main.py",
+          "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+          "anchor": "line:68:20:color",
+          "line": 68,
+          "expression": "(230, 235, 245)"
+        }
+      },
+      {
+        "target": "/nodes/4/components/0/properties/color",
+        "id": "visual:a6306d3919105b55fc99",
+        "kind": "color",
+        "value": [
+          0.6666666666666666,
+          0.7254901960784313,
+          0.803921568627451,
+          1.0
+        ],
+        "source": {
+          "path": "main.py",
+          "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+          "anchor": "line:69:20:color",
+          "line": 69,
+          "expression": "(170, 185, 205)"
+        }
+      }
+    ]
+  },
+  "dependencies": {
+    "rule_ir": {
+      "document_id": "rule:game.tic.tac.toe.target",
+      "content_hash": "c02c05f0d14373707ef59e83983fae99bc48602482aea54badcf0ff2e6b73c42"
+    },
+    "asset_ir": {
+      "document_id": "asset:game.tic.tac.toe.target",
+      "content_hash": "966b55a90f5bd981b4f9c13ea5e2166dbe746d34e3482a7e6c69681e441b1b76"
+    },
+    "extensions": []
+  },
+  "layers": [
+    {
+      "id": "scene:layer.runtime",
+      "name": "Runtime",
+      "kind": "runtime",
+      "visible": true,
+      "pickable": true,
+      "opacity": 1
+    }
+  ],
+  "prefabs": [
+    {
+      "id": "scene:prefab.cell",
+      "name": "Rounded board cell",
+      "root": {
+        "local_id": "cell",
+        "name": "Selectable cell",
+        "active": true,
+        "transform": {
+          "translation": [
+            0,
+            0,
+            0
+          ],
+          "rotation_euler_deg": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            1,
+            1,
+            1
+          ]
+        },
+        "components": [
+          {
+            "id": "shell",
+            "type": "renderer",
+            "enabled": true,
+            "properties": {
+              "geometry": "builtin:cube",
+              "visible": true,
+              "spatial_role": "cell_shell",
+              "color": [
+                0.16470588235294117,
+                0.21176470588235294,
+                0.2823529411764706,
+                1.0
+              ],
+              "opacity": 0.12,
+              "scale": [
+                0.98,
+                0.98,
+                0.98
+              ],
+              "variant": "empty",
+              "variants": {
+                "empty": {
+                  "pressed_style": {
+                    "color": [
+                      0.27450980392156865,
+                      0.7450980392156863,
+                      0.9803921568627451,
+                      1.0
+                    ],
+                    "opacity": 0.28
+                  }
+                },
+                "x": {},
+                "o": {}
+              }
+            }
+          },
+          {
+            "id": "pick",
+            "type": "collider",
+            "enabled": true,
+            "properties": {
+              "shape": "box",
+              "size": [
+                0.98,
+                0.98,
+                0.98
+              ],
+              "is_trigger": false,
+              "selectable": true
+            }
+          }
+        ],
+        "children": [
+          {
+            "local_id": "tile",
+            "name": "Source rounded rectangle",
+            "active": true,
+            "transform": {
+              "translation": [
+                0,
+                0,
+                -0.55
+              ],
+              "rotation_euler_deg": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                1,
+                1,
+                1
+              ]
+            },
+            "components": [
+              {
+                "id": "tile_art",
+                "type": "renderer",
+                "enabled": true,
+                "properties": {
+                  "geometry": "asset:shape.main.l73",
+                  "visible": true,
+                  "spatial_role": "content",
+                  "scale": [
+                    0.943,
+                    0.943,
+                    1
+                  ]
+                }
+              }
+            ],
+            "children": []
+          },
+          {
+            "local_id": "mark",
+            "name": "Source X or O",
+            "active": true,
+            "transform": {
+              "translation": [
+                0,
+                0,
+                -0.68
+              ],
+              "rotation_euler_deg": [
+                0,
+                0,
+                0
+              ],
+              "scale": [
+                1,
+                1,
+                1
+              ]
+            },
+            "components": [
+              {
+                "id": "mark_art",
+                "type": "renderer",
+                "enabled": true,
+                "properties": {
+                  "geometry": "asset:shape.main.l76",
+                  "visible": false,
+                  "spatial_role": "content",
+                  "scale": [
+                    0.943,
+                    0.943,
+                    1
+                  ],
+                  "variant": "empty",
+                  "variants": {
+                    "empty": {
+                      "visible": false
+                    },
+                    "x": {
+                      "visible": true,
+                      "geometry": "asset:shape.main.l76"
+                    },
+                    "o": {
+                      "visible": true,
+                      "geometry": "asset:shape.main.l79"
+                    }
+                  }
+                }
+              }
+            ],
+            "children": []
+          }
+        ]
+      }
+    }
+  ],
+  "nodes": [
+    {
+      "id": "scene:board",
+      "name": "3 by 3 board",
+      "parent": null,
+      "active": true,
+      "layer": "scene:layer.runtime",
+      "transform": {
+        "translation": [
+          0,
+          0,
+          0
+        ],
+        "rotation_euler_deg": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "components": [
+        {
+          "id": "board_sites",
+          "type": "topology_visualizer",
+          "enabled": true,
+          "properties": {
+            "rule_topology": "rule:topology.board",
+            "prefab": "scene:prefab.cell",
+            "index_to_world": [
+              1.4,
+              0,
+              0,
+              -1.4,
+              0,
+              -1.4,
+              0,
+              1.15,
+              0,
+              0,
+              1,
+              0,
+              0,
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "scene:backdrop",
+      "name": "Source dark window background",
+      "parent": null,
+      "active": true,
+      "layer": "scene:layer.runtime",
+      "transform": {
+        "translation": [
+          0,
+          0,
+          2
+        ],
+        "rotation_euler_deg": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "components": [
+        {
+          "id": "background_art",
+          "type": "renderer",
+          "enabled": true,
+          "properties": {
+            "geometry": "builtin:quad",
+            "visible": true,
+            "spatial_role": "source_backdrop",
+            "color": [
+              0.08627450980392157,
+              0.10980392156862745,
+              0.1568627450980392,
+              1.0
+            ],
+            "scale": [
+              4.8,
+              5.7,
+              1
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "scene:camera",
+      "name": "Source board view",
+      "parent": null,
+      "active": true,
+      "layer": "scene:layer.runtime",
+      "transform": {
+        "translation": [
+          0,
+          0,
+          -12
+        ],
+        "rotation_euler_deg": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "components": [
+        {
+          "id": "view",
+          "type": "camera",
+          "enabled": true,
+          "properties": {
+            "projection": "orthographic",
+            "near_clip": 0.1,
+            "far_clip": 100,
+            "active": true,
+            "orthographic_size": 5.7
+          }
+        }
+      ]
+    },
+    {
+      "id": "scene:status",
+      "name": "Turn and result",
+      "parent": null,
+      "active": true,
+      "layer": "scene:layer.runtime",
+      "transform": {
+        "translation": [
+          0,
+          0,
+          0
+        ],
+        "rotation_euler_deg": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "components": [
+        {
+          "id": "status_text",
+          "type": "ui_canvas",
+          "enabled": true,
+          "properties": {
+            "mode": "overlay",
+            "visible": true,
+            "text": "Turn: X",
+            "font": "asset:font.pygame_default",
+            "color": [
+              0.9019607843137255,
+              0.9215686274509803,
+              0.9607843137254902,
+              1.0
+            ],
+            "position": [
+              -0.3684,
+              0.4474
+            ],
+            "origin": [
+              -0.5,
+              0.5
+            ],
+            "scale": 2.526
+          }
+        }
+      ]
+    },
+    {
+      "id": "scene:instructions",
+      "name": "Source control instructions",
+      "parent": null,
+      "active": true,
+      "layer": "scene:layer.runtime",
+      "transform": {
+        "translation": [
+          0,
+          0,
+          0
+        ],
+        "rotation_euler_deg": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "components": [
+        {
+          "id": "instruction_text",
+          "type": "ui_canvas",
+          "enabled": true,
+          "properties": {
+            "mode": "overlay",
+            "visible": true,
+            "text": "Click an empty cell. R: restart. Esc: quit.",
+            "font": "asset:font.pygame_default",
+            "color": [
+              0.6666666666666666,
+              0.7254901960784313,
+              0.803921568627451,
+              1.0
+            ],
+            "position": [
+              -0.3684,
+              0.386
+            ],
+            "origin": [
+              -0.5,
+              0.5
+            ],
+            "scale": 1.754
+          }
+        }
+      ]
+    }
+  ],
+  "bindings": [
+    {
+      "id": "scene:binding.mark",
+      "name": "Cell mark from board state",
+      "source": {
+        "kind": "state",
+        "scope": "topology_site",
+        "variable": "rule:state.board"
+      },
+      "target": {
+        "selector": "topology_sites",
+        "node": "scene:board",
+        "visualizer": "board_sites",
+        "component": "mark_art",
+        "property": "variant"
+      },
+      "transform": {
+        "kind": "map",
+        "cases": [
+          {
+            "equals": 0,
+            "value": "empty"
+          },
+          {
+            "equals": 1,
+            "value": "x"
+          },
+          {
+            "equals": 2,
+            "value": "o"
+          }
+        ]
+      }
+    },
+    {
+      "id": "scene:binding.shell",
+      "name": "Cell eligibility appearance",
+      "source": {
+        "kind": "state",
+        "scope": "topology_site",
+        "variable": "rule:state.board"
+      },
+      "target": {
+        "selector": "topology_sites",
+        "node": "scene:board",
+        "visualizer": "board_sites",
+        "component": "shell",
+        "property": "variant"
+      },
+      "transform": {
+        "kind": "map",
+        "cases": [
+          {
+            "equals": 0,
+            "value": "empty"
+          },
+          {
+            "equals": 1,
+            "value": "x"
+          },
+          {
+            "equals": 2,
+            "value": "o"
+          }
+        ]
+      }
+    },
+    {
+      "id": "scene:binding.press",
+      "name": "Transient cell press feedback",
+      "source": {
+        "kind": "interaction",
+        "property": "pressed",
+        "scope": "target",
+        "control": "mouse.button.primary",
+        "node": "scene:board"
+      },
+      "target": {
+        "selector": "topology_sites",
+        "node": "scene:board",
+        "visualizer": "board_sites",
+        "component": "shell",
+        "property": "pressed"
+      },
+      "transform": {
+        "kind": "direct"
+      }
+    },
+    {
+      "id": "scene:binding.status",
+      "name": "Turn, winner or draw status",
+      "source": {
+        "kind": "expression",
+        "expression": {
+          "op": "if",
+          "args": [
+            {
+              "op": "eq",
+              "args": [
+                {
+                  "op": "read",
+                  "source": {
+                    "kind": "state",
+                    "scope": "global",
+                    "variable": "rule:state.winner"
+                  }
+                },
+                {
+                  "op": "literal",
+                  "value": 1
+                }
+              ]
+            },
+            {
+              "op": "literal",
+              "value": "Winner: X"
+            },
+            {
+              "op": "if",
+              "args": [
+                {
+                  "op": "eq",
+                  "args": [
+                    {
+                      "op": "read",
+                      "source": {
+                        "kind": "state",
+                        "scope": "global",
+                        "variable": "rule:state.winner"
+                      }
+                    },
+                    {
+                      "op": "literal",
+                      "value": 2
+                    }
+                  ]
+                },
+                {
+                  "op": "literal",
+                  "value": "Winner: O"
+                },
+                {
+                  "op": "if",
+                  "args": [
+                    {
+                      "op": "read",
+                      "source": {
+                        "kind": "state",
+                        "scope": "global",
+                        "variable": "rule:state.draw"
+                      }
+                    },
+                    {
+                      "op": "literal",
+                      "value": "Draw"
+                    },
+                    {
+                      "op": "if",
+                      "args": [
+                        {
+                          "op": "eq",
+                          "args": [
+                            {
+                              "op": "read",
+                              "source": {
+                                "kind": "state",
+                                "scope": "global",
+                                "variable": "rule:state.current_player"
+                              }
+                            },
+                            {
+                              "op": "literal",
+                              "value": 1
+                            }
+                          ]
+                        },
+                        {
+                          "op": "literal",
+                          "value": "Turn: X"
+                        },
+                        {
+                          "op": "literal",
+                          "value": "Turn: O"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "target": {
+        "selector": "node",
+        "node": "scene:status",
+        "component": "status_text",
+        "property": "text"
+      },
+      "transform": {
+        "kind": "direct"
+      }
+    }
+  ],
+  "provenance": {
+    "patch_history": [
+      {
+        "base_revision": 0,
+        "base_content_hash": "540141ee56abb03fe12818dbc5e62a73397cc8b5c604592399d0c7fd724bc3ba",
+        "evidence": [
+          {
+            "evidence_id": "main.py:1-86@04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "path": "main.py",
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 1,
+              "line_end": 86
+            },
+            "supports": "/scene_ir"
+          }
+        ],
+        "assumptions": [],
+        "operation_count": 7
+      },
+      {
+        "base_revision": 0,
+        "base_content_hash": "f94803cab96cd424e3aa0e65bf8d6ec7cdc6d9cbbd75fe4a4c7029488520045f",
+        "evidence": [
+          {
+            "evidence_id": "ev:input.0",
+            "path": "main.py",
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "kind": "static",
+            "span": {
+              "line_start": 58,
+              "line_end": 58
+            },
+            "supports": "/input_ir/bindings",
+            "topic": "direction_input",
+            "confidence": 0.8,
+            "detail": "0"
+          },
+          {
+            "evidence_id": "ev:param.source_grid_x.0",
+            "path": "main.py",
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "kind": "static",
+            "span": {
+              "line_start": 21,
+              "line_end": 21
+            },
+            "supports": "/rule_ir/flow",
+            "topic": "movement",
+            "confidence": 0.8,
+            "detail": "Source grid X"
+          }
+        ],
+        "assumptions": [
+          "engine carry-over: the Source scene_ir is re-pinned to the lifted Rule unchanged"
+        ],
+        "operation_count": 1
+      }
+    ]
+  },
+  "unresolved": []
+}

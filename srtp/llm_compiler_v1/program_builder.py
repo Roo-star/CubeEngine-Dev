@@ -191,6 +191,11 @@ def definition_proposal(payload, *, slot, documents, evidence_pack, job_id, desi
     # Never accept model identity, hashes, approval provenance or dependency
     # pins. Rebuild those from engine state, even if a full IR was returned.
     definition = {key:deepcopy(value) for key,value in definition.items() if key not in ENGINE_OWNED_FIELDS}
+    if isinstance(definition.get('metadata'), dict) and isinstance(base.get('metadata'), dict):
+        # Partial metadata keeps the base's other fields; the source hash is engine state.
+        definition['metadata'] = dict(deepcopy(base['metadata']), **definition['metadata'])
+        if 'source_project_hash' in base['metadata']:
+            definition['metadata']['source_project_hash'] = base['metadata']['source_project_hash']
     if not definition:
         raise ValueError('Compilation stage requires a nonempty semantic definition')
     # Lossless repairs (e.g. "3" -> 3 for an integer) before any validation;

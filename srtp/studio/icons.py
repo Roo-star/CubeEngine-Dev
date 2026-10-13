@@ -34,7 +34,7 @@ PATHS = {
 }
 _cache = {}
 
-def icon(name, color='#bdc3d1', size=24):
+def icon(name, color='#686d73', size=24):
     key = name, color, size
     if key in _cache:
         return _cache[key]

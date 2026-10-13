@@ -20,9 +20,11 @@ from .theme import STYLE
 from .port import FieldPort
 from .viewport import EmbeddedViewport, ROOT
 from .demos import DEMOS
+from .ai_training import QtAiTraining
+from .version import UI_VERSION, RELEASE_VERSION
 from ..workbench import SrtpWorkbench, REFERENCE_GAMES
-from ..training.config import TrainingConfig
 from ..training.session import default_python
+from ..ai_training.preparation import PRESETS, TRIAL_ARGS
 
 
 class NumberField(QLineEdit):
@@ -69,10 +71,10 @@ def label(text='', role=None, wrap=False):
 
 def button(text, glyph, callback, role=None, tooltip=None, compact=False):
     w = QPushButton(text)
-    if glyph: w.setIcon(icon(glyph, '#241a35' if role == 'primary' else '#bdc5d4'))
-    w.setIconSize(QSize(19, 19)); w.setCursor(Qt.PointingHandCursor)
-    w.setMinimumHeight(38)
-    if compact: w.setFixedSize(38, 38)
+    if glyph: w.setIcon(icon(glyph, '#ffffff' if role == 'primary' else '#53575c'))
+    w.setIconSize(QSize(14, 14)); w.setCursor(Qt.PointingHandCursor)
+    w.setMinimumHeight(28)
+    if compact: w.setFixedSize(28, 28)
     if role: w.setProperty('role', role)
     if tooltip: w.setToolTip(tooltip)
     w.setAccessibleName(tooltip or text)
@@ -93,14 +95,17 @@ def card(title=None, glyph=None, name='card'):
 class Studio(QMainWindow):
     def __init__(self, project=None, source=None):
         super().__init__()
-        self.setWindowTitle('CubeEngine Studio')
-        self.setWindowIcon(icon('cube', '#c3adff'))
+        self.setWindowTitle('CubeEngine Workbench '+UI_VERSION+' · '+RELEASE_VERSION)
+        self.setWindowIcon(icon('cube', '#17191b'))
         self.setMinimumSize(1100, 680)
         self.port = FieldPort()
         self.c = SrtpWorkbench(self.port, asynchronous_jobs=True)
+        self.c.training_panel.close()
+        self.c.training_panel = QtAiTraining(self.port)
         self.c.studio = self
         self.state, self.dirty = None, False
         self.manifest, self.loaded_manifest, self.package_key = None, None, None
+        self.loaded_ai_mode=('off','hard')
         self.source_identity, self.source_targets = None, {}
         self.scene_requested=False
         self.demo_selected=False
@@ -109,6 +114,7 @@ class Studio(QMainWindow):
         self.editing_properties, self.active_view = False, 'scene'
         self.last_status, self.console_lines, self.dialogs = '', [], {}
         self.last_scene_revision, self.last_tree_ids = None, ()
+        self.last_rule_manifest = None
         self.closing = False
         self.check_pool=ThreadPoolExecutor(max_workers=1,thread_name_prefix='studio core check')
         self.check_future=None
@@ -131,40 +137,65 @@ class Studio(QMainWindow):
         elif source: QTimer.singleShot(150, lambda:self.load_source(source))
 
     def build(self):
-        root, columns = box(horizontal=True, margins=0, spacing=0); self.setCentralWidget(root)
-        rail = QFrame(); rail.setObjectName('rail'); rail.setFixedWidth(66)
-        rail_layout = QVBoxLayout(rail); rail_layout.setContentsMargins(12, 18, 12, 14); rail_layout.setSpacing(13)
-        brand = QLabel(); brand.setPixmap(icon('cube', '#c7b1ff', 32).pixmap(32, 32)); brand.setAlignment(Qt.AlignCenter)
-        rail_layout.addWidget(brand); rail_layout.addSpacing(22)
-        for glyph, tip, callback in [('folder','匯入遊戲 · Ctrl+O',self.import_menu),
-            ('layers','場景物件',lambda:self.sidebar.setVisible(not self.sidebar.isVisible())),
-            ('image','資產瀏覽器',lambda:self.toggle_bottom(0)),
-            ('brain','AI 訓練設定',lambda:self.show_dialog('training')),
-            ('chart','實驗與結果',lambda:self.show_dialog('runs'))]:
-            b = button('', glyph, callback, 'quiet', tip, True)
-            rail_layout.addWidget(b)
-        rail_layout.addStretch()
-        rail_layout.addWidget(button('', 'terminal', lambda:self.toggle_bottom(1), 'quiet', '診斷與事件', True))
-        rail_layout.addWidget(button('', 'sliders', lambda:self.show_dialog('conversion'), 'quiet', '轉換設定', True))
-        rail_layout.addWidget(button('', 'help', lambda:self.show_dialog('help'), 'quiet', '操作指南', True))
-        columns.addWidget(rail)
-        workspace, vertical = box(margins=16, spacing=14); columns.addWidget(workspace, 1)
+        root, columns = box(margins=0, spacing=0); self.setCentralWidget(root)
+        chrome=QFrame(); chrome.setObjectName('chrome')
+        chrome.setFixedHeight(32)
+        chrome_layout=QHBoxLayout(chrome); chrome_layout.setContentsMargins(14,0,14,0); chrome_layout.setSpacing(16)
+        chrome_layout.addWidget(label('⬡  CubeEngine','chromeBrand'))
+        menus={
+            'File': [('Open Project',lambda:self.import_source(True)),('Open EntryPoint',self.import_source),
+                     ('Attach Manifest',self.attach_target),('Save Scene Draft',self.save_draft),
+                     ('Load Scene Draft',self.load_draft),('Export Analysis',self.export_analysis),('Exit',self.close)],
+            'Edit': [('Undo',lambda:self.edit_history('undo')),('Redo',lambda:self.edit_history('redo')),
+                     ('Revert Scene Draft',lambda:self.target_view.send('revert'))],
+            'View': [('Source 2D',lambda:self.switch_view('source')),('Target 3D',lambda:self.switch_view('scene')),
+                     ('Compare Source / Target',self.show_compare),('Assets',lambda:self.toggle_bottom(0)),
+                     ('Console',lambda:self.toggle_bottom(1))],
+            'Tools': [('Conversion / Approval',lambda:self.show_dialog('conversion')),
+                      ('AI Training Settings',lambda:self.show_dialog('training')),
+                      ('Training Results',lambda:self.show_dialog('runs')),('Core Test',lambda:self.core_check('core'))],
+            'Help': [('Workbench Guide',lambda:self.show_dialog('help'))],
+        }
+        for title,actions in menus.items():
+            menu=QMenu(self)
+            for text,callback in actions:menu.addAction(text,callback)
+            entry=QToolButton(); entry.setText(title); entry.setMenu(menu)
+            entry.setPopupMode(QToolButton.InstantPopup); entry.setProperty('role','chromeMenu')
+            chrome_layout.addWidget(entry)
+        chrome_layout.addStretch()
+        chrome_layout.addWidget(label('Workbench / '+UI_VERSION+' · '+RELEASE_VERSION,'chromeMenu'))
+        chrome_layout.addWidget(label('●  Local','chromeMenu'))
+        columns.addWidget(chrome)
+        workspace, vertical = box(margins=0, spacing=0); columns.addWidget(workspace, 1)
         header, line = box(horizontal=True, spacing=14)
         titles, title_layout = box(spacing=2)
         title_layout.addWidget(label('CUBEENGINE  /  WORKSPACE', 'section'))
         self.project_title = label('開始你的空間創作', 'title'); title_layout.addWidget(self.project_title)
         self.project_title.setMinimumWidth(0)
         self.project_title.setSizePolicy(QSizePolicy.Ignored,QSizePolicy.Preferred)
-        line.addWidget(titles, 1)
+        titles.setFixedWidth(235); line.addWidget(titles)
+        self.workspace_buttons={}
+        for name,view in [('Layout','scene'),('Scenes','scene'),('Spatial Editor','scene'),
+                          ('Simulator','game'),('Rendering','scene')]:
+            tab=button(name,None,lambda n=name,v=view:self.switch_workspace(n,v),'workspaceTab')
+            tab.setCheckable(True); tab.setMinimumHeight(36)
+            self.workspace_buttons[name]=tab; line.addWidget(tab)
+        self.workspace_buttons['Layout'].setChecked(True)
+        line.addStretch()
         self.project_badge = label('本機工作區', 'badge'); line.addWidget(self.project_badge)
         line.addWidget(button('匯入', 'folder', self.import_menu))
         line.addWidget(button('空間轉換', 'layers', lambda:self.show_dialog('conversion'), 'primary'))
         line.addWidget(button('', 'save', self.save_draft, tooltip='儲存場景佈局草稿 · Ctrl+S', compact=True))
-        vertical.addWidget(header)
+        header.setObjectName('workspaceBar'); header.setFixedHeight(56); vertical.addWidget(header)
         self.splitter = QSplitter(Qt.Horizontal); self.splitter.setChildrenCollapsible(False)
-        self.sidebar, left = card(name='sidebar'); self.sidebar.setMinimumWidth(190)
-        self.sidebar.setMaximumWidth(340)
-        left.addWidget(label('切換範例並運行', 'section'))
+        self.sidebar, left = card(name='sidebar'); self.sidebar.setMinimumWidth(260)
+        self.sidebar.setMaximumWidth(350)
+        left.addWidget(label('File Input', 'heading'))
+        open_row, open_actions=box(horizontal=True,spacing=5)
+        open_actions.addWidget(button('Open Project','folder',lambda:self.import_source(True)),1)
+        open_actions.addWidget(button('Open EntryPoint','code',self.import_source),1)
+        left.addWidget(open_row)
+        left.addWidget(label('內建範例與 3D Demo','section'))
         self.example_selector = QComboBox()
         self.example_selector.setAccessibleName('切換範例並運行')
         self.example_selector.addItem('選擇內建遊戲…', None)
@@ -179,6 +210,17 @@ class Studio(QMainWindow):
                 lambda checked=False,p=path:self.load_demo(p)))
         self.demo_button=button('3D Demo', 'cube', None, tooltip='開啟原有四款 3D Demo，不需選檔案')
         self.demo_button.setMenu(self.demo_menu); left.addWidget(self.demo_button)
+        left.addWidget(label('Create by Prompt','section'))
+        self.source_prompt=QPlainTextEdit()
+        self.source_prompt.setPlaceholderText('描述你想建立或轉換的遊戲…')
+        self.source_prompt.setMaximumHeight(78)
+        self.source_prompt.textChanged.connect(self.source_prompt_changed)
+        left.addWidget(self.source_prompt)
+        left.addWidget(button('Compile Source','code',self.c.compile_llm_source_to_ir,'primary'))
+        pipeline, pipeline_actions=box(horizontal=True,spacing=4)
+        pipeline_actions.addWidget(button('Review Source',None,lambda:self.show_dialog('conversion')),1)
+        pipeline_actions.addWidget(button('Spatial Lift',None,self.c.run_spatial_lift),1)
+        left.addWidget(pipeline)
         browser_title, browser_line = box(horizontal=True)
         browser_line.addWidget(label('場景物件', 'heading'), 1)
         browser_line.addWidget(button('', 'folder', self.project_menu, 'quiet', '目前專案 / 範例', True))
@@ -199,10 +241,22 @@ class Studio(QMainWindow):
             b = button(text, glyph, lambda k=key:self.switch_view(k), 'quiet'); b.setCheckable(True)
             self.view_buttons[key] = b; tools.addWidget(b)
         self.view_buttons['scene'].setChecked(True)
+        self.compare_button=button('Compare',None,self.show_compare,'quiet')
+        tools.addWidget(self.compare_button)
         demo_tab=button('3D Demo','cube',lambda:self.switch_view('demo'),'quiet')
         demo_tab.setCheckable(True); demo_tab.hide(); tools.addWidget(demo_tab)
         self.view_buttons['demo']=demo_tab
         tools.addStretch()
+        self.ai_selector=QComboBox(); self.ai_selector.setAccessibleName('遊玩對手')
+        for title, value in [('雙人對玩','off'),('AI 後手','second'),('AI 先手','first')]:
+            self.ai_selector.addItem(title,value)
+        self.ai_selector.setToolTip('AI 只使用目前 Rule Runtime 已驗證的動作及已綁定模型')
+        self.ai_selector.currentIndexChanged.connect(self.ai_settings_changed)
+        self.ai_selector.setEnabled(False); tools.addWidget(self.ai_selector)
+        self.ai_difficulty=QComboBox(); self.ai_difficulty.addItems(['easy','medium','hard'])
+        self.ai_difficulty.setCurrentText('hard'); self.ai_difficulty.setAccessibleName('AI 難度')
+        self.ai_difficulty.currentIndexChanged.connect(self.ai_settings_changed)
+        tools.addWidget(self.ai_difficulty)
         self.play_button = button('', 'play', self.toggle_play, tooltip='播放 / 停止 · F5', compact=True)
         self.pause_button = button('', 'pause', self.pause, tooltip='暫停 / 繼續', compact=True)
         self.pause_button.setCheckable(True)
@@ -218,6 +272,17 @@ class Studio(QMainWindow):
         self.demo_view.event.connect(self.demo_event); self.demo_view.log.connect(self.append_console)
         self.views.addWidget(self.target_view); self.views.addWidget(self.source_view); self.views.addWidget(self.demo_view)
         stage_layout.addWidget(self.views, 1)
+        self.training_stage=QFrame(); self.training_stage.setObjectName('trainingStage')
+        progress_layout=QVBoxLayout(self.training_stage)
+        progress_layout.setContentsMargins(12,8,12,8); progress_layout.setSpacing(4)
+        self.stage_training_title=label('AI Training · local worker','heading')
+        self.stage_training_phase=label('Self-play → Train → Arena → Checkpoint','muted')
+        self.stage_training_numbers=label('等待訓練事件','muted')
+        self.stage_checkpoint=label('Checkpoint：尚未採用新模型','muted')
+        self.stage_checkpoint.setWordWrap(True)
+        for item in (self.stage_training_title,self.stage_training_phase,self.stage_training_numbers,self.stage_checkpoint):
+            progress_layout.addWidget(item)
+        self.training_stage.hide(); stage_layout.addWidget(self.training_stage)
         viewport_footer, footer = box(horizontal=True, margins=8, spacing=8)
         self.scene_hint = label('場景內選取物件 · 右鍵旋轉 · 滾輪縮放', 'muted'); footer.addWidget(self.scene_hint, 1)
         self.scene_hint.setMinimumWidth(0); self.scene_hint.setSizePolicy(QSizePolicy.Ignored,QSizePolicy.Preferred)
@@ -240,27 +305,32 @@ class Studio(QMainWindow):
         self.asset_list.setResizeMode(QListWidget.Adjust); self.asset_list.setWordWrap(True)
         self.asset_list.itemClicked.connect(self.select_asset)
         self.console = QPlainTextEdit(); self.console.setReadOnly(True); self.console.setMaximumBlockCount(400)
-        self.console.setStyleSheet('font-family:Consolas;font-size:14px;border:none;background:transparent;')
+        self.console.setStyleSheet('font-family:Consolas;font-size:11px;border:none;background:transparent;')
         self.bottom_tabs.addTab(self.asset_list, icon('image'), '資產')
         self.bottom_tabs.addTab(self.console, icon('terminal'), '事件與診斷')
-        bottom_layout.addWidget(self.bottom_tabs); self.center_splitter.addWidget(self.bottom)
-        self.center_splitter.setSizes([560,170]); middle.addWidget(self.center_splitter, 1)
+        self.bottom_tabs.setCurrentIndex(1)
+        bottom_layout.addWidget(self.bottom_tabs)
+        self.center_splitter.setSizes([560]); middle.addWidget(self.center_splitter, 1)
         self.splitter.addWidget(center)
         self.right = QSplitter(Qt.Vertical); self.right.setMinimumWidth(310); self.right.setMaximumWidth(430)
         self.right.setChildrenCollapsible(False)
-        self.inspector, prop_layout = card('屬性', 'sliders')
+        self.inspector, prop_layout = card('3D UX Editor · 場景屬性', 'sliders')
         prop_layout.setSpacing(8)
         self.inspector.setMinimumHeight(200)
         self.inspector_scroll = QScrollArea(); self.inspector_scroll.setWidgetResizable(True)
         content, props = box(spacing=8)
         self.selected_name = label('選取場景物件', 'heading', True); props.addWidget(self.selected_name)
         self.selected_type = label('在場景或左側物件樹中選取', 'muted', True); props.addWidget(self.selected_type)
+        camera_row,camera_actions=box(horizontal=True,spacing=4)
+        for text,preset in [('Isometric','isometric'),('Front','front'),('Top','top')]:
+            camera_actions.addWidget(button(text,None,lambda p=preset:self.target_view.send('camera',preset=p)),1)
+        props.addWidget(camera_row)
         self.visible_check = QCheckBox('在場景中顯示'); self.visible_check.setChecked(True)
         self.visible_check.toggled.connect(self.change_visibility); props.addWidget(self.visible_check)
         self.transform_box, transform_layout = box(spacing=7)
         axis_row,axis_layout=box(horizontal=True,spacing=5)
         spacer=QWidget(); spacer.setFixedWidth(32); axis_layout.addWidget(spacer)
-        for axis,tint in zip('XYZ',('#e4a2a9','#acd7b0','#99beee')):
+        for axis,tint in zip('XYZ',('#686d73','#686d73','#686d73')):
             item=label(axis,'section'); item.setAlignment(Qt.AlignCenter); item.setStyleSheet('color:'+tint)
             axis_layout.addWidget(item,1)
         transform_layout.addWidget(axis_row)
@@ -283,51 +353,105 @@ class Studio(QMainWindow):
         fields.addWidget(self.focus_button); fields.addWidget(self.revert_button); props.addWidget(row)
         self.draft_note=label('場景編輯獨立於已批准的遊戲規則。','muted',True); props.addWidget(self.draft_note)
         props.addStretch(); self.inspector_scroll.setWidget(content); prop_layout.addWidget(self.inspector_scroll)
+        self.rules_card, rules_layout=card(name='rules')
+        rules_layout.addWidget(label('Rules Editor','heading'))
+        rule_tabs=QTabWidget(); rule_tabs.setMaximumHeight(140)
+        self.rule_values={}
+        for title in ('Rule IR','Scene IR','Asset IR','Input IR'):
+            page, content=box(margins=5,spacing=4)
+            summary=label('等待已批准的 Target','muted',True)
+            self.rule_values[title]=summary; content.addWidget(summary)
+            rule_tabs.addTab(page,title)
+        rules_layout.addWidget(rule_tabs)
+        rules_layout.addWidget(button('Review Target',None,lambda:self.show_dialog('conversion')))
+        self.rules_card.setMinimumHeight(180)
+        self.right.addWidget(self.rules_card)
         self.right.addWidget(self.inspector)
         self.build_training()
-        self.right.addWidget(self.training_card); self.right.setSizes([440,340])
+        self.right.setSizes([220,450])
         self.splitter.addWidget(self.right); self.splitter.setSizes([220,760,340])
         self.splitter.setStretchFactor(0,0); self.splitter.setStretchFactor(1,1); self.splitter.setStretchFactor(2,0)
         vertical.addWidget(self.splitter,1)
+        self.docks=QSplitter(Qt.Horizontal); self.docks.setChildrenCollapsible(False)
+        self.docks.setFixedHeight(268)
+        self.docks.addWidget(self.training_card); self.docks.addWidget(self.bottom)
+        self.docks.setSizes([520,748]); self.docks.setStretchFactor(0,0); self.docks.setStretchFactor(1,1)
+        self.training_card.setMinimumWidth(380); self.bottom.setMinimumWidth(450)
+        vertical.addWidget(self.docks)
         status, status_layout=box(horizontal=True)
+        status.setObjectName('statusBar'); status.setFixedHeight(24)
         self.status_label=label('準備就緒 · 匯入來源或掛載場景開始','muted'); status_layout.addWidget(self.status_label,1)
         self.renderer_label=label('本機工作區','section'); status_layout.addWidget(self.renderer_label)
         vertical.addWidget(status)
         self.set_inspector_enabled(False)
 
+    def switch_workspace(self,name,view):
+        for key,widget in self.workspace_buttons.items():widget.setChecked(key==name)
+        self.switch_view(view)
+        if name=='Rendering':
+            self.bottom.show(); self.bottom_tabs.setCurrentIndex(0)
+            self.scene_hint.setText('Rendering · 選取資產查看，使用右側視角按鈕調整呈現')
+        elif name=='Spatial Editor':
+            self.scene_hint.setText('Spatial Editor · 依 Rule Runtime 顯示深度；空間設定在「空間轉換」調整')
+        elif name=='Scenes':
+            self.scene_hint.setText('Scenes · 選取物件後調整位置、旋轉、縮放並儲存場景草稿')
+
+    def show_compare(self):
+        package=self.c.package
+        if not self.manifest or not package or package.runtime.kind=='project_ir':
+            self.status_label.setText('比較需要原作來源與已批准 Target。請先匯入原作，再掛載 Target。')
+            return
+        previous=self.dialogs.get('compare')
+        if previous:previous.close()
+        dialog=QDialog(self); dialog.setWindowTitle('Source 2D / Target 3D · Compare')
+        layout=QHBoxLayout(dialog); layout.setContentsMargins(8,8,8,8)
+        source=EmbeddedViewport(); target=EmbeddedViewport()
+        layout.addWidget(source,1); layout.addWidget(target,1)
+        source.log.connect(self.append_console); target.log.connect(self.append_console)
+        self.dialogs['compare']=dialog
+        dialog.finished.connect(lambda *_:(source.shutdown(),target.shutdown()))
+        area=QApplication.primaryScreen().availableGeometry()
+        dialog.resize(min(1400,area.width()-40),min(800,area.height()-60)); dialog.show()
+        source.launch_source(package)
+        target.launch_project(self.manifest,package.root)
+
+    def source_prompt_changed(self):
+        self.port.set_value('srtp_llm_intent',self.source_prompt.toPlainText())
+        self.c.intent_changed()
+
     def build_training(self):
         panel=self.c.training_panel
-        self.training_card, layout=card(name='training'); self.training_card.setMinimumHeight(335)
-        layout.setSpacing(8)
+        self.training_card, layout=card(name='training'); self.training_card.setMinimumHeight(245)
+        self.training_card.setMaximumHeight(285); layout.setSpacing(5)
         row, title=box(horizontal=True)
-        symbol=QLabel(); symbol.setPixmap(icon('brain','#c3acff').pixmap(22,22)); title.addWidget(symbol)
-        title.addWidget(label('AI 自對弈','heading'),1)
-        title.addWidget(button('', 'sliders', lambda:self.show_dialog('training'),'quiet','訓練參數與輸出',True))
+        title.addWidget(label('AI Training Setting','heading'),1)
+        title.addWidget(button('設定','sliders', lambda:self.show_dialog('training'),'quiet','訓練參數與輸出'))
         layout.addWidget(row)
-        self.eligibility=label('等待批准版本','badge'); self.eligibility.setWordWrap(True); layout.addWidget(self.eligibility)
+        self.eligibility=label('等待批准版本','badge'); self.eligibility.setWordWrap(True)
+        layout.addWidget(self.eligibility)
         self.training_description=label('具備對手、且通過適配檢查的遊戲才可訓練。','muted',True)
         layout.addWidget(self.training_description)
-        metrics, grid=box(horizontal=True,spacing=20)
+        self.training_params=label('Iterations 3   Self-play 12   MCTS 25   Batch 128','muted')
+        layout.addWidget(self.training_params)
+        metrics, grid=box(horizontal=True,spacing=10)
         self.metric_labels={}
         for key,title in [('iteration','迭代'),('self_play_games','自對弈'),('arena_games','對決')]:
-            column, items=box(spacing=2); value=label('—','title'); self.metric_labels[key]=value
-            items.addWidget(value); items.addWidget(label(title,'muted')); grid.addWidget(column,1)
+            column, items=box(horizontal=True,spacing=3); value=label('—','muted'); self.metric_labels[key]=value
+            items.addWidget(label(title,'muted')); items.addWidget(value); grid.addWidget(column,1)
         layout.addWidget(metrics)
         progress=QProgressBar(); progress.setRange(0,1000); progress.setTextVisible(False)
         self.training_progress=progress
         self.port.bind('training_progress',progress,0); layout.addWidget(progress)
         self.training_status=label('本機運算 · 可安全取消','muted',True); layout.addWidget(self.training_status)
-        layout.addStretch()
         actions, row=box(horizontal=True)
-        self.train_start=button('開始試跑','play',panel.start,'primary')
-        self.train_cancel=button('', 'stop',panel.cancel,'danger','安全取消訓練',True)
+        self.train_start=button('Start Training','play',panel.start,'primary')
+        self.train_cancel=button('Cancel','stop',panel.cancel,'danger','安全取消訓練')
         self.port.bind('training_start',self.train_start); self.port.bind('training_cancel',self.train_cancel)
         self.train_start.setEnabled(False); self.train_cancel.setEnabled(False)
-        row.addWidget(self.train_start,1); row.addWidget(self.train_cancel); layout.addWidget(actions)
-        actions, row=box(horizontal=True)
-        resume=button('續跑','clock',panel.resume_last,'quiet','選取上一個相容 checkpoint')
+        row.addWidget(self.train_start); row.addWidget(self.train_cancel)
+        resume=button('Resume','clock',panel.resume_last,'quiet','續跑相容的模型與樣本')
         self.port.bind('training_resume_last',resume); resume.setEnabled(False)
-        row.addWidget(resume,1); row.addWidget(button('詳情與結果','chart',lambda:self.show_dialog('runs'),'quiet'),2)
+        row.addWidget(resume); row.addWidget(button('Open Results','chart',lambda:self.show_dialog('runs'),'quiet'))
         layout.addWidget(actions)
 
     def dialog(self, key, title, size=(760,600)):
@@ -352,19 +476,38 @@ class Studio(QMainWindow):
                'learning_rate':'學習率','acceptance':'採用門檻','device':'裝置'}
         columns=[['iterations','episodes','simulations','arena_games','seed'],
                  ['epochs','channels','batch_size','learning_rate','acceptance','device']]
-        for key,value in TrainingConfig().to_mapping().items():
+        preset_args = {
+            'iterations': TRIAL_ARGS['numIters'], 'episodes': TRIAL_ARGS['numEps'],
+            'simulations': TRIAL_ARGS['numMCTSSims'], 'arena_games': TRIAL_ARGS['arenaCompare'],
+            'epochs': TRIAL_ARGS['epochs'], 'channels': TRIAL_ARGS['num_channels'],
+            'batch_size': TRIAL_ARGS['batch_size'], 'learning_rate': TRIAL_ARGS['lr'],
+            'acceptance': TRIAL_ARGS['updateThreshold'],
+        }
+        preset=QComboBox(); preset.addItems(PRESETS)
+        self.port.bind('training_preset',preset,'Fast trial (3 iterations)')
+        items.addWidget(label('訓練規模','heading')); items.addWidget(preset)
+        for key,value in preset_args.items():
             if isinstance(value,int):
-                w=NumberField(integer=True)
+                w=NumberField(integer=True,minimum=1)
             elif isinstance(value,float):
                 w=NumberField(maximum=100,decimals=5)
-            else:
-                w=QComboBox(); w.addItems(['cpu','cuda'])
             self.port.bind('training_'+key,w,value)
             column=0 if key in columns[0] else 1; row=columns[column].index(key)+1
             form.addWidget(label(names.get(key,key)),row,column*3); form.addWidget(w,row,column*3+1)
+        def apply_preset(name):
+            source=PRESETS[name]
+            mapping={'iterations':'numIters','episodes':'numEps','simulations':'numMCTSSims',
+                     'arena_games':'arenaCompare','epochs':'epochs','channels':'num_channels',
+                     'batch_size':'batch_size','learning_rate':'lr','acceptance':'updateThreshold'}
+            for field,key in mapping.items():self.port.set_value('training_'+field,source[key])
+            self.c.training_panel.refresh()
+        preset.currentTextChanged.connect(apply_preset)
+        device=QComboBox(); device.addItems(['cpu','auto','cuda'])
+        self.port.bind('training_device',device,'cpu')
+        items.addWidget(label('Device · CUDA 需訓練 Python 支援','muted')); items.addWidget(device)
         items.addLayout(form)
-        for key,title,value,choose in [('output','輸出資料夾',str(ROOT/'.cubeengine_training'),True),
-            ('resume','相容 checkpoint（空白表示新模型）','',True),('python','訓練 Python',default_python(),False)]:
+        for key,title,value,choose in [('output','訓練輸出資料夾（空白＝Target 專屬資料夾）','',True),
+            ('python','訓練 Python',default_python(),False)]:
             items.addWidget(label(title,'heading')); row, fields=box(horizontal=True)
             w=QLineEdit(); self.port.bind('training_'+key,w,value); fields.addWidget(w,1)
             if choose: fields.addWidget(button('', 'folder',lambda k=key:self.training_path(k),tooltip='選擇'+title,compact=True))
@@ -385,6 +528,10 @@ class Studio(QMainWindow):
         buttons.addWidget(button('重新檢查資格','reset',self.c.training_panel.refresh)); layout.addWidget(row)
         d,layout=self.dialog('conversion','空間轉換與版本批准',(920,710))
         layout.addWidget(label('來源分析 → 批准來源 → 空間轉換 → 批准 Target','muted'))
+        conversion_start=QComboBox(); conversion_start.addItems(self.c.CONVERSION_START)
+        self.port.bind('srtp_conversion_start',conversion_start,self.c.CONVERSION_START[0])
+        layout.addWidget(label('轉換起點 · 從頭開始會重新產生所有付費階段','muted'))
+        layout.addWidget(conversion_start)
         tabs=QTabWidget(); layout.addWidget(tabs,1)
         content, items=box(margins=12)
         items.addWidget(label('下次轉換尺寸','heading'))
@@ -535,17 +682,48 @@ class Studio(QMainWindow):
                     self.view_buttons['demo'].hide()
                     for key in ('scene','game'):self.view_buttons[key].show()
                 if self.manifest!=previous:self.scene_requested=True
+                if self.manifest!=self.last_rule_manifest:self.refresh_rule_card()
                 if self.source_identity:self.source_targets[self.source_identity]=self.manifest
                 for key in ('scene','game'):
                     self.view_buttons[key].setEnabled(True); self.view_buttons[key].setToolTip('')
         self.dirty=True
 
+    def refresh_rule_card(self):
+        self.last_rule_manifest=self.manifest
+        if not self.manifest:
+            for item in self.rule_values.values():item.setText('等待已批准的 Target')
+            return
+        try:
+            from ..llm_compiler_v1.compiler import load_compile_report_from_bundle
+            report=load_compile_report_from_bundle(self.manifest.parent,manifest_path=self.manifest)
+            for title,key in [('Rule IR','rule_ir'),('Scene IR','scene_ir'),
+                              ('Asset IR','asset_ir'),('Input IR','input_ir')]:
+                doc=report.documents.get(key,{})
+                self.rule_values[title].setText(str(doc.get('document_id') or key)+'\n'+
+                    ('已批准 · 只讀' if report.compile_ready else '尚未批准'))
+        except (OSError,ValueError,KeyError) as error:
+            for item in self.rule_values.values():item.setText('讀取失敗：'+str(error))
+
     def open_scene(self):
         if not self.manifest: return
         self.loaded_manifest=self.manifest
         source_root=self.c.package.root if self.c.package else self.manifest.parent
-        self.target_view.launch_project(self.manifest,source_root)
+        opponent=self.ai_selector.currentData() if hasattr(self,'ai_selector') else 'off'
+        self.loaded_ai_mode=(opponent,self.ai_difficulty.currentText())
+        panel=self.c.training_panel
+        self.target_view.launch_project(self.manifest,source_root, ai_opponent=opponent,
+            ai_difficulty=self.ai_difficulty.currentText(), ai_training_roots=panel.training_roots(),
+            ai_python=self.port.get_value('training_python') or default_python())
         self.status_label.setText('正在載入 Scene／Asset…')
+
+    def ai_settings_changed(self, *args):
+        if not self.manifest or self.ai_selector.currentData()=='off':
+            self.ai_difficulty.setEnabled(False)
+        else:
+            self.ai_difficulty.setEnabled(True)
+        if self.active_view=='game' and self.manifest and self.target_view.running:
+            self.open_scene()
+            self.target_view.send('mode',playing=True)
 
     def switch_view(self,key,start=True):
         if key=='demo' and not self.demo_selected:return
@@ -553,6 +731,7 @@ class Studio(QMainWindow):
             self.status_label.setText('尚未掛載已批准的 3D 場景，先在中央運行原作。')
             key='source'
         self.active_view=key
+        self.ai_selector.setVisible(key=='game'); self.ai_difficulty.setVisible(key=='game')
         for name,w in self.view_buttons.items(): w.setChecked(name==key)
         self.views.setCurrentWidget(self.demo_view if key=='demo' else self.source_view if key=='source' else self.target_view)
         for control in (self.layer_combo,self.slice_button,self.undo_button,self.redo_button):control.setVisible(key in ('scene','game'))
@@ -572,7 +751,9 @@ class Studio(QMainWindow):
             self.source_view.send('pause',paused=True)
             # A running Source preview belongs to its exact bundle. Approval
             # of a new Target must replace it before routing gameplay input.
-            if self.manifest and (not self.target_view.running or self.manifest != self.loaded_manifest):
+            requested_ai=(self.ai_selector.currentData(),self.ai_difficulty.currentText())
+            if self.manifest and (not self.target_view.running or self.manifest != self.loaded_manifest
+                                  or (key=='game' and requested_ai!=self.loaded_ai_mode)):
                 self.open_scene()
             self.target_view.send('mode',playing=key=='game'); self.target_view.send('pause',paused=False)
             self.scene_hint.setText('點選物件 · 右鍵旋轉 · 滾輪縮放' if key=='scene' else '遊戲執行中 · 輸入交由原規則判定')
@@ -607,7 +788,7 @@ class Studio(QMainWindow):
 
     def refresh_play_controls(self):
         running=self.demo_view.running if self.active_view=='demo' else self.source_view.running if self.active_view=='source' else self.active_view=='game'
-        self.play_button.setIcon(icon('stop' if running else 'play','#c8b5ff'))
+        self.play_button.setIcon(icon('stop' if running else 'play','#686d73'))
         if self.active_view=='demo':
             self.pause_button.setEnabled(self.demo_view.ready); self.pause_button.setChecked(self.demo_view.paused)
             self.restart_button.setEnabled(self.demo_view.ready); return
@@ -639,6 +820,8 @@ class Studio(QMainWindow):
             self.renderer_label.setText('3D 場景 · 即時同步')
             state='場景編輯' if not event.get('playing') else ('暫停' if event.get('paused') else '試玩')
             detail=(str(len(self.nodes))+' 個物件') if not event.get('playing') else ('本局已結束' if event.get('terminal') else '已執行 '+str(event.get('revision',0))+' 步')
+            if event.get('playing') and event.get('ai_status'):
+                detail+=' · '+event['ai_status'].splitlines()[0]
             self.status_label.setText(state+' · '+detail)
             self.refresh_play_controls()
             self.undo_button.setEnabled(self.active_view=='scene' and event.get('can_undo',False))
@@ -673,7 +856,7 @@ class Studio(QMainWindow):
     def populate_tree(self):
         self.tree.clear(); self.tree_items={}
         scene_root=QTreeWidgetItem([self.c.package.title if self.c.package else 'Scene'])
-        scene_root.setIcon(0,icon('cube','#c4acff')); self.tree.addTopLevelItem(scene_root)
+        scene_root.setIcon(0,icon('cube','#aeb3b8')); self.tree.addTopLevelItem(scene_root)
         for key,node in self.nodes.items():
             name=node.get('name') or key.split(':')[-1]
             item=QTreeWidgetItem([name]); item.setData(0,Qt.UserRole,key); item.setToolTip(0,key)
@@ -744,7 +927,7 @@ class Studio(QMainWindow):
                 groups.setdefault(json.dumps(node.get('visual',{}),sort_keys=True),[]).append(node)
         for nodes in groups.values():
             node=nodes[0]; name=node['name'].split(' (')[0]
-            item=QListWidgetItem(icon('cube','#b8a0ed',32),name+' ×'+str(len(nodes)))
+            item=QListWidgetItem(icon('cube','#686d73',32),name+' ×'+str(len(nodes)))
             item.setData(Qt.UserRole,{'node':node['id']})
             item.setToolTip('點擊定位實際場景物件\n'+str(len(nodes))+' 個使用相同呈現的物件\n'+json.dumps(node.get('visual',{}),ensure_ascii=False))
             self.asset_list.addItem(item)
@@ -821,6 +1004,7 @@ class Studio(QMainWindow):
             self.port.set_value('srtp_core_verification',json.dumps(report,ensure_ascii=False,indent=2))
         self.c.poll_conversion(); self.c.training_panel.poll()
         package=self.c.package
+        self.compare_button.setEnabled(bool(self.manifest and package and package.runtime.kind!='project_ir'))
         key=str(package.entrypoint) if package else None
         if key!=self.package_key:
             self.package_key=key
@@ -833,29 +1017,38 @@ class Studio(QMainWindow):
             self.scene_requested=False
             self.scene_data={}; self.last_tree_ids=(); self.switch_view('scene')
         panel=self.c.training_panel
-        eligible=panel.snapshot is not None
+        self.training_params.setText('{4}   Iterations {0}   Self-play {1}   MCTS {2}   Batch {3}'.format(
+            self.port.get_value('training_iterations'), self.port.get_value('training_episodes'),
+            self.port.get_value('training_simulations'), self.port.get_value('training_batch_size'),
+            str(self.port.get_value('training_device') or 'cpu').upper()))
+        eligible=bool(panel.preparation and panel.preparation.trainable)
         state='eligible' if eligible else 'unavailable' if panel.target and not panel.future else 'pending'
         if self.eligibility.property('state')!=state:
             self.eligibility.setProperty('state',state)
             self.eligibility.style().unpolish(self.eligibility); self.eligibility.style().polish(self.eligibility)
-        self.eligibility.setText('Demo 試玩' if self.demo_selected else '可訓練 · 雙人對弈' if eligible else '正在檢查資格…' if panel.future else '目前不適用' if panel.target else '等待批准版本')
+        self.eligibility.setText('Demo 試玩' if self.demo_selected else '可訓練 · Rule Runtime 已驗證' if eligible else '正在檢查資格…' if panel.future else '目前不適用' if panel.target else '等待批准版本')
+        self.ai_selector.setEnabled(eligible and not self.demo_selected)
         reasons=' '.join(panel.reasons)
-        description='3×3×3 · 完整資訊 · 版本已綁定' if eligible else '這款遊戲沒有雙人對手。' if 'opponent' in reasons else '資格與不合格原因可在詳情查看。' if panel.target else '批准空間版本後，自動檢查對手與狀態編碼。'
+        description=panel.preparation.summary() if eligible else '資格與不合格原因可在詳情查看。' if panel.target else '批准空間版本後，自動檢查 Rule 與 AI adapter。'
         self.training_description.setText('此示範版本未接入自對弈訓練。' if self.demo_selected else description)
-        self.run_reasons.setText('\n'.join(panel.reasons) if panel.reasons else '九項 Game API 通過；存檔已綁定目前 Rule 與 adapter。' if eligible else '目前沒有可訓練的批准版本。')
-        counters=panel.last_event.get('counters',{})
-        current_run=bool(panel.started and panel.target and getattr(panel,'run_target',None)==panel.target)
-        for key,w in self.metric_labels.items():w.setText(str(panel.last_event.get('iteration',0) if key=='iteration' else counters.get(key,0)) if current_run else '—')
-        self.training_progress.setValue(round(float(self.port.values.get('training_progress',0))*1000) if current_run else 0)
-        phase=panel.last_event.get('phase','')
-        names={'self_play_move':'自對弈中','self_play_game':'自對弈中','training_batch':'訓練中','training_epoch':'訓練中','arena_move':'新舊模型對決','arena_game':'新舊模型對決','completed':'試跑完成','cancelled':'已安全取消','failed':'執行失敗，請查看詳情','interrupted':'已中止，保留完整存檔'}
-        status=str(self.port.get_value('training_status') or '')
-        result='本機運算 · 可安全取消'
-        if panel.session.running:result=names.get(phase,'正在啟動…') if current_run else '正在安全停止上一款遊戲的訓練…'
-        elif current_run:
-            result=names.get(phase,'試跑完成' if ': completed' in status or status.startswith('Verified') else '詳情中保留上次執行結果')
-        if status.startswith('Could not start:'):result='無法啟動 · 請查看詳情中的原因'
-        self.training_status.setText(result); self.training_status.setToolTip(status)
+        self.run_reasons.setText('\n'.join(panel.reasons) if panel.reasons else '九項 Game API 與 adapter 通過；模型綁定目前 Rule。' if eligible else '目前沒有可訓練的批准版本。')
+        for key,w in self.metric_labels.items():
+            w.setText(str(panel.counters.get(key,'—')))
+        self.training_progress.setValue(round(panel.progress*1000))
+        status=str(self.port.get_value('training_status') or panel.status)
+        self.training_status.setText(status); self.training_status.setToolTip(status)
+        running=bool(panel.run and panel.run.running)
+        if self.training_stage.isVisible()!=running:self.training_stage.setVisible(running)
+        if running:
+            latest=panel.last_event
+            self.stage_training_phase.setText(status)
+            self.stage_training_numbers.setText('Episode {0}/{1}   Iteration {2}/{3}   MCTS {4}'.format(
+                latest.get('episode','—'),self.port.get_value('training_episodes'),
+                latest.get('iteration','—'),self.port.get_value('training_iterations'),
+                self.port.get_value('training_simulations')))
+            accepted=[e for e in panel.events if e.get('event')=='published']
+            self.stage_checkpoint.setText('Checkpoint：'+
+                (str(accepted[-1].get('path')) if accepted else '等待 Arena 比較'))
         active=bool(self.c.conversion_jobs.active)
         self.compile_button.setEnabled(bool(package) and not active); self.lift_button.setEnabled(bool(package) and not active)
         self.approve_button.setEnabled(bool(getattr(self.c,'_pending_llm_manifest',None)) and not active); self.cancel_conversion.setEnabled(active)
@@ -871,12 +1064,12 @@ class Studio(QMainWindow):
 def configure_application(app):
     app.setStyle('Fusion'); app.setStyleSheet(STYLE)
     palette=app.palette()
-    for role,value in [(QPalette.Window,'#1d2129'),(QPalette.Base,'#151920'),(QPalette.AlternateBase,'#242b35'),
-                       (QPalette.Text,'#e7e9f0'),(QPalette.WindowText,'#e7e9f0'),(QPalette.Button,'#292f39'),
-                       (QPalette.ButtonText,'#e7e9f0'),(QPalette.Highlight,'#57466e'),(QPalette.HighlightedText,'#ffffff')]:
+    for role,value in [(QPalette.Window,'#fafaf9'),(QPalette.Base,'#fafaf9'),(QPalette.AlternateBase,'#e9eaec'),
+                       (QPalette.Text,'#17191b'),(QPalette.WindowText,'#17191b'),(QPalette.Button,'#ffffff'),
+                       (QPalette.ButtonText,'#17191b'),(QPalette.Highlight,'#b7bbbe'),(QPalette.HighlightedText,'#17191b')]:
         palette.setColor(role,QColor(value))
     app.setPalette(palette)
-    app.setApplicationName('CubeEngine Studio')
+    app.setApplicationName('CubeEngine Workbench '+UI_VERSION+' · '+RELEASE_VERSION)
 
 def main():
     parser=argparse.ArgumentParser(description='CubeEngine Studio')
@@ -890,8 +1083,8 @@ def main():
     window.resize(min(width,area.width()-30),min(height,area.height()-40)); window.show()
     if args.capture:
         def capture():
-            args.capture.parent.mkdir(parents=True,exist_ok=True)
-            app.primaryScreen().grabWindow(int(window.winId())).save(str(args.capture))
+            from .capture import capture_window
+            capture_window(window,args.capture)
             window.close(); app.quit()
         QTimer.singleShot(16000,capture)
     return app.exec()

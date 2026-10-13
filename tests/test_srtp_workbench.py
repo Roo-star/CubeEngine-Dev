@@ -305,3 +305,37 @@ class SrtpWorkbenchTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ConversionStartTests(unittest.TestCase):
+    def controller(self, tmp, choice):
+        import json
+        controller = SrtpWorkbench(FakeDpg())
+        checkpoint = Path(tmp) / 'source.stages.json'
+        checkpoint.write_text(json.dumps({'stages': {'rule_ir': {}}, 'rejected_stages': {'asset_ir': {}}}),
+                              encoding='utf-8')
+        controller._stage_checkpoint = lambda kind: Path(tmp) / '{0}.stages.json'.format(kind)
+        controller.dpg.values['srtp_conversion_start'] = choice
+        return controller, checkpoint
+
+    def test_continue_reuses_the_saved_stages(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            controller, checkpoint = self.controller(tmp, SrtpWorkbench.CONVERSION_START[0])
+            self.assertEqual(controller._checkpoint_for_run('source'), checkpoint)
+            self.assertTrue(checkpoint.is_file())
+            status = controller.dpg.values['srtp_status']
+            self.assertIn('accepted rule_ir', status)
+            self.assertIn('rejected asset_ir', status)
+
+    def test_from_scratch_keeps_the_old_stages_as_a_backup(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            controller, checkpoint = self.controller(tmp, SrtpWorkbench.CONVERSION_START[1])
+            original = checkpoint.read_text(encoding='utf-8')
+            self.assertEqual(controller._checkpoint_for_run('source'), checkpoint)
+            self.assertFalse(checkpoint.exists(), 'this run starts without saved stages')
+            backups = list(Path(tmp).glob('source.stages.*.bak.json'))
+            self.assertEqual(len(backups), 1)
+            self.assertEqual(backups[0].read_text(encoding='utf-8'), original, 'paid replies are kept')
+            self.assertIn('from scratch', controller.dpg.values['srtp_status'])

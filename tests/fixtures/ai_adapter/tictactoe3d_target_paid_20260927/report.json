@@ -1,0 +1,561 @@
+{
+  "ok": true,
+  "stage": "spatial_lift",
+  "job_id": "job:c057905d9b1d413c",
+  "project_id": "project:tic.tac.toe.llm.source.target",
+  "source_package_hash": "a047aad70934c80e9fa9c332ffd9dc2ea1df95a50c0015b29f6e931c2d25aab5",
+  "provider": "openrouter",
+  "model": "openai/gpt-6-sol",
+  "attempts": 0,
+  "prompt_template_version": "cubeengine.srtp/llm-prompt/2.0",
+  "diagnostics": [],
+  "compile_ready": false,
+  "output_dir": "C:\\repo\\CubeEngine-Dev\\.cubeengine_llm\\acceptance_20260927\\target",
+  "unresolved_summary": [
+    {
+      "path": "/provenance/llm",
+      "reason": "LLM proposal has not been designer-approved.",
+      "required": true,
+      "owner": "designer"
+    }
+  ],
+  "proposal_id": "proposal:job.c057905d9b1d413c.rule_ir",
+  "manifest_project_id": "project:tic.tac.toe.llm.source.target",
+  "compilation_trace": {
+    "stages": [
+      {
+        "stage": "rule_ir",
+        "attempt": 0,
+        "passed": true,
+        "checks": [
+          {
+            "name": "engine lift trace 0",
+            "passed": true,
+            "state_hash": "2a50d53a7f295ab5134158be6293563694905631c9d63b3352e5bbf606840ae8"
+          },
+          {
+            "name": "engine lift trace 1",
+            "passed": true,
+            "state_hash": "64444e7a1f6f52cd4bee65983292b3a7f51fbc3c4190735cc36de04270a577a9"
+          }
+        ],
+        "cached": false,
+        "engine": "lift_template",
+        "behavior_tests": [
+          {
+            "name": "engine lift trace 0",
+            "seed": 0,
+            "steps": [
+              {
+                "action": "rule:action.place",
+                "parameters": {
+                  "coordinate": [
+                    1,
+                    0,
+                    1
+                  ]
+                },
+                "accepted": true
+              },
+              {
+                "action": "rule:action.place",
+                "parameters": {
+                  "coordinate": [
+                    1,
+                    0,
+                    1
+                  ]
+                },
+                "accepted": false
+              },
+              {
+                "action": "rule:action.place",
+                "parameters": {
+                  "coordinate": [
+                    0,
+                    1,
+                    1
+                  ]
+                },
+                "accepted": true
+              },
+              {
+                "action": "rule:action.place",
+                "parameters": {
+                  "coordinate": [
+                    1,
+                    1,
+                    2
+                  ]
+                },
+                "accepted": true
+              },
+              {
+                "action": "rule:action.place",
+                "parameters": {
+                  "coordinate": [
+                    2,
+                    1,
+                    2
+                  ]
+                },
+                "accepted": true
+              },
+              {
+                "action": "rule:action.place",
+                "parameters": {
+                  "coordinate": [
+                    0,
+                    0,
+                    1
+                  ]
+                },
+                "accepted": true
+              },
+              {
+                "action": "rule:action.place",
+                "parameters": {
+                  "coordinate": [
+                    0,
+                    1,
+                    0
+                  ]
+                },
+                "accepted": true
+              },
+              {
+                "action": "rule:action.place",
+                "parameters": {
+                  "coordinate": [
+                    2,
+                    1,
+                    1
+                  ]
+                },
+                "accepted": true
+              },
+              {
+                "action": "rule:action.place",
+                "parameters": {
+                  "coordinate": [
+                    0,
+                    2,
+                    0
+                  ]
+                },
+                "accepted": true
+              },
+              {
+                "action": "rule:action.place",
+                "parameters": {
+                  "coordinate": [
+                    1,
+                    2,
+                    2
+                  ]
+                },
+                "accepted": true
+              },
+              {
+                "action": "rule:action.place",
+                "parameters": {
+                  "coordinate": [
+                    0,
+                    0,
+                    2
+                  ]
+                },
+                "accepted": true
+              }
+            ],
+            "expect": {
+              "terminal": true,
+              "status": "win"
+            }
+          },
+          {
+            "name": "engine lift trace 1",
+            "seed": 1,
+            "steps": [
+              {
+                "action": "rule:action.place",
+                "parameters": {
+                  "coordinate": [
+                    1,
+                    2,
+                    1
+                  ]
+                },
+                "accepted": true
+              },
+              {
+                "action": "rule:action.place",
+                "parameters": {
+                  "coordinate": [
+                    1,
+                    2,
+                    1
+                  ]
+                },
+                "accepted": false
+              },
+              {
+                "action": "rule:action.place",
+                "parameters": {
+                  "coordinate": [
+                    0,
+                    2,
+                    0
+                  ]
+                },
+                "accepted": true
+              },
+              {
+                "action": "rule:action.place",
+                "parameters": {
+                  "coordinate": [
+                    0,
+                    0,
+                    1
+                  ]
+                },
+                "accepted": true
+              },
+              {
+                "action": "rule:action.place",
+                "parameters": {
+                  "coordinate": [
+                    0,
+                    1,
+                    0
+                  ]
+                },
+                "accepted": true
+              },
+              {
+                "action": "rule:action.place",
+                "parameters": {
+                  "coordinate": [
+                    1,
+                    2,
+                    2
+                  ]
+                },
+                "accepted": true
+              },
+              {
+                "action": "rule:action.place",
+                "parameters": {
+                  "coordinate": [
+                    2,
+                    0,
+                    0
+                  ]
+                },
+                "accepted": true
+              },
+              {
+                "action": "rule:action.place",
+                "parameters": {
+                  "coordinate": [
+                    0,
+                    1,
+                    1
+                  ]
+                },
+                "accepted": true
+              },
+              {
+                "action": "rule:action.place",
+                "parameters": {
+                  "coordinate": [
+                    1,
+                    0,
+                    2
+                  ]
+                },
+                "accepted": true
+              },
+              {
+                "action": "rule:action.place",
+                "parameters": {
+                  "coordinate": [
+                    0,
+                    1,
+                    2
+                  ]
+                },
+                "accepted": true
+              },
+              {
+                "action": "rule:action.place",
+                "parameters": {
+                  "coordinate": [
+                    2,
+                    2,
+                    2
+                  ]
+                },
+                "accepted": true
+              },
+              {
+                "action": "rule:action.place",
+                "parameters": {
+                  "coordinate": [
+                    2,
+                    1,
+                    1
+                  ]
+                },
+                "accepted": true
+              },
+              {
+                "action": "rule:action.place",
+                "parameters": {
+                  "coordinate": [
+                    0,
+                    0,
+                    2
+                  ]
+                },
+                "accepted": true
+              },
+              {
+                "action": "rule:action.place",
+                "parameters": {
+                  "coordinate": [
+                    2,
+                    2,
+                    0
+                  ]
+                },
+                "accepted": true
+              },
+              {
+                "action": "rule:action.place",
+                "parameters": {
+                  "coordinate": [
+                    2,
+                    0,
+                    1
+                  ]
+                },
+                "accepted": true
+              },
+              {
+                "action": "rule:action.place",
+                "parameters": {
+                  "coordinate": [
+                    0,
+                    2,
+                    1
+                  ]
+                },
+                "accepted": true
+              }
+            ],
+            "expect": {
+              "terminal": true,
+              "status": "win"
+            }
+          }
+        ],
+        "lift_verification": {
+          "z_equals_one": {
+            "ok": true,
+            "errors": [],
+            "warnings": [],
+            "facts": {
+              "added_axes": {
+                "rule:topology.board": [
+                  2
+                ]
+              },
+              "compared_steps": 522,
+              "playouts": 60
+            }
+          },
+          "reference": "source",
+          "errors": []
+        }
+      },
+      {
+        "stage": "asset_ir",
+        "attempt": 0,
+        "passed": true,
+        "checks": [
+          {
+            "resources": 4,
+            "compiled": true
+          }
+        ],
+        "cached": false,
+        "engine": "carry_over",
+        "behavior_tests": []
+      },
+      {
+        "stage": "scene_ir",
+        "attempt": 0,
+        "passed": true,
+        "checks": [
+          {
+            "scene_nodes": 86,
+            "compiled": true,
+            "replayed_frames": 29,
+            "behavior_traces": 2,
+            "transient_input_states": 3248,
+            "transient_target_sampling": false
+          },
+          {
+            "volume_layout": "cubeengine.volume-grid/1",
+            "cells": 27,
+            "orthogonal_world_axes": true
+          }
+        ],
+        "cached": false,
+        "engine": "carry_over",
+        "behavior_tests": []
+      },
+      {
+        "stage": "input_ir",
+        "attempt": 0,
+        "passed": true,
+        "checks": [
+          {
+            "input_compiled": true,
+            "physical_routes": [
+              "input:action.intent.quit",
+              "input:action.intent.restart",
+              "input:intent.place",
+              "input:binding.place.click"
+            ]
+          }
+        ],
+        "cached": false,
+        "engine": "carry_over",
+        "behavior_tests": []
+      }
+    ],
+    "source_inspection": {
+      "tool_turns": 0,
+      "source_chars_read": 0,
+      "reads": [],
+      "indexed_files": 2
+    },
+    "lift_template": {
+      "applied": true,
+      "report": {
+        "template": {
+          "template_version": "cubeengine.srtp/lift-template/1.0",
+          "topology": "rule:topology.board",
+          "set_extents": {},
+          "add_axes": [
+            {
+              "name": "z",
+              "extent": 3,
+              "boundary": "bounded"
+            }
+          ],
+          "count_policy": "keep",
+          "movement": null
+        },
+        "transforms": [
+          "add axis z with extent 3"
+        ],
+        "replaced_constants": [],
+        "padded_coordinates": [],
+        "residual": [],
+        "warnings": []
+      },
+      "verification": {
+        "z_equals_one": {
+          "ok": true,
+          "errors": [],
+          "warnings": [],
+          "facts": {
+            "added_axes": {
+              "rule:topology.board": [
+                2
+              ]
+            },
+            "compared_steps": 522,
+            "playouts": 60
+          }
+        },
+        "reference": "source",
+        "errors": []
+      }
+    },
+    "source_oracle": {},
+    "quality_assessment": {
+      "version": "cubeengine.product-quality/1",
+      "pattern_version": "cubeengine.presentation-patterns/1",
+      "scope": "spatial_lift",
+      "product_ready": false,
+      "checks": [
+        {
+          "id": "executable_four_ir",
+          "status": "pass",
+          "evidence": [
+            "asset_ir",
+            "input_ir",
+            "rule_ir",
+            "scene_ir"
+          ]
+        },
+        {
+          "id": "explicit_visual_roles",
+          "status": "pass",
+          "evidence": {
+            "missing_roles": [],
+            "reason": "No automatic flattening of content into grid containers."
+          }
+        },
+        {
+          "id": "source_behavior_equivalence",
+          "status": "pending",
+          "evidence": "Needs independent original-source oracle traces, including terminal/reset and rejected input."
+        },
+        {
+          "id": "spatial_rule_equivalence",
+          "status": "pending",
+          "evidence": "Needs independent lifted-rule cases (all directions/neighbors/merges as applicable); not one self-generated win."
+        },
+        {
+          "id": "source_appearance_fidelity",
+          "status": "pending",
+          "evidence": "Needs state-to-asset/font/palette evidence and rendered-frame comparison; asset loading alone is insufficient."
+        },
+        {
+          "id": "visible_interactive_states",
+          "status": "pending",
+          "evidence": "Needs rendered initial/hover/occupied/terminal frames, internal-cell ray picks, orbit/reset and legible HUD."
+        },
+        {
+          "id": "lifecycle_and_controls",
+          "status": "pending",
+          "evidence": "Needs source feature inventory, menus/pause/restart/undo/AI where required; unsupported features cannot be omitted silently."
+        },
+        {
+          "id": "performance",
+          "status": "pending",
+          "evidence": "Needs measured update/render/input latency for the produced scene at target dimensions."
+        },
+        {
+          "id": "fresh_pipeline_provenance",
+          "status": "pending",
+          "evidence": "Needs new Source and Lift HTTP receipts with no accepted-stage cache, unchanged approved artifact hashes, and its own render capture."
+        }
+      ],
+      "statement": "Compile success is not native-reference parity. Pending evidence is not a pass."
+    },
+    "api_usage": {
+      "http_requests": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "reported_cost_usd": null
+    },
+    "verification": "stage execution and generated behavior tests; independent source equivalence not yet certified",
+    "design_intent_cached": false
+  }
+}

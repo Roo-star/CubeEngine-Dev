@@ -1,0 +1,274 @@
+{
+  "ir_version": "cubeengine.input-ir/2.0-alpha.1",
+  "document_id": "input:game.tic.tac.toe.target",
+  "revision": 1,
+  "content_hash": "0eef1df14c031db3615e40da00f55cc1a1276f865e1e420176ee89e51f647d63",
+  "metadata": {
+    "title": "Tic Tac Toe",
+    "description": "Click a board cell to place the current player's mark; preserve the source Escape-to-quit and R-to-restart application controls.",
+    "source_project_hash": "a047aad70934c80e9fa9c332ffd9dc2ea1df95a50c0015b29f6e931c2d25aab5"
+  },
+  "dependencies": {
+    "rule_ir": {
+      "document_id": "rule:game.tic.tac.toe.target",
+      "content_hash": "c02c05f0d14373707ef59e83983fae99bc48602482aea54badcf0ff2e6b73c42"
+    },
+    "extensions": []
+  },
+  "contexts": [
+    {
+      "id": "input:context.application",
+      "name": "Application",
+      "priority": 1000,
+      "enabled_by_default": true,
+      "focus": "global",
+      "consume_policy": "first_match",
+      "exclusive_group": null
+    },
+    {
+      "id": "input:context.board",
+      "name": "Board placement",
+      "priority": 100,
+      "enabled_by_default": true,
+      "focus": "viewport",
+      "consume_policy": "first_legal",
+      "exclusive_group": null
+    }
+  ],
+  "intents": [
+    {
+      "id": "input:action.intent.quit",
+      "name": "Quit",
+      "value_type": "digital",
+      "required": true,
+      "target": {
+        "kind": "host_command",
+        "command": "quit"
+      }
+    },
+    {
+      "id": "input:action.intent.restart",
+      "name": "Restart",
+      "value_type": "digital",
+      "required": true,
+      "target": {
+        "kind": "host_command",
+        "command": "restart"
+      }
+    },
+    {
+      "id": "input:intent.place",
+      "name": "Place mark in selected cell",
+      "value_type": "pointer",
+      "required": true,
+      "target": {
+        "kind": "rule_action",
+        "action": "rule:action.place",
+        "parameters": {
+          "coordinate": {
+            "source": "event_data",
+            "value_type": "core:coord",
+            "key": "rule_coordinate"
+          }
+        }
+      }
+    }
+  ],
+  "bindings": [
+    {
+      "id": "input:binding.quit.escape",
+      "name": "Quit (escape)",
+      "context": "input:context.application",
+      "intent": "input:action.intent.quit",
+      "priority": 1000,
+      "enabled": true,
+      "consume": true,
+      "rebindable": true,
+      "slot": "primary",
+      "accessibility_label": "Quit the game",
+      "trigger": {
+        "kind": "control",
+        "device": "keyboard",
+        "control": "keyboard.key.escape",
+        "phase": "press",
+        "modifiers": [],
+        "modifier_policy": "exact"
+      },
+      "processing": {
+        "dead_zone": 0,
+        "sensitivity_numerator": 1,
+        "sensitivity_denominator": 1,
+        "invert": false,
+        "clamp_min": -32768,
+        "clamp_max": 32767
+      }
+    },
+    {
+      "id": "input:binding.restart.r",
+      "name": "Restart (r)",
+      "context": "input:context.application",
+      "intent": "input:action.intent.restart",
+      "priority": 1000,
+      "enabled": true,
+      "consume": true,
+      "rebindable": true,
+      "slot": "primary",
+      "accessibility_label": "Restart the game",
+      "trigger": {
+        "kind": "control",
+        "device": "keyboard",
+        "control": "keyboard.key.r",
+        "phase": "press",
+        "modifiers": [],
+        "modifier_policy": "exact"
+      },
+      "processing": {
+        "dead_zone": 0,
+        "sensitivity_numerator": 1,
+        "sensitivity_denominator": 1,
+        "invert": false,
+        "clamp_min": -32768,
+        "clamp_max": 32767
+      }
+    },
+    {
+      "id": "input:binding.place.click",
+      "name": "Click a board cell",
+      "context": "input:context.board",
+      "intent": "input:intent.place",
+      "priority": 100,
+      "enabled": true,
+      "consume": true,
+      "rebindable": false,
+      "slot": "primary",
+      "accessibility_label": "Place a mark in the selected board cell",
+      "trigger": {
+        "kind": "control",
+        "device": "mouse",
+        "control": "mouse.button.primary",
+        "phase": "release",
+        "modifiers": [],
+        "modifier_policy": "exact",
+        "pointer": {
+          "node": "scene:board",
+          "subtree": true,
+          "topology": "rule:topology.board",
+          "gesture": "click"
+        }
+      },
+      "processing": {
+        "dead_zone": 0,
+        "sensitivity_numerator": 1,
+        "sensitivity_denominator": 1,
+        "invert": false,
+        "clamp_min": -32768,
+        "clamp_max": 32767
+      }
+    }
+  ],
+  "provenance": {
+    "patch_history": [
+      {
+        "base_revision": 0,
+        "base_content_hash": "673f39818d5d2d63025358332e8503971df2e4efc2f10ba785392587071ea78a",
+        "evidence": [
+          {
+            "evidence_id": "main.py:1-86@04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "path": "main.py",
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "span": {
+              "line_start": 1,
+              "line_end": 86
+            },
+            "supports": "/input_ir"
+          },
+          {
+            "evidence_id": "ev:input.0",
+            "path": "main.py",
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "kind": "static",
+            "span": {
+              "line_start": 58,
+              "line_end": 58
+            },
+            "supports": "/input_ir/bindings",
+            "topic": "direction_input",
+            "confidence": 0.8,
+            "detail": "0"
+          },
+          {
+            "evidence_id": "ev:input.1",
+            "path": "main.py",
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "kind": "static",
+            "span": {
+              "line_start": 60,
+              "line_end": 60
+            },
+            "supports": "/input_ir/bindings",
+            "topic": "direction_input",
+            "confidence": 0.8,
+            "detail": "1"
+          },
+          {
+            "evidence_id": "ev:input.2",
+            "path": "main.py",
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "kind": "static",
+            "span": {
+              "line_start": 62,
+              "line_end": 62
+            },
+            "supports": "/input_ir/bindings",
+            "topic": "direction_input",
+            "confidence": 0.8,
+            "detail": "2"
+          }
+        ],
+        "assumptions": [
+          "The backend's confirmed same-cell click substitutes for the source's immediate mouse-down placement; drag and mismatched-target release cancel the gesture. The engine restores the locked Escape quit and R restart host-command intents and bindings."
+        ],
+        "operation_count": 6
+      },
+      {
+        "base_revision": 0,
+        "base_content_hash": "705bcc99f8bb54090de493630f8df1f0516088de4f6845ccae41fff9fa378d44",
+        "evidence": [
+          {
+            "evidence_id": "ev:input.0",
+            "path": "main.py",
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "kind": "static",
+            "span": {
+              "line_start": 58,
+              "line_end": 58
+            },
+            "supports": "/input_ir/bindings",
+            "topic": "direction_input",
+            "confidence": 0.8,
+            "detail": "0"
+          },
+          {
+            "evidence_id": "ev:input.1",
+            "path": "main.py",
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "kind": "static",
+            "span": {
+              "line_start": 60,
+              "line_end": 60
+            },
+            "supports": "/input_ir/bindings",
+            "topic": "direction_input",
+            "confidence": 0.8,
+            "detail": "1"
+          }
+        ],
+        "assumptions": [
+          "engine carry-over: the Source input_ir is re-pinned to the lifted Rule unchanged"
+        ],
+        "operation_count": 1
+      }
+    ]
+  },
+  "unresolved": []
+}

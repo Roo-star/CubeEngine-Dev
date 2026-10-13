@@ -518,6 +518,40 @@ class SrtpWorkbench:
         """Paid stages stay shared per game, so a new run folder re-validates them instead of paying again."""
         return self._conversion_root() / "{0}.stages.json".format(kind)
 
+    CONVERSION_START = ("Continue from saved stages", "Start from scratch (pays every stage again)")
+
+    def _checkpoint_for_run(self, kind: str) -> Path:
+        """Honor the Workbench choice and keep an explicit backup before restarting."""
+        import datetime
+        import json as _json
+
+        checkpoint = self._stage_checkpoint(kind)
+        choice = self.dpg.get_value("srtp_conversion_start") if self.dpg.does_item_exist("srtp_conversion_start") else None
+        if choice == self.CONVERSION_START[1]:
+            if checkpoint.is_file():
+                stamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+                backup = checkpoint.with_name("{0}.stages.{1}.bak.json".format(kind, stamp))
+                index = 2
+                while backup.exists():
+                    backup = checkpoint.with_name("{0}.stages.{1}-{2}.bak.json".format(kind, stamp, index))
+                    index += 1
+                checkpoint.replace(backup)
+                self._message("Starting {0} from scratch: every stage is generated again (paid). "
+                              "Earlier stages kept as {1}.".format(kind, backup.name))
+            else:
+                self._message("Starting {0} from scratch (no saved stages).".format(kind))
+            return checkpoint
+        try:
+            stored = _json.loads(checkpoint.read_text(encoding="utf-8"))
+            accepted = sorted(stored.get("stages") or {})
+            rejected = sorted(stored.get("rejected_stages") or {})
+            self._message("Continuing {0} from {1}: accepted {2}; rejected {3} (re-checked locally before any "
+                          "payment). Stages are reused only if the source and model settings still match.".format(
+                              kind, checkpoint.name, ", ".join(accepted) or "none", ", ".join(rejected) or "none"))
+        except (OSError, ValueError):
+            self._message("Continuing {0}: no saved stages yet, every stage is generated.".format(kind))
+        return checkpoint
+
     def open_transformed_preview(self) -> None:
         if self.package is None:
             self._message("Select a source game first.")
@@ -678,11 +712,14 @@ class SrtpWorkbench:
 
     def _start_conversion_job(self, kind, out_dir, *, source_dir=None, intent=''):
         from copy import deepcopy
+        if self.conversion_jobs.active:
+            self._message('A conversion is still running. Cancel it or wait for it to finish.', error=True)
+            return
         package = deepcopy(self.package)
         tag = {'kind':kind,'out_dir':out_dir,'generation':self._source_generation}
+        checkpoint=self._checkpoint_for_run(kind)
         def worker(progress, token):
             compiler=SourceToIRCompiler(progress=progress,cancel_token=token)
-            checkpoint=self._stage_checkpoint(kind)
             if kind=='source':
                 return compiler.compile(package,out_dir=out_dir,checkpoint_path=checkpoint)
             return compiler.compile_spatial_lift(package,source_bundle_dir=source_dir,
@@ -750,7 +787,7 @@ class SrtpWorkbench:
                 self.package,
                 out_dir=out_dir,
                 intent_text=None,
-                checkpoint_path=self._stage_checkpoint("source"),
+                checkpoint_path=self._checkpoint_for_run("source"),
             )
         except LLMClientError as error:
             self._message("LLM compiler failed: {0}".format(error), error=True)
@@ -858,7 +895,7 @@ class SrtpWorkbench:
                 intent_text=intent,
                 target_dimensions=dict(self.package.transformation.target_dimensions),
                 out_dir=out_dir,
-                checkpoint_path=self._stage_checkpoint("target"),
+                checkpoint_path=self._checkpoint_for_run("target"),
             )
         except LLMClientError as error:
             self._message("Spatial Lift failed: {0}".format(error), error=True)

@@ -1,0 +1,276 @@
+{
+  "proposal_version": "cubeengine.srtp/llm-proposal/2.0",
+  "proposal_id": "proposal:job.c057905d9b1d413c.rule_ir",
+  "job_id": "job:c057905d9b1d413c",
+  "stage": "spatial_lift",
+  "source_package_hash": "a047aad70934c80e9fa9c332ffd9dc2ea1df95a50c0015b29f6e931c2d25aab5",
+  "design_intent": {
+    "intent_version": "cubeengine.srtp/design-intent/1.0",
+    "intent_id": "intent:aefdac7b8503",
+    "conversation_id": "conversation:aefdac7b8503",
+    "turn_id": "turn:aefdac7b8503",
+    "project_id": "project:tic.tac.toe.llm.source",
+    "source_manifest_hash": "b67e4b2fecdeabbc956d4e259c7fff9ee5bcad8bdd6305ec16b700478bb765b0",
+    "original_text": "Inspector target: x=3, y=3, z=3",
+    "language": "en",
+    "operation": "transform",
+    "scope": [
+      "rule",
+      "scene",
+      "asset",
+      "input"
+    ],
+    "preserve": [
+      "source visual identity",
+      "unaffected source rules",
+      "game lifecycle",
+      "score and outcome feedback"
+    ],
+    "changes": [
+      {
+        "kind": "set_extent",
+        "axis": "x",
+        "value": 3
+      },
+      {
+        "kind": "set_extent",
+        "axis": "y",
+        "value": 3
+      },
+      {
+        "kind": "set_extent",
+        "axis": "z",
+        "value": 3
+      }
+    ],
+    "constraints": [
+      "Use one authoritative Rule state for input, visuals and AI"
+    ],
+    "resolved_references": [],
+    "assumptions": [],
+    "conflicts": [],
+    "unresolved": [],
+    "requires_confirmation": false,
+    "status": "proposed",
+    "target_base": null
+  },
+  "base_documents": {
+    "rule_ir": {
+      "document_id": "rule:game.tic.tac.toe.target",
+      "revision": 0,
+      "content_hash": "613938e549ef5010edc5a7a9357548c9dcca12819461f62f2fae1dc401d27679"
+    },
+    "scene_ir": {
+      "document_id": "scene:game.tic.tac.toe.target",
+      "revision": 0,
+      "content_hash": "f94803cab96cd424e3aa0e65bf8d6ec7cdc6d9cbbd75fe4a4c7029488520045f"
+    },
+    "asset_ir": {
+      "document_id": "asset:game.tic.tac.toe.target",
+      "revision": 0,
+      "content_hash": "966b55a90f5bd981b4f9c13ea5e2166dbe746d34e3482a7e6c69681e441b1b76"
+    },
+    "input_ir": {
+      "document_id": "input:game.tic.tac.toe.target",
+      "revision": 0,
+      "content_hash": "705bcc99f8bb54090de493630f8df1f0516088de4f6845ccae41fff9fa378d44"
+    }
+  },
+  "patches": {
+    "rule_ir": [
+      {
+        "document_id": "rule:game.tic.tac.toe.target",
+        "base_revision": 0,
+        "base_content_hash": "613938e549ef5010edc5a7a9357548c9dcca12819461f62f2fae1dc401d27679",
+        "operations": [
+          {
+            "op": "replace",
+            "path": "/topologies",
+            "value": [
+              {
+                "id": "rule:topology.board",
+                "name": "Board",
+                "kind": "rect_grid",
+                "anchor": "cell",
+                "axes": [
+                  {
+                    "name": "x",
+                    "extent": 3,
+                    "boundary": "bounded"
+                  },
+                  {
+                    "name": "y",
+                    "extent": 3,
+                    "boundary": "bounded"
+                  },
+                  {
+                    "name": "z",
+                    "extent": 3,
+                    "boundary": "bounded"
+                  }
+                ],
+                "neighborhoods": []
+              }
+            ]
+          }
+        ],
+        "evidence": [
+          {
+            "evidence_id": "ev:param.source_grid_x.0",
+            "path": "main.py",
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "kind": "static",
+            "span": {
+              "line_start": 21,
+              "line_end": 21
+            },
+            "supports": "/rule_ir/flow",
+            "topic": "movement",
+            "confidence": 0.8,
+            "detail": "Source grid X"
+          },
+          {
+            "evidence_id": "ev:param.source_grid_x.1",
+            "path": "main.py",
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "kind": "static",
+            "span": {
+              "line_start": 32,
+              "line_end": 32
+            },
+            "supports": "/rule_ir/flow",
+            "topic": "movement",
+            "confidence": 0.8,
+            "detail": "Source grid X"
+          }
+        ],
+        "assumptions": [
+          "engine lift template: add axis z with extent 3"
+        ],
+        "unresolved": []
+      }
+    ],
+    "scene_ir": [
+      {
+        "document_id": "scene:game.tic.tac.toe.target",
+        "base_revision": 0,
+        "base_content_hash": "f94803cab96cd424e3aa0e65bf8d6ec7cdc6d9cbbd75fe4a4c7029488520045f",
+        "operations": [
+          {
+            "op": "replace",
+            "path": "/dependencies",
+            "value": {
+              "rule_ir": {
+                "document_id": "rule:game.tic.tac.toe.target",
+                "content_hash": "c02c05f0d14373707ef59e83983fae99bc48602482aea54badcf0ff2e6b73c42"
+              },
+              "asset_ir": {
+                "document_id": "asset:game.tic.tac.toe.target",
+                "content_hash": "966b55a90f5bd981b4f9c13ea5e2166dbe746d34e3482a7e6c69681e441b1b76"
+              },
+              "extensions": []
+            }
+          }
+        ],
+        "evidence": [
+          {
+            "evidence_id": "ev:input.0",
+            "path": "main.py",
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "kind": "static",
+            "span": {
+              "line_start": 58,
+              "line_end": 58
+            },
+            "supports": "/input_ir/bindings",
+            "topic": "direction_input",
+            "confidence": 0.8,
+            "detail": "0"
+          },
+          {
+            "evidence_id": "ev:param.source_grid_x.0",
+            "path": "main.py",
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "kind": "static",
+            "span": {
+              "line_start": 21,
+              "line_end": 21
+            },
+            "supports": "/rule_ir/flow",
+            "topic": "movement",
+            "confidence": 0.8,
+            "detail": "Source grid X"
+          }
+        ],
+        "assumptions": [
+          "engine carry-over: the Source scene_ir is re-pinned to the lifted Rule unchanged"
+        ],
+        "unresolved": []
+      }
+    ],
+    "asset_ir": [],
+    "input_ir": [
+      {
+        "document_id": "input:game.tic.tac.toe.target",
+        "base_revision": 0,
+        "base_content_hash": "705bcc99f8bb54090de493630f8df1f0516088de4f6845ccae41fff9fa378d44",
+        "operations": [
+          {
+            "op": "replace",
+            "path": "/dependencies",
+            "value": {
+              "rule_ir": {
+                "document_id": "rule:game.tic.tac.toe.target",
+                "content_hash": "c02c05f0d14373707ef59e83983fae99bc48602482aea54badcf0ff2e6b73c42"
+              },
+              "extensions": []
+            }
+          }
+        ],
+        "evidence": [
+          {
+            "evidence_id": "ev:input.0",
+            "path": "main.py",
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "kind": "static",
+            "span": {
+              "line_start": 58,
+              "line_end": 58
+            },
+            "supports": "/input_ir/bindings",
+            "topic": "direction_input",
+            "confidence": 0.8,
+            "detail": "0"
+          },
+          {
+            "evidence_id": "ev:input.1",
+            "path": "main.py",
+            "file_sha256": "04d10ecdc6fee71404e03f8eb76f159104dd0df42a66cfb0272f68b3e9a5a0f5",
+            "kind": "static",
+            "span": {
+              "line_start": 60,
+              "line_end": 60
+            },
+            "supports": "/input_ir/bindings",
+            "topic": "direction_input",
+            "confidence": 0.8,
+            "detail": "1"
+          }
+        ],
+        "assumptions": [
+          "engine carry-over: the Source input_ir is re-pinned to the lifted Rule unchanged"
+        ],
+        "unresolved": []
+      }
+    ]
+  },
+  "claims": [],
+  "tests": [],
+  "extension_proposals": [],
+  "spatial_lift_options": [],
+  "assumptions": [
+    "engine lift template: add axis z with extent 3"
+  ],
+  "unresolved": [],
+  "clarification_questions": []
+}

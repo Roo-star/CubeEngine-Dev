@@ -52,7 +52,7 @@ class EmbeddedViewport(QFrame):
         ratio = self.surface.devicePixelRatioF()
         return max(64, round(self.surface.width() * ratio)), max(64, round(self.surface.height() * ratio))
 
-    def launch(self, args, mode):
+    def launch(self, args, mode, python=None):
         self.stop()
         if sys.platform != 'win32':
             self.message.setText('目前原生嵌入支援 Windows。'); return
@@ -69,17 +69,20 @@ class EmbeddedViewport(QFrame):
         process.readyReadStandardOutput.connect(lambda p=process: self.read_output(p))
         process.finished.connect(lambda code, status, p=process: self.finished(p, code))
         process.errorOccurred.connect(lambda error, p=process: self.failure(p.errorString()) if p is self.process else None)
-        process.start(sys.executable, args)
+        process.start(str(python or sys.executable), args)
         generation = self.generation
         QTimer.singleShot(18000, lambda: self.timeout(generation))
 
-    def launch_project(self, manifest, source_root):
+    def launch_project(self, manifest, source_root, *, ai_opponent='off', ai_difficulty='hard',
+                       ai_training_roots=(), ai_python=None):
         self.message.hide(); self.surface.show(); self.layout().activate()
         width, height = self.dimensions()
         args = ['-u', '-m', 'srtp.project_viewer', '--manifest', str(manifest), '--source-root', str(source_root),
                 '--parent-window', str(int(self.surface.winId())), '--studio', '--width', str(width), '--height', str(height)]
+        args += ['--ai-opponent', ai_opponent, '--ai-difficulty', ai_difficulty]
+        for root in ai_training_roots: args += ['--ai-training-root', str(root)]
         if self.probe: args.append('--studio-probe')
-        self.launch(args, 'target')
+        self.launch(args, 'target', python=ai_python if ai_opponent != 'off' else None)
 
     def launch_source(self, package):
         framework=package.runtime.framework.lower()

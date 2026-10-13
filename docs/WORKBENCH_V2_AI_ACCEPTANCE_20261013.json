@@ -1,0 +1,108 @@
+{
+  "passed": true,
+  "target": "E:\\CubeEngine\\work\\agentic-srtp-integration\\.cubeengine_llm\\tic.tac.toe\\target_20261006-220937\\project.manifest.json",
+  "run_dir": "E:\\CubeEngine\\work\\agentic-srtp-integration\\.cubeengine_llm\\tic.tac.toe\\ai_training\\train_20261013-203547",
+  "binding": {
+    "rule_document_id": "rule:game.tic.tac.toe.target",
+    "rule_content_hash": "2299a11b95dec524e93ec1e8f0349c74ee10efc61565d1c4e8afa8511a2b5bcb",
+    "adapter_version": "cubeengine.alphazero-adapter/1.1",
+    "adapter_hash": "6b6e6a6b8197db0f9ccac4d78662a8e849ecd2bfa412ea202fd79c3e84b60b95",
+    "observation_shape": [
+      3,
+      3,
+      3
+    ],
+    "action_size": 28,
+    "network": "tictactoe3d_nnet:NNetWrapper",
+    "architecture": {
+      "num_channels": 8
+    },
+    "project_manifest": "E:\\CubeEngine\\work\\agentic-srtp-integration\\.cubeengine_llm\\tic.tac.toe\\target_20261006-220937\\project.manifest.json",
+    "project_manifest_hash": "cf52ad76d81a7281fdeacce2baa1fc2f1e87d13413b25e2ed957acda1a386a9d",
+    "ai_dev": {
+      "root": "E:\\CubeEngine\\CubeEngine-AI-Dev",
+      "commit": "2f42b6b4ff8497b1ffa2797a9a984ecfc62b58e4",
+      "branch": "Dev",
+      "local_changes": false
+    }
+  },
+  "settings": {
+    "numIters": 1,
+    "numEps": 2,
+    "numMCTSSims": 8,
+    "tempThreshold": 8,
+    "arenaCompare": 2,
+    "updateThreshold": 0.0,
+    "cpuct": 1.2,
+    "maxlenOfQueue": 200000,
+    "numItersForTrainExamplesHistory": 15,
+    "epochs": 1,
+    "batch_size": 16,
+    "num_channels": 8,
+    "lr": 0.002,
+    "dropout": 0.3,
+    "device": "cpu"
+  },
+  "initial": {
+    "status": "completed",
+    "seconds": 4.3,
+    "session": "1",
+    "best_checkpoint": "E:\\CubeEngine\\work\\agentic-srtp-integration\\.cubeengine_llm\\tic.tac.toe\\ai_training\\train_20261013-203547\\sessions\\1\\best.pth.tar",
+    "resumed_from": null,
+    "iteration": 1,
+    "iterations": 1,
+    "episodes": 2,
+    "accepted": 1,
+    "arena_games": 2,
+    "replay_failures": 0,
+    "last_arena": {
+      "new_wins": 2,
+      "previous_wins": 0,
+      "draws": 0
+    }
+  },
+  "cancelled": {
+    "status": "cancelled",
+    "seconds": 3.8,
+    "session": "2",
+    "best_checkpoint": "E:\\CubeEngine\\work\\agentic-srtp-integration\\.cubeengine_llm\\tic.tac.toe\\ai_training\\train_20261013-203547\\sessions\\2\\best.pth.tar",
+    "resumed_from": "E:\\CubeEngine\\work\\agentic-srtp-integration\\.cubeengine_llm\\tic.tac.toe\\ai_training\\train_20261013-203547\\sessions\\1\\best.pth.tar",
+    "iteration": 2,
+    "iterations": 2,
+    "episodes": 2,
+    "accepted": 1,
+    "arena_games": 2,
+    "replay_failures": 0,
+    "last_arena": {
+      "new_wins": 0,
+      "previous_wins": 2,
+      "draws": 0
+    }
+  },
+  "resumed": {
+    "status": "completed",
+    "seconds": 3.9,
+    "session": "3",
+    "best_checkpoint": "E:\\CubeEngine\\work\\agentic-srtp-integration\\.cubeengine_llm\\tic.tac.toe\\ai_training\\train_20261013-203547\\sessions\\3\\best.pth.tar",
+    "resumed_from": "E:\\CubeEngine\\work\\agentic-srtp-integration\\.cubeengine_llm\\tic.tac.toe\\ai_training\\train_20261013-203547\\sessions\\2\\best.pth.tar",
+    "iteration": 1,
+    "iterations": 1,
+    "episodes": 0,
+    "accepted": 1,
+    "arena_games": 2,
+    "replay_failures": 0,
+    "last_arena": {
+      "new_wins": 1,
+      "previous_wins": 1,
+      "draws": 0
+    }
+  },
+  "replay": {
+    "games": 6,
+    "failures": [],
+    "passed": true
+  },
+  "ai_model": "v3",
+  "ai_revision": 2,
+  "scope": "Local pipeline smoke; forced acceptance threshold 0.0 verifies publication and reload, not AI strength."
+}

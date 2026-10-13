@@ -15,11 +15,13 @@ def profile():
         'presentation_patterns':model_contract(),
         'depth_view':depth_contract(),
         'behavior_steps':behavior_step_contract(),
+        'step_order':'One Rule step: action effects run; rule:event.action_applied is emitted; every event/state_changed/phase triggered system and its cascades, plus scheduled events whose due tick has arrived, run to completion in the same step; the turn advances; invariants are checked; THEN outcomes are evaluated on the committed state. Startup: initial_effects, then phase_enter systems, complete before the first outcome check. Events scheduled with delay_ticks run on a later tick. Assert ordering you depend on in behavior_tests instead of marking it unresolved.',
         'session_random':'Host supplies integer seeds for seed_policy=session. Compilation uses deterministic seed 0; interactive sessions retain fresh seeds for replay. Do not add a fixed seed to repair a session declaration.',
         'algorithm_methods':{
             'grid.flood_region':'Arguments: state_id, start_coordinate, through_values, blocked_values, diagonal, include_boundary, blocked_coordinates. Returns a finite connected region, expands through through_values, includes nonblocked boundary if requested. Can implement zero-area opening with numbered boundary.',
             'sequence.merge_equal':'Arguments: values, empty_value, multiplier (NOT output length). Example: sequence.merge_equal([2,2,0,0],0,2) => [4,0,0,0]. Compress, merge each adjacent equal pair once, pad to the input length; score via sequence.merge_score with the same args. Match the multiplier to source arithmetic.',
             'topology.neighbors':'Arguments: topology_id, coordinate, include_diagonals. Use to compute counts and source first-click protected region; random.sample/draw plus foreach can relocate and recompute state.',
+            'rejection_sampling':'A source loop that draws a random cell and redraws while it is occupied picks uniformly among the eligible cells. Express it as ONE random draw over the filtered domain (e.g. the sites whose value is empty), not as chained systems that retry; keep the source value draw (e.g. random.choice((2, 4))) as written. source_equivalence checks positions, values and their frequencies against the original.',
             'visibility':'Authoritative local rules know the complete board. Scene variants can conceal unrevealed values while displaying cover/flag states. This supports local hidden presentation, NOT secure per-player observations or hidden-information AI; those remain unsupported.',
             'behavior_tests':'Optional seed selects a deterministic session. Optional fixture {cells:[{state,coordinate,value}],otherwise:value,globals:{state_id:value}} sets a typed test scenario only, never the exported game. Alternatively cells may include {state,otherwise:value} to fill one grid before coordinate overrides; do not combine per-state fills with top-level otherwise or duplicate fills. Unspecified cells retain initialized state. All fixtures must satisfy Rule invariants. Rule/Scene/Input replay share setup. Test normal startup as well as fixtures; fixture-only tests do not establish startup behavior.'},
         'spatial_grid_layout':{'owner':'engine','policy':'cubeengine.volume-grid/1',
@@ -98,3 +100,31 @@ def references(documents):
         'rule_actions':[{'id':a['id'],'parameters':a.get('parameters',[])} for a in rule.get('actions',[])],
         'asset_resources':[{'id':a['id'],'kind':a['kind'],'media_type':a['media_type']}
             for key in ('assets','derivations') for a in documents['asset_ir'].get(key,[])]}
+
+
+# Which profile sections each IR author needs. Every profile key must be
+# assigned (tests enforce it), so a new capability reaches both pipelines.
+PROFILE_SECTIONS = {
+    'rule_ir': ('version', 'backend', 'step_order', 'session_random', 'algorithm_methods', 'action_catalogue', 'behavior_steps',
+                'unsupported_in_this_backend'),
+    'asset_ir': ('version', 'backend', 'asset_recipes', 'asset_recipe_inputs', 'unsupported_in_this_backend'),
+    'scene_ir': ('version', 'backend', 'presentation_patterns', 'spatial_grid_layout', 'depth_view', 'scene_components',
+                 'builtin_geometry', 'collider_shapes', 'light_kinds', 'bindable_component_properties',
+                 'bindable_node_properties', 'scene_binding_sources', 'scene_binding_transforms', 'scene_binding_note',
+                 'scene_parameter_bindings', 'rule_outcome_bindings', 'number_display', 'pointer_feedback',
+                 'presentation_expression', 'coordinates', 'initial_view', 'unsupported_in_this_backend'),
+    'input_ir': ('version', 'backend', 'input_controls', 'input_focus', 'input_value_types', 'input_phases',
+                 'input_event_data', 'pointer_routing', 'input_consume_policies', 'input_action_selection',
+                 'host_commands', 'host_command_target', 'lifecycle_note', 'depth_view', 'unsupported_in_this_backend'),
+}
+
+
+def profile_for(ir_key):
+    """The executable capability sections one IR's author needs (same source as the staged payload)."""
+    full = profile()
+    return {key: full[key] for key in PROFILE_SECTIONS.get(ir_key, ()) if key in full}
+
+
+def unassigned_profile_sections():
+    assigned = {key for keys in PROFILE_SECTIONS.values() for key in keys}
+    return sorted(set(profile()) - assigned)

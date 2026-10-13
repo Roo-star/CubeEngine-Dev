@@ -1,0 +1,50 @@
+{
+  "intent_version": "cubeengine.srtp/design-intent/1.0",
+  "intent_id": "intent:aefdac7b8503",
+  "conversation_id": "conversation:aefdac7b8503",
+  "turn_id": "turn:aefdac7b8503",
+  "project_id": "project:tic.tac.toe.llm.source",
+  "source_manifest_hash": "b67e4b2fecdeabbc956d4e259c7fff9ee5bcad8bdd6305ec16b700478bb765b0",
+  "original_text": "Inspector target: x=3, y=3, z=3",
+  "language": "en",
+  "operation": "transform",
+  "scope": [
+    "rule",
+    "scene",
+    "asset",
+    "input"
+  ],
+  "preserve": [
+    "source visual identity",
+    "unaffected source rules",
+    "game lifecycle",
+    "score and outcome feedback"
+  ],
+  "changes": [
+    {
+      "kind": "set_extent",
+      "axis": "x",
+      "value": 3
+    },
+    {
+      "kind": "set_extent",
+      "axis": "y",
+      "value": 3
+    },
+    {
+      "kind": "set_extent",
+      "axis": "z",
+      "value": 3
+    }
+  ],
+  "constraints": [
+    "Use one authoritative Rule state for input, visuals and AI"
+  ],
+  "resolved_references": [],
+  "assumptions": [],
+  "conflicts": [],
+  "unresolved": [],
+  "requires_confirmation": false,
+  "status": "proposed",
+  "target_base": null
+}

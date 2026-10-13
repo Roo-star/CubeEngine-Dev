@@ -155,7 +155,11 @@ class DesktopBindingTests(unittest.TestCase):
                     patch.object(w.target_view,'send') as send, \
                     patch.object(w.source_view,'send'), patch.object(w.demo_view,'send'):
                 w.switch_view('scene')
-                launch.assert_called_once_with(target,target.parent)
+                launch.assert_called_once()
+                args, options = launch.call_args
+                self.assertEqual(args, (target, target.parent))
+                self.assertEqual(options['ai_opponent'], 'off')
+                self.assertEqual(options['ai_difficulty'], 'hard')
                 self.assertEqual(w.loaded_manifest,target)
                 w.switch_view('game')
                 launch.assert_called_once()

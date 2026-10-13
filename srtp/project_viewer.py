@@ -1,6 +1,7 @@
 """Ursina host for approved Project IR. Rules and input come from the bundle."""
 from pathlib import Path
 import argparse
+import threading
 
 from .ir_acceptance import IRAcceptanceController
 from .input_ir_v2 import PhysicalInputEvent
@@ -103,8 +104,18 @@ def main():
     parser.add_argument('--studio-probe', action='store_true', help=argparse.SUPPRESS)
     parser.add_argument('--width', type=int, default=1280)
     parser.add_argument('--height', type=int, default=800)
+    parser.add_argument('--ai-opponent', choices=('off', 'first', 'second'), default='off')
+    parser.add_argument('--ai-difficulty', choices=('easy', 'medium', 'hard'), default='hard')
+    parser.add_argument('--ai-training-root', type=Path, action='append')
     args = parser.parse_args()
     host = ProjectHost(args.manifest, args.source_root)
+    driver = None
+    if args.ai_opponent != 'off':
+        from .ai_training.opponent import AiOpponent, AiTurnDriver
+        roots = args.ai_training_root or [args.manifest.resolve().parent.parent / 'ai_training']
+        opponent = AiOpponent(host.rule, roots, args.ai_opponent, difficulty=args.ai_difficulty)
+        driver = AiTurnDriver(host, opponent)
+        threading.Thread(target=opponent.prepare, daemon=True, name='AI opponent preparation').start()
     from ursina import Ursina, Entity, EditorCamera, Text, Button, color, mouse, time, application, invoke, window
     from panda3d.core import Filename
     font = Path('C:/Windows/Fonts/arial.ttf')
@@ -145,6 +156,9 @@ def main():
                              if host.presentation.volume_layout else
                              '[ / ]: select depth   Restart: new game'))
             self.header = Text(text='', position=(-window.aspect_ratio/2+.02, .47), scale=.7)
+            self.ai_status = driver.status if driver is not None else ''
+            self.ai_label = Text(text=self.ai_status, position=(-window.aspect_ratio/2+.02, -.40),
+                                 scale=.65) if driver is not None else None
             right = window.aspect_ratio/2 - .08
             self.controls = [
                 Button(text='All layers', position=(right-.33,.46), scale=(.15,.045), on_click=lambda:self.set_layer(None)),
@@ -215,6 +229,8 @@ def main():
                         context = backend.pick_context(mouse.hovered_entity)
                         bridge.select(context.get('node_id'))
                     return
+                if driver is not None and driver.ai_to_move() and key not in ('[', ']', 'z', 'v'):
+                    return
                 if key in ('[', ']'):
                     # All cells remain visible. Only picking changes with depth.
                     self.step_layer(1 if key == ']' else -1)
@@ -265,6 +281,8 @@ def main():
                 return
             try:
                 self.header.x = -window.aspect_ratio/2+.02
+                if self.ai_label is not None:
+                    self.ai_label.x = -window.aspect_ratio/2+.02
                 right = window.aspect_ratio/2-.08
                 offsets = ((-.33,-.16,0,0,-.46,-.16) if self.slice_button is not None
                            else (-.33,-.16,0,0,-.16))
@@ -277,8 +295,12 @@ def main():
                 interaction_changed=interaction!=host.interaction
                 host.interaction=interaction
                 host.advance(min(time.dt, .25))
+                ai_changed = driver is not None and driver.tick()
+                if driver is not None:
+                    self.ai_status = driver.version_line
+                    self.ai_label.text = self.ai_status
                 state = host.controller.sessions[host.controller.active_key].rule_runtime.state
-                if state.revision != self.last_revision or interaction_changed:
+                if state.revision != self.last_revision or interaction_changed or ai_changed:
                     self.refresh()
             except Exception as exc:
                 self.failed = True
@@ -308,6 +330,8 @@ def main():
     try:
         app.run()
     finally:
+        if driver is not None:
+            driver.opponent.close()
         backend.close()
         host.close()
 

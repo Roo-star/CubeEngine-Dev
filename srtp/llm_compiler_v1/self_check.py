@@ -61,6 +61,24 @@ def check_entry(slot: str, document: Mapping[str, Any], request: Mapping[str, An
     return {"tool": "check_entry", "ok": not diagnostics, "diagnostics": diagnostics, "entry": pointer}
 
 
+def answer_tool_requests(requests: Any, context: Mapping[str, Any]) -> List[Dict[str, Any]]:
+    """Answer check_expression / check_entry requests against the current documents (at most 8)."""
+    documents = context.get("documents") or {}
+    slot = str(context.get("slot") or "rule_ir")
+    answers: List[Dict[str, Any]] = []
+    for request in (requests if isinstance(requests, list) else [])[:8]:
+        if not isinstance(request, Mapping):
+            answers.append({"ok": False, "diagnostics": ["tool request must be an object"]})
+        elif request.get("tool") == "check_expression":
+            answers.append(check_expression(documents.get("rule_ir") or {}, request))
+        elif request.get("tool") == "check_entry":
+            answers.append(check_entry(slot, documents.get(slot) or {}, request))
+        else:
+            answers.append({"tool": request.get("tool"), "ok": False,
+                            "diagnostics": ["available tools: check_expression, check_entry"]})
+    return answers
+
+
 def _located(slot: str, document: Dict[str, Any], pointer: str) -> List[str]:
     from srtp.asset_ir_v2 import validate_asset_ir
     from srtp.input_ir_v2 import validate_input_ir

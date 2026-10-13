@@ -26,6 +26,7 @@ class SceneBridge:
                               'scale': list(e.scale), 'visible': bool(e.enabled)} for key, e in backend.entities.items()}
         threading.Thread(target=self._reader, daemon=True, name='studio commands').start()
         for widget in [view.header] + view.controls: widget.enabled = False
+        if view.ai_label is not None: view.ai_label.enabled = False
         self.publish(force=True)
 
     def _reader(self):
@@ -56,11 +57,13 @@ class SceneBridge:
     def publish(self, force=False):
         state = self.host.controller.snapshot()
         signature = (state.revision, self.selected, self.playing, self.paused, len(self.overrides),
+                     self.view.ai_status,
                      self.app.win.getXSize(), self.app.win.getYSize())
         if force or signature != self.last_signature:
             self.last_signature = signature
             self.emit('scene', nodes=self.nodes(), selected=self.selected,
                       playing=self.playing, paused=self.paused, revision=state.revision,
+                      ai_status=self.view.ai_status,
                       actor=state.current_actor_name, terminal=state.terminal,
                       winners=list(state.winners), message=self.view.message,
                       assets={k: str(v) for k, v in self.backend.paths.items()},
@@ -116,6 +119,7 @@ class SceneBridge:
                 self.restore()
                 self.view.restart()
                 self.playing, self.paused = next_playing, False
+                if self.view.ai_label is not None: self.view.ai_label.enabled = self.playing
                 if not self.playing: self.apply_draft()
         elif op == 'pause': self.paused = bool(command.get('paused'))
         elif op == 'reset':
@@ -128,7 +132,15 @@ class SceneBridge:
                 self.rig.editor.position = e.world_position
                 camera.position = (0, 0, -max(3, max(e.world_scale) * 5))
                 self.rig.editor.target_z = camera.z
-        elif op == 'camera': self.rig.restore()
+        elif op == 'camera':
+            self.rig.restore()
+            preset=command.get('preset','isometric')
+            if preset not in ('isometric','front','top'):
+                raise ValueError('Unknown camera preset')
+            if preset in ('front','top'):
+                rotation=(0,0,0) if preset=='front' else (90,0,0)
+                self.rig.editor.rotation=rotation
+                self.rig.editor.smoothing_helper.rotation=rotation
         elif op == 'layer': self.view.set_layer(command.get('layer'))
         elif op == 'slice': self.view.toggle_slice()
         elif op in ('transform', 'visibility'):
