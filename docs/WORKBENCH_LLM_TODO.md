@@ -4,7 +4,8 @@
 
 目前交付目錄為 `E:/CubeEngine/work/agentic-srtp-integration`，分支為使用者指定的 `WorkbenchAI`。下方歷史記錄中的 SRTP／舊開發目錄不代表本次工作位置。
 
-- [x] 依 Figma `dRg2SzKAL4qbn110Pymxox` 的九個黑白灰畫面實作 V2：工作區導覽、來源匯入／Compile／Review／Lift、Rules Editor、場景屬性、資產／事件、下方 AI 訓練區。選單、Source／Target 比較、視角、分層、場景草稿及既有四款 3D Demo 接回真實功能。
+- [x] 依 Figma `dRg2SzKAL4qbn110Pymxox` 的黑白灰版式實作 V2：工作區導覽、來源匯入／Compile／Review／Lift、Rules Editor、場景屬性、資產／事件、下方 AI 訓練區。選單、Source／Target 比較、視角、分層、場景草稿及既有四款 3D Demo 接回真實功能。五個頁簽尚未全部具備 Figma 的獨立工作區功能，詳見下方範圍。
+- [x] Demo 專用 XYZ 已恢復到右側「3D Demo 體積」，套用後直接重開原 adapter。四款 Demo 的 4×5×3／6×4×5 共八次真實嵌入、尺寸及遊玩驗證通過；[尺寸驗收收據](WORKBENCH_V2_DEMO_XYZ_ACCEPTANCE_20261013.json)。
 - [x] 合入工程師 `improve_stability`（`9b62212`，包含 `96b324b` 的管線）並保留 Qt 原生嵌入。Workbench UI、接入修復及驗收程式均屬於 `WorkbenchAI`。`E:/CubeEngine/CubeEngine-AI-Dev` 是只讀的外部訓練程式依賴，沒有向其 `Dev` 分支寫入更新。
 - [x] 當前批准 Target → Rule 推導／九 API 檢查 → 封存 adapter 與 binding → AI-Dev MCTS／Coach／神經網路 → 自對弈樣本、訓練、Arena、checkpoint → Workbench AI 先手／後手。玩法與合法動作仍由 Rule Runtime 判定。
 - [x] 修復 AI-Dev 搜尋路徑、資格檢查／訓練 Python 一致性、Rule／adapter／網路架構綁定、Target 檢查後變更拒絕、Windows 視覺檢查初始化，以及續接／從頭轉換保留備份。
@@ -14,6 +15,8 @@
 啟動：以 `.venv-workbench/Scripts/python.exe srtp/workbench.py` 開啟 V2。AI 訓練設定中的 Python 指向 `.venv-training/Scripts/python.exe`；AI-Dev 不在標準位置時設定 `CUBEENGINE_AI_ROOT`。Workbench 基本依賴與 `requirements-workbench.txt`、訓練用 `requirements-training.txt` 分開安裝，基本環境不強制下載 CUDA。
 
 內測範圍：目前真實神經網路的驗收對象是已批准的 3×3×3 雙人完整資訊 Target；不合格的遊戲顯示原因。短程收據的 Arena 採用門檻為 0，只驗證發布／重載機制，不代表棋力達標。新的多遊戲生成品質、AI 棋力基準、非 Windows 原生嵌入、拖曳 gizmo／prefab 實例化及草稿提交為新批准 Scene，仍屬後續工作。
+
+頁簽現況：Layout 與 Scenes 共用場景查看、選取及屬性／草稿操作；Spatial Editor 目前共用場景視圖並提示尺寸轉換入口，獨立拓樸／動作／結果編輯頁尚未實作；Simulator 執行真實 Rule Runtime 遊玩與 AI 對戰；Rendering 開啟資產列表及視角控制，完整材質／光照設定尚未實作。
 
 ## 2026-10-06：最新 Studio 完整井字棋轉換及 GIF
 

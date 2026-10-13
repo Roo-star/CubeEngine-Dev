@@ -321,6 +321,21 @@ class Studio(QMainWindow):
         content, props = box(spacing=8)
         self.selected_name = label('選取場景物件', 'heading', True); props.addWidget(self.selected_name)
         self.selected_type = label('在場景或左側物件樹中選取', 'muted', True); props.addWidget(self.selected_type)
+        self.demo_dimensions_box,demo_size_layout=box(spacing=6)
+        demo_size_layout.addWidget(label('3D Demo 體積','heading'))
+        size_row,size_fields=box(horizontal=True,spacing=5)
+        self.demo_dimension_fields={}
+        for axis in 'xyz':
+            size_fields.addWidget(label(axis.upper(),'muted'))
+            field=NumberField(integer=True,minimum=2,maximum=100)
+            field.setValue(3); field.setMinimumWidth(45)
+            field.setAccessibleName('3D Demo '+axis.upper()+' 格數')
+            self.demo_dimension_fields[axis]=field; size_fields.addWidget(field,1)
+        demo_size_layout.addWidget(size_row)
+        self.demo_resize_button=button('套用 XYZ 並重開 Demo','layers',self.apply_demo_dimensions,'primary')
+        demo_size_layout.addWidget(self.demo_resize_button)
+        demo_size_layout.addWidget(label('改變格子數量與體積；套用後重新開始本局。','muted',True))
+        self.demo_dimensions_box.hide(); props.addWidget(self.demo_dimensions_box)
         camera_row,camera_actions=box(horizontal=True,spacing=4)
         for text,preset in [('Isometric','isometric'),('Front','front'),('Top','top')]:
             camera_actions.addWidget(button(text,None,lambda p=preset:self.target_view.send('camera',preset=p)),1)
@@ -574,6 +589,7 @@ class Studio(QMainWindow):
         d,layout=self.dialog('help','工作臺操作',(650,500))
         layout.addWidget(label('場景是實際引擎畫面','heading'))
         layout.addWidget(label('原有四款示範在左側「3D Demo」選單：貪吃蛇、掃雷、四子棋、2048。選擇後直接在中央試玩，不需 Manifest 或重新轉換。',wrap=True))
+        layout.addWidget(label('選取 3D Demo 後，右側「3D Demo 體積」可修改 X／Y／Z。按「套用 XYZ 並重開 Demo」後，以新體積開始本局。',wrap=True))
         layout.addWidget(label('在「場景」選取物件，以右側 XYZ 欄位調整佈局；「試玩」才執行遊戲規則。右鍵旋轉、滾輪縮放，聚焦可快速找到選中物件。',wrap=True))
         layout.addWidget(label('來源、規則與編輯草稿各有歸屬','heading'))
         layout.addWidget(label('左側「切換範例並運行」會直接啟動內建遊戲。自行匯入來源後，按播放才執行原作。原作 2D 支援 Pygame 與 Turtle；掛載已批准的空間版本後，才能切換 3D 場景及試玩。場景草稿可從匯入選單讀回。',wrap=True))
@@ -643,7 +659,22 @@ class Studio(QMainWindow):
         self.selected_name.setText('3D Demo')
         self.selected_type.setText('原有示範版本')
         self.draft_note.setText('此視圖用於試玩。要編輯正式場景，請掛載已批准版本。')
+        for axis,field in self.demo_dimension_fields.items():
+            field.setValue(self.c.package.transformation.target_dimensions[axis])
         self.switch_view('demo')
+
+    def apply_demo_dimensions(self):
+        if not self.demo_selected or not self.c.package:
+            return
+        if not all(field.hasAcceptableInput() for field in self.demo_dimension_fields.values()):
+            self.status_label.setText('Demo 的 X、Y、Z 請填入 2 至 100 的整數。')
+            return
+        dimensions={axis:int(field.value()) for axis,field in self.demo_dimension_fields.items()}
+        for axis,value in dimensions.items():self.port.set_value('srtp_target_'+axis,value)
+        self.c.apply_transform_target(silent=True)
+        self.active_view='demo'; self.views.setCurrentWidget(self.demo_view)
+        self.demo_view.launch_demo(self.c.package)
+        self.status_label.setText('正在重開 3D Demo · '+ ' × '.join(map(str,dimensions.values())))
 
     def attach_target(self):
         path=QFileDialog.getOpenFileName(self,'掛載已批准的 Project Manifest',str(ROOT),'Manifest (*.json)')[0]
@@ -653,6 +684,7 @@ class Studio(QMainWindow):
         if not hasattr(self,'target_view'): return
         self.target_view.stop(); self.source_view.stop()
         self.demo_view.stop(); self.demo_selected=False
+        self.demo_dimensions_box.hide()
         self.view_buttons['demo'].hide()
         for key in ('scene','game'):self.view_buttons[key].show()
         self.loaded_manifest,self.manifest,self.state,self.package_key=None,None,None,None
@@ -731,6 +763,7 @@ class Studio(QMainWindow):
             self.status_label.setText('尚未掛載已批准的 3D 場景，先在中央運行原作。')
             key='source'
         self.active_view=key
+        self.demo_dimensions_box.setVisible(self.demo_selected and key=='demo')
         self.ai_selector.setVisible(key=='game'); self.ai_difficulty.setVisible(key=='game')
         for name,w in self.view_buttons.items(): w.setChecked(name==key)
         self.views.setCurrentWidget(self.demo_view if key=='demo' else self.source_view if key=='source' else self.target_view)
