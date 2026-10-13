@@ -14,7 +14,7 @@ TARGET = ROOT / '.cubeengine_llm/tic.tac.toe/target_20261006-220937/project.mani
 SCREENSHOT = ROOT / 'artifacts/workbench-v2-ai-ui.png'
 
 
-def main():
+def main(receipt=None,screenshot=None):
     app = QApplication([])
     configure_application(app)
     window = Studio(project=TARGET)
@@ -31,9 +31,9 @@ def main():
             state['selected'] = True
         scene = window.scene_data
         if state['selected'] and scene.get('playing') and scene.get('revision', 0) >= 1:
-            capture_window(window,SCREENSHOT)
+            capture_window(window,screenshot or SCREENSHOT)
             state['result'] = {'passed': True, 'revision': scene['revision'],
-                               'ai_status': scene.get('ai_status'), 'screenshot': str(SCREENSHOT)}
+                               'ai_status': scene.get('ai_status'), 'screenshot': str(screenshot or SCREENSHOT)}
             app.quit()
         elif time.monotonic() - begun > 90:
             state['result'] = {'passed': False, 'scene': scene, 'status': window.status_label.text(),
@@ -47,7 +47,7 @@ def main():
     app.exec()
     timer.stop()
     window.close()
-    (ROOT/'docs/WORKBENCH_V2_UI_ACCEPTANCE_20261013.json').write_text(
+    (receipt or ROOT/'docs/WORKBENCH_V2_UI_ACCEPTANCE_20261013.json').write_text(
         json.dumps(state['result'],ensure_ascii=False,indent=2,default=str)+'\n',encoding='utf-8')
     print(json.dumps(state['result'], ensure_ascii=False, default=str))
     return 0 if state['result'] and state['result']['passed'] else 1

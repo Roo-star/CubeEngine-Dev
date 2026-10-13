@@ -34,7 +34,7 @@ class EmbeddedViewport(QFrame):
         self.last_error = ''
         self.started_at, self.last_frame = 0, None
         layout = QVBoxLayout(self); layout.setContentsMargins(1, 1, 1, 1); layout.setSpacing(0)
-        self.message = QLabel('匯入遊戲，或掛載已批准場景\n\n在這裡編輯與試玩你的作品')
+        self.message = QLabel('Open a source or attach an approved Target\n\nEdit and play your game here')
         self.message.setAlignment(Qt.AlignCenter); self.message.setWordWrap(True)
         self.message.setStyleSheet('font-size:18px;color:#a6b0c2;padding:25px;')
         layout.addWidget(self.message, 1)
@@ -55,7 +55,7 @@ class EmbeddedViewport(QFrame):
     def launch(self, args, mode, python=None):
         self.stop()
         if sys.platform != 'win32':
-            self.message.setText('目前原生嵌入支援 Windows。'); return
+            self.message.setText('Native embedding currently requires Windows.'); return
         self.generation += 1
         self.mode, self.ready, self.buffer, self.started_at = mode, False, b'', time.monotonic()
         self.paused=False
@@ -84,10 +84,16 @@ class EmbeddedViewport(QFrame):
         if self.probe: args.append('--studio-probe')
         self.launch(args, 'target', python=ai_python if ai_opponent != 'off' else None)
 
+    def launch_workspace(self,identity='CubeEngine untitled scene'):
+        self.message.hide(); self.surface.show(); self.layout().activate()
+        width,height=self.dimensions()
+        self.launch(['-u','-m','srtp.studio.scene_viewer','--parent-window',str(int(self.surface.winId())),
+                     '--width',str(width),'--height',str(height),'--identity',identity]+(['--probe'] if self.probe else []),'workspace')
+
     def launch_source(self, package):
         framework=package.runtime.framework.lower()
         if framework not in ('pygame', 'turtle'):
-            self.failure('此來源尚未有嵌入適配器：' + package.runtime.framework + '。目前支援 Pygame 與 Turtle。')
+            self.failure('No embedded adapter for: ' + package.runtime.framework + '. Pygame and Turtle are supported.')
             return
         self.message.hide(); self.surface.show(); self.layout().activate()
         args=['-u', '-m', 'srtp.studio.source_worker', '--entry', str(package.entrypoint),
@@ -110,7 +116,7 @@ class EmbeddedViewport(QFrame):
 
     def timeout(self, generation):
         if generation == self.generation and self.running and not self.ready:
-            self.failure('場景未能在 18 秒內啟動。請在診斷中查看原因。'); self.stop(keep_message=True)
+            self.failure('Scene did not start within 18 seconds. See Console for details.'); self.stop(keep_message=True)
 
     def read_output(self, process):
         data = bytes(process.readAllStandardOutput())
@@ -151,8 +157,8 @@ class EmbeddedViewport(QFrame):
         self.read_output(process)
         if process is self.process:
             self.process = None; self.ready = False
-            self.surface.hide(); self.message.setText('遊戲已停止。點擊播放可重新開啟。' if not code else
-                '遊戲無法執行\n\n'+(self.last_error or '程序結束，代碼 '+str(code))+'\n\n可按播放重試；完整記錄在「事件與診斷」。')
+            self.surface.hide(); self.message.setText('Game stopped. Press Play to restart.' if not code else
+                'Game failed\n\n'+(self.last_error or 'Process exited with code '+str(code))+'\n\nPress Play to retry. Full details in Console.')
             self.message.show(); self.event.emit({'event':'stopped', 'code':code})
         process.deleteLater()
 
@@ -167,7 +173,7 @@ class EmbeddedViewport(QFrame):
             timer.start(1200)
         elif process: process.deleteLater()
         self.surface.hide()
-        if not keep_message: self.message.setText('場景已停止。點擊播放可重新開啟。')
+        if not keep_message: self.message.setText('Scene stopped. Press Play to restart.')
         self.message.show()
 
     def shutdown(self):

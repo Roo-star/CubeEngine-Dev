@@ -1,7 +1,7 @@
 """Workbench V2 grayscale palette translated from the nine Figma wireframes."""
 
 STYLE = '''
-QWidget { color: #17191b; font-family: "Segoe UI"; font-size: 11px; }
+QWidget { color: #17191b; font-family: "Inter", "Segoe UI"; font-size: 13px; }
 QMainWindow, QDialog { background: #e9eaec; }
 QWidget#workspaceBar { background: #17191b; }
 QWidget#workspaceBar QLabel { color: #e9eaec; }
@@ -18,15 +18,15 @@ QFrame#trainingStage { background: #f4f4f3; border-top: 1px solid #d1d3d4; }
 QWidget#statusBar { background: #17191b; }
 QWidget#statusBar QLabel { color: #e9eaec; }
 QLabel { background: transparent; border: none; }
-QLabel[role="title"] { font-size: 14px; font-weight: 600; }
-QLabel[role="heading"] { font-size: 13px; font-weight: 600; }
-QLabel[role="section"] { font-size: 10px; color: #686d73; font-weight: 600; }
-QLabel[role="muted"] { color: #686d73; font-size: 11px; }
+QLabel[role="title"] { font-size: 18px; font-weight: 600; }
+QLabel[role="heading"] { font-size: 15px; font-weight: 600; }
+QLabel[role="section"] { font-size: 11px; color: #686d73; font-weight: 600; }
+QLabel[role="muted"] { color: #686d73; font-size: 13px; }
 QLabel[role="badge"] { color: #17191b; background: #e1e2e3; border: 1px solid #c8cacc; border-radius: 2px; padding: 2px 5px; }
 QLabel[role="badge"][state="eligible"] { color: #17191b; background: #d6d8da; }
 QLabel[role="badge"][state="unavailable"] { color: #555a5f; background: #ececeb; }
-QLabel[role="chromeBrand"] { color: #17191b; font-size: 12px; font-weight: 700; }
-QLabel[role="chromeMenu"] { color: #555a5f; font-size: 10px; }
+QLabel[role="chromeBrand"] { color: #17191b; font-size: 13px; font-weight: 700; }
+QLabel[role="chromeMenu"] { color: #555a5f; font-size: 12px; }
 QToolButton[role="chromeMenu"] { background: transparent; border: none; padding: 0; color: #555a5f; }
 QToolButton[role="chromeMenu"]::menu-indicator { image: none; }
 QWidget#workspaceBar QLabel[role="badge"] { background: transparent; border: none; color: #b6babd; }
@@ -51,9 +51,14 @@ QLineEdit, QTextEdit, QPlainTextEdit, QSpinBox, QDoubleSpinBox, QComboBox { back
 QLineEdit:focus, QTextEdit:focus, QPlainTextEdit:focus, QSpinBox:focus, QDoubleSpinBox:focus, QComboBox:focus { border-color: #6d7276; }
 QLineEdit:disabled, QSpinBox:disabled, QComboBox:disabled { color: #9a9da1; background: #ececeb; }
 QFrame#sidebar QLineEdit, QFrame#sidebar QPlainTextEdit, QFrame#sidebar QComboBox { background: #292d31; color: #e9eaec; border-color: #414449; }
-QLineEdit[role="axis"], QLineEdit[role="number"] { font-family: "Consolas"; font-size: 11px; }
+QLineEdit[role="axis"], QLineEdit[role="number"] { font-family: "Inter", "Segoe UI"; font-size: 13px; }
 QComboBox::drop-down { border: none; width: 18px; }
-QComboBox QAbstractItemView { background: #fafaf9; color: #17191b; selection-background-color: #d8dadc; }
+QComboBox QAbstractItemView, QFrame#sidebar QComboBox QAbstractItemView {
+    background: #fafaf9; color: #17191b; selection-background-color: #d8dadc;
+    selection-color: #17191b; border: 1px solid #858a90; outline: 0; padding: 4px;
+}
+QComboBox QAbstractItemView::item, QFrame#sidebar QComboBox QAbstractItemView::item { color: #17191b; min-height: 28px; }
+QComboBox QAbstractItemView::item:selected, QFrame#sidebar QComboBox QAbstractItemView::item:selected { color: #17191b; background: #d8dadc; }
 QTreeWidget, QListWidget { background: transparent; border: none; outline: 0; }
 QTreeWidget::item, QListWidget::item { padding: 4px 3px; border: none; }
 QTreeWidget::item:hover, QListWidget::item:hover { background: #d8dadc; }

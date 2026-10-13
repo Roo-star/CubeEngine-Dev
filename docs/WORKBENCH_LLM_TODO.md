@@ -1,5 +1,24 @@
 # Workbench / LLM 待办
 
+## 2026-10-14：Alphav1.1 頁簽功能落地與英文介面
+
+交付仍在 `E:/CubeEngine/work/agentic-srtp-integration` 的 `WorkbenchAI` 分支。保留 V2 黑白灰主版式，版本標識改為 `Alphav1.1`。
+
+- [x] Layout：專案總覽、來源／批准 Target、轉換與審核入口；保留既有來源／Target 比較、資產、診斷與 AI 訓練區。
+- [x] Scenes：可在尚無 Target 時開啟空白原生 Scene；跟隨視角平移與縮放的向量地面網格、2D 正交／3D 視角、選取／XYZ 變換／對齊、基本形狀、OBJ／BAM 匯入、刪除及 Undo／Redo、佈局草稿存取。批准 Target 的 Scene 也使用同一組編輯工具。新增物件為佈局草稿，不提供獨立玩法規則。
+- [x] Spatial Editor：體積網格草稿（每軸 1–32）、格距與 Cube 比例的實際幾何調整、既有逐物件 XYZ、深度切層；呈現 Rule 已宣告的型別化玩法參數和動作目錄。體積／玩法參數可離線驗證並匯出 Rule 草稿；由 Rule Runtime 編譯並列舉初始合法動作。**Rule 草稿目前不是可直接批准的四 IR Target；完整 Scene／Input／Asset 一致性審核與重新封存仍需後續接入。**
+- [x] Simulator：原作／批准 Target／原有 Demo 在中央實跑、Play／Pause／Restart、AI 先手／後手與執行狀態；編輯網格和佈局新增物件不進入 gameplay，正式 Target 使用原批准佈局及 Rule Runtime。
+- [x] Rendering：Shaded／Unlit／Wireframe、背景與材質 tint、貼圖開關、實際預覽、設定檔存取，以及原生渲染器以目前視窗解析度輸出 PNG。遊戲 HUD 在 Scene／Spatial／Rendering 編輯模式隱藏。完整 PBR、陰影／烘焙與後處理尚未實作；Rendering 設定目前只作用於預覽，不改写批准 Asset／Scene。
+- [x] 所有產品介面文案改為英文；使用本機 Inter，缺字體時退回 Segoe UI。主文字 13px、章節標題 15px、專案標題 18px。修正 Qt ComboBox 預設 delegate 在深色側欄沿用白字的問題；檢查實際繪出的文字像素與原生選單截圖。
+- [x] 原有四款 Demo 的 XYZ 入口移至 Spatial Editor；4×5×3／6×4×5 共八次改尺寸與實跑回歸通過，[Demo 收據](WORKBENCH_ALPHA11_DEMO_XYZ_ACCEPTANCE_20261014.json)。
+- [x] 36 項 Studio／草稿／Workbench 訓練單元與 24 項 AI 管線／對手回歸（合計 60 項）通過。20 項實際原生工作區操作通過，包含 OBJ 匯入／刪除／Undo／Redo、草稿恢復、2D／3D、Cube 比例、Rule Runtime 落子、實際模型 Wireframe、Render Profile 存取與 PNG 匯出；[原生收據](../artifacts/studio-alpha11/acceptance.json)。既有已採用模型 v3 在新 UI 成功重新載入並先手落子；[AI UI 收據](WORKBENCH_ALPHA11_AI_UI_ACCEPTANCE_20261014.json)。
+
+研究採用的部分：Unity 的 [Scene 導覽／正交視角](https://docs.unity3d.com/6000.0/Documentation/Manual/SceneViewNavigation.html) 與 [網格／對齊](https://docs.unity3d.com/6000.0/Documentation/Manual/GridSnapping.html)；RPG Maker 的 [圖層式編輯](https://www.rpgmakerweb.com/blog/rpg-maker-mz-preview-2-graphics-mapping-eventing) 與 [事件清單](https://www.rpgmakerweb.com/blog/rpg-maker-mz-preview-4-event-list-system-tab-options-new-ui-release-date-price) 提供工作區／物件清單分工參考，沒有另加 RPG 專用規則；Godot 的 [環境與後處理](https://docs.godotengine.org/en/stable/tutorials/3d/environment_and_post_processing.html) 用於劃分渲染預覽、材質、輸出與未來進階階段。
+
+本次模型服務請求為 0。沒有改寫使用者的已批准 Manifest／Rule；沒有任意遊戲生成或 AI 棋力驗收。現有 AI 真實驗收仍以已批准 3×3×3 Target 與相容網路為範圍。Scenes 的地面網格是隨視角移動的有限向量網格，並非無限物理世界；匯入幾何目前沒有 prefab authoring、碰撞玩法或光照資產編輯。
+
+重跑：`python -m tests.studio_alpha11_probe`（Workbench Python）、`python -m unittest tests.test_studio_scene tests.test_studio_alpha11 tests.test_workbench_training`（Workbench Python）及 `python -m unittest tests.test_ai_training_pipeline tests.test_ai_opponent`（Training Python）。介面截圖在 `artifacts/studio-alpha11/`。啟動命令仍為 `.venv-workbench/Scripts/python.exe srtp/workbench.py`。
+
 ## 2026-10-13：Workbench V2 / Alphav1.0 內測整合
 
 目前交付目錄為 `E:/CubeEngine/work/agentic-srtp-integration`，分支為使用者指定的 `WorkbenchAI`。下方歷史記錄中的 SRTP／舊開發目錄不代表本次工作位置。

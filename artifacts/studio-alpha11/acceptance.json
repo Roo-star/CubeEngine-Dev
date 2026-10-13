@@ -1,0 +1,28 @@
+{
+  "release": "Alphav1.1",
+  "api_calls": 0,
+  "checks": [
+    "Scene workspace runs before a Target exists",
+    "Added layout cube exists in native renderer",
+    "Snap updates the rendered object position",
+    "2D projection and unbound scene draft work",
+    "Saved layout objects can be restored",
+    "OBJ mesh is imported into the actual scene",
+    "Imported mesh can be selected and deleted",
+    "Undo restores the deleted mesh",
+    "Redo deletes the mesh again",
+    "Approved Target replaces the empty scene",
+    "Volume preview is distinct from approved Rule dimensions",
+    "Cell scale changes native geometry",
+    "Simulator restores approved transforms",
+    "Simulator keeps approved dimensions",
+    "Simulator executes Rule Runtime moves",
+    "Rendering profile reaches native renderer",
+    "Render profile save/load restores UI settings",
+    "Wireframe is applied to real model render state",
+    "PNG output is written by the renderer",
+    "Approved Manifest remains byte-for-byte unchanged"
+  ],
+  "passed": true,
+  "elapsed_seconds": 18.39
+}

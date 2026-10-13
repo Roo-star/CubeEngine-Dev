@@ -20,7 +20,7 @@ class SceneDraftTests(unittest.TestCase):
         self.assertEqual(self.draft['overrides']['mesh']['position'][0],1)
 
     def test_other_game_or_version_rejected(self):
-        with self.assertRaisesRegex(ValueError,'另一個遊戲或版本'):
+        with self.assertRaisesRegex(ValueError,'another game or version'):
             validate_draft(self.draft,'approved-v2',{'mesh'})
 
     def test_unknown_node_or_property_rejected(self):
@@ -91,7 +91,7 @@ class DesktopBindingTests(unittest.TestCase):
             w.source_changed()
             self.assertIsNone(w.selected); self.assertIsNone(w.manifest)
             self.assertEqual(w.nodes,{})
-            self.assertEqual(w.selected_name.text(),'選取場景物件')
+            self.assertEqual(w.selected_name.text(),'Select an object')
             self.assertEqual(w.transform_fields['position','X'].value(),0)
             self.assertFalse(w.transform_box.isEnabled())
         finally:w.close()
@@ -139,7 +139,7 @@ class DesktopBindingTests(unittest.TestCase):
                 w.switch_view('game')
                 self.assertEqual(w.active_view,'source')
                 self.assertIs(w.views.currentWidget(),w.source_view)
-                self.assertIn('尚未掛載',w.status_label.text())
+                self.assertIn('Attach an approved Target',w.status_label.text())
                 start.assert_called_once()
         finally:w.close()
 
@@ -182,7 +182,7 @@ class DesktopBindingTests(unittest.TestCase):
             self.assertIs(w.views.currentWidget(),w.demo_view)
             self.assertIsNone(w.manifest);self.assertIsNone(w.c.training_panel.target)
             self.assertFalse(w.train_start.isEnabled())
-            self.assertIn('未接入',w.training_description.text())
+            self.assertIn('does not support AI training',w.training_description.text())
         finally:w.close()
 
     def test_normal_source_leaves_demo_and_import_does_not_execute(self):

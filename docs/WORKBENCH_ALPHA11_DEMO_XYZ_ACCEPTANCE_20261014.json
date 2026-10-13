@@ -1,0 +1,94 @@
+{
+  "passed": true,
+  "api_calls": 0,
+  "checks": [
+    {
+      "demo": "3D Snake",
+      "adapter": "snake",
+      "dimensions": [
+        4,
+        5,
+        3
+      ],
+      "objects": 25,
+      "resized_and_playable": true
+    },
+    {
+      "demo": "3D Snake",
+      "adapter": "snake",
+      "dimensions": [
+        6,
+        4,
+        5
+      ],
+      "objects": 27,
+      "resized_and_playable": true
+    },
+    {
+      "demo": "3D Minesweeper",
+      "adapter": "minesweeper",
+      "dimensions": [
+        4,
+        5,
+        3
+      ],
+      "objects": 72,
+      "resized_and_playable": true
+    },
+    {
+      "demo": "3D Minesweeper",
+      "adapter": "minesweeper",
+      "dimensions": [
+        6,
+        4,
+        5
+      ],
+      "objects": 132,
+      "resized_and_playable": true
+    },
+    {
+      "demo": "3D Connect Four",
+      "adapter": "connect",
+      "dimensions": [
+        4,
+        5,
+        3
+      ],
+      "objects": 73,
+      "resized_and_playable": true
+    },
+    {
+      "demo": "3D Connect Four",
+      "adapter": "connect",
+      "dimensions": [
+        6,
+        4,
+        5
+      ],
+      "objects": 133,
+      "resized_and_playable": true
+    },
+    {
+      "demo": "3D 2048",
+      "adapter": "2048",
+      "dimensions": [
+        4,
+        5,
+        3
+      ],
+      "objects": 74,
+      "resized_and_playable": true
+    },
+    {
+      "demo": "3D 2048",
+      "adapter": "2048",
+      "dimensions": [
+        6,
+        4,
+        5
+      ],
+      "objects": 134,
+      "resized_and_playable": true
+    }
+  ]
+}

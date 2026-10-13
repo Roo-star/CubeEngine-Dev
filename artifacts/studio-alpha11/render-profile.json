@@ -1,0 +1,9 @@
+{
+  "format": "cubeengine.render-profile/1.0",
+  "profile": {
+    "style": "Wireframe",
+    "background": "#eeeeee",
+    "tint": "#ffffff",
+    "textures": true
+  }
+}

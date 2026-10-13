@@ -39,8 +39,8 @@ class QtAiTraining:
         self.reported_end = False
         self.events = []
         self.last_event = {}
-        self.reasons = ["批准並掛載 Target 後檢查 AI 資格。"]
-        self.status = "等待已批准的 Target"
+        self.reasons = ["Approve and attach a Target to check AI eligibility."]
+        self.status = "Awaiting an approved Target"
         self.progress = 0.0
         self.checked_args = None
         self.checked_python = None
@@ -93,8 +93,8 @@ class QtAiTraining:
         self.preparation = None
         self.checked_args = None
         self.checked_python = None
-        self.reasons = [] if self.target else ["批准並掛載 Target 後檢查 AI 資格。"]
-        self.status = "檢查 AI 資格中…" if self.target else "等待已批准的 Target"
+        self.reasons = [] if self.target else ["Approve and attach a Target to check AI eligibility."]
+        self.status = "Checking AI eligibility…" if self.target else "Awaiting an approved Target"
         self._set("status", self.status)
         self._set("reasons", "\n".join(self.reasons))
         self._config("start", enabled=False)
@@ -117,34 +117,34 @@ class QtAiTraining:
 
     def start(self, *args, resume=False):
         if not self.preparation or not self.preparation.trainable or self.future:
-            self._set("status", "目前 Target 尚未通過 AI 資格與網路檢查。")
+            self._set("status", "Target has not passed eligibility and network checks.")
             return
         if self.run and self.run.running:
-            self._set("status", "訓練已在執行。")
+            self._set("status", "Training is already running.")
             return
         if self.target != Path(self.preparation.manifest_path).resolve():
-            self._set("status", "Target 已變更，請重新檢查資格。")
+            self._set("status", "Target changed. Recheck eligibility.")
             return
         args = self.args()
         python = str(self.port.get_value("training_python") or default_python())
         if args != self.checked_args or python != self.checked_python:
             self.pending_start = resume
             self.attach(self.target)
-            self._set("status", "訓練設定已變更，正在重新驗證網路與 adapter…")
+            self._set("status", "Settings changed. Rechecking network and adapter…")
             return
         root = self.output_root()
         prior = None
         if resume:
             runs = compatible_runs(root, binding_for(self.preparation, DEFAULT_NETWORK, args))
             if not runs:
-                self._set("status", "沒有與目前 Rule、adapter 及網路架構相容的存檔。")
+                self._set("status", "No compatible Rule, adapter and network checkpoint.")
                 return
             prior = runs[0]
         try:
             self.run = start_training(self.preparation, root, args=args, network=DEFAULT_NETWORK,
                                       resume=prior, python=python)
         except (OSError, ValueError) as error:
-            self._set("status", "訓練啟動失敗：" + str(error))
+            self._set("status", "Training failed to start: " + str(error))
             return
         self.events = []
         self.last_event = {}
@@ -155,7 +155,7 @@ class QtAiTraining:
         self._set("run_path", str(self.run.run_dir))
         self._set("log", "")
         self._set("progress", 0.0)
-        self._set("status", "正在續跑…" if prior else "正在啟動自對弈…")
+        self._set("status", "Resuming…" if prior else "Starting self-play…")
         self._config("start", enabled=False)
         self._config("cancel", enabled=True)
         self._config("resume_last", enabled=False)
@@ -168,7 +168,7 @@ class QtAiTraining:
     def cancel(self, *args):
         if self.run and self.run.running:
             self.run.cancel()
-            self._set("status", "已要求安全取消；保留最近採用的模型與完整樣本。")
+            self._set("status", "Cancellation requested. Accepted models and complete samples are retained.")
             self._config("cancel", enabled=False)
 
     def open_results(self, *args):
@@ -181,10 +181,10 @@ class QtAiTraining:
         from ..ai_training.worker import replay_saved_games
         try:
             result = replay_saved_games(self.run.run_dir)
-            self._set("status", ("重放驗證通過：" if result["passed"] else "重放驗證未通過：")
-                      + "{0} 局，{1} 失敗".format(result["games"], len(result["failures"])))
+            self._set("status", ("Replay passed: " if result["passed"] else "Replay failed: ")
+                      + "{0} games, {1} failures".format(result["games"], len(result["failures"])))
         except Exception as error:
-            self._set("status", "重放驗證失敗：" + str(error))
+            self._set("status", "Replay error: " + str(error))
 
     def poll(self):
         if self.closed:
@@ -209,7 +209,7 @@ class QtAiTraining:
                 self.preparation = None
                 self.pending_start = None
                 self.reasons = ["{0}: {1}".format(type(error).__name__, error)]
-                self._set("status", "AI 資格檢查失敗：" + self.reasons[0])
+                self._set("status", "Eligibility check failed: " + self.reasons[0])
                 self._set("reasons", self.reasons[0])
         if not self.run:
             return
@@ -217,7 +217,7 @@ class QtAiTraining:
             new = self.run.poll()
         except (OSError, ValueError) as error:
             self.run.cancel()
-            self._set('status', '訓練紀錄讀取失敗：' + str(error))
+            self._set('status', 'Could not read training log: ' + str(error))
             return
         if self.run_target != self.target:
             self._config('start', enabled=bool(self.preparation and self.preparation.trainable and not self.run.running))
@@ -234,18 +234,18 @@ class QtAiTraining:
             if kind == "episode":
                 self.counters['self_play_games'] += 1
                 self.counters['samples'] += int(event.get('samples', 0))
-                self._set("status", "自對弈 {0}/{1} · {2} 樣本".format(
+                self._set("status", "Self-play {0}/{1} · {2} samples".format(
                     event.get("episode"), event.get("of"), event.get("samples")))
             elif kind == "training":
-                self._set("status", "神經網路訓練中 · {0} 樣本".format(event.get("examples")))
+                self._set("status", "Training network · {0} samples".format(event.get("examples")))
             elif kind == "arena":
                 self.counters['arena_games'] += sum(int(event.get(key,0)) for key in ('new_wins','previous_wins','draws'))
-                self._set("status", "Arena 比較：新 {0}／舊 {1}／和局 {2}".format(
+                self._set("status", "Arena: new {0} / previous {1} / draws {2}".format(
                     event.get("new_wins"), event.get("previous_wins"), event.get("draws")))
             elif kind == "model":
-                self._set("status", "新模型已採用" if event.get("accepted") else "新模型未達採用門檻")
+                self._set("status", "New model accepted" if event.get("accepted") else "New model below acceptance threshold")
             elif kind in ("completed", "cancelled", "error"):
-                self._set("status", "訓練" + {"completed": "完成", "cancelled": "已取消", "error": "失敗"}[kind]
+                self._set("status", "Training " + {"completed": "Completed", "cancelled": "Cancelled", "error": "Failed"}[kind]
                           + ("：" + str(event.get("error")) if event.get("error") else ""))
                 if kind == 'completed':
                     self.progress = 1.0
@@ -261,7 +261,7 @@ class QtAiTraining:
             if not self.reported_end:
                 self.reported_end = True
                 if self.run.result() is None:
-                    self._set('status', '訓練程序提前結束；請查看 ' + str(self.run.run_dir / 'worker.log'))
+                    self._set('status', 'Training worker exited early. See ' + str(self.run.run_dir / 'worker.log'))
             self._config("start", enabled=bool(self.preparation and self.preparation.trainable))
             self._config("cancel", enabled=False)
             self._config("resume_last", enabled=bool(self.preparation))

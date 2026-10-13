@@ -1419,7 +1419,7 @@ class SrtpWorkbench:
 
     def _set_play_label(self, label: str) -> None:
         if self.studio is not None:
-            label = "■  停止" if label == "STOP" else "試玩"
+            label = "■ Stop" if label == "STOP" else "Play"
         if hasattr(self.dpg, "configure_item"):
             self.dpg.configure_item("srtp_play", label=label)
 

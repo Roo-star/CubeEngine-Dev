@@ -227,7 +227,7 @@ def main():
                 if bridge is not None and (not bridge.playing or bridge.paused):
                     if key == 'left mouse down':
                         context = backend.pick_context(mouse.hovered_entity)
-                        bridge.select(context.get('node_id'))
+                        bridge.select(getattr(mouse.hovered_entity,'scene_node_id',None) or context.get('node_id'))
                     return
                 if driver is not None and driver.ai_to_move() and key not in ('[', ']', 'z', 'v'):
                     return

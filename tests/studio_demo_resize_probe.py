@@ -11,7 +11,7 @@ from srtp.studio.demos import DEMOS
 ROOT=Path(__file__).resolve().parents[1]
 
 
-def run():
+def run(receipt=None):
     app=QApplication([]); configure_application(app)
     window=Studio()
     area=app.primaryScreen().availableGeometry()
@@ -37,6 +37,7 @@ def run():
         for index,(title,_) in enumerate(DEMOS):
             events.clear(); window.demo_actions[index].trigger()
             wait(lambda:view.ready and any(row['event']=='demo_frame' for row in events))
+            window.switch_workspace('Spatial Editor','scene')
             assert window.demo_dimensions_box.isVisible()
             for dimensions in ((4,5,3),(6,4,5)):
                 for axis,value in zip('xyz',dimensions):window.demo_dimension_fields[axis].setValue(value)
@@ -61,7 +62,7 @@ def run():
         report['error']=traceback.format_exc()
     finally:
         window.close(); app.processEvents()
-        (ROOT/'docs/WORKBENCH_V2_DEMO_XYZ_ACCEPTANCE_20261013.json').write_text(
+        (receipt or ROOT/'docs/WORKBENCH_V2_DEMO_XYZ_ACCEPTANCE_20261013.json').write_text(
             json.dumps(report,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
         print(json.dumps(report,ensure_ascii=False))
     return 0 if report['passed'] else 1
