@@ -18,7 +18,7 @@ from typing import Any, Dict, Iterable, List, Mapping, MutableMapping, Optional,
 import numpy as np
 
 from .expression import EvaluationContext, ExpressionError, ExpressionEvaluator, FunctionSpec
-from .authoring import RuleConfigurationError, ResolvedRuleConfiguration, resolve_rule_configuration
+from .authoring import RuleConfigurationError, ResolvedRuleConfiguration, _parameter_key, resolve_rule_configuration
 from .capabilities import runtime_capability_diagnostics
 from .event_time import (
     JointTransitionReport,
@@ -204,7 +204,7 @@ class RuleState:
     def parameter_value(self, identifier: str) -> Any:
         for parameter in self.document.get('parameters', []):
             if parameter['id'] == identifier:
-                return deepcopy(self.parameter_values[parameter['key']])
+                return deepcopy(self.parameter_values[_parameter_key(parameter)])  # key is optional; same rule as configuration
         raise RuleRuntimeError('unknown Rule parameter: ' + identifier)
 
     def state_value(self, identifier: str, scope_key: Optional[Any] = None) -> Any:

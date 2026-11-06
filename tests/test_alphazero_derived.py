@@ -162,5 +162,41 @@ class ReferenceFixtureTests(unittest.TestCase):
         self.assertEqual(len(derivation.manifest['symmetries']), 48)
 
 
+class SystemTurnTicTacToeTests(unittest.TestCase):
+    """2026-10-28 Workbench Target as generated: an action_applied system passes the turn
+    (event_driven flow) and win outcomes name only the winner."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.rule = load('tictactoe3d_target_system_turn_20261028.rule-ir.json')
+        cls.derivation = derive_alphazero_adapter(cls.rule, **FAST)
+
+    def test_synchronous_turn_system_and_implied_loser_are_trainable(self):
+        self.assertTrue(self.derivation.eligible, [r.message for r in self.derivation.reasons])
+        self.assertEqual(self.derivation.manifest['players']['turn'], 'actor')
+        game = compile_alphazero_game(self.rule, self.derivation.manifest)
+        board = game.getInitBoard()
+        player = 1
+        for action in (0, 1, 13, 2, 26):  # x on the space diagonal (0,0,0)-(1,1,1)-(2,2,2)
+            board, player = game.getNextState(board, player, action)
+        self.assertEqual(game.getGameEnded(board, 1), 1.0)
+        self.assertEqual(game.getGameEnded(board, -1), -1.0)
+
+    def test_timer_scheduling_or_random_systems_stay_refused(self):
+        for change in ({'trigger': {'kind': 'tick'}},
+                       {'effects': [{'op': 'event.schedule', 'event': 'rule:event.later',
+                                     'delay_ticks': {'op': 'literal', 'value': 1}}]}):
+            rule = deepcopy(self.rule)
+            rule['systems'][0].update(change)
+            codes = [r.code for r in derive_alphazero_adapter(seal_rule_ir(rule), **FAST).reasons]
+            self.assertIn('eligibility.systems', codes)
+
+    def test_winner_without_loser_still_refused_beyond_two_players(self):
+        rule = deepcopy(self.rule)
+        rule['participants'].append({'id': 'rule:participant.third', 'name': 'Third', 'kind': 'human_or_agent'})
+        codes = [r.code for r in derive_alphazero_adapter(seal_rule_ir(rule), **FAST).reasons]
+        self.assertIn('eligibility.zero_sum', codes)
+
+
 if __name__ == '__main__':
     unittest.main()

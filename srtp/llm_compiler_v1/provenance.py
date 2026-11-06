@@ -38,7 +38,8 @@ def _usage(client: Any) -> Dict[str, Any]:
     summary = dict(getattr(client, "usage_summary", None) or {})
     budget = getattr(client, "budget", None)
     return {"http_requests": int(getattr(client, "http_requests", 0) or 0),
-            "input_tokens": summary.get("input_tokens") or 0, "output_tokens": summary.get("output_tokens") or 0,
+            "input_tokens": summary.get("input_tokens") or 0,
+            "cached_input_tokens": summary.get("cached_input_tokens") or 0, "output_tokens": summary.get("output_tokens") or 0,
             "reported_cost_usd": summary.get("reported_cost_usd"),
             "budget_spent_usd": _number(getattr(budget, "spent", None))}
 
@@ -50,7 +51,8 @@ def _number(value: Any) -> Optional[float]:
 
 def _delta(before: Mapping[str, Any], after: Mapping[str, Any]) -> Dict[str, Any]:
     result = {}
-    for key in ("http_requests", "input_tokens", "output_tokens", "reported_cost_usd", "budget_spent_usd"):
+    for key in ("http_requests", "input_tokens", "cached_input_tokens", "output_tokens", "reported_cost_usd",
+                "budget_spent_usd"):
         a, b = before.get(key), after.get(key)
         if isinstance(a, (int, float)) or isinstance(b, (int, float)):
             result[key] = round((b or 0) - (a or 0), 8)

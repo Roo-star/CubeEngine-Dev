@@ -72,9 +72,11 @@ def static_eligibility(document: Mapping[str, Any]) -> List[Any]:
     if flow.get("model") not in ("turn_based", "event_driven"):
         reasons.append(_error("eligibility.flow", "/flow/model",
                               "Only turn-based or event-driven Rules (no real time or simultaneous moves)."))
-    if document.get("systems"):
+    unencodable = _unencodable_systems(document)
+    if unencodable:
         reasons.append(_error("eligibility.systems", "/systems",
-                              "Systems (automatic reactions, timers) are not yet reconstructible from a board."))
+                              "Systems driven by timers, phases, scheduled or declared events, or randomness are not yet "
+                              "reconstructible from a board: {0}.".format(unencodable)))
     if document.get("events"):
         reasons.append(_error("eligibility.events", "/events", "Declared events are not yet encodable in a board."))
     if (document.get("dependencies") or {}).get("extensions") or document.get("extensions"):
@@ -121,10 +123,41 @@ def static_eligibility(document: Mapping[str, Any]) -> List[Any]:
             reasons.append(_error("eligibility.terminal", "/outcomes/{0}".format(index),
                                   "Every outcome must end the game."))
         winners, losers = result.get("winners") or [], result.get("losers") or []
-        if (winners or losers) and (len(winners) != 1 or len(losers) != 1):
+        # With two participants an outcome naming only the winner implies the other one lost.
+        implied_loser = len(participants) == 2 and len(winners) == 1 and not losers
+        if (winners or losers) and not implied_loser and (len(winners) != 1 or len(losers) != 1):
             reasons.append(_error("eligibility.zero_sum", "/outcomes/{0}/result".format(index),
                                   "A decided outcome needs exactly one winner and one loser (zero-sum)."))
     return _merged(reasons)
+
+
+# Triggers drained inside the action that causes them (RuleRuntime._drain_triggers):
+# such systems leave no scheduler state behind, so a board still rebuilds the Runtime.
+# Encoding is then verified on sampled states like any other Rule.
+_SYNCHRONOUS_EVENTS = ("rule:event.action_applied", "rule:event.joint_actions_applied")
+_UNENCODABLE_EFFECTS = ("event.schedule", "event.cancel", "event.emit", "random.sample", "random.draw")
+
+
+def _unencodable_systems(document: Mapping[str, Any]) -> List[str]:
+    def effect_ops(value: Any):
+        if isinstance(value, Mapping):
+            if isinstance(value.get("op"), str):
+                yield value["op"]
+            for item in value.values():
+                yield from effect_ops(item)
+        elif isinstance(value, list):
+            for item in value:
+                yield from effect_ops(item)
+
+    blocked = []
+    for system in document.get("systems") or []:
+        system = system if isinstance(system, Mapping) else {}
+        trigger = system.get("trigger") if isinstance(system.get("trigger"), Mapping) else {}
+        synchronous = (trigger.get("kind") == "event" and trigger.get("event") in _SYNCHRONOUS_EVENTS) \
+            or trigger.get("kind") == "state_changed"
+        if not synchronous or set(effect_ops(system.get("effects"))) & set(_UNENCODABLE_EFFECTS):
+            blocked.append(str(system.get("id")))
+    return blocked
 
 
 def _merged(reasons: List[Any]) -> List[Any]:

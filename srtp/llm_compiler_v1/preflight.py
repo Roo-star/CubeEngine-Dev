@@ -62,7 +62,7 @@ def source_preflight(source: Path, *, checkpoint: Optional[Path] = None, max_rep
         cache["exists"] = True
         if stored.get("signature") == signatures["signature"]:
             cache["matched_by"] = "signature"
-        elif stored.get("input_signature") == signatures["input_signature"]:
+        elif stored.get("input_signature") in (signatures["input_signature"], signatures["legacy_input_signature"]):
             cache["matched_by"] = "input_signature (engine code changed; cached stages are re-validated)"
         else:
             cache["matched_by"] = None

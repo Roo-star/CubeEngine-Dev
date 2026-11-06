@@ -162,11 +162,15 @@ class OpenRouterLLMClient:
         self.reasoning_effort = "medium"
         self.http_requests = 0
         self.max_requests = DEFAULT_MAX_REQUESTS
-        self.usage_summary = {'http_requests':0, 'input_tokens':0, 'output_tokens':0, 'reported_cost_usd':None}
+        self.usage_summary = {'http_requests':0, 'input_tokens':0, 'cached_input_tokens':0, 'output_tokens':0, 'reported_cost_usd':None}
         from .budget import CostBudget
         self.budget = CostBudget()
         # Every call's exact messages, reply and usage (written as requests.jsonl with each run).
         self.request_log = []
+        # OpenRouter sticky routing key: one job's stages and repairs reach the same
+        # provider, so their shared prompt prefix is read from its cache. Not part of
+        # cache_identity (checkpoints stay valid across jobs).
+        self.session_id = None
         self.output_format = "auto"
         self._schema_supported = True
 
@@ -179,7 +183,7 @@ class OpenRouterLLMClient:
 
     def __enter__(self):
         self.http_requests = 0
-        self.usage_summary = {'http_requests':0, 'input_tokens':0, 'output_tokens':0, 'reported_cost_usd':None}
+        self.usage_summary = {'http_requests':0, 'input_tokens':0, 'cached_input_tokens':0, 'output_tokens':0, 'reported_cost_usd':None}
         from .budget import CostBudget
         try:
             self.budget = CostBudget.from_env()
@@ -195,6 +199,7 @@ class OpenRouterLLMClient:
             key = openrouter_api_key()
             self.model = self._explicit_model or os.environ.get("CUBEENGINE_LLM_OPENROUTER_MODEL") or DEFAULT_MODEL
             self.model = self.model.strip()
+            self.budget.set_model(self.model)  # list price for the pre-send worst case
             if not re.fullmatch(r"[a-zA-Z0-9_-]+/[a-zA-Z0-9_.:-]+", self.model):
                 raise LLMTransportError("Use an explicit OpenRouter model ID such as openai/gpt-6-sol in CUBEENGINE_LLM_OPENROUTER_MODEL.")
             self.reasoning_effort = os.environ.get("CUBEENGINE_LLM_REASONING_EFFORT", "medium").strip()
@@ -216,7 +221,7 @@ class OpenRouterLLMClient:
 
     def _publish_budget(self):
         # Only a configured cap changes the reported usage shape.
-        if self.budget.total is not None:
+        if self.budget.total is not None or self.budget.max_request_usd is not None:
             self.usage_summary['budget'] = self.budget.summary()
 
     def __exit__(self, *args):
@@ -271,6 +276,8 @@ class OpenRouterLLMClient:
             "reasoning":{"effort":self.reasoning_effort},
             "provider":{"require_parameters":True}, "stream":False,
         }
+        if self.session_id:
+            payload["session_id"] = str(self.session_id)[:256]
         try:
             body = self._request(payload)
         except LLMTransportError as error:
@@ -320,7 +327,9 @@ class OpenRouterLLMClient:
         for attempt in range(retries + 1):
             if self.http_requests >= self.max_requests:
                 raise LLMTransportError('Stopped before another paid request: CUBEENGINE_LLM_MAX_REQUESTS={0} reached for this job. Accepted stages are checkpointed; review diagnostics before raising the limit.'.format(self.max_requests))
-            self.budget.before_request(_estimated_tokens(payload.get('input')))
+            self.budget.before_request(_estimated_tokens(payload.get('input')),
+                                       max_output_tokens=payload.get('max_output_tokens'),
+                                       input_tokens_upper=_input_tokens_upper_bound(payload))
             self.http_requests += 1
             self.usage_summary['http_requests'] = self.http_requests
             try:
@@ -340,6 +349,11 @@ class OpenRouterLLMClient:
                 for field in ('input_tokens', 'output_tokens'):
                     if type(usage.get(field)) is int and usage[field] >= 0:
                         self.usage_summary[field] += usage[field]
+                # Prompt-cache reads (billed at the cache-read rate); shows whether a stage reused the prefix.
+                details = usage.get('input_tokens_details') or usage.get('prompt_tokens_details') or {}
+                cached = details.get('cached_tokens') if isinstance(details, dict) else None
+                if type(cached) is int and cached >= 0:
+                    self.usage_summary['cached_input_tokens'] = self.usage_summary.get('cached_input_tokens', 0) + cached
                 cost = usage.get('cost')
                 if type(cost) in (float, int) and 0 <= cost < 1_000_000:
                     self.usage_summary['reported_cost_usd'] = (self.usage_summary['reported_cost_usd'] or 0.0) + cost
@@ -413,6 +427,13 @@ def _truncated(error: LLMClientError, content: str) -> LLMClientError:
 def _estimated_tokens(messages: Any) -> int:
     """Rough input size for cost estimates (about four characters per token)."""
     return len(json.dumps(messages, ensure_ascii=False, default=str)) // 4
+
+
+def _input_tokens_upper_bound(payload: Any) -> int:
+    """Upper bound on billed input tokens: every byte of the request body (messages, schema,
+    settings) at three bytes per token. Real tokenizers use more bytes per token for code, JSON
+    and English, and one token per CJK character (three UTF-8 bytes)."""
+    return len(json.dumps(payload, ensure_ascii=False, default=str).encode("utf-8")) // 3 + 1
 
 
 def _repeated_object(text: str):

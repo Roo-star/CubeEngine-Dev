@@ -108,7 +108,16 @@ class AgenticSrtpIntegrationTests(unittest.TestCase):
         self.assertIn('wrong boundary', str(caught.exception))
 
     def test_scene_reads_resolved_parameter_and_agentic_flow(self):
+        self._scene_reads_parameter(timed_rule(), {'rule:parameter.skin': 'dark'}, 'dark')
+
+    def test_scene_reads_parameter_declared_without_key(self):
+        # Model-authored form (2026-11-05 Minesweeper Lift): `key` is optional and
+        # defaults to the id suffix; reading it from a Scene binding raised KeyError('key').
         rule = timed_rule()
+        rule['parameters'] = [{k: v for k, v in rule['parameters'][0].items() if k != 'key'}]
+        self._scene_reads_parameter(seal_rule_ir(rule), {}, 'light')
+
+    def _scene_reads_parameter(self, rule, parameter_values, expected):
         asset = json.loads((ROOT / 'artifacts/tictactoe_source/asset.asset-ir.json').read_text())
         scene = json.loads((ROOT / 'artifacts/tictactoe_source/scene.scene-ir.json').read_text())
         scene['prefabs'], scene['bindings'], scene['nodes'] = [], [], []
@@ -126,11 +135,11 @@ class AgenticSrtpIntegrationTests(unittest.TestCase):
                               'transform': {'kind': 'direct'}}]
         assets = compile_asset_ir(asset, ROOT)
         compiled = compile_scene_ir(seal_scene_ir(scene), rule_document=rule, asset_catalog=assets)
-        runtime = compile_rule_ir(rule, parameter_values={'rule:parameter.skin': 'dark'})
+        runtime = compile_rule_ir(rule, parameter_values=parameter_values)
         self.addCleanup(runtime.close)
         graph = ScenePresentation(compiled, assets)
         graph.synchronize(compiled.create_projection_session(), runtime.state)
-        self.assertEqual(graph.nodes['scene:status']['components']['caption']['properties']['text'], 'dark')
+        self.assertEqual(graph.nodes['scene:status']['components']['caption']['properties']['text'], expected)
         self.assertEqual(check_alignment(), [])
         self.assertIn('depth_view', profile())
 

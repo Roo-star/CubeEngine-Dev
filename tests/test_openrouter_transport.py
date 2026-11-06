@@ -57,6 +57,20 @@ class OpenRouterTransportTests(unittest.TestCase):
         self.assertEqual(result.parsed,{'definition':{}})
         self.assertIsNone(client._client)
 
+    def test_session_id_is_sent_only_when_a_job_sets_it(self):
+        bodies = []
+        def handle(request):
+            bodies.append(json.loads(request.content))
+            return completed({'definition':{}})
+        with self.client(handle) as client:
+            client.chat_json([{'role':'user','content':'{}'}])
+            client.session_id = 'cubeengine:job:abc'
+            client.chat_json([{'role':'user','content':'{}'}])
+            identity = client.cache_identity
+        self.assertNotIn('session_id', bodies[0])
+        self.assertEqual(bodies[1]['session_id'], 'cubeengine:job:abc')
+        self.assertNotIn('session_id', json.dumps(identity))  # checkpoints stay valid across jobs
+
     def test_missing_key_never_falls_back_to_legacy_providers(self):
         os.environ.pop('OPENROUTER_API_KEY')
         os.environ.update(OPENAI_API_KEY='direct-key',GEMINI_API_KEY='old-key',GROQ_API_KEY='other-old-key')
@@ -195,11 +209,11 @@ class OpenRouterTransportTests(unittest.TestCase):
     @patch('srtp.llm_compiler_v1.client.time.sleep')
     def test_job_request_cap_includes_retries_and_tracks_returned_usage(self,sleep):
         with patch.dict(os.environ,{'CUBEENGINE_LLM_MAX_REQUESTS':'2'}):
-            replies=iter([httpx.Response(503),completed({},usage={'input_tokens':100,'output_tokens':20,'cost':0.012})])
+            replies=iter([httpx.Response(503),completed({},usage={'input_tokens':100,'input_tokens_details':{'cached_tokens':60},'output_tokens':20,'cost':0.012})])
             with self.client(lambda r:next(replies)) as client:
                 client.chat_json([])
                 with self.assertRaisesRegex(LLMTransportError,'MAX_REQUESTS=2'): client.chat_json([])
-                self.assertEqual(client.usage_summary,{'http_requests':2,'input_tokens':100,'output_tokens':20,'reported_cost_usd':0.012})
+                self.assertEqual(client.usage_summary,{'http_requests':2,'input_tokens':100,'cached_input_tokens':60,'output_tokens':20,'reported_cost_usd':0.012})
 
     def test_incomplete_refused_or_malformed_json_never_becomes_ir(self):
         for response in [

@@ -261,6 +261,8 @@ class DerivedAlphaZeroGame:
             return -1.0
         if outcome.status in self.draw_statuses or (not outcome.winners and not outcome.losers):
             return self.draw_value
+        if outcome.winners and not outcome.losers:
+            return -1.0  # Two-player Rule naming only the winner: the other participant lost.
         raise self._error("terminal outcome does not map the requested player to win, loss or draw")
 
     def getCanonicalForm(self, board: np.ndarray, player: int) -> np.ndarray:

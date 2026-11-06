@@ -45,6 +45,52 @@ class CostBudgetTests(unittest.TestCase):
             budget.before_request(2000)
         self.assertEqual(len(budget.stops), 2)
 
+    def test_stages_reused_from_a_checkpoint_take_no_share(self):
+        from srtp.llm_compiler_v1.budget import STAGED_LIFT_WEIGHTS
+        budget = CostBudget(1.0, reserve=0.25)
+        budget.plan(['rule_ir', 'asset_ir', 'scene_ir', 'input_ir'], STAGED_LIFT_WEIGHTS)
+        budget.begin('input_ir')  # Rule, Asset and Scene came from the checkpoint without a request
+        self.assertAlmostEqual(budget.allowance['input_ir'], 0.75)
+        budget.record(0.3, input_tokens=80000, output_tokens=10000)
+        budget.begin('scene_ir', repair=True)  # an upstream repair of a reused stage still gets a share
+        self.assertAlmostEqual(budget.allowance['scene_ir'], 0.45)  # Input already holds its share
+        # A partly resumed run: Scene is paid, so only the stages from Scene onward share the pool.
+        partial = CostBudget(1.0, reserve=0.25)
+        partial.plan(['rule_ir', 'asset_ir', 'scene_ir', 'input_ir'], STAGED_LIFT_WEIGHTS)
+        partial.begin('scene_ir')
+        self.assertAlmostEqual(partial.allowance['scene_ir'], 0.75 * 0.3 / 0.5)
+
+    def test_worst_case_is_checked_before_the_first_request(self):
+        from srtp.llm_compiler_v1.budget import KNOWN_PRICES_PER_M
+        self.assertIn('openai/gpt-6-sol', KNOWN_PRICES_PER_M)
+        capped = CostBudget(max_request_usd=0.5)
+        capped.set_model('openai/gpt-6-sol')  # 2.5 / 10 per million
+        capped.before_request(80000, max_output_tokens=16000, input_tokens_upper=94000)  # 0.235 + 0.16
+        self.assertAlmostEqual(capped.last_worst_case, 0.395)
+        with self.assertRaisesRegex(LLMCostBudgetExceeded, 'up to US\\$0.5627'):
+            capped.before_request(80000, max_output_tokens=32768, input_tokens_upper=94000)
+        unknown = CostBudget(max_request_usd=0.5)
+        unknown.set_model('vendor/unpriced')
+        with self.assertRaisesRegex(LLMCostBudgetExceeded, 'no known price'):
+            unknown.before_request(1000, max_output_tokens=1000)
+        job = CostBudget(1.0, prices_per_m=(2.5, 10.0))  # explicit prices beat the table
+        job.set_model('vendor/unpriced')
+        job.record(0.6, input_tokens=80000, output_tokens=5000)
+        with self.assertRaisesRegex(LLMCostBudgetExceeded, 'Job cap: .* only US\\$0.4000'):
+            job.before_request(80000, max_output_tokens=32768, input_tokens_upper=94000)
+        self.assertIsNone(CostBudget().worst_case(1000, 1000), 'mock clients have no price')
+
+    def test_http_client_refuses_before_sending_when_the_worst_case_is_too_high(self):
+        from srtp.llm_compiler_v1.client import OpenRouterLLMClient
+        sent = []
+        client = OpenRouterLLMClient()
+        client.budget = CostBudget(max_request_usd=0.01)
+        client.budget.set_model('openai/gpt-6-sol')
+        client._client = SimpleNamespace(post=lambda *a, **k: sent.append(1))
+        with self.assertRaises(LLMCostBudgetExceeded):
+            client._request({'model': 'openai/gpt-6-sol', 'input': 'x' * 3000, 'max_output_tokens': 32768})
+        self.assertEqual((sent, client.http_requests), ([], 0))
+
     def test_no_cap_enforces_nothing_and_unstaged_calls_use_the_job_cap(self):
         budget = CostBudget()
         budget.record(5.0)

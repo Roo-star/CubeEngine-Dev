@@ -537,8 +537,7 @@ def resume_design_intent(compiler, package, evidence, documents, source_manifest
                 continue
             if intent.get('source_manifest_hash')!=source_manifest_hash or validate_design_intent(intent): continue
             identity=_stage_input_identity(compiler,package,evidence,documents,intent,source_manifest_hash,workspace)
-            signature=hashlib.sha256(json.dumps(identity,sort_keys=True).encode()).hexdigest()
-            if stored.get('input_signature')==signature or _legacy_target_checkpoint_matches(stored,identity,documents):
+            if stored.get('input_signature') in (_digest(_content_identity(identity)),_digest(identity))                     or _legacy_target_checkpoint_matches(stored,identity,documents):
                 return deepcopy(intent)
     except (OSError,ValueError,TypeError,KeyError):
         return None
@@ -678,10 +677,31 @@ def stage_signatures(compiler, package, evidence, documents, design_intent, sour
         'input_ir_v2/input-compiler-capabilities.json','llm_compiler_v1/source_equivalence.py','source_function_worker.py','project_manifest_v2/compiler.py','project_viewer.py','project_camera.py','ir_acceptance.py',*SCHEMAS.values())]
     engine_hash = hashlib.sha256(b''.join(path.read_bytes() for path in engine_files)).hexdigest()
     input_identity=_stage_input_identity(compiler,package,evidence,documents,design_intent,source_manifest_hash,workspace)
-    input_signature = hashlib.sha256(json.dumps(input_identity,sort_keys=True).encode()).hexdigest()
-    signature = hashlib.sha256(json.dumps(dict(input_identity,compiler_contract=engine_hash),sort_keys=True).encode()).hexdigest()
+    content_identity = _content_identity(input_identity)
+    input_signature = _digest(content_identity)
+    signature = _digest(dict(content_identity,compiler_contract=engine_hash))
     return {'engine_hash': engine_hash, 'input_identity': input_identity,
-            'input_signature': input_signature, 'signature': signature}
+            'input_signature': input_signature, 'signature': signature,
+            # Checkpoints written before content identity still resume.
+            'legacy_input_signature': _digest(input_identity)}
+
+
+def _digest(identity):
+    return hashlib.sha256(json.dumps(identity,sort_keys=True).encode()).hexdigest()
+
+
+def _content_identity(input_identity):
+    """Stage identity by content, not by Source bundle instance.
+
+    Re-compiling an unchanged Source writes a new bundle whose manifest differs
+    only in its job/proposal id, so its hash changes while every pinned IR stays
+    identical. ``base`` already pins those IR documents, so the manifest hash
+    (also copied into the intent) is left out; source files, model and the rest
+    of the intent still must match exactly.
+    """
+    intent = {k: v for k, v in (input_identity.get('intent') or {}).items() if k != 'source_manifest_hash'}
+    return dict({k: v for k, v in input_identity.items() if k != 'source_manifest'},
+                intent=intent, identity='content/1')
 
 
 def run_stages(compiler, *, package, evidence, documents, job_id, design_intent=None, source_manifest_hash=None):
@@ -717,6 +737,9 @@ def run_stages(compiler, *, package, evidence, documents, job_id, design_intent=
     signatures = stage_signatures(compiler, package, evidence, documents, design_intent, source_manifest_hash, workspace)
     engine_hash, input_identity = signatures['engine_hash'], signatures['input_identity']
     input_signature, signature = signatures['input_signature'], signatures['signature']
+    legacy_input_signature = signatures['legacy_input_signature']
+    if hasattr(compiler.client, 'session_id'):
+        compiler.client.session_id = 'cubeengine:' + str(job_id)
     cached = {}
     rejected_cache = {}
     result.cache = {'checkpoint': str(cache_path) if cache_path else None, 'exists': bool(cache_path and cache_path.is_file()),
@@ -728,10 +751,11 @@ def run_stages(compiler, *, package, evidence, documents, job_id, design_intent=
     if cache_path and cache_path.is_file():
         try:
             stored = json.loads(cache_path.read_text(encoding='utf-8'))
-            matches = stored.get('signature') == signature or stored.get('input_signature') == input_signature
+            input_match = stored.get('input_signature') in (input_signature, legacy_input_signature)
+            matches = stored.get('signature') == signature or input_match
             result.cache['matched_by'] = ('signature' if stored.get('signature') == signature else
                                           'input_signature (engine code changed; stages re-validated)'
-                                          if stored.get('input_signature') == input_signature else None)
+                                          if input_match else None)
             result.cache['stored_signature'] = stored.get('signature')
             if not matches and _legacy_target_checkpoint_matches(stored,input_identity,documents):
                 matches = True

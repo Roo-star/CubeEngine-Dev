@@ -8,6 +8,7 @@ Exercises
 4. Change the snake to respond to mouse clicks.
 """
 
+import pandas
 from random import randrange
 from turtle import *
 
