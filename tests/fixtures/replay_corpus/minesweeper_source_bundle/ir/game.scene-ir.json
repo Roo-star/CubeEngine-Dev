@@ -1,0 +1,1474 @@
+{
+  "ir_version": "cubeengine.scene-ir/2.0-alpha.1",
+  "document_id": "scene:game.pygame.minesweeper.source",
+  "revision": 1,
+  "content_hash": "c30c74a26be9c567d5b1951de608c7f93bfdff58aaada42708d1a573e84f8c7e",
+  "metadata": {
+    "title": "Pygame Minesweeper",
+    "description": "Basic 10×10 minefield with the original 2000 tile, face and counter sprites.",
+    "source_project_hash": "d65062d52fc1df68f5b218b30fcc063f669ed9c00754c79df979b1674df69a87",
+    "source_visual_bindings": [
+      {
+        "target": "/nodes/8/components/0/properties/color",
+        "id": "visual:e22dfc821c71797d59cc",
+        "kind": "color",
+        "value": [
+          0.7529411764705882,
+          0.7529411764705882,
+          0.7529411764705882,
+          1.0
+        ],
+        "source": {
+          "path": "minesweeper/gui.py",
+          "file_sha256": "33508e5c3b87a61ab07e5beecc63c664f270c0e507978a5264903d880fd6b68f",
+          "anchor": "line:18:8:color",
+          "line": 18,
+          "expression": "(192, 192, 192)"
+        }
+      }
+    ]
+  },
+  "dependencies": {
+    "rule_ir": {
+      "document_id": "rule:game.pygame.minesweeper.source",
+      "content_hash": "81d8ca42578e227517c81878c0a9ddbbe4563982962693092fdf572f4fc41e1e"
+    },
+    "asset_ir": {
+      "document_id": "asset:game.pygame.minesweeper.source",
+      "content_hash": "922fdbd900702dc3281ad2dbb165576d0ccf1480367b3457e478cebe90652263"
+    },
+    "extensions": []
+  },
+  "layers": [
+    {
+      "id": "scene:layer.runtime",
+      "name": "Runtime",
+      "kind": "runtime",
+      "visible": true,
+      "pickable": true,
+      "opacity": 1
+    }
+  ],
+  "prefabs": [
+    {
+      "id": "scene:prefab.cell",
+      "name": "Minefield cell",
+      "root": {
+        "local_id": "cell",
+        "name": "Selectable tile",
+        "active": true,
+        "transform": {
+          "translation": [
+            0,
+            0,
+            0
+          ],
+          "rotation_euler_deg": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            1,
+            1,
+            1
+          ]
+        },
+        "components": [
+          {
+            "id": "shell",
+            "type": "renderer",
+            "enabled": true,
+            "properties": {
+              "geometry": "builtin:cube",
+              "visible": true,
+              "scale": [
+                0.96,
+                0.96,
+                0.96
+              ],
+              "color": [
+                0.75,
+                0.75,
+                0.75,
+                0.12
+              ],
+              "opacity": 0.12,
+              "spatial_role": "cell_shell"
+            }
+          },
+          {
+            "id": "pick",
+            "type": "collider",
+            "enabled": true,
+            "properties": {
+              "shape": "box",
+              "size": [
+                0.96,
+                0.96,
+                0.96
+              ],
+              "is_trigger": false,
+              "selectable": true
+            }
+          },
+          {
+            "id": "cover_art",
+            "type": "renderer",
+            "enabled": true,
+            "properties": {
+              "geometry": "asset:mesh.unopened",
+              "visible": true,
+              "scale": [
+                0.86,
+                0.86,
+                0.86
+              ],
+              "color": [
+                1,
+                1,
+                1,
+                1
+              ],
+              "spatial_role": "content",
+              "variant": "covered",
+              "variants": {
+                "covered": {
+                  "geometry": "asset:mesh.unopened",
+                  "visible": true,
+                  "pressed_style": {
+                    "geometry": "asset:mesh.empty"
+                  }
+                },
+                "flag": {
+                  "geometry": "asset:mesh.flag",
+                  "visible": true
+                },
+                "question": {
+                  "geometry": "asset:mesh.question",
+                  "visible": true,
+                  "pressed_style": {
+                    "geometry": "asset:mesh.question_pressed"
+                  }
+                },
+                "revealed": {
+                  "visible": false
+                },
+                "mine": {
+                  "geometry": "asset:mesh.mine",
+                  "visible": true
+                },
+                "wrong_flag": {
+                  "geometry": "asset:mesh.wrong_flag",
+                  "visible": true
+                },
+                "detonated": {
+                  "geometry": "asset:mesh.mine_red",
+                  "visible": true
+                }
+              }
+            }
+          },
+          {
+            "id": "number_art",
+            "type": "renderer",
+            "enabled": true,
+            "properties": {
+              "geometry": "asset:mesh.empty",
+              "visible": false,
+              "scale": [
+                0.86,
+                0.86,
+                0.86
+              ],
+              "color": [
+                1,
+                1,
+                1,
+                1
+              ],
+              "spatial_role": "content",
+              "variant": "zero",
+              "variants": {
+                "mine": {
+                  "geometry": "asset:mesh.mine"
+                },
+                "zero": {
+                  "geometry": "asset:mesh.empty"
+                },
+                "one": {
+                  "geometry": "asset:mesh.one"
+                },
+                "two": {
+                  "geometry": "asset:mesh.two"
+                },
+                "three": {
+                  "geometry": "asset:mesh.three"
+                },
+                "four": {
+                  "geometry": "asset:mesh.four"
+                },
+                "five": {
+                  "geometry": "asset:mesh.five"
+                },
+                "six": {
+                  "geometry": "asset:mesh.six"
+                },
+                "seven": {
+                  "geometry": "asset:mesh.seven"
+                },
+                "eight": {
+                  "geometry": "asset:mesh.eight"
+                }
+              }
+            }
+          }
+        ],
+        "children": []
+      }
+    }
+  ],
+  "nodes": [
+    {
+      "id": "scene:board",
+      "name": "10 × 10 minefield",
+      "parent": null,
+      "active": true,
+      "layer": "scene:layer.runtime",
+      "transform": {
+        "translation": [
+          0,
+          0,
+          0
+        ],
+        "rotation_euler_deg": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "components": [
+        {
+          "id": "sites",
+          "type": "topology_visualizer",
+          "enabled": true,
+          "properties": {
+            "rule_topology": "rule:topology.board",
+            "prefab": "scene:prefab.cell",
+            "index_to_world": [
+              0,
+              1,
+              0,
+              0,
+              -1,
+              0,
+              0,
+              9,
+              0,
+              0,
+              1,
+              0,
+              0,
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "scene:face",
+      "name": "Smile reset button",
+      "parent": null,
+      "active": true,
+      "layer": "scene:layer.runtime",
+      "transform": {
+        "translation": [
+          4.5,
+          11.3,
+          -0.8
+        ],
+        "rotation_euler_deg": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "components": [
+        {
+          "id": "art",
+          "type": "renderer",
+          "enabled": true,
+          "properties": {
+            "geometry": "builtin:quad",
+            "visible": true,
+            "texture": "asset:face.smile",
+            "scale": [
+              1.5,
+              1.5,
+              0.1
+            ],
+            "color": [
+              1,
+              1,
+              1,
+              1
+            ],
+            "spatial_role": "content",
+            "pressed_style": {
+              "texture": "asset:face.pressed"
+            }
+          }
+        },
+        {
+          "id": "pick",
+          "type": "collider",
+          "enabled": true,
+          "properties": {
+            "shape": "box",
+            "size": [
+              1.5,
+              1.5,
+              0.2
+            ],
+            "is_trigger": false,
+            "selectable": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "scene:counter.mines.hundreds",
+      "name": "Mines hundreds",
+      "parent": null,
+      "active": true,
+      "layer": "scene:layer.runtime",
+      "transform": {
+        "translation": [
+          0.469,
+          11.34,
+          -0.8
+        ],
+        "rotation_euler_deg": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "components": [
+        {
+          "id": "art",
+          "type": "renderer",
+          "enabled": true,
+          "properties": {
+            "geometry": "builtin:quad",
+            "visible": true,
+            "texture": "asset:digit.zero",
+            "scale": [
+              0.8125,
+              1.4375,
+              0.1
+            ],
+            "color": [
+              1,
+              1,
+              1,
+              1
+            ],
+            "spatial_role": "content"
+          }
+        }
+      ]
+    },
+    {
+      "id": "scene:counter.mines.tens",
+      "name": "Mines tens",
+      "parent": null,
+      "active": true,
+      "layer": "scene:layer.runtime",
+      "transform": {
+        "translation": [
+          1.281,
+          11.34,
+          -0.8
+        ],
+        "rotation_euler_deg": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "components": [
+        {
+          "id": "art",
+          "type": "renderer",
+          "enabled": true,
+          "properties": {
+            "geometry": "builtin:quad",
+            "visible": true,
+            "texture": "asset:digit.one",
+            "scale": [
+              0.8125,
+              1.4375,
+              0.1
+            ],
+            "color": [
+              1,
+              1,
+              1,
+              1
+            ],
+            "spatial_role": "content"
+          }
+        }
+      ]
+    },
+    {
+      "id": "scene:counter.mines.units",
+      "name": "Mines units",
+      "parent": null,
+      "active": true,
+      "layer": "scene:layer.runtime",
+      "transform": {
+        "translation": [
+          2.094,
+          11.34,
+          -0.8
+        ],
+        "rotation_euler_deg": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "components": [
+        {
+          "id": "art",
+          "type": "renderer",
+          "enabled": true,
+          "properties": {
+            "geometry": "builtin:quad",
+            "visible": true,
+            "texture": "asset:digit.zero",
+            "scale": [
+              0.8125,
+              1.4375,
+              0.1
+            ],
+            "color": [
+              1,
+              1,
+              1,
+              1
+            ],
+            "spatial_role": "content"
+          }
+        }
+      ]
+    },
+    {
+      "id": "scene:counter.time.hundreds",
+      "name": "Seconds hundreds",
+      "parent": null,
+      "active": true,
+      "layer": "scene:layer.runtime",
+      "transform": {
+        "translation": [
+          6.906,
+          11.34,
+          -0.8
+        ],
+        "rotation_euler_deg": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "components": [
+        {
+          "id": "art",
+          "type": "renderer",
+          "enabled": true,
+          "properties": {
+            "geometry": "builtin:quad",
+            "visible": true,
+            "texture": "asset:digit.zero",
+            "scale": [
+              0.8125,
+              1.4375,
+              0.1
+            ],
+            "color": [
+              1,
+              1,
+              1,
+              1
+            ],
+            "spatial_role": "content"
+          }
+        }
+      ]
+    },
+    {
+      "id": "scene:counter.time.tens",
+      "name": "Seconds tens",
+      "parent": null,
+      "active": true,
+      "layer": "scene:layer.runtime",
+      "transform": {
+        "translation": [
+          7.719,
+          11.34,
+          -0.8
+        ],
+        "rotation_euler_deg": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "components": [
+        {
+          "id": "art",
+          "type": "renderer",
+          "enabled": true,
+          "properties": {
+            "geometry": "builtin:quad",
+            "visible": true,
+            "texture": "asset:digit.zero",
+            "scale": [
+              0.8125,
+              1.4375,
+              0.1
+            ],
+            "color": [
+              1,
+              1,
+              1,
+              1
+            ],
+            "spatial_role": "content"
+          }
+        }
+      ]
+    },
+    {
+      "id": "scene:counter.time.units",
+      "name": "Seconds units",
+      "parent": null,
+      "active": true,
+      "layer": "scene:layer.runtime",
+      "transform": {
+        "translation": [
+          8.531,
+          11.34,
+          -0.8
+        ],
+        "rotation_euler_deg": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "components": [
+        {
+          "id": "art",
+          "type": "renderer",
+          "enabled": true,
+          "properties": {
+            "geometry": "builtin:quad",
+            "visible": true,
+            "texture": "asset:digit.zero",
+            "scale": [
+              0.8125,
+              1.4375,
+              0.1
+            ],
+            "color": [
+              1,
+              1,
+              1,
+              1
+            ],
+            "spatial_role": "content"
+          }
+        }
+      ]
+    },
+    {
+      "id": "scene:frame",
+      "name": "Original grey window background",
+      "parent": null,
+      "active": true,
+      "layer": "scene:layer.runtime",
+      "transform": {
+        "translation": [
+          4.5,
+          5.4,
+          1
+        ],
+        "rotation_euler_deg": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "components": [
+        {
+          "id": "art",
+          "type": "renderer",
+          "enabled": true,
+          "properties": {
+            "geometry": "builtin:quad",
+            "visible": true,
+            "scale": [
+              11.125,
+              14.25,
+              0.1
+            ],
+            "color": [
+              0.7529411764705882,
+              0.7529411764705882,
+              0.7529411764705882,
+              1.0
+            ],
+            "spatial_role": "source_backdrop"
+          }
+        }
+      ]
+    },
+    {
+      "id": "scene:camera",
+      "name": "Minefield overview",
+      "parent": null,
+      "active": true,
+      "layer": "scene:layer.runtime",
+      "transform": {
+        "translation": [
+          4.5,
+          5.4,
+          -24
+        ],
+        "rotation_euler_deg": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "components": [
+        {
+          "id": "view",
+          "type": "camera",
+          "enabled": true,
+          "properties": {
+            "projection": "orthographic",
+            "orthographic_size": 15,
+            "near_clip": 0.1,
+            "far_clip": 100,
+            "active": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "scene:light",
+      "name": "Sprite lighting",
+      "parent": null,
+      "active": true,
+      "layer": "scene:layer.runtime",
+      "transform": {
+        "translation": [
+          0,
+          0,
+          -4
+        ],
+        "rotation_euler_deg": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "components": [
+        {
+          "id": "ambient",
+          "type": "light",
+          "enabled": true,
+          "properties": {
+            "kind": "ambient",
+            "color": [
+              1,
+              1,
+              1,
+              1
+            ],
+            "intensity": 1
+          }
+        }
+      ]
+    }
+  ],
+  "bindings": [
+    {
+      "id": "scene:binding.cover",
+      "name": "Cover, flag, question and loss artwork",
+      "source": {
+        "kind": "state",
+        "scope": "topology_site",
+        "variable": "rule:state.cover"
+      },
+      "target": {
+        "selector": "topology_sites",
+        "node": "scene:board",
+        "visualizer": "sites",
+        "component": "cover_art",
+        "property": "variant"
+      },
+      "transform": {
+        "kind": "map",
+        "cases": [
+          {
+            "equals": 0,
+            "value": "covered"
+          },
+          {
+            "equals": 1,
+            "value": "flag"
+          },
+          {
+            "equals": 2,
+            "value": "question"
+          },
+          {
+            "equals": 3,
+            "value": "revealed"
+          },
+          {
+            "equals": 4,
+            "value": "mine"
+          },
+          {
+            "equals": 5,
+            "value": "wrong_flag"
+          },
+          {
+            "equals": 6,
+            "value": "detonated"
+          }
+        ]
+      }
+    },
+    {
+      "id": "scene:binding.number",
+      "name": "Adjacent mine counts",
+      "source": {
+        "kind": "state",
+        "scope": "topology_site",
+        "variable": "rule:state.board"
+      },
+      "target": {
+        "selector": "topology_sites",
+        "node": "scene:board",
+        "visualizer": "sites",
+        "component": "number_art",
+        "property": "variant"
+      },
+      "transform": {
+        "kind": "map",
+        "cases": [
+          {
+            "equals": -2,
+            "value": "mine"
+          },
+          {
+            "equals": 0,
+            "value": "zero"
+          },
+          {
+            "equals": 1,
+            "value": "one"
+          },
+          {
+            "equals": 2,
+            "value": "two"
+          },
+          {
+            "equals": 3,
+            "value": "three"
+          },
+          {
+            "equals": 4,
+            "value": "four"
+          },
+          {
+            "equals": 5,
+            "value": "five"
+          },
+          {
+            "equals": 6,
+            "value": "six"
+          },
+          {
+            "equals": 7,
+            "value": "seven"
+          },
+          {
+            "equals": 8,
+            "value": "eight"
+          }
+        ]
+      }
+    },
+    {
+      "id": "scene:binding.number_visible",
+      "name": "Hide counts until opened",
+      "source": {
+        "kind": "state",
+        "scope": "topology_site",
+        "variable": "rule:state.cover"
+      },
+      "target": {
+        "selector": "topology_sites",
+        "node": "scene:board",
+        "visualizer": "sites",
+        "component": "number_art",
+        "property": "visible"
+      },
+      "transform": {
+        "kind": "map",
+        "cases": [
+          {
+            "equals": 0,
+            "value": false
+          },
+          {
+            "equals": 1,
+            "value": false
+          },
+          {
+            "equals": 2,
+            "value": false
+          },
+          {
+            "equals": 3,
+            "value": true
+          },
+          {
+            "equals": 4,
+            "value": false
+          },
+          {
+            "equals": 5,
+            "value": false
+          },
+          {
+            "equals": 6,
+            "value": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "scene:binding.cell_pressed",
+      "name": "Held tile artwork",
+      "source": {
+        "kind": "interaction",
+        "property": "pressed",
+        "scope": "target",
+        "control": "mouse.button.primary"
+      },
+      "target": {
+        "selector": "topology_sites",
+        "node": "scene:board",
+        "visualizer": "sites",
+        "component": "cover_art",
+        "property": "pressed"
+      },
+      "transform": {
+        "kind": "direct"
+      }
+    },
+    {
+      "id": "scene:binding.face_status",
+      "name": "Smile, excited, winning or losing face",
+      "source": {
+        "kind": "expression",
+        "expression": {
+          "op": "if",
+          "args": [
+            {
+              "op": "eq",
+              "args": [
+                {
+                  "op": "read",
+                  "source": {
+                    "kind": "flow",
+                    "property": "outcome_status"
+                  }
+                },
+                {
+                  "op": "literal",
+                  "value": "loss"
+                }
+              ]
+            },
+            {
+              "op": "literal",
+              "value": "asset:face.dead"
+            },
+            {
+              "op": "if",
+              "args": [
+                {
+                  "op": "eq",
+                  "args": [
+                    {
+                      "op": "read",
+                      "source": {
+                        "kind": "flow",
+                        "property": "outcome_status"
+                      }
+                    },
+                    {
+                      "op": "literal",
+                      "value": "win"
+                    }
+                  ]
+                },
+                {
+                  "op": "literal",
+                  "value": "asset:face.winner"
+                },
+                {
+                  "op": "if",
+                  "args": [
+                    {
+                      "op": "read",
+                      "source": {
+                        "kind": "interaction",
+                        "property": "pressed",
+                        "scope": "any",
+                        "control": "mouse.button.primary",
+                        "node": "scene:board"
+                      }
+                    },
+                    {
+                      "op": "literal",
+                      "value": "asset:face.excited"
+                    },
+                    {
+                      "op": "literal",
+                      "value": "asset:face.smile"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "target": {
+        "selector": "node",
+        "node": "scene:face",
+        "component": "art",
+        "property": "texture"
+      },
+      "transform": {
+        "kind": "direct"
+      }
+    },
+    {
+      "id": "scene:binding.face_pressed",
+      "name": "Held reset face",
+      "source": {
+        "kind": "interaction",
+        "property": "pressed",
+        "scope": "target",
+        "control": "mouse.button.primary",
+        "node": "scene:face"
+      },
+      "target": {
+        "selector": "node",
+        "node": "scene:face",
+        "component": "art",
+        "property": "pressed"
+      },
+      "transform": {
+        "kind": "direct"
+      }
+    },
+    {
+      "id": "scene:binding.mines.hundreds",
+      "name": "Remaining mines hundreds",
+      "source": {
+        "kind": "expression",
+        "expression": {
+          "op": "max",
+          "args": [
+            {
+              "op": "literal",
+              "value": 0
+            },
+            {
+              "op": "subtract",
+              "args": [
+                {
+                  "op": "literal",
+                  "value": 10
+                },
+                {
+                  "op": "read",
+                  "source": {
+                    "kind": "state",
+                    "scope": "global",
+                    "variable": "rule:state.flags"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "target": {
+        "selector": "node",
+        "node": "scene:counter.mines.hundreds",
+        "component": "art",
+        "property": "texture"
+      },
+      "transform": {
+        "kind": "digit",
+        "place": 2,
+        "minimum": 0,
+        "maximum": 999,
+        "values": [
+          "asset:digit.zero",
+          "asset:digit.one",
+          "asset:digit.two",
+          "asset:digit.three",
+          "asset:digit.four",
+          "asset:digit.five",
+          "asset:digit.six",
+          "asset:digit.seven",
+          "asset:digit.eight",
+          "asset:digit.nine"
+        ]
+      }
+    },
+    {
+      "id": "scene:binding.mines.tens",
+      "name": "Remaining mines tens",
+      "source": {
+        "kind": "expression",
+        "expression": {
+          "op": "max",
+          "args": [
+            {
+              "op": "literal",
+              "value": 0
+            },
+            {
+              "op": "subtract",
+              "args": [
+                {
+                  "op": "literal",
+                  "value": 10
+                },
+                {
+                  "op": "read",
+                  "source": {
+                    "kind": "state",
+                    "scope": "global",
+                    "variable": "rule:state.flags"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "target": {
+        "selector": "node",
+        "node": "scene:counter.mines.tens",
+        "component": "art",
+        "property": "texture"
+      },
+      "transform": {
+        "kind": "digit",
+        "place": 1,
+        "minimum": 0,
+        "maximum": 999,
+        "values": [
+          "asset:digit.zero",
+          "asset:digit.one",
+          "asset:digit.two",
+          "asset:digit.three",
+          "asset:digit.four",
+          "asset:digit.five",
+          "asset:digit.six",
+          "asset:digit.seven",
+          "asset:digit.eight",
+          "asset:digit.nine"
+        ]
+      }
+    },
+    {
+      "id": "scene:binding.mines.units",
+      "name": "Remaining mines units",
+      "source": {
+        "kind": "expression",
+        "expression": {
+          "op": "max",
+          "args": [
+            {
+              "op": "literal",
+              "value": 0
+            },
+            {
+              "op": "subtract",
+              "args": [
+                {
+                  "op": "literal",
+                  "value": 10
+                },
+                {
+                  "op": "read",
+                  "source": {
+                    "kind": "state",
+                    "scope": "global",
+                    "variable": "rule:state.flags"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "target": {
+        "selector": "node",
+        "node": "scene:counter.mines.units",
+        "component": "art",
+        "property": "texture"
+      },
+      "transform": {
+        "kind": "digit",
+        "place": 0,
+        "minimum": 0,
+        "maximum": 999,
+        "values": [
+          "asset:digit.zero",
+          "asset:digit.one",
+          "asset:digit.two",
+          "asset:digit.three",
+          "asset:digit.four",
+          "asset:digit.five",
+          "asset:digit.six",
+          "asset:digit.seven",
+          "asset:digit.eight",
+          "asset:digit.nine"
+        ]
+      }
+    },
+    {
+      "id": "scene:binding.time.hundreds",
+      "name": "Elapsed seconds hundreds",
+      "source": {
+        "kind": "expression",
+        "expression": {
+          "op": "divide",
+          "args": [
+            {
+              "op": "read",
+              "source": {
+                "kind": "state",
+                "scope": "global",
+                "variable": "rule:state.elapsed_ticks"
+              }
+            },
+            {
+              "op": "literal",
+              "value": 60
+            }
+          ]
+        }
+      },
+      "target": {
+        "selector": "node",
+        "node": "scene:counter.time.hundreds",
+        "component": "art",
+        "property": "texture"
+      },
+      "transform": {
+        "kind": "digit",
+        "place": 2,
+        "minimum": 0,
+        "maximum": 999,
+        "values": [
+          "asset:digit.zero",
+          "asset:digit.one",
+          "asset:digit.two",
+          "asset:digit.three",
+          "asset:digit.four",
+          "asset:digit.five",
+          "asset:digit.six",
+          "asset:digit.seven",
+          "asset:digit.eight",
+          "asset:digit.nine"
+        ]
+      }
+    },
+    {
+      "id": "scene:binding.time.tens",
+      "name": "Elapsed seconds tens",
+      "source": {
+        "kind": "expression",
+        "expression": {
+          "op": "divide",
+          "args": [
+            {
+              "op": "read",
+              "source": {
+                "kind": "state",
+                "scope": "global",
+                "variable": "rule:state.elapsed_ticks"
+              }
+            },
+            {
+              "op": "literal",
+              "value": 60
+            }
+          ]
+        }
+      },
+      "target": {
+        "selector": "node",
+        "node": "scene:counter.time.tens",
+        "component": "art",
+        "property": "texture"
+      },
+      "transform": {
+        "kind": "digit",
+        "place": 1,
+        "minimum": 0,
+        "maximum": 999,
+        "values": [
+          "asset:digit.zero",
+          "asset:digit.one",
+          "asset:digit.two",
+          "asset:digit.three",
+          "asset:digit.four",
+          "asset:digit.five",
+          "asset:digit.six",
+          "asset:digit.seven",
+          "asset:digit.eight",
+          "asset:digit.nine"
+        ]
+      }
+    },
+    {
+      "id": "scene:binding.time.units",
+      "name": "Elapsed seconds units",
+      "source": {
+        "kind": "expression",
+        "expression": {
+          "op": "divide",
+          "args": [
+            {
+              "op": "read",
+              "source": {
+                "kind": "state",
+                "scope": "global",
+                "variable": "rule:state.elapsed_ticks"
+              }
+            },
+            {
+              "op": "literal",
+              "value": 60
+            }
+          ]
+        }
+      },
+      "target": {
+        "selector": "node",
+        "node": "scene:counter.time.units",
+        "component": "art",
+        "property": "texture"
+      },
+      "transform": {
+        "kind": "digit",
+        "place": 0,
+        "minimum": 0,
+        "maximum": 999,
+        "values": [
+          "asset:digit.zero",
+          "asset:digit.one",
+          "asset:digit.two",
+          "asset:digit.three",
+          "asset:digit.four",
+          "asset:digit.five",
+          "asset:digit.six",
+          "asset:digit.seven",
+          "asset:digit.eight",
+          "asset:digit.nine"
+        ]
+      }
+    }
+  ],
+  "provenance": {
+    "patch_history": [
+      {
+        "base_revision": 0,
+        "base_content_hash": "67c057f116ee0684925a588f3c417aba1c4df562310af9b111c00576670bb404",
+        "evidence": [
+          {
+            "evidence_id": "run_game.py:1-17@0d9c1899014279d13615849458126254a3fac9e54d7cd28aef6c7fb41aa3d03a",
+            "path": "run_game.py",
+            "file_sha256": "0d9c1899014279d13615849458126254a3fac9e54d7cd28aef6c7fb41aa3d03a",
+            "span": {
+              "line_start": 1,
+              "line_end": 17
+            },
+            "supports": "/scene_ir"
+          },
+          {
+            "evidence_id": "minesweeper/user_interface.py:1-70@3eda8eaeb4b8e12b397e397e305f662a027911d38c649d80f8f6b32d0f67f23a",
+            "path": "minesweeper/user_interface.py",
+            "file_sha256": "3eda8eaeb4b8e12b397e397e305f662a027911d38c649d80f8f6b32d0f67f23a",
+            "span": {
+              "line_start": 1,
+              "line_end": 70
+            },
+            "supports": "/scene_ir"
+          },
+          {
+            "evidence_id": "minesweeper/user_interface_board.py:1-152@1e552aa64378928d6297a68abee49dc425b20e6bd240a9752b92f549589c89fc",
+            "path": "minesweeper/user_interface_board.py",
+            "file_sha256": "1e552aa64378928d6297a68abee49dc425b20e6bd240a9752b92f549589c89fc",
+            "span": {
+              "line_start": 1,
+              "line_end": 152
+            },
+            "supports": "/scene_ir"
+          },
+          {
+            "evidence_id": "minesweeper/user_interface_face.py:1-88@9ffe4fbb299b21934f4ad01b2b4075beb09af5e37bd72ed970e90464f9f10f97",
+            "path": "minesweeper/user_interface_face.py",
+            "file_sha256": "9ffe4fbb299b21934f4ad01b2b4075beb09af5e37bd72ed970e90464f9f10f97",
+            "span": {
+              "line_start": 1,
+              "line_end": 88
+            },
+            "supports": "/scene_ir"
+          },
+          {
+            "evidence_id": "minesweeper/user_interface_score.py:1-76@eda7fdfc4640dbca70aebbe0278a70ea60c9867ad48371e6650d87250455fa1e",
+            "path": "minesweeper/user_interface_score.py",
+            "file_sha256": "eda7fdfc4640dbca70aebbe0278a70ea60c9867ad48371e6650d87250455fa1e",
+            "span": {
+              "line_start": 1,
+              "line_end": 76
+            },
+            "supports": "/scene_ir"
+          },
+          {
+            "evidence_id": "minesweeper/user_interface_frame.py:1-81@cdb5fd19fcfa47a34c1e461438fc3ea0d514a2e62e44def7cfeac961aa2828a2",
+            "path": "minesweeper/user_interface_frame.py",
+            "file_sha256": "cdb5fd19fcfa47a34c1e461438fc3ea0d514a2e62e44def7cfeac961aa2828a2",
+            "span": {
+              "line_start": 1,
+              "line_end": 81
+            },
+            "supports": "/scene_ir"
+          },
+          {
+            "evidence_id": "minesweeper/sprites/tile.py:1-199@95433703bbf3665d8abf4e41a3a22eb6687d2bf1625a2667ae8d75ff0024fd9f",
+            "path": "minesweeper/sprites/tile.py",
+            "file_sha256": "95433703bbf3665d8abf4e41a3a22eb6687d2bf1625a2667ae8d75ff0024fd9f",
+            "span": {
+              "line_start": 1,
+              "line_end": 199
+            },
+            "supports": "/scene_ir"
+          },
+          {
+            "evidence_id": "minesweeper/sprites/face.py:1-81@279d37b6d436e5620cd3e6639d185d4f52747872cda2a0aa05fcfdb6cccb0160",
+            "path": "minesweeper/sprites/face.py",
+            "file_sha256": "279d37b6d436e5620cd3e6639d185d4f52747872cda2a0aa05fcfdb6cccb0160",
+            "span": {
+              "line_start": 1,
+              "line_end": 81
+            },
+            "supports": "/scene_ir"
+          },
+          {
+            "evidence_id": "minesweeper/sprites/score.py:1-138@7820112dd83e64c9b5e567b9da9d8877a21474dce6f4635830e7fa4cdaae3ba8",
+            "path": "minesweeper/sprites/score.py",
+            "file_sha256": "7820112dd83e64c9b5e567b9da9d8877a21474dce6f4635830e7fa4cdaae3ba8",
+            "span": {
+              "line_start": 1,
+              "line_end": 138
+            },
+            "supports": "/scene_ir"
+          }
+        ],
+        "assumptions": [],
+        "operation_count": 7
+      }
+    ]
+  },
+  "unresolved": []
+}

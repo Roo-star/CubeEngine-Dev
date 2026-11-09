@@ -1,0 +1,379 @@
+{
+  "ir_version": "cubeengine.input-ir/2.0-alpha.1",
+  "document_id": "input:game.pygame.minesweeper.source",
+  "revision": 1,
+  "content_hash": "8822f11f8ad2e52a29a0e5709b2ac4e5748b43c6605c5bd8bcc2c7392823135b",
+  "metadata": {
+    "title": "Pygame Minesweeper",
+    "description": "Mouse controls for the basic minefield, smile-face reset button, and Escape to quit.",
+    "source_project_hash": "d65062d52fc1df68f5b218b30fcc063f669ed9c00754c79df979b1674df69a87"
+  },
+  "dependencies": {
+    "rule_ir": {
+      "document_id": "rule:game.pygame.minesweeper.source",
+      "content_hash": "81d8ca42578e227517c81878c0a9ddbbe4563982962693092fdf572f4fc41e1e"
+    },
+    "extensions": []
+  },
+  "contexts": [
+    {
+      "id": "input:context.game",
+      "name": "Minefield and reset button",
+      "priority": 100,
+      "enabled_by_default": true,
+      "focus": "viewport",
+      "consume_policy": "first_legal",
+      "exclusive_group": null
+    },
+    {
+      "id": "input:context.lifecycle",
+      "name": "Application controls",
+      "priority": 200,
+      "enabled_by_default": true,
+      "focus": "global",
+      "consume_policy": "binding",
+      "exclusive_group": null
+    }
+  ],
+  "intents": [
+    {
+      "id": "input:intent.first_reveal",
+      "name": "Open first covered tile",
+      "value_type": "pointer",
+      "required": true,
+      "target": {
+        "kind": "rule_action",
+        "action": "rule:action.first_reveal",
+        "parameters": {
+          "coordinate": {
+            "source": "event_data",
+            "value_type": "core:coord",
+            "key": "rule_coordinate"
+          }
+        }
+      }
+    },
+    {
+      "id": "input:intent.reveal",
+      "name": "Open covered tile",
+      "value_type": "pointer",
+      "required": true,
+      "target": {
+        "kind": "rule_action",
+        "action": "rule:action.reveal",
+        "parameters": {
+          "coordinate": {
+            "source": "event_data",
+            "value_type": "core:coord",
+            "key": "rule_coordinate"
+          }
+        }
+      }
+    },
+    {
+      "id": "input:intent.clear_question",
+      "name": "Remove question mark with left click",
+      "value_type": "pointer",
+      "required": true,
+      "target": {
+        "kind": "rule_action",
+        "action": "rule:action.clear_question",
+        "parameters": {
+          "coordinate": {
+            "source": "event_data",
+            "value_type": "core:coord",
+            "key": "rule_coordinate"
+          }
+        }
+      }
+    },
+    {
+      "id": "input:intent.cycle_mark",
+      "name": "Cycle flag and question mark with right click",
+      "value_type": "pointer",
+      "required": true,
+      "target": {
+        "kind": "rule_action",
+        "action": "rule:action.cycle_mark",
+        "parameters": {
+          "coordinate": {
+            "source": "event_data",
+            "value_type": "core:coord",
+            "key": "rule_coordinate"
+          }
+        }
+      }
+    },
+    {
+      "id": "input:intent.restart",
+      "name": "Reset game using smile face",
+      "value_type": "digital",
+      "required": true,
+      "target": {
+        "kind": "host_command",
+        "command": "restart"
+      }
+    },
+    {
+      "id": "input:intent.quit",
+      "name": "Quit using Escape",
+      "value_type": "digital",
+      "required": true,
+      "target": {
+        "kind": "host_command",
+        "command": "quit"
+      }
+    }
+  ],
+  "bindings": [
+    {
+      "id": "input:binding.first_reveal",
+      "name": "Left-click first covered tile",
+      "context": "input:context.game",
+      "intent": "input:intent.first_reveal",
+      "priority": 40,
+      "enabled": true,
+      "consume": true,
+      "rebindable": true,
+      "slot": "primary",
+      "accessibility_label": "Left-click a covered tile to begin safely",
+      "trigger": {
+        "kind": "control",
+        "device": "mouse",
+        "control": "mouse.button.primary",
+        "phase": "release",
+        "modifiers": [],
+        "modifier_policy": "exact",
+        "pointer": {
+          "node": "scene:board",
+          "subtree": true,
+          "topology": "rule:topology.board",
+          "gesture": "click"
+        }
+      },
+      "processing": {
+        "dead_zone": 0,
+        "sensitivity_numerator": 1,
+        "sensitivity_denominator": 1,
+        "invert": false,
+        "clamp_min": 0,
+        "clamp_max": 1
+      }
+    },
+    {
+      "id": "input:binding.reveal",
+      "name": "Left-click covered tile",
+      "context": "input:context.game",
+      "intent": "input:intent.reveal",
+      "priority": 30,
+      "enabled": true,
+      "consume": true,
+      "rebindable": true,
+      "slot": "primary",
+      "accessibility_label": "Left-click a covered tile to reveal it",
+      "trigger": {
+        "kind": "control",
+        "device": "mouse",
+        "control": "mouse.button.primary",
+        "phase": "release",
+        "modifiers": [],
+        "modifier_policy": "exact",
+        "pointer": {
+          "node": "scene:board",
+          "subtree": true,
+          "topology": "rule:topology.board",
+          "gesture": "click"
+        }
+      },
+      "processing": {
+        "dead_zone": 0,
+        "sensitivity_numerator": 1,
+        "sensitivity_denominator": 1,
+        "invert": false,
+        "clamp_min": 0,
+        "clamp_max": 1
+      }
+    },
+    {
+      "id": "input:binding.clear_question",
+      "name": "Left-click questioned tile",
+      "context": "input:context.game",
+      "intent": "input:intent.clear_question",
+      "priority": 20,
+      "enabled": true,
+      "consume": true,
+      "rebindable": true,
+      "slot": "primary",
+      "accessibility_label": "Left-click a question mark to remove it",
+      "trigger": {
+        "kind": "control",
+        "device": "mouse",
+        "control": "mouse.button.primary",
+        "phase": "release",
+        "modifiers": [],
+        "modifier_policy": "exact",
+        "pointer": {
+          "node": "scene:board",
+          "subtree": true,
+          "topology": "rule:topology.board",
+          "gesture": "click"
+        }
+      },
+      "processing": {
+        "dead_zone": 0,
+        "sensitivity_numerator": 1,
+        "sensitivity_denominator": 1,
+        "invert": false,
+        "clamp_min": 0,
+        "clamp_max": 1
+      }
+    },
+    {
+      "id": "input:binding.cycle_mark",
+      "name": "Right-click tile",
+      "context": "input:context.game",
+      "intent": "input:intent.cycle_mark",
+      "priority": 50,
+      "enabled": true,
+      "consume": true,
+      "rebindable": true,
+      "slot": "primary",
+      "accessibility_label": "Right-click a tile to cycle covered, flag, and question mark",
+      "trigger": {
+        "kind": "control",
+        "device": "mouse",
+        "control": "mouse.button.secondary",
+        "phase": "release",
+        "modifiers": [],
+        "modifier_policy": "exact",
+        "pointer": {
+          "node": "scene:board",
+          "subtree": true,
+          "topology": "rule:topology.board",
+          "gesture": "click"
+        }
+      },
+      "processing": {
+        "dead_zone": 0,
+        "sensitivity_numerator": 1,
+        "sensitivity_denominator": 1,
+        "invert": false,
+        "clamp_min": 0,
+        "clamp_max": 1
+      }
+    },
+    {
+      "id": "input:binding.restart",
+      "name": "Click smile face to reset",
+      "context": "input:context.game",
+      "intent": "input:intent.restart",
+      "priority": 100,
+      "enabled": true,
+      "consume": true,
+      "rebindable": false,
+      "slot": "primary",
+      "accessibility_label": "Click the smile face to start a new game",
+      "trigger": {
+        "kind": "control",
+        "device": "mouse",
+        "control": "mouse.button.primary",
+        "phase": "release",
+        "modifiers": [],
+        "modifier_policy": "exact",
+        "pointer": {
+          "node": "scene:face",
+          "gesture": "click"
+        }
+      },
+      "processing": {
+        "dead_zone": 0,
+        "sensitivity_numerator": 1,
+        "sensitivity_denominator": 1,
+        "invert": false,
+        "clamp_min": 0,
+        "clamp_max": 1
+      }
+    },
+    {
+      "id": "input:binding.quit",
+      "name": "Escape quits",
+      "context": "input:context.lifecycle",
+      "intent": "input:intent.quit",
+      "priority": 100,
+      "enabled": true,
+      "consume": true,
+      "rebindable": false,
+      "slot": "primary",
+      "accessibility_label": "Press Escape to close the game",
+      "trigger": {
+        "kind": "control",
+        "device": "keyboard",
+        "control": "keyboard.key.escape",
+        "phase": "press",
+        "modifiers": [],
+        "modifier_policy": "exact"
+      },
+      "processing": {
+        "dead_zone": 0,
+        "sensitivity_numerator": 1,
+        "sensitivity_denominator": 1,
+        "invert": false,
+        "clamp_min": 0,
+        "clamp_max": 1
+      }
+    }
+  ],
+  "provenance": {
+    "patch_history": [
+      {
+        "base_revision": 0,
+        "base_content_hash": "ea1484fdcb40508901f23bd65e0fc88a70a5b0b19528253506af409f3d52bfad",
+        "evidence": [
+          {
+            "evidence_id": "minesweeper/__main__.py:1-168@c734448d03ecdb6ef6693a03e5d711ec2d27145d13ba38b6455271c50677cd5a",
+            "path": "minesweeper/__main__.py",
+            "file_sha256": "c734448d03ecdb6ef6693a03e5d711ec2d27145d13ba38b6455271c50677cd5a",
+            "span": {
+              "line_start": 1,
+              "line_end": 168
+            },
+            "supports": "/input_ir"
+          },
+          {
+            "evidence_id": "minesweeper/user_interface.py:1-70@3eda8eaeb4b8e12b397e397e305f662a027911d38c649d80f8f6b32d0f67f23a",
+            "path": "minesweeper/user_interface.py",
+            "file_sha256": "3eda8eaeb4b8e12b397e397e305f662a027911d38c649d80f8f6b32d0f67f23a",
+            "span": {
+              "line_start": 1,
+              "line_end": 70
+            },
+            "supports": "/input_ir"
+          },
+          {
+            "evidence_id": "minesweeper/user_interface_board.py:1-152@1e552aa64378928d6297a68abee49dc425b20e6bd240a9752b92f549589c89fc",
+            "path": "minesweeper/user_interface_board.py",
+            "file_sha256": "1e552aa64378928d6297a68abee49dc425b20e6bd240a9752b92f549589c89fc",
+            "span": {
+              "line_start": 1,
+              "line_end": 152
+            },
+            "supports": "/input_ir"
+          },
+          {
+            "evidence_id": "minesweeper/user_interface_face.py:1-88@9ffe4fbb299b21934f4ad01b2b4075beb09af5e37bd72ed970e90464f9f10f97",
+            "path": "minesweeper/user_interface_face.py",
+            "file_sha256": "9ffe4fbb299b21934f4ad01b2b4075beb09af5e37bd72ed970e90464f9f10f97",
+            "span": {
+              "line_start": 1,
+              "line_end": 88
+            },
+            "supports": "/input_ir"
+          }
+        ],
+        "assumptions": [],
+        "operation_count": 6
+      }
+    ]
+  },
+  "unresolved": []
+}

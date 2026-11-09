@@ -12,6 +12,10 @@ import httpx
 from .env import load_compiler_env, openrouter_api_key
 
 OPENROUTER_RESPONSES_URL = "https://openrouter.ai/api/v1/responses"
+OPENROUTER_KEY_URL = "https://openrouter.ai/api/v1/key"          # free: the key's remaining limit
+OPENROUTER_CREDITS_URL = "https://openrouter.ai/api/v1/credits"  # free: account credits and usage
+# Output tokens a typical stage reply uses, for planning only (recorded replies: at most ~7.7k).
+PLANNING_OUTPUT_TOKENS = 8000
 DEFAULT_MODEL = "openai/gpt-6-sol"
 DEFAULT_HTTP_TIMEOUT_S = 180.0
 # Responses counts reasoning and visible output against this budget.
@@ -171,6 +175,10 @@ class OpenRouterLLMClient:
         # provider, so their shared prompt prefix is read from its cache. Not part of
         # cache_identity (checkpoints stay valid across jobs).
         self.session_id = None
+        # Paid requests the current job still needs at least (set by the staged pipeline once
+        # its checkpoint is matched); checked against limits and credits before the first send.
+        self.planned_requests = None
+        self.plan_check = None
         self.output_format = "auto"
         self._schema_supported = True
 
@@ -183,6 +191,8 @@ class OpenRouterLLMClient:
 
     def __enter__(self):
         self.http_requests = 0
+        self.planned_requests = None
+        self.plan_check = None
         self.usage_summary = {'http_requests':0, 'input_tokens':0, 'cached_input_tokens':0, 'output_tokens':0, 'reported_cost_usd':None}
         from .budget import CostBudget
         try:
@@ -330,6 +340,8 @@ class OpenRouterLLMClient:
             self.budget.before_request(_estimated_tokens(payload.get('input')),
                                        max_output_tokens=payload.get('max_output_tokens'),
                                        input_tokens_upper=_input_tokens_upper_bound(payload))
+            if self.plan_check is None:
+                self._check_run_plan(payload)
             self.http_requests += 1
             self.usage_summary['http_requests'] = self.http_requests
             try:
@@ -400,6 +412,72 @@ class OpenRouterLLMClient:
             failure = LLMTransportError("OpenRouter HTTP {0}: {1} HTTP attempts: {2}.{3}".format(status, detail, attempt + 1, suffix))
             failure.kind = kind  # type: ignore[attr-defined]
             raise failure
+
+
+    def account_headroom(self):
+        """US$ this key may still spend (key limit and account credits, whichever is lower), or None.
+
+        Both endpoints are free and generate nothing. Any failure returns None, so an
+        unknown balance never blocks a run; OpenRouter still refuses what credits cannot cover.
+        """
+        if self._client is None:
+            return None
+        values = []
+        for url, read in ((OPENROUTER_KEY_URL, lambda data: data.get("limit_remaining")),
+                          (OPENROUTER_CREDITS_URL, lambda data: (data.get("total_credits") - data.get("total_usage"))
+                           if all(type(data.get(k)) in (int, float) for k in ("total_credits", "total_usage")) else None)):
+            try:
+                response = self._client.get(url)
+                data = response.json().get("data") if response.is_success else None
+                value = read(data) if isinstance(data, dict) else None
+            except Exception:  # noqa: BLE001 - advisory: an unknown balance never blocks or breaks a run
+                value = None
+            if type(value) in (int, float):
+                values.append(float(value))
+        return min(values) if values else None
+
+    def _check_run_plan(self, payload):
+        """Before the job's first paid request: can the limits and credits cover the stages it still needs?
+
+        The estimate is this request's input upper bound at list price plus a typical reply
+        (PLANNING_OUTPUT_TOKENS), times the minimum number of paid requests left. Repairs come
+        on top, so passing this check does not guarantee the run finishes; failing it means the
+        run would stop part-way, so nothing is sent.
+        """
+        planned = self.planned_requests
+        check = {"planned_requests": planned}
+        self.plan_check = check
+        if not planned:
+            return
+        if self.http_requests + planned > self.max_requests:
+            message = ("Run plan: at least {0} paid request(s) are still needed but CUBEENGINE_LLM_MAX_REQUESTS={1} "
+                       "allows {2}. Nothing was sent; raise the limit to at least {3}.").format(
+                           planned, self.max_requests, max(0, self.max_requests - self.http_requests),
+                           self.http_requests + planned)
+            check["stopped"] = message
+            raise LLMCostBudgetExceeded(message)
+        each = self.budget.worst_case(_input_tokens_upper_bound(payload),
+                                      min(PLANNING_OUTPUT_TOKENS, int(payload.get("max_output_tokens") or self.max_tokens)))
+        if each is None:
+            return
+        need = each * planned
+        check.update(estimate_per_request_usd=round(each, 4), estimate_usd=round(need, 4))
+        if self.budget.total is not None and self.budget.spent + need > self.budget.total:
+            message = ("Run plan: {0} remaining paid request(s) are estimated at US${1:.2f} (US${2:.3f} each, before "
+                       "repairs) but CUBEENGINE_LLM_MAX_COST_USD leaves US${3:.2f}. Nothing was sent.").format(
+                           planned, need, each, max(0.0, self.budget.total - self.budget.spent))
+            check["stopped"] = message
+            raise LLMCostBudgetExceeded(message)
+        if os.environ.get("CUBEENGINE_LLM_SKIP_CREDIT_CHECK", "").strip() == "1":
+            return
+        headroom = self.account_headroom()
+        check["account_headroom_usd"] = None if headroom is None else round(headroom, 4)
+        if headroom is not None and headroom < need:
+            message = ("Run plan: {0} remaining paid request(s) are estimated at US${1:.2f} (before repairs) but the "
+                       "OpenRouter key/credits allow US${2:.2f}. Nothing was sent; add credits or raise the key "
+                       "limit, then Continue.").format(planned, need, headroom)
+            check["stopped"] = message
+            raise LLMCostBudgetExceeded(message)
 
 
 def _output_texts(body: Mapping[str, Any]) -> List[str]:

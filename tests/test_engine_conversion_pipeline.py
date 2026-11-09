@@ -12,6 +12,7 @@ from srtp.source_importer import SourceGameImporter
 from srtp.ir_v2.expression import ExpressionEvaluator, EvaluationContext
 from srtp.ir_v2.sequence_functions import merge_equal
 from srtp.ir_v2 import compile_rule_ir
+from srtp.llm_compiler_v1.source_workspace import stage_payload
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -147,7 +148,7 @@ class StagedCompilerTests(unittest.TestCase):
         package = SourceGameImporter().import_path(ROOT/'srtp/reference_games/pygame_tictactoe/main.py')
         calls = []
         def chat(messages, **kwargs):
-            payload = json.loads(messages[-1]['content'])
+            payload = stage_payload(messages)
             slot = payload['stage']
             calls.append(slot)
             self.assertTrue(payload['source_workspace']['source'][0]['text'])

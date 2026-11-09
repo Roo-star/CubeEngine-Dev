@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "assets": [
+    {
+      "uri": "project://minesweeper/images/minesweeper-sprites.png",
+      "content_hash": "8e854a539350464bff4631e8c1f9234236f515bec833a237fe9e60232ebb1329",
+      "byte_size": 58599
+    },
+    {
+      "uri": "project://minesweeper/images/faces/2000.png",
+      "content_hash": "762a6f60aa3122605650bf629fa58482852c83034f935aec084da1f9b46e7419",
+      "byte_size": 654
+    },
+    {
+      "uri": "project://minesweeper/images/faces/monochrome.png",
+      "content_hash": "85f47550013452df2212b0b4c6f16c79eed07b01a0f6ed208152582eea73f6f5",
+      "byte_size": 650
+    },
+    {
+      "uri": "project://minesweeper/images/scores/2000.png",
+      "content_hash": "1618527371caf7632a063349982f22ac5c041ad32bdba3929d56c836efdbe44e",
+      "byte_size": 10479
+    },
+    {
+      "uri": "project://minesweeper/images/scores/monochrome.png",
+      "content_hash": "a7579c08e9c4705ea64551780e23e1bb6eb0ed8988cfdfad4c74a8b35b3d311d",
+      "byte_size": 419
+    },
+    {
+      "uri": "project://minesweeper/images/tiles/2.0.png",
+      "content_hash": "98421b004b558d8e6a672c8a8772f75f5f91c74ae433b07edd23b1ef0983ccff",
+      "byte_size": 945
+    },
+    {
+      "uri": "project://minesweeper/images/tiles/2.9.png",
+      "content_hash": "c8f1424b05261f42254f7e5b7320a77bcfe8157aea90fcfec3e017dba5515992",
+      "byte_size": 880
+    },
+    {
+      "uri": "project://minesweeper/images/tiles/2000.png",
+      "content_hash": "fe658c317f759c45cfedd3802bac9b2cf47e139c0670fe67214bac512e99e648",
+      "byte_size": 1222
+    },
+    {
+      "uri": "project://minesweeper/images/tiles/95.png",
+      "content_hash": "22d0e0898f53e527ddee310a3e12ea55b328c9f11f57df82035ffef3d6e957f0",
+      "byte_size": 973
+    },
+    {
+      "uri": "project://minesweeper/images/tiles/fiorito-2000.png",
+      "content_hash": "0a968bd423d2a2ea24151840b90ebe8615bbb5243b727f613cb8591482d6788b",
+      "byte_size": 902
+    },
+    {
+      "uri": "project://minesweeper/images/tiles/fiorito-monochrome.png",
+      "content_hash": "b7a957a3b1fdfd3f4812db004bc6f70f8b7115d8ac2359510d331b88b75f6fd6",
+      "byte_size": 912
+    },
+    {
+      "uri": "project://minesweeper/images/tiles/fiorito-xp.png",
+      "content_hash": "75e13de3c3d40787cb8ce23d1c877d3e11007caccfd59e7d07f87d185880bb62",
+      "byte_size": 885
+    },
+    {
+      "uri": "project://minesweeper/images/tiles/monochrome.png",
+      "content_hash": "a47ac8078051a43a3960f228e7aad6657b5238f20a3579a773dd6b8012028bc3",
+      "byte_size": 712
+    }
+  ]
+}

@@ -1,0 +1,1757 @@
+{
+  "ir_version": "cubeengine.asset-ir/2.0-alpha.1",
+  "document_id": "asset:game.pygame.minesweeper.source",
+  "revision": 1,
+  "content_hash": "922fdbd900702dc3281ad2dbb165576d0ccf1480367b3457e478cebe90652263",
+  "metadata": {
+    "title": "Pygame Minesweeper",
+    "description": "Source sprite-sheet regions for the basic game's tiles, face button and three-digit counters, with source-tile projections for spatial cells. Shipped image assets remain engine-owned.",
+    "source_project_hash": "d65062d52fc1df68f5b218b30fcc063f669ed9c00754c79df979b1674df69a87"
+  },
+  "assets": [
+    {
+      "id": "asset:image.minesweeper.images.minesweeper_sprites",
+      "name": "minesweeper-sprites.png",
+      "kind": "image",
+      "media_type": "image/png",
+      "source": {
+        "uri": "project://minesweeper/images/minesweeper-sprites.png",
+        "content_hash": "8e854a539350464bff4631e8c1f9234236f515bec833a237fe9e60232ebb1329",
+        "byte_size": 58599
+      },
+      "license": {
+        "spdx_id": "MIT",
+        "attribution": "Source project Pygame Minesweeper; per-file license not verified",
+        "source_uri": null,
+        "redistribution": "unknown"
+      },
+      "importer": {
+        "capability": "cubeengine.image",
+        "version": "1.0",
+        "settings": {}
+      },
+      "metadata": {
+        "engine_fact": "source_file",
+        "referenced_by": [
+          {
+            "path": "minesweeper/sprites/spritesheet.py",
+            "file_sha256": "3b875b93fdaf2cc6fb38ac2e4bdc2d1cd56667bba72a626a36b9dfeb28b0ad4b",
+            "line_start": 74,
+            "line_end": 74
+          }
+        ]
+      }
+    },
+    {
+      "id": "asset:image.minesweeper.images.faces.2000",
+      "name": "2000.png",
+      "kind": "image",
+      "media_type": "image/png",
+      "source": {
+        "uri": "project://minesweeper/images/faces/2000.png",
+        "content_hash": "762a6f60aa3122605650bf629fa58482852c83034f935aec084da1f9b46e7419",
+        "byte_size": 654
+      },
+      "license": {
+        "spdx_id": "MIT",
+        "attribution": "Source project Pygame Minesweeper; per-file license not verified",
+        "source_uri": null,
+        "redistribution": "unknown"
+      },
+      "importer": {
+        "capability": "cubeengine.image",
+        "version": "1.0",
+        "settings": {}
+      },
+      "metadata": {
+        "engine_fact": "source_file",
+        "referenced_by": [
+          {
+            "path": "minesweeper/sprites/spritesheet.py",
+            "file_sha256": "3b875b93fdaf2cc6fb38ac2e4bdc2d1cd56667bba72a626a36b9dfeb28b0ad4b",
+            "line_start": 78,
+            "line_end": 78
+          }
+        ]
+      }
+    },
+    {
+      "id": "asset:image.minesweeper.images.faces.monochrome",
+      "name": "monochrome.png",
+      "kind": "image",
+      "media_type": "image/png",
+      "source": {
+        "uri": "project://minesweeper/images/faces/monochrome.png",
+        "content_hash": "85f47550013452df2212b0b4c6f16c79eed07b01a0f6ed208152582eea73f6f5",
+        "byte_size": 650
+      },
+      "license": {
+        "spdx_id": "MIT",
+        "attribution": "Source project Pygame Minesweeper; per-file license not verified",
+        "source_uri": null,
+        "redistribution": "unknown"
+      },
+      "importer": {
+        "capability": "cubeengine.image",
+        "version": "1.0",
+        "settings": {}
+      },
+      "metadata": {
+        "engine_fact": "source_file",
+        "referenced_by": [
+          {
+            "path": "minesweeper/sprites/spritesheet.py",
+            "file_sha256": "3b875b93fdaf2cc6fb38ac2e4bdc2d1cd56667bba72a626a36b9dfeb28b0ad4b",
+            "line_start": 78,
+            "line_end": 78
+          }
+        ]
+      }
+    },
+    {
+      "id": "asset:image.minesweeper.images.scores.2000",
+      "name": "2000.png",
+      "kind": "image",
+      "media_type": "image/png",
+      "source": {
+        "uri": "project://minesweeper/images/scores/2000.png",
+        "content_hash": "1618527371caf7632a063349982f22ac5c041ad32bdba3929d56c836efdbe44e",
+        "byte_size": 10479
+      },
+      "license": {
+        "spdx_id": "MIT",
+        "attribution": "Source project Pygame Minesweeper; per-file license not verified",
+        "source_uri": null,
+        "redistribution": "unknown"
+      },
+      "importer": {
+        "capability": "cubeengine.image",
+        "version": "1.0",
+        "settings": {}
+      },
+      "metadata": {
+        "engine_fact": "source_file",
+        "referenced_by": [
+          {
+            "path": "minesweeper/sprites/spritesheet.py",
+            "file_sha256": "3b875b93fdaf2cc6fb38ac2e4bdc2d1cd56667bba72a626a36b9dfeb28b0ad4b",
+            "line_start": 82,
+            "line_end": 82
+          }
+        ]
+      }
+    },
+    {
+      "id": "asset:image.minesweeper.images.scores.monochrome",
+      "name": "monochrome.png",
+      "kind": "image",
+      "media_type": "image/png",
+      "source": {
+        "uri": "project://minesweeper/images/scores/monochrome.png",
+        "content_hash": "a7579c08e9c4705ea64551780e23e1bb6eb0ed8988cfdfad4c74a8b35b3d311d",
+        "byte_size": 419
+      },
+      "license": {
+        "spdx_id": "MIT",
+        "attribution": "Source project Pygame Minesweeper; per-file license not verified",
+        "source_uri": null,
+        "redistribution": "unknown"
+      },
+      "importer": {
+        "capability": "cubeengine.image",
+        "version": "1.0",
+        "settings": {}
+      },
+      "metadata": {
+        "engine_fact": "source_file",
+        "referenced_by": [
+          {
+            "path": "minesweeper/sprites/spritesheet.py",
+            "file_sha256": "3b875b93fdaf2cc6fb38ac2e4bdc2d1cd56667bba72a626a36b9dfeb28b0ad4b",
+            "line_start": 82,
+            "line_end": 82
+          }
+        ]
+      }
+    },
+    {
+      "id": "asset:image.minesweeper.images.tiles.2_0",
+      "name": "2.0.png",
+      "kind": "image",
+      "media_type": "image/png",
+      "source": {
+        "uri": "project://minesweeper/images/tiles/2.0.png",
+        "content_hash": "98421b004b558d8e6a672c8a8772f75f5f91c74ae433b07edd23b1ef0983ccff",
+        "byte_size": 945
+      },
+      "license": {
+        "spdx_id": "MIT",
+        "attribution": "Source project Pygame Minesweeper; per-file license not verified",
+        "source_uri": null,
+        "redistribution": "unknown"
+      },
+      "importer": {
+        "capability": "cubeengine.image",
+        "version": "1.0",
+        "settings": {}
+      },
+      "metadata": {
+        "engine_fact": "source_file",
+        "referenced_by": [
+          {
+            "path": "minesweeper/sprites/spritesheet.py",
+            "file_sha256": "3b875b93fdaf2cc6fb38ac2e4bdc2d1cd56667bba72a626a36b9dfeb28b0ad4b",
+            "line_start": 86,
+            "line_end": 86
+          }
+        ]
+      }
+    },
+    {
+      "id": "asset:image.minesweeper.images.tiles.2_9",
+      "name": "2.9.png",
+      "kind": "image",
+      "media_type": "image/png",
+      "source": {
+        "uri": "project://minesweeper/images/tiles/2.9.png",
+        "content_hash": "c8f1424b05261f42254f7e5b7320a77bcfe8157aea90fcfec3e017dba5515992",
+        "byte_size": 880
+      },
+      "license": {
+        "spdx_id": "MIT",
+        "attribution": "Source project Pygame Minesweeper; per-file license not verified",
+        "source_uri": null,
+        "redistribution": "unknown"
+      },
+      "importer": {
+        "capability": "cubeengine.image",
+        "version": "1.0",
+        "settings": {}
+      },
+      "metadata": {
+        "engine_fact": "source_file",
+        "referenced_by": [
+          {
+            "path": "minesweeper/sprites/spritesheet.py",
+            "file_sha256": "3b875b93fdaf2cc6fb38ac2e4bdc2d1cd56667bba72a626a36b9dfeb28b0ad4b",
+            "line_start": 86,
+            "line_end": 86
+          }
+        ]
+      }
+    },
+    {
+      "id": "asset:image.minesweeper.images.tiles.2000",
+      "name": "2000.png",
+      "kind": "image",
+      "media_type": "image/png",
+      "source": {
+        "uri": "project://minesweeper/images/tiles/2000.png",
+        "content_hash": "fe658c317f759c45cfedd3802bac9b2cf47e139c0670fe67214bac512e99e648",
+        "byte_size": 1222
+      },
+      "license": {
+        "spdx_id": "MIT",
+        "attribution": "Source project Pygame Minesweeper; per-file license not verified",
+        "source_uri": null,
+        "redistribution": "unknown"
+      },
+      "importer": {
+        "capability": "cubeengine.image",
+        "version": "1.0",
+        "settings": {}
+      },
+      "metadata": {
+        "engine_fact": "source_file",
+        "referenced_by": [
+          {
+            "path": "minesweeper/sprites/spritesheet.py",
+            "file_sha256": "3b875b93fdaf2cc6fb38ac2e4bdc2d1cd56667bba72a626a36b9dfeb28b0ad4b",
+            "line_start": 86,
+            "line_end": 86
+          }
+        ]
+      }
+    },
+    {
+      "id": "asset:image.minesweeper.images.tiles.95",
+      "name": "95.png",
+      "kind": "image",
+      "media_type": "image/png",
+      "source": {
+        "uri": "project://minesweeper/images/tiles/95.png",
+        "content_hash": "22d0e0898f53e527ddee310a3e12ea55b328c9f11f57df82035ffef3d6e957f0",
+        "byte_size": 973
+      },
+      "license": {
+        "spdx_id": "MIT",
+        "attribution": "Source project Pygame Minesweeper; per-file license not verified",
+        "source_uri": null,
+        "redistribution": "unknown"
+      },
+      "importer": {
+        "capability": "cubeengine.image",
+        "version": "1.0",
+        "settings": {}
+      },
+      "metadata": {
+        "engine_fact": "source_file",
+        "referenced_by": [
+          {
+            "path": "minesweeper/sprites/spritesheet.py",
+            "file_sha256": "3b875b93fdaf2cc6fb38ac2e4bdc2d1cd56667bba72a626a36b9dfeb28b0ad4b",
+            "line_start": 86,
+            "line_end": 86
+          }
+        ]
+      }
+    },
+    {
+      "id": "asset:image.minesweeper.images.tiles.fiorito_2000",
+      "name": "fiorito-2000.png",
+      "kind": "image",
+      "media_type": "image/png",
+      "source": {
+        "uri": "project://minesweeper/images/tiles/fiorito-2000.png",
+        "content_hash": "0a968bd423d2a2ea24151840b90ebe8615bbb5243b727f613cb8591482d6788b",
+        "byte_size": 902
+      },
+      "license": {
+        "spdx_id": "MIT",
+        "attribution": "Source project Pygame Minesweeper; per-file license not verified",
+        "source_uri": null,
+        "redistribution": "unknown"
+      },
+      "importer": {
+        "capability": "cubeengine.image",
+        "version": "1.0",
+        "settings": {}
+      },
+      "metadata": {
+        "engine_fact": "source_file",
+        "referenced_by": [
+          {
+            "path": "minesweeper/sprites/spritesheet.py",
+            "file_sha256": "3b875b93fdaf2cc6fb38ac2e4bdc2d1cd56667bba72a626a36b9dfeb28b0ad4b",
+            "line_start": 86,
+            "line_end": 86
+          }
+        ]
+      }
+    },
+    {
+      "id": "asset:image.minesweeper.images.tiles.fiorito_monochrome",
+      "name": "fiorito-monochrome.png",
+      "kind": "image",
+      "media_type": "image/png",
+      "source": {
+        "uri": "project://minesweeper/images/tiles/fiorito-monochrome.png",
+        "content_hash": "b7a957a3b1fdfd3f4812db004bc6f70f8b7115d8ac2359510d331b88b75f6fd6",
+        "byte_size": 912
+      },
+      "license": {
+        "spdx_id": "MIT",
+        "attribution": "Source project Pygame Minesweeper; per-file license not verified",
+        "source_uri": null,
+        "redistribution": "unknown"
+      },
+      "importer": {
+        "capability": "cubeengine.image",
+        "version": "1.0",
+        "settings": {}
+      },
+      "metadata": {
+        "engine_fact": "source_file",
+        "referenced_by": [
+          {
+            "path": "minesweeper/sprites/spritesheet.py",
+            "file_sha256": "3b875b93fdaf2cc6fb38ac2e4bdc2d1cd56667bba72a626a36b9dfeb28b0ad4b",
+            "line_start": 86,
+            "line_end": 86
+          }
+        ]
+      }
+    },
+    {
+      "id": "asset:image.minesweeper.images.tiles.fiorito_xp",
+      "name": "fiorito-xp.png",
+      "kind": "image",
+      "media_type": "image/png",
+      "source": {
+        "uri": "project://minesweeper/images/tiles/fiorito-xp.png",
+        "content_hash": "75e13de3c3d40787cb8ce23d1c877d3e11007caccfd59e7d07f87d185880bb62",
+        "byte_size": 885
+      },
+      "license": {
+        "spdx_id": "MIT",
+        "attribution": "Source project Pygame Minesweeper; per-file license not verified",
+        "source_uri": null,
+        "redistribution": "unknown"
+      },
+      "importer": {
+        "capability": "cubeengine.image",
+        "version": "1.0",
+        "settings": {}
+      },
+      "metadata": {
+        "engine_fact": "source_file",
+        "referenced_by": [
+          {
+            "path": "minesweeper/sprites/spritesheet.py",
+            "file_sha256": "3b875b93fdaf2cc6fb38ac2e4bdc2d1cd56667bba72a626a36b9dfeb28b0ad4b",
+            "line_start": 86,
+            "line_end": 86
+          }
+        ]
+      }
+    },
+    {
+      "id": "asset:image.minesweeper.images.tiles.monochrome",
+      "name": "monochrome.png",
+      "kind": "image",
+      "media_type": "image/png",
+      "source": {
+        "uri": "project://minesweeper/images/tiles/monochrome.png",
+        "content_hash": "a47ac8078051a43a3960f228e7aad6657b5238f20a3579a773dd6b8012028bc3",
+        "byte_size": 712
+      },
+      "license": {
+        "spdx_id": "MIT",
+        "attribution": "Source project Pygame Minesweeper; per-file license not verified",
+        "source_uri": null,
+        "redistribution": "unknown"
+      },
+      "importer": {
+        "capability": "cubeengine.image",
+        "version": "1.0",
+        "settings": {}
+      },
+      "metadata": {
+        "engine_fact": "source_file",
+        "referenced_by": [
+          {
+            "path": "minesweeper/sprites/spritesheet.py",
+            "file_sha256": "3b875b93fdaf2cc6fb38ac2e4bdc2d1cd56667bba72a626a36b9dfeb28b0ad4b",
+            "line_start": 86,
+            "line_end": 86
+          }
+        ]
+      }
+    }
+  ],
+  "derivations": [
+    {
+      "id": "asset:tile.unopened",
+      "name": "Unopened tile",
+      "kind": "image",
+      "media_type": "image/png",
+      "strategy": "atlas_region",
+      "inputs": [
+        "asset:image.minesweeper.images.tiles.2000"
+      ],
+      "settings": {
+        "x": 0,
+        "y": 0,
+        "width": 16,
+        "height": 16
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:tile.empty",
+      "name": "Empty tile",
+      "kind": "image",
+      "media_type": "image/png",
+      "strategy": "atlas_region",
+      "inputs": [
+        "asset:image.minesweeper.images.tiles.2000"
+      ],
+      "settings": {
+        "x": 16,
+        "y": 0,
+        "width": 16,
+        "height": 16
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:tile.flag",
+      "name": "Flag tile",
+      "kind": "image",
+      "media_type": "image/png",
+      "strategy": "atlas_region",
+      "inputs": [
+        "asset:image.minesweeper.images.tiles.2000"
+      ],
+      "settings": {
+        "x": 32,
+        "y": 0,
+        "width": 16,
+        "height": 16
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:tile.question",
+      "name": "Question-mark tile",
+      "kind": "image",
+      "media_type": "image/png",
+      "strategy": "atlas_region",
+      "inputs": [
+        "asset:image.minesweeper.images.tiles.2000"
+      ],
+      "settings": {
+        "x": 48,
+        "y": 0,
+        "width": 16,
+        "height": 16
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:tile.question_pressed",
+      "name": "Pressed question-mark tile",
+      "kind": "image",
+      "media_type": "image/png",
+      "strategy": "atlas_region",
+      "inputs": [
+        "asset:image.minesweeper.images.tiles.2000"
+      ],
+      "settings": {
+        "x": 64,
+        "y": 0,
+        "width": 16,
+        "height": 16
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:tile.mine",
+      "name": "Exposed mine",
+      "kind": "image",
+      "media_type": "image/png",
+      "strategy": "atlas_region",
+      "inputs": [
+        "asset:image.minesweeper.images.tiles.2000"
+      ],
+      "settings": {
+        "x": 80,
+        "y": 0,
+        "width": 16,
+        "height": 16
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:tile.mine_red",
+      "name": "Detonated mine",
+      "kind": "image",
+      "media_type": "image/png",
+      "strategy": "atlas_region",
+      "inputs": [
+        "asset:image.minesweeper.images.tiles.2000"
+      ],
+      "settings": {
+        "x": 96,
+        "y": 0,
+        "width": 16,
+        "height": 16
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:tile.wrong_flag",
+      "name": "Incorrect flag",
+      "kind": "image",
+      "media_type": "image/png",
+      "strategy": "atlas_region",
+      "inputs": [
+        "asset:image.minesweeper.images.tiles.2000"
+      ],
+      "settings": {
+        "x": 112,
+        "y": 0,
+        "width": 16,
+        "height": 16
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:tile.one",
+      "name": "One adjacent mine",
+      "kind": "image",
+      "media_type": "image/png",
+      "strategy": "atlas_region",
+      "inputs": [
+        "asset:image.minesweeper.images.tiles.2000"
+      ],
+      "settings": {
+        "x": 0,
+        "y": 16,
+        "width": 16,
+        "height": 16
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:tile.two",
+      "name": "Two adjacent mines",
+      "kind": "image",
+      "media_type": "image/png",
+      "strategy": "atlas_region",
+      "inputs": [
+        "asset:image.minesweeper.images.tiles.2000"
+      ],
+      "settings": {
+        "x": 16,
+        "y": 16,
+        "width": 16,
+        "height": 16
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:tile.three",
+      "name": "Three adjacent mines",
+      "kind": "image",
+      "media_type": "image/png",
+      "strategy": "atlas_region",
+      "inputs": [
+        "asset:image.minesweeper.images.tiles.2000"
+      ],
+      "settings": {
+        "x": 32,
+        "y": 16,
+        "width": 16,
+        "height": 16
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:tile.four",
+      "name": "Four adjacent mines",
+      "kind": "image",
+      "media_type": "image/png",
+      "strategy": "atlas_region",
+      "inputs": [
+        "asset:image.minesweeper.images.tiles.2000"
+      ],
+      "settings": {
+        "x": 48,
+        "y": 16,
+        "width": 16,
+        "height": 16
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:tile.five",
+      "name": "Five adjacent mines",
+      "kind": "image",
+      "media_type": "image/png",
+      "strategy": "atlas_region",
+      "inputs": [
+        "asset:image.minesweeper.images.tiles.2000"
+      ],
+      "settings": {
+        "x": 64,
+        "y": 16,
+        "width": 16,
+        "height": 16
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:tile.six",
+      "name": "Six adjacent mines",
+      "kind": "image",
+      "media_type": "image/png",
+      "strategy": "atlas_region",
+      "inputs": [
+        "asset:image.minesweeper.images.tiles.2000"
+      ],
+      "settings": {
+        "x": 80,
+        "y": 16,
+        "width": 16,
+        "height": 16
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:tile.seven",
+      "name": "Seven adjacent mines",
+      "kind": "image",
+      "media_type": "image/png",
+      "strategy": "atlas_region",
+      "inputs": [
+        "asset:image.minesweeper.images.tiles.2000"
+      ],
+      "settings": {
+        "x": 96,
+        "y": 16,
+        "width": 16,
+        "height": 16
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:tile.eight",
+      "name": "Eight adjacent mines",
+      "kind": "image",
+      "media_type": "image/png",
+      "strategy": "atlas_region",
+      "inputs": [
+        "asset:image.minesweeper.images.tiles.2000"
+      ],
+      "settings": {
+        "x": 112,
+        "y": 16,
+        "width": 16,
+        "height": 16
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:face.smile",
+      "name": "Smile",
+      "kind": "image",
+      "media_type": "image/png",
+      "strategy": "atlas_region",
+      "inputs": [
+        "asset:image.minesweeper.images.faces.2000"
+      ],
+      "settings": {
+        "x": 0,
+        "y": 0,
+        "width": 24,
+        "height": 24
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:face.pressed",
+      "name": "Pressed smile",
+      "kind": "image",
+      "media_type": "image/png",
+      "strategy": "atlas_region",
+      "inputs": [
+        "asset:image.minesweeper.images.faces.2000"
+      ],
+      "settings": {
+        "x": 24,
+        "y": 0,
+        "width": 24,
+        "height": 24
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:face.excited",
+      "name": "Excited face",
+      "kind": "image",
+      "media_type": "image/png",
+      "strategy": "atlas_region",
+      "inputs": [
+        "asset:image.minesweeper.images.faces.2000"
+      ],
+      "settings": {
+        "x": 48,
+        "y": 0,
+        "width": 24,
+        "height": 24
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:face.winner",
+      "name": "Winning face",
+      "kind": "image",
+      "media_type": "image/png",
+      "strategy": "atlas_region",
+      "inputs": [
+        "asset:image.minesweeper.images.faces.2000"
+      ],
+      "settings": {
+        "x": 72,
+        "y": 0,
+        "width": 24,
+        "height": 24
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:face.dead",
+      "name": "Losing face",
+      "kind": "image",
+      "media_type": "image/png",
+      "strategy": "atlas_region",
+      "inputs": [
+        "asset:image.minesweeper.images.faces.2000"
+      ],
+      "settings": {
+        "x": 96,
+        "y": 0,
+        "width": 24,
+        "height": 24
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:digit.zero",
+      "name": "Counter digit 0",
+      "kind": "image",
+      "media_type": "image/png",
+      "strategy": "atlas_region",
+      "inputs": [
+        "asset:image.minesweeper.images.scores.2000"
+      ],
+      "settings": {
+        "x": 0,
+        "y": 0,
+        "width": 13,
+        "height": 23
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:digit.one",
+      "name": "Counter digit 1",
+      "kind": "image",
+      "media_type": "image/png",
+      "strategy": "atlas_region",
+      "inputs": [
+        "asset:image.minesweeper.images.scores.2000"
+      ],
+      "settings": {
+        "x": 13,
+        "y": 0,
+        "width": 13,
+        "height": 23
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:digit.two",
+      "name": "Counter digit 2",
+      "kind": "image",
+      "media_type": "image/png",
+      "strategy": "atlas_region",
+      "inputs": [
+        "asset:image.minesweeper.images.scores.2000"
+      ],
+      "settings": {
+        "x": 26,
+        "y": 0,
+        "width": 13,
+        "height": 23
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:digit.three",
+      "name": "Counter digit 3",
+      "kind": "image",
+      "media_type": "image/png",
+      "strategy": "atlas_region",
+      "inputs": [
+        "asset:image.minesweeper.images.scores.2000"
+      ],
+      "settings": {
+        "x": 39,
+        "y": 0,
+        "width": 13,
+        "height": 23
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:digit.four",
+      "name": "Counter digit 4",
+      "kind": "image",
+      "media_type": "image/png",
+      "strategy": "atlas_region",
+      "inputs": [
+        "asset:image.minesweeper.images.scores.2000"
+      ],
+      "settings": {
+        "x": 52,
+        "y": 0,
+        "width": 13,
+        "height": 23
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:digit.five",
+      "name": "Counter digit 5",
+      "kind": "image",
+      "media_type": "image/png",
+      "strategy": "atlas_region",
+      "inputs": [
+        "asset:image.minesweeper.images.scores.2000"
+      ],
+      "settings": {
+        "x": 65,
+        "y": 0,
+        "width": 13,
+        "height": 23
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:digit.six",
+      "name": "Counter digit 6",
+      "kind": "image",
+      "media_type": "image/png",
+      "strategy": "atlas_region",
+      "inputs": [
+        "asset:image.minesweeper.images.scores.2000"
+      ],
+      "settings": {
+        "x": 78,
+        "y": 0,
+        "width": 13,
+        "height": 23
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:digit.seven",
+      "name": "Counter digit 7",
+      "kind": "image",
+      "media_type": "image/png",
+      "strategy": "atlas_region",
+      "inputs": [
+        "asset:image.minesweeper.images.scores.2000"
+      ],
+      "settings": {
+        "x": 91,
+        "y": 0,
+        "width": 13,
+        "height": 23
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:digit.eight",
+      "name": "Counter digit 8",
+      "kind": "image",
+      "media_type": "image/png",
+      "strategy": "atlas_region",
+      "inputs": [
+        "asset:image.minesweeper.images.scores.2000"
+      ],
+      "settings": {
+        "x": 104,
+        "y": 0,
+        "width": 13,
+        "height": 23
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:digit.nine",
+      "name": "Counter digit 9",
+      "kind": "image",
+      "media_type": "image/png",
+      "strategy": "atlas_region",
+      "inputs": [
+        "asset:image.minesweeper.images.scores.2000"
+      ],
+      "settings": {
+        "x": 117,
+        "y": 0,
+        "width": 13,
+        "height": 23
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:mesh.unopened",
+      "name": "Unopened tile faces",
+      "kind": "model",
+      "media_type": "application/vnd.cubeengine.presentation+json",
+      "strategy": "cube_face_projection",
+      "inputs": [
+        "asset:tile.unopened"
+      ],
+      "settings": {
+        "faces": "all",
+        "uv_policy": "stretch"
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:mesh.empty",
+      "name": "Empty tile faces",
+      "kind": "model",
+      "media_type": "application/vnd.cubeengine.presentation+json",
+      "strategy": "cube_face_projection",
+      "inputs": [
+        "asset:tile.empty"
+      ],
+      "settings": {
+        "faces": "all",
+        "uv_policy": "stretch"
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:mesh.flag",
+      "name": "Flag tile faces",
+      "kind": "model",
+      "media_type": "application/vnd.cubeengine.presentation+json",
+      "strategy": "cube_face_projection",
+      "inputs": [
+        "asset:tile.flag"
+      ],
+      "settings": {
+        "faces": "all",
+        "uv_policy": "stretch"
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:mesh.question",
+      "name": "Question tile faces",
+      "kind": "model",
+      "media_type": "application/vnd.cubeengine.presentation+json",
+      "strategy": "cube_face_projection",
+      "inputs": [
+        "asset:tile.question"
+      ],
+      "settings": {
+        "faces": "all",
+        "uv_policy": "stretch"
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:mesh.question_pressed",
+      "name": "Pressed question tile faces",
+      "kind": "model",
+      "media_type": "application/vnd.cubeengine.presentation+json",
+      "strategy": "cube_face_projection",
+      "inputs": [
+        "asset:tile.question_pressed"
+      ],
+      "settings": {
+        "faces": "all",
+        "uv_policy": "stretch"
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:mesh.mine",
+      "name": "Exposed mine tile faces",
+      "kind": "model",
+      "media_type": "application/vnd.cubeengine.presentation+json",
+      "strategy": "cube_face_projection",
+      "inputs": [
+        "asset:tile.mine"
+      ],
+      "settings": {
+        "faces": "all",
+        "uv_policy": "stretch"
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:mesh.mine_red",
+      "name": "Detonated mine tile faces",
+      "kind": "model",
+      "media_type": "application/vnd.cubeengine.presentation+json",
+      "strategy": "cube_face_projection",
+      "inputs": [
+        "asset:tile.mine_red"
+      ],
+      "settings": {
+        "faces": "all",
+        "uv_policy": "stretch"
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:mesh.wrong_flag",
+      "name": "Incorrect flag tile faces",
+      "kind": "model",
+      "media_type": "application/vnd.cubeengine.presentation+json",
+      "strategy": "cube_face_projection",
+      "inputs": [
+        "asset:tile.wrong_flag"
+      ],
+      "settings": {
+        "faces": "all",
+        "uv_policy": "stretch"
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:mesh.one",
+      "name": "One tile faces",
+      "kind": "model",
+      "media_type": "application/vnd.cubeengine.presentation+json",
+      "strategy": "cube_face_projection",
+      "inputs": [
+        "asset:tile.one"
+      ],
+      "settings": {
+        "faces": "all",
+        "uv_policy": "stretch"
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:mesh.two",
+      "name": "Two tile faces",
+      "kind": "model",
+      "media_type": "application/vnd.cubeengine.presentation+json",
+      "strategy": "cube_face_projection",
+      "inputs": [
+        "asset:tile.two"
+      ],
+      "settings": {
+        "faces": "all",
+        "uv_policy": "stretch"
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:mesh.three",
+      "name": "Three tile faces",
+      "kind": "model",
+      "media_type": "application/vnd.cubeengine.presentation+json",
+      "strategy": "cube_face_projection",
+      "inputs": [
+        "asset:tile.three"
+      ],
+      "settings": {
+        "faces": "all",
+        "uv_policy": "stretch"
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:mesh.four",
+      "name": "Four tile faces",
+      "kind": "model",
+      "media_type": "application/vnd.cubeengine.presentation+json",
+      "strategy": "cube_face_projection",
+      "inputs": [
+        "asset:tile.four"
+      ],
+      "settings": {
+        "faces": "all",
+        "uv_policy": "stretch"
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:mesh.five",
+      "name": "Five tile faces",
+      "kind": "model",
+      "media_type": "application/vnd.cubeengine.presentation+json",
+      "strategy": "cube_face_projection",
+      "inputs": [
+        "asset:tile.five"
+      ],
+      "settings": {
+        "faces": "all",
+        "uv_policy": "stretch"
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:mesh.six",
+      "name": "Six tile faces",
+      "kind": "model",
+      "media_type": "application/vnd.cubeengine.presentation+json",
+      "strategy": "cube_face_projection",
+      "inputs": [
+        "asset:tile.six"
+      ],
+      "settings": {
+        "faces": "all",
+        "uv_policy": "stretch"
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:mesh.seven",
+      "name": "Seven tile faces",
+      "kind": "model",
+      "media_type": "application/vnd.cubeengine.presentation+json",
+      "strategy": "cube_face_projection",
+      "inputs": [
+        "asset:tile.seven"
+      ],
+      "settings": {
+        "faces": "all",
+        "uv_policy": "stretch"
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    },
+    {
+      "id": "asset:mesh.eight",
+      "name": "Eight tile faces",
+      "kind": "model",
+      "media_type": "application/vnd.cubeengine.presentation+json",
+      "strategy": "cube_face_projection",
+      "inputs": [
+        "asset:tile.eight"
+      ],
+      "settings": {
+        "faces": "all",
+        "uv_policy": "stretch"
+      },
+      "expected_content_hash": "",
+      "license_policy": "inherit"
+    }
+  ],
+  "roles": [
+    {
+      "id": "asset:role.tile.unopened",
+      "name": "Covered cell",
+      "semantic": "tile.unopened",
+      "resource": "asset:tile.unopened",
+      "usage": "world_texture",
+      "required": true
+    },
+    {
+      "id": "asset:role.tile.empty",
+      "name": "Opened zero or held covered cell",
+      "semantic": "tile.empty",
+      "resource": "asset:tile.empty",
+      "usage": "world_texture",
+      "required": true
+    },
+    {
+      "id": "asset:role.tile.flag",
+      "name": "Marked flag",
+      "semantic": "tile.flag",
+      "resource": "asset:tile.flag",
+      "usage": "world_texture",
+      "required": true
+    },
+    {
+      "id": "asset:role.tile.question",
+      "name": "Question mark",
+      "semantic": "tile.question",
+      "resource": "asset:tile.question",
+      "usage": "world_texture",
+      "required": true
+    },
+    {
+      "id": "asset:role.tile.question_pressed",
+      "name": "Held question mark",
+      "semantic": "tile.question_pressed",
+      "resource": "asset:tile.question_pressed",
+      "usage": "world_texture",
+      "required": true
+    },
+    {
+      "id": "asset:role.tile.mine",
+      "name": "Exposed mine",
+      "semantic": "tile.mine",
+      "resource": "asset:tile.mine",
+      "usage": "world_texture",
+      "required": true
+    },
+    {
+      "id": "asset:role.tile.mine_red",
+      "name": "Detonated mine",
+      "semantic": "tile.mine_red",
+      "resource": "asset:tile.mine_red",
+      "usage": "world_texture",
+      "required": true
+    },
+    {
+      "id": "asset:role.tile.wrong_flag",
+      "name": "Incorrect flag",
+      "semantic": "tile.wrong_flag",
+      "resource": "asset:tile.wrong_flag",
+      "usage": "world_texture",
+      "required": true
+    },
+    {
+      "id": "asset:role.tile.one",
+      "name": "Adjacent count one",
+      "semantic": "tile.one",
+      "resource": "asset:tile.one",
+      "usage": "world_texture",
+      "required": true
+    },
+    {
+      "id": "asset:role.tile.two",
+      "name": "Adjacent count two",
+      "semantic": "tile.two",
+      "resource": "asset:tile.two",
+      "usage": "world_texture",
+      "required": true
+    },
+    {
+      "id": "asset:role.tile.three",
+      "name": "Adjacent count three",
+      "semantic": "tile.three",
+      "resource": "asset:tile.three",
+      "usage": "world_texture",
+      "required": true
+    },
+    {
+      "id": "asset:role.tile.four",
+      "name": "Adjacent count four",
+      "semantic": "tile.four",
+      "resource": "asset:tile.four",
+      "usage": "world_texture",
+      "required": true
+    },
+    {
+      "id": "asset:role.tile.five",
+      "name": "Adjacent count five",
+      "semantic": "tile.five",
+      "resource": "asset:tile.five",
+      "usage": "world_texture",
+      "required": true
+    },
+    {
+      "id": "asset:role.tile.six",
+      "name": "Adjacent count six",
+      "semantic": "tile.six",
+      "resource": "asset:tile.six",
+      "usage": "world_texture",
+      "required": true
+    },
+    {
+      "id": "asset:role.tile.seven",
+      "name": "Adjacent count seven",
+      "semantic": "tile.seven",
+      "resource": "asset:tile.seven",
+      "usage": "world_texture",
+      "required": true
+    },
+    {
+      "id": "asset:role.tile.eight",
+      "name": "Adjacent count eight",
+      "semantic": "tile.eight",
+      "resource": "asset:tile.eight",
+      "usage": "world_texture",
+      "required": true
+    },
+    {
+      "id": "asset:role.face.smile",
+      "name": "Reset smile",
+      "semantic": "face.smile",
+      "resource": "asset:face.smile",
+      "usage": "ui_texture",
+      "required": true
+    },
+    {
+      "id": "asset:role.face.pressed",
+      "name": "Held reset face",
+      "semantic": "face.pressed",
+      "resource": "asset:face.pressed",
+      "usage": "ui_texture",
+      "required": true
+    },
+    {
+      "id": "asset:role.face.excited",
+      "name": "Excited face",
+      "semantic": "face.excited",
+      "resource": "asset:face.excited",
+      "usage": "ui_texture",
+      "required": true
+    },
+    {
+      "id": "asset:role.face.winner",
+      "name": "Win face",
+      "semantic": "face.winner",
+      "resource": "asset:face.winner",
+      "usage": "ui_texture",
+      "required": true
+    },
+    {
+      "id": "asset:role.face.dead",
+      "name": "Loss face",
+      "semantic": "face.dead",
+      "resource": "asset:face.dead",
+      "usage": "ui_texture",
+      "required": true
+    },
+    {
+      "id": "asset:role.digit.zero",
+      "name": "Counter zero",
+      "semantic": "counter.digit.zero",
+      "resource": "asset:digit.zero",
+      "usage": "ui_texture",
+      "required": true
+    },
+    {
+      "id": "asset:role.digit.one",
+      "name": "Counter one",
+      "semantic": "counter.digit.one",
+      "resource": "asset:digit.one",
+      "usage": "ui_texture",
+      "required": true
+    },
+    {
+      "id": "asset:role.digit.two",
+      "name": "Counter two",
+      "semantic": "counter.digit.two",
+      "resource": "asset:digit.two",
+      "usage": "ui_texture",
+      "required": true
+    },
+    {
+      "id": "asset:role.digit.three",
+      "name": "Counter three",
+      "semantic": "counter.digit.three",
+      "resource": "asset:digit.three",
+      "usage": "ui_texture",
+      "required": true
+    },
+    {
+      "id": "asset:role.digit.four",
+      "name": "Counter four",
+      "semantic": "counter.digit.four",
+      "resource": "asset:digit.four",
+      "usage": "ui_texture",
+      "required": true
+    },
+    {
+      "id": "asset:role.digit.five",
+      "name": "Counter five",
+      "semantic": "counter.digit.five",
+      "resource": "asset:digit.five",
+      "usage": "ui_texture",
+      "required": true
+    },
+    {
+      "id": "asset:role.digit.six",
+      "name": "Counter six",
+      "semantic": "counter.digit.six",
+      "resource": "asset:digit.six",
+      "usage": "ui_texture",
+      "required": true
+    },
+    {
+      "id": "asset:role.digit.seven",
+      "name": "Counter seven",
+      "semantic": "counter.digit.seven",
+      "resource": "asset:digit.seven",
+      "usage": "ui_texture",
+      "required": true
+    },
+    {
+      "id": "asset:role.digit.eight",
+      "name": "Counter eight",
+      "semantic": "counter.digit.eight",
+      "resource": "asset:digit.eight",
+      "usage": "ui_texture",
+      "required": true
+    },
+    {
+      "id": "asset:role.digit.nine",
+      "name": "Counter nine",
+      "semantic": "counter.digit.nine",
+      "resource": "asset:digit.nine",
+      "usage": "ui_texture",
+      "required": true
+    }
+  ],
+  "presentation_mappings": [
+    {
+      "id": "asset:mapping.unopened",
+      "name": "Covered cell projection",
+      "source_role": "asset:role.tile.unopened",
+      "target_resource": "asset:mesh.unopened",
+      "strategy": "cube_face_projection",
+      "fidelity": "source_derived",
+      "settings": {}
+    },
+    {
+      "id": "asset:mapping.empty",
+      "name": "Empty cell projection",
+      "source_role": "asset:role.tile.empty",
+      "target_resource": "asset:mesh.empty",
+      "strategy": "cube_face_projection",
+      "fidelity": "source_derived",
+      "settings": {}
+    },
+    {
+      "id": "asset:mapping.flag",
+      "name": "Flag projection",
+      "source_role": "asset:role.tile.flag",
+      "target_resource": "asset:mesh.flag",
+      "strategy": "cube_face_projection",
+      "fidelity": "source_derived",
+      "settings": {}
+    },
+    {
+      "id": "asset:mapping.question",
+      "name": "Question projection",
+      "source_role": "asset:role.tile.question",
+      "target_resource": "asset:mesh.question",
+      "strategy": "cube_face_projection",
+      "fidelity": "source_derived",
+      "settings": {}
+    },
+    {
+      "id": "asset:mapping.question_pressed",
+      "name": "Pressed question projection",
+      "source_role": "asset:role.tile.question_pressed",
+      "target_resource": "asset:mesh.question_pressed",
+      "strategy": "cube_face_projection",
+      "fidelity": "source_derived",
+      "settings": {}
+    },
+    {
+      "id": "asset:mapping.mine",
+      "name": "Mine projection",
+      "source_role": "asset:role.tile.mine",
+      "target_resource": "asset:mesh.mine",
+      "strategy": "cube_face_projection",
+      "fidelity": "source_derived",
+      "settings": {}
+    },
+    {
+      "id": "asset:mapping.mine_red",
+      "name": "Detonated mine projection",
+      "source_role": "asset:role.tile.mine_red",
+      "target_resource": "asset:mesh.mine_red",
+      "strategy": "cube_face_projection",
+      "fidelity": "source_derived",
+      "settings": {}
+    },
+    {
+      "id": "asset:mapping.wrong_flag",
+      "name": "Incorrect flag projection",
+      "source_role": "asset:role.tile.wrong_flag",
+      "target_resource": "asset:mesh.wrong_flag",
+      "strategy": "cube_face_projection",
+      "fidelity": "source_derived",
+      "settings": {}
+    },
+    {
+      "id": "asset:mapping.one",
+      "name": "One projection",
+      "source_role": "asset:role.tile.one",
+      "target_resource": "asset:mesh.one",
+      "strategy": "cube_face_projection",
+      "fidelity": "source_derived",
+      "settings": {}
+    },
+    {
+      "id": "asset:mapping.two",
+      "name": "Two projection",
+      "source_role": "asset:role.tile.two",
+      "target_resource": "asset:mesh.two",
+      "strategy": "cube_face_projection",
+      "fidelity": "source_derived",
+      "settings": {}
+    },
+    {
+      "id": "asset:mapping.three",
+      "name": "Three projection",
+      "source_role": "asset:role.tile.three",
+      "target_resource": "asset:mesh.three",
+      "strategy": "cube_face_projection",
+      "fidelity": "source_derived",
+      "settings": {}
+    },
+    {
+      "id": "asset:mapping.four",
+      "name": "Four projection",
+      "source_role": "asset:role.tile.four",
+      "target_resource": "asset:mesh.four",
+      "strategy": "cube_face_projection",
+      "fidelity": "source_derived",
+      "settings": {}
+    },
+    {
+      "id": "asset:mapping.five",
+      "name": "Five projection",
+      "source_role": "asset:role.tile.five",
+      "target_resource": "asset:mesh.five",
+      "strategy": "cube_face_projection",
+      "fidelity": "source_derived",
+      "settings": {}
+    },
+    {
+      "id": "asset:mapping.six",
+      "name": "Six projection",
+      "source_role": "asset:role.tile.six",
+      "target_resource": "asset:mesh.six",
+      "strategy": "cube_face_projection",
+      "fidelity": "source_derived",
+      "settings": {}
+    },
+    {
+      "id": "asset:mapping.seven",
+      "name": "Seven projection",
+      "source_role": "asset:role.tile.seven",
+      "target_resource": "asset:mesh.seven",
+      "strategy": "cube_face_projection",
+      "fidelity": "source_derived",
+      "settings": {}
+    },
+    {
+      "id": "asset:mapping.eight",
+      "name": "Eight projection",
+      "source_role": "asset:role.tile.eight",
+      "target_resource": "asset:mesh.eight",
+      "strategy": "cube_face_projection",
+      "fidelity": "source_derived",
+      "settings": {}
+    }
+  ],
+  "provenance": {
+    "patch_history": [
+      {
+        "base_revision": 0,
+        "base_content_hash": "0913eaf8f7d9243f98155ecd0e34488ecb01569fb4ae02c74aa302f89103506c",
+        "evidence": [
+          {
+            "evidence_id": "run_game.py:1-17@0d9c1899014279d13615849458126254a3fac9e54d7cd28aef6c7fb41aa3d03a",
+            "path": "run_game.py",
+            "file_sha256": "0d9c1899014279d13615849458126254a3fac9e54d7cd28aef6c7fb41aa3d03a",
+            "span": {
+              "line_start": 1,
+              "line_end": 17
+            },
+            "supports": "/asset_ir"
+          },
+          {
+            "evidence_id": "minesweeper/__main__.py:1-168@c734448d03ecdb6ef6693a03e5d711ec2d27145d13ba38b6455271c50677cd5a",
+            "path": "minesweeper/__main__.py",
+            "file_sha256": "c734448d03ecdb6ef6693a03e5d711ec2d27145d13ba38b6455271c50677cd5a",
+            "span": {
+              "line_start": 1,
+              "line_end": 168
+            },
+            "supports": "/asset_ir"
+          },
+          {
+            "evidence_id": "minesweeper/sprites/spritesheet.py:1-86@3b875b93fdaf2cc6fb38ac2e4bdc2d1cd56667bba72a626a36b9dfeb28b0ad4b",
+            "path": "minesweeper/sprites/spritesheet.py",
+            "file_sha256": "3b875b93fdaf2cc6fb38ac2e4bdc2d1cd56667bba72a626a36b9dfeb28b0ad4b",
+            "span": {
+              "line_start": 1,
+              "line_end": 86
+            },
+            "supports": "/asset_ir"
+          },
+          {
+            "evidence_id": "minesweeper/sprites/tile.py:1-199@95433703bbf3665d8abf4e41a3a22eb6687d2bf1625a2667ae8d75ff0024fd9f",
+            "path": "minesweeper/sprites/tile.py",
+            "file_sha256": "95433703bbf3665d8abf4e41a3a22eb6687d2bf1625a2667ae8d75ff0024fd9f",
+            "span": {
+              "line_start": 1,
+              "line_end": 199
+            },
+            "supports": "/asset_ir"
+          },
+          {
+            "evidence_id": "minesweeper/sprites/face.py:1-81@279d37b6d436e5620cd3e6639d185d4f52747872cda2a0aa05fcfdb6cccb0160",
+            "path": "minesweeper/sprites/face.py",
+            "file_sha256": "279d37b6d436e5620cd3e6639d185d4f52747872cda2a0aa05fcfdb6cccb0160",
+            "span": {
+              "line_start": 1,
+              "line_end": 81
+            },
+            "supports": "/asset_ir"
+          },
+          {
+            "evidence_id": "minesweeper/sprites/score.py:1-138@7820112dd83e64c9b5e567b9da9d8877a21474dce6f4635830e7fa4cdaae3ba8",
+            "path": "minesweeper/sprites/score.py",
+            "file_sha256": "7820112dd83e64c9b5e567b9da9d8877a21474dce6f4635830e7fa4cdaae3ba8",
+            "span": {
+              "line_start": 1,
+              "line_end": 138
+            },
+            "supports": "/asset_ir"
+          },
+          {
+            "evidence_id": "minesweeper/user_interface_board.py:1-152@1e552aa64378928d6297a68abee49dc425b20e6bd240a9752b92f549589c89fc",
+            "path": "minesweeper/user_interface_board.py",
+            "file_sha256": "1e552aa64378928d6297a68abee49dc425b20e6bd240a9752b92f549589c89fc",
+            "span": {
+              "line_start": 1,
+              "line_end": 152
+            },
+            "supports": "/asset_ir"
+          },
+          {
+            "evidence_id": "minesweeper/user_interface_face.py:1-88@9ffe4fbb299b21934f4ad01b2b4075beb09af5e37bd72ed970e90464f9f10f97",
+            "path": "minesweeper/user_interface_face.py",
+            "file_sha256": "9ffe4fbb299b21934f4ad01b2b4075beb09af5e37bd72ed970e90464f9f10f97",
+            "span": {
+              "line_start": 1,
+              "line_end": 88
+            },
+            "supports": "/asset_ir"
+          },
+          {
+            "evidence_id": "minesweeper/user_interface_score.py:1-76@eda7fdfc4640dbca70aebbe0278a70ea60c9867ad48371e6650d87250455fa1e",
+            "path": "minesweeper/user_interface_score.py",
+            "file_sha256": "eda7fdfc4640dbca70aebbe0278a70ea60c9867ad48371e6650d87250455fa1e",
+            "span": {
+              "line_start": 1,
+              "line_end": 76
+            },
+            "supports": "/asset_ir"
+          }
+        ],
+        "assumptions": [],
+        "operation_count": 6
+      }
+    ]
+  },
+  "unresolved": []
+}

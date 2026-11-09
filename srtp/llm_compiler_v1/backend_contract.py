@@ -16,11 +16,19 @@ def profile():
         'depth_view':depth_contract(),
         'behavior_steps':behavior_step_contract(),
         'step_order':'One Rule step: action effects run; rule:event.action_applied is emitted; every event/state_changed/phase triggered system and its cascades, plus scheduled events whose due tick has arrived, run to completion in the same step; the turn advances; invariants are checked; THEN outcomes are evaluated on the committed state. Startup: initial_effects, then phase_enter systems, complete before the first outcome check. Events scheduled with delay_ticks run on a later tick. Assert ordering you depend on in behavior_tests instead of marking it unresolved.',
+        'wall_clock':('Real elapsed time is supported. flow.scheduler {clock:"real_time", tick_hz:N, max_catch_up_ticks:M} '
+            'turns host wall time into deterministic ticks; a Rule step at each tick runs tick-triggered systems and due '
+            'scheduled events. A timer that counts while playing is a global int incremented by a tick-triggered system '
+            'gated on the lifecycle state (started, not terminal); elapsed whole seconds = floor(count / N), which Scene '
+            'shows with an expression (divide, floor) before digit/integer_format. Only a frame stall beyond M ticks loses '
+            'time, as in any fixed-step game: this is the supported timer, not an unresolved semantic. Assert the counting '
+            'and freezing in behavior_tests (advance ticks) instead of marking it unresolved.'),
         'session_random':'Host supplies integer seeds for seed_policy=session. Compilation uses deterministic seed 0; interactive sessions retain fresh seeds for replay. Do not add a fixed seed to repair a session declaration.',
         'algorithm_methods':{
             'grid.flood_region':'Arguments: state_id, start_coordinate, through_values, blocked_values, diagonal, include_boundary, blocked_coordinates. Returns a finite connected region, expands through through_values, includes nonblocked boundary if requested. Can implement zero-area opening with numbered boundary.',
             'sequence.merge_equal':'Arguments: values, empty_value, multiplier (NOT output length). Example: sequence.merge_equal([2,2,0,0],0,2) => [4,0,0,0]. Compress, merge each adjacent equal pair once, pad to the input length; score via sequence.merge_score with the same args. Match the multiplier to source arithmetic.',
             'topology.neighbors':'Arguments: topology_id, coordinate, include_diagonals. Use to compute counts and source first-click protected region; random.sample/draw plus foreach can relocate and recompute state.',
+            'protected_relocation':'Keeping the random draws outside a forbidden region and redrawing the ones inside uniformly among the remaining eligible cells gives exactly the same distribution as one uniform draw over the eligible cells (e.g. a first-move-safe region). Express it as that single draw; the distributions are identical, so it is neither an approximation nor unresolved.',
             'rejection_sampling':'A source loop that draws a random cell and redraws while it is occupied picks uniformly among the eligible cells. Express it as ONE random draw over the filtered domain (e.g. the sites whose value is empty), not as chained systems that retry; keep the source value draw (e.g. random.choice((2, 4))) as written. source_equivalence checks positions, values and their frequencies against the original.',
             'visibility':'Authoritative local rules know the complete board. Scene variants can conceal unrevealed values while displaying cover/flag states. This supports local hidden presentation, NOT secure per-player observations or hidden-information AI; those remain unsupported.',
             'behavior_tests':'Optional seed selects a deterministic session. Optional fixture {cells:[{state,coordinate,value}],otherwise:value,globals:{state_id:value}} sets a typed test scenario only, never the exported game. Alternatively cells may include {state,otherwise:value} to fill one grid before coordinate overrides; do not combine per-state fills with top-level otherwise or duplicate fills. Unspecified cells retain initialized state. All fixtures must satisfy Rule invariants. Rule/Scene/Input replay share setup. Test normal startup as well as fixtures; fixture-only tests do not establish startup behavior.'},
@@ -45,7 +53,8 @@ def profile():
         'pointer_routing':{'filter_fields':['node','subtree','topology','gesture','direction','min_distance_px'],
             'trigger_example':{'kind':'control','device':'mouse','control':'mouse.button.primary','phase':'release','modifiers':[],'modifier_policy':'exact','pointer':{'node':'scene:button','gesture':'click'}},
             'semantics':'ProjectView buffers pointer input until release. Same-target press/release emits click; an empty viewport click emits background_click; primary-button drag emits swipe with dominant direction and physical viewport-pixel distance. UI host buttons are excluded. Drag does not also emit click. Right-drag remains camera orbit. Use pointer.gesture=background_click for only blank space, or gesture=swipe with direction and min_distance_px for source swipes. pointer.node matches scene_node_id, subtree=true includes descendants; topology restricts the Rule board.',
-            'phase_note':'Mouse press/release phases are delivered together after a completed gesture, not as raw mouse-down timing. Continuous/raw pointer movement remains unsupported.'},
+            'phase_note':'Mouse press/release phases are delivered together after a completed gesture, not as raw mouse-down timing. Continuous/raw pointer movement remains unsupported.',
+            'press_actions':'A source action fired on mouse-down (either button) maps to the completed click of the same button on the same target: action, target and order are kept, only the instant within the click differs, so bind it to the click instead of marking it unresolved. A press-and-release without dragging is a click for primary and secondary buttons; a secondary-button drag orbits the camera and emits no event, and a primary drag emits swipe.'},
         'input_consume_policies':['binding','first_match','first_legal','all_events'],
         'input_action_selection':'first_match consumes before Rule legality and is NOT a legal-action fallback. For several actions on one physical control use a first_legal context with distinct binding priorities: the authoritative Rule runtime selects the first currently legal action, consumes once, and applies only that action. Do not make overlapping non-consuming bindings and assume mutual exclusion will fix the conflict.',
         'host_commands':{'quit':'Close only the current game player; no Rule action required.',
@@ -105,14 +114,14 @@ def references(documents):
 # Which profile sections each IR author needs. Every profile key must be
 # assigned (tests enforce it), so a new capability reaches both pipelines.
 PROFILE_SECTIONS = {
-    'rule_ir': ('version', 'backend', 'step_order', 'session_random', 'algorithm_methods', 'action_catalogue', 'behavior_steps',
+    'rule_ir': ('version', 'backend', 'step_order', 'wall_clock', 'session_random', 'algorithm_methods', 'action_catalogue', 'behavior_steps',
                 'unsupported_in_this_backend'),
     'asset_ir': ('version', 'backend', 'asset_recipes', 'asset_recipe_inputs', 'unsupported_in_this_backend'),
     'scene_ir': ('version', 'backend', 'presentation_patterns', 'spatial_grid_layout', 'depth_view', 'scene_components',
                  'builtin_geometry', 'collider_shapes', 'light_kinds', 'bindable_component_properties',
                  'bindable_node_properties', 'scene_binding_sources', 'scene_binding_transforms', 'scene_binding_note',
                  'scene_parameter_bindings', 'rule_outcome_bindings', 'number_display', 'pointer_feedback',
-                 'presentation_expression', 'coordinates', 'initial_view', 'unsupported_in_this_backend'),
+                 'presentation_expression', 'wall_clock', 'coordinates', 'initial_view', 'unsupported_in_this_backend'),
     'input_ir': ('version', 'backend', 'input_controls', 'input_focus', 'input_value_types', 'input_phases',
                  'input_event_data', 'pointer_routing', 'input_consume_policies', 'input_action_selection',
                  'host_commands', 'host_command_target', 'lifecycle_note', 'depth_view', 'unsupported_in_this_backend'),
@@ -123,6 +132,39 @@ def profile_for(ir_key):
     """The executable capability sections one IR's author needs (same source as the staged payload)."""
     full = profile()
     return {key: full[key] for key in PROFILE_SECTIONS.get(ir_key, ()) if key in full}
+
+
+# Existing capabilities a "required unresolved" item often overlooks. Matched against the item's
+# reason (any game); the repair diagnostic then names the profile section that already covers it,
+# so the model can implement the semantic instead of paying for a review that keeps it blocked.
+CAPABILITY_HINTS = (
+    (r'timer|timing|elapsed|seconds|wall[- ]?clock|real[- ]?time', 'wall_clock',
+     'real elapsed time and timers: flow.scheduler real_time plus a tick-triggered counter; Scene divides by tick_hz'),
+    (r'relocat|resampl|redraw|reject|distribution', 'algorithm_methods',
+     'protected_relocation / rejection_sampling are exact single draws, not approximations'),
+    (r'flood|connected|zero[- ]?(region|expansion|cascade)|cascade', 'algorithm_methods',
+     'grid.flood_region with through_values / blocked_values, e.g. leaving flagged or opened cells untouched'),
+    (r'max\(|min\(|clamp|minus|subtract|divi|arithmetic|compound|computed|derived|before digit|expression',
+     'presentation_expression',
+     'Scene source {kind:expression} with add/subtract/divide/floor/min/max/if before digit or integer_format'),
+    (r'press|held|hold|mouse[- ]?down|button down|hover|transient', 'pointer_feedback',
+     'interaction {property:pressed|hovered} source, alone or inside an expression'),
+    (r'mouse[- ]?down|on press|button down|press(es|ed)? (the|a) |before release|buffer', 'pointer_routing',
+     'press_actions: a mouse-down source action is bound to the completed click of the same button and target'),
+    (r'\border\b|same step|before (the )?outcome|after (the )?outcome', 'step_order',
+     'the documented step order; assert it in behavior_tests'),
+)
+
+
+def capability_hints(reason):
+    """Profile sections that already provide what an unresolved reason says is missing."""
+    import re
+    text = str(reason or '').lower()
+    hints = []
+    for pattern, section, summary in CAPABILITY_HINTS:
+        if re.search(pattern, text) and (section, summary) not in hints:
+            hints.append((section, summary))
+    return hints
 
 
 def unassigned_profile_sections():

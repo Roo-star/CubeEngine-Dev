@@ -19,6 +19,7 @@ from srtp.llm_compiler_v1.validation import validate_and_apply_proposal
 from srtp.runtime_assets import discover_runtime_assets, resolve_resource, PYGAME_FONT_URI
 from srtp.source_importer import SourceGameImporter
 from tests.test_engine_conversion_pipeline import ROOT, reference_definition, tests_for_board
+from srtp.llm_compiler_v1.source_workspace import stage_payload
 
 
 class AssetPreflightTests(unittest.TestCase):
@@ -93,7 +94,7 @@ class AssetPreflightTests(unittest.TestCase):
     def test_repeated_asset_blocker_stops_and_reports_actual_candidate_gap(self):
         calls=[]
         def chat(messages,**kw):
-            payload=json.loads(messages[-1]['content']); slot=payload['stage']; calls.append(slot)
+            payload=stage_payload(messages); slot=payload['stage']; calls.append(slot)
             definition=reference_definition(slot)
             if slot=='asset_ir':
                 definition.update(assets=[],derivations=[],roles=[],presentation_mappings=[],unresolved=[
@@ -108,7 +109,7 @@ class AssetPreflightTests(unittest.TestCase):
     def test_engine_upgrade_revalidates_paid_stages_without_regeneration(self):
         calls=[]
         def chat(messages,**kw):
-            payload=json.loads(messages[-1]['content']); slot=payload['stage']; calls.append(slot)
+            payload=stage_payload(messages); slot=payload['stage']; calls.append(slot)
             return json.dumps({'definition':reference_definition(slot),
                 'evidence':[payload['source_workspace']['source'][0]['citation']],
                 'behavior_tests':tests_for_board() if slot=='rule_ir' else []})
@@ -131,7 +132,7 @@ class AssetPreflightTests(unittest.TestCase):
 
     def test_runtime_font_resource_enters_full_source_bundle(self):
         def chat(messages,**kw):
-            payload=json.loads(messages[-1]['content']); slot=payload['stage']
+            payload=stage_payload(messages); slot=payload['stage']
             definition=reference_definition(slot)
             if slot=='asset_ir':
                 definition['assets']=deepcopy(payload['source_workspace']['runtime_assets'])

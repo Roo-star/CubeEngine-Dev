@@ -155,6 +155,7 @@ class StageResult:
     upstream_rounds: list = field(default_factory=list)
     scene_draft: dict = field(default_factory=dict)
     cache: dict = field(default_factory=dict)
+    engine_fault: dict = field(default_factory=dict)
 
 
 DRAFT_INSTRUCTION = (
@@ -376,6 +377,26 @@ def model_documents(documents, accepted_payloads, slot):
     return shown
 
 
+# Documents each stage author can reference. The others are shown as an id/hash stub: the ids a
+# stage may cite are in reference_catalog, and their full text was up to 40% of a request.
+STAGE_DOCUMENTS = {'rule_ir': ('rule_ir',), 'asset_ir': ('rule_ir', 'asset_ir'),
+                   'scene_ir': ('rule_ir', 'asset_ir', 'scene_ir'), 'input_ir': ('rule_ir', 'scene_ir', 'input_ir')}
+
+
+def stage_documents(documents, slot):
+    keep = STAGE_DOCUMENTS.get(slot)
+    if not keep:
+        return documents
+    shown = {}
+    for key, document in documents.items():
+        if key in keep or not isinstance(document, dict):
+            shown[key] = document
+        else:
+            shown[key] = {'document_id': document.get('document_id'), 'content_hash': document.get('content_hash'),
+                          'omitted': 'not authored or referenced by {0}; its ids are in reference_catalog'.format(slot)}
+    return shown
+
+
 def required_unresolved(document):
     """(index, item) for each required unresolved item the model declared in a stage document."""
     items = document.get('unresolved') if isinstance(document, dict) else None
@@ -407,11 +428,23 @@ def _checked_stage(slot, documents, root, tests, *, spatial=False):
         other = ('With these items set aside, every other {0} gate{1} passed, so only this decision blocks the stage.'
                  .format(slot, ' and all {0} behavior_tests'.format(len(tests)) if slot == 'rule_ir' else ''))
     except (ValueError, TypeError, KeyError, RuntimeError, OSError) as error:
+        from .engine_fault import is_engine_fault
+        if is_engine_fault(error):
+            raise
         other = 'With these items set aside, these checks still fail (fix them too): ' + ' | '.join(
             diagnostic_messages(error))[:1500]
     from .program_builder import DefinitionValidationError
-    error = DefinitionValidationError(['{0} /unresolved/{1} is required and blocks compilation (path {2}): {3}'.format(
-        slot, index, item.get('path', '?'), str(item.get('reason', ''))[:400]) for index, item in blockers] + [
+    from .backend_contract import capability_hints
+
+    def hinted(index, item):
+        line = '{0} /unresolved/{1} is required and blocks compilation (path {2}): {3}'.format(
+            slot, index, item.get('path', '?'), str(item.get('reason', ''))[:400])
+        hints = capability_hints(item.get('reason'))
+        if hints:
+            line += ' | Existing capability that may cover it: ' + '; '.join(
+                'backend_profile.{0} ({1})'.format(section, summary) for section, summary in hints[:3])
+        return line
+    error = DefinitionValidationError([hinted(index, item) for index, item in blockers] + [
         other + ' A required item means the source has semantics this IR cannot express. If it is a question about '
         'how the runtime behaves (e.g. backend_profile.step_order), the contract answers it: assert the behaviour '
         'in behavior_tests and clear the item. Keep it required only when a needed capability is truly absent.'])
@@ -721,7 +754,7 @@ def run_stages(compiler, *, package, evidence, documents, job_id, design_intent=
     if baseline_errors:
         result.diagnostics=['Local IR baseline invalid before model call: '+message for message in baseline_errors]
         return result
-    from .backend_contract import check_alignment,profile,references
+    from .backend_contract import check_alignment,profile,profile_for,references
     alignment=check_alignment()
     if alignment:
         result.diagnostics=['Local compiler contract preflight: '+item for item in alignment]
@@ -801,6 +834,13 @@ def run_stages(compiler, *, package, evidence, documents, job_id, design_intent=
             engine_lift = {'applied': False, 'problems': diagnostic_messages(error)}
         result.lift_template = dict({'applied': engine_lift['applied']},
                                     **{k: v for k, v in engine_lift.items() if k in ('problems', 'report', 'verification')})
+    if hasattr(compiler.client, 'planned_requests'):
+        # The fewest paid requests this job can finish with: stages without a kept reply that the
+        # engine does not build itself. Checked against limits and credits before the first send.
+        engine_built = set(ORDER) if engine_lift and engine_lift.get('applied') else set()
+        if _scene_draft_mode(compiler) == 'accept':
+            engine_built.add('scene_ir')
+        compiler.client.planned_requests = len([s for s in ORDER if s not in cached and s not in engine_built])
     # Source jobs: after all four stages pass, the Rule is replayed against the
     # original game. A divergence re-opens the Rule stage once with the
     # counterexample; Asset/Scene/Input are then re-checked from their accepted
@@ -919,11 +959,11 @@ def run_stages(compiler, *, package, evidence, documents, job_id, design_intent=
                 compiler.progress({'stage':slot,'attempt':attempt+1,'cached':use_cache})
             payload = {'task':'build_' + slot, 'stage':slot, 'schema':schema, 'evidence_pack':evidence,
                        'engine_owned_fields':sorted(ENGINE_OWNED_FIELDS),
-                       'current_documents':model_documents(result.documents,accepted_payloads,slot), 'design_intent':design_intent,
+                       'current_documents':stage_documents(model_documents(result.documents,accepted_payloads,slot),slot), 'design_intent':design_intent,
                        'source_manifest_hash':source_manifest_hash, 'spatial_plan':result.plan,
                        'repair_diagnostics':feedback, 'repair_history':repair_history, 'previous_definition':previous,
                        'runtime_capabilities':RULE_RUNTIME_CAPABILITIES,
-                       'backend_profile':profile(),'reference_catalog':references(result.documents),
+                       'backend_profile':profile_for(slot),'reference_catalog':references(result.documents),
                        'engine_facts':facts.to_model()}
             if slot == 'rule_ir':
                 from srtp.ir_v2.function_docs import function_catalog
@@ -1065,9 +1105,12 @@ def run_stages(compiler, *, package, evidence, documents, job_id, design_intent=
                         result.trace[-1]['checkpoint_warning'] = str(error)
                 passed = True
                 break
-            except (LLMClientError, ValueError, TypeError, KeyError, RuntimeError, OSError) as error:
+            except (LLMClientError, ValueError, TypeError, KeyError, IndexError, AttributeError, RuntimeError,
+                    OSError) as error:
+                from .engine_fault import engine_fault_diagnostic, engine_fault_record, is_engine_fault
                 from .static_facts import enrich_diagnostics
-                feedback = enrich_diagnostics(diagnostic_messages(error), facts)
+                fault = engine_fault_record(error, slot) if is_engine_fault(error) else None
+                feedback = [engine_fault_diagnostic(fault)] if fault else enrich_diagnostics(diagnostic_messages(error), facts)
                 result.blocked_unresolved = deepcopy((candidate or {}).get('unresolved', []))
                 # Next repair targets only the failing entries when every diagnostic points into one.
                 from .entry_repair import failing_entries
@@ -1100,6 +1143,12 @@ def run_stages(compiler, *, package, evidence, documents, job_id, design_intent=
                     try: save_checkpoint()
                     except OSError as checkpoint_error:
                         result.trace[-1]['checkpoint_warning']=str(checkpoint_error)
+                if fault:
+                    # An engine defect: a repair request could not fix it, so none is paid for.
+                    result.trace[-1]['engine_fault'] = fault
+                    result.trace[-1]['stopped_reason'] = 'engine_fault'
+                    result.engine_fault = fault
+                    break
                 if upstream_round is None and oracle_round is None and draft is None and not isinstance(error, LLMTransportError):
                     requests = upstream_requests(slot, previous if isinstance(previous, dict) else None, candidate)
                     target = requests[0]['ir'] if requests else None
@@ -1289,7 +1338,8 @@ def compile_staged_report(compiler, *, package, evidence, documents, job_id, pro
                            'source_oracle':outcome.source_oracle,
                            'upstream_rounds':outcome.upstream_rounds,
                            'scene_draft':outcome.scene_draft,
-                           'cache':outcome.cache,
+                           'cache':dict(outcome.cache, run_plan=getattr(compiler.client, 'plan_check', None)),
+                           'engine_fault':outcome.engine_fault or None,
                            'quality_assessment':quality,
                            'api_usage':usage,
                            'provenance':_provenance(),

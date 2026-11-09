@@ -47,6 +47,9 @@ class HTTPPipelineTests(unittest.TestCase):
         calls=[]; scene_calls=0
         def handle(request):
             nonlocal scene_calls
+            if str(request.url) in ('https://openrouter.ai/api/v1/key','https://openrouter.ai/api/v1/credits'):
+                self.assertEqual(request.method,'GET')  # free balance check before the first paid request
+                return httpx.Response(404,json={})
             self.assertEqual(str(request.url),'https://openrouter.ai/api/v1/responses')
             body=json.loads(request.content)
             # Stage replies carry their envelope schema (structured output).

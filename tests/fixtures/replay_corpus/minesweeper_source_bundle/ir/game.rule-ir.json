@@ -1,0 +1,1963 @@
+{
+  "ir_version": "cubeengine.rule-ir/2.0-alpha.1",
+  "document_id": "rule:game.pygame.minesweeper.source",
+  "revision": 1,
+  "content_hash": "81d8ca42578e227517c81878c0a9ddbbe4563982962693092fdf572f4fc41e1e",
+  "metadata": {
+    "title": "Pygame Minesweeper",
+    "description": "Basic 10×10 single-player Minesweeper: source-compatible first-click mine relocation, zero flood, flags, question marks and timer.",
+    "source_project_hash": "d65062d52fc1df68f5b218b30fcc063f669ed9c00754c79df979b1674df69a87",
+    "determinism": "seeded"
+  },
+  "dependencies": {
+    "scene_ir": null,
+    "asset_ir": null,
+    "input_ir": null,
+    "extensions": []
+  },
+  "parameters": [
+    {
+      "id": "rule:parameter.mines",
+      "name": "Mines",
+      "type": "core:int",
+      "default": {
+        "op": "literal",
+        "value": 10
+      },
+      "minimum": 10,
+      "maximum": 10
+    }
+  ],
+  "types": [
+    {
+      "id": "rule:type.coordinates",
+      "name": "Coordinates",
+      "kind": "list",
+      "element_type": "core:coord"
+    }
+  ],
+  "participants": [
+    {
+      "id": "rule:participant.player",
+      "name": "Player",
+      "kind": "human"
+    }
+  ],
+  "topologies": [
+    {
+      "id": "rule:topology.board",
+      "name": "Basic minefield",
+      "kind": "rect_grid",
+      "anchor": "cell",
+      "axes": [
+        {
+          "name": "row",
+          "extent": 10,
+          "boundary": "bounded"
+        },
+        {
+          "name": "column",
+          "extent": 10,
+          "boundary": "bounded"
+        }
+      ],
+      "neighborhoods": [
+        {
+          "name": "adjacent",
+          "diagonals": true
+        }
+      ]
+    }
+  ],
+  "state": {
+    "variables": [
+      {
+        "id": "rule:state.board",
+        "name": "Mine positions and adjacent counts (-2 mine, 0–8 safe)",
+        "type": "core:int",
+        "scope": "topology_site",
+        "topology": "rule:topology.board",
+        "initial": {
+          "op": "literal",
+          "value": 0
+        }
+      },
+      {
+        "id": "rule:state.cover",
+        "name": "Display state (0 covered, 1 flag, 2 question, 3 revealed, 4 exposed mine, 5 incorrect flag, 6 detonated mine)",
+        "type": "core:int",
+        "scope": "topology_site",
+        "topology": "rule:topology.board",
+        "initial": {
+          "op": "literal",
+          "value": 0
+        }
+      },
+      {
+        "id": "rule:state.opened",
+        "name": "Opened cells",
+        "type": "core:int",
+        "scope": "global",
+        "initial": {
+          "op": "literal",
+          "value": 0
+        }
+      },
+      {
+        "id": "rule:state.flags",
+        "name": "Flags placed",
+        "type": "core:int",
+        "scope": "global",
+        "initial": {
+          "op": "literal",
+          "value": 0
+        }
+      },
+      {
+        "id": "rule:state.lost",
+        "name": "Hit a mine",
+        "type": "core:bool",
+        "scope": "global",
+        "initial": {
+          "op": "literal",
+          "value": false
+        }
+      },
+      {
+        "id": "rule:state.finished",
+        "name": "Opened every safe cell",
+        "type": "core:bool",
+        "scope": "global",
+        "initial": {
+          "op": "literal",
+          "value": false
+        }
+      },
+      {
+        "id": "rule:state.elapsed_ticks",
+        "name": "60 Hz timer ticks since first opening",
+        "type": "core:int",
+        "scope": "global",
+        "initial": {
+          "op": "literal",
+          "value": 0
+        }
+      },
+      {
+        "id": "rule:state.pending",
+        "name": "Pending cell release",
+        "type": "core:bool",
+        "scope": "global",
+        "initial": {
+          "op": "literal",
+          "value": false
+        }
+      },
+      {
+        "id": "rule:state.pending_cell",
+        "name": "Cell to open after first-click preparation",
+        "type": "core:coord",
+        "scope": "global",
+        "initial": {
+          "op": "list",
+          "items": [
+            {
+              "op": "literal",
+              "value": 0
+            },
+            {
+              "op": "literal",
+              "value": 0
+            }
+          ]
+        }
+      },
+      {
+        "id": "rule:state.eligible",
+        "name": "Temporary relocation candidates",
+        "type": "rule:type.coordinates",
+        "scope": "global",
+        "initial": {
+          "op": "list",
+          "items": []
+        }
+      },
+      {
+        "id": "rule:state.nearby",
+        "name": "Temporary adjacent mine count",
+        "type": "core:int",
+        "scope": "global",
+        "initial": {
+          "op": "literal",
+          "value": 0
+        }
+      }
+    ],
+    "entity_types": [],
+    "initial_effects": [
+      {
+        "op": "random.draw",
+        "stream": "rule:random.mines",
+        "distribution": {
+          "kind": "sample",
+          "values": {
+            "op": "call",
+            "function": "core:topology.sites",
+            "args": [
+              {
+                "op": "literal",
+                "value": "rule:topology.board"
+              }
+            ]
+          },
+          "count": {
+            "op": "literal",
+            "value": 10
+          }
+        },
+        "as": "initial_mines"
+      },
+      {
+        "op": "foreach",
+        "query": {
+          "op": "var",
+          "name": "initial_mines"
+        },
+        "as": "site",
+        "effects": [
+          {
+            "op": "grid.set",
+            "state": "rule:state.board",
+            "coordinate": {
+              "op": "var",
+              "name": "site"
+            },
+            "value": {
+              "op": "neg",
+              "args": [
+                {
+                  "op": "literal",
+                  "value": 2
+                }
+              ]
+            }
+          }
+        ]
+      }
+    ],
+    "information_model": "perfect"
+  },
+  "queries": [],
+  "events": [],
+  "actions": [
+    {
+      "id": "rule:action.first_reveal",
+      "name": "Open the first covered cell",
+      "actor": {
+        "op": "literal",
+        "value": "rule:participant.player"
+      },
+      "parameters": [
+        {
+          "name": "coordinate",
+          "type": "core:coord",
+          "domain": {
+            "op": "call",
+            "function": "core:topology.sites",
+            "args": [
+              {
+                "op": "literal",
+                "value": "rule:topology.board"
+              }
+            ]
+          }
+        }
+      ],
+      "precondition": {
+        "op": "and",
+        "args": [
+          {
+            "op": "call",
+            "function": "core:topology.contains",
+            "args": [
+              {
+                "op": "literal",
+                "value": "rule:topology.board"
+              },
+              {
+                "op": "param",
+                "name": "coordinate"
+              }
+            ]
+          },
+          {
+            "op": "eq",
+            "args": [
+              {
+                "op": "call",
+                "function": "core:grid.get",
+                "args": [
+                  {
+                    "op": "literal",
+                    "value": "rule:state.cover"
+                  },
+                  {
+                    "op": "param",
+                    "name": "coordinate"
+                  }
+                ]
+              },
+              {
+                "op": "literal",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "op": "eq",
+            "args": [
+              {
+                "op": "call",
+                "function": "core:state.get",
+                "args": [
+                  {
+                    "op": "literal",
+                    "value": "rule:state.opened"
+                  }
+                ]
+              },
+              {
+                "op": "literal",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      "effects": [
+        {
+          "op": "foreach",
+          "query": {
+            "op": "call",
+            "function": "core:topology.region",
+            "args": [
+              {
+                "op": "literal",
+                "value": "rule:topology.board"
+              },
+              {
+                "op": "param",
+                "name": "coordinate"
+              },
+              {
+                "op": "literal",
+                "value": 1
+              },
+              {
+                "op": "literal",
+                "value": "chebyshev"
+              }
+            ]
+          },
+          "as": "protected",
+          "effects": [
+            {
+              "op": "state.set",
+              "target": {
+                "op": "literal",
+                "value": "rule:state.eligible"
+              },
+              "value": {
+                "op": "list",
+                "items": []
+              }
+            },
+            {
+              "op": "foreach",
+              "query": {
+                "op": "call",
+                "function": "core:topology.sites",
+                "args": [
+                  {
+                    "op": "literal",
+                    "value": "rule:topology.board"
+                  }
+                ]
+              },
+              "as": "candidate",
+              "effects": [
+                {
+                  "op": "state.set",
+                  "target": {
+                    "op": "literal",
+                    "value": "rule:state.eligible"
+                  },
+                  "value": {
+                    "op": "call",
+                    "function": "core:sequence.concat",
+                    "args": [
+                      {
+                        "op": "call",
+                        "function": "core:state.get",
+                        "args": [
+                          {
+                            "op": "literal",
+                            "value": "rule:state.eligible"
+                          }
+                        ]
+                      },
+                      {
+                        "op": "if",
+                        "condition": {
+                          "op": "and",
+                          "args": [
+                            {
+                              "op": "ne",
+                              "args": [
+                                {
+                                  "op": "call",
+                                  "function": "core:grid.get",
+                                  "args": [
+                                    {
+                                      "op": "literal",
+                                      "value": "rule:state.board"
+                                    },
+                                    {
+                                      "op": "var",
+                                      "name": "candidate"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "op": "neg",
+                                  "args": [
+                                    {
+                                      "op": "literal",
+                                      "value": 2
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "op": "not",
+                              "args": [
+                                {
+                                  "op": "contains",
+                                  "args": [
+                                    {
+                                      "op": "call",
+                                      "function": "core:topology.region",
+                                      "args": [
+                                        {
+                                          "op": "literal",
+                                          "value": "rule:topology.board"
+                                        },
+                                        {
+                                          "op": "param",
+                                          "name": "coordinate"
+                                        },
+                                        {
+                                          "op": "literal",
+                                          "value": 1
+                                        },
+                                        {
+                                          "op": "literal",
+                                          "value": "chebyshev"
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "op": "var",
+                                      "name": "candidate"
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        "then": {
+                          "op": "list",
+                          "items": [
+                            {
+                              "op": "var",
+                              "name": "candidate"
+                            }
+                          ]
+                        },
+                        "else": {
+                          "op": "list",
+                          "items": []
+                        }
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "op": "random.draw",
+              "stream": "rule:random.mines",
+              "distribution": {
+                "kind": "sample",
+                "values": {
+                  "op": "call",
+                  "function": "core:state.get",
+                  "args": [
+                    {
+                      "op": "literal",
+                      "value": "rule:state.eligible"
+                    }
+                  ]
+                },
+                "count": {
+                  "op": "if",
+                  "condition": {
+                    "op": "eq",
+                    "args": [
+                      {
+                        "op": "call",
+                        "function": "core:grid.get",
+                        "args": [
+                          {
+                            "op": "literal",
+                            "value": "rule:state.board"
+                          },
+                          {
+                            "op": "var",
+                            "name": "protected"
+                          }
+                        ]
+                      },
+                      {
+                        "op": "neg",
+                        "args": [
+                          {
+                            "op": "literal",
+                            "value": 2
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  "then": {
+                    "op": "literal",
+                    "value": 1
+                  },
+                  "else": {
+                    "op": "literal",
+                    "value": 0
+                  }
+                }
+              },
+              "as": "relocations"
+            },
+            {
+              "op": "foreach",
+              "query": {
+                "op": "var",
+                "name": "relocations"
+              },
+              "as": "destination",
+              "effects": [
+                {
+                  "op": "grid.set",
+                  "state": "rule:state.board",
+                  "coordinate": {
+                    "op": "var",
+                    "name": "destination"
+                  },
+                  "value": {
+                    "op": "neg",
+                    "args": [
+                      {
+                        "op": "literal",
+                        "value": 2
+                      }
+                    ]
+                  }
+                },
+                {
+                  "op": "grid.set",
+                  "state": "rule:state.board",
+                  "coordinate": {
+                    "op": "var",
+                    "name": "protected"
+                  },
+                  "value": {
+                    "op": "literal",
+                    "value": 0
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "op": "foreach",
+          "query": {
+            "op": "call",
+            "function": "core:topology.sites",
+            "args": [
+              {
+                "op": "literal",
+                "value": "rule:topology.board"
+              }
+            ]
+          },
+          "as": "site",
+          "effects": [
+            {
+              "op": "state.set",
+              "target": {
+                "op": "literal",
+                "value": "rule:state.nearby"
+              },
+              "value": {
+                "op": "literal",
+                "value": 0
+              }
+            },
+            {
+              "op": "foreach",
+              "query": {
+                "op": "call",
+                "function": "core:topology.neighbors",
+                "args": [
+                  {
+                    "op": "literal",
+                    "value": "rule:topology.board"
+                  },
+                  {
+                    "op": "var",
+                    "name": "site"
+                  },
+                  {
+                    "op": "literal",
+                    "value": true
+                  }
+                ]
+              },
+              "as": "neighbor",
+              "effects": [
+                {
+                  "op": "state.increment",
+                  "target": {
+                    "op": "literal",
+                    "value": "rule:state.nearby"
+                  },
+                  "value": {
+                    "op": "if",
+                    "condition": {
+                      "op": "eq",
+                      "args": [
+                        {
+                          "op": "call",
+                          "function": "core:grid.get",
+                          "args": [
+                            {
+                              "op": "literal",
+                              "value": "rule:state.board"
+                            },
+                            {
+                              "op": "var",
+                              "name": "neighbor"
+                            }
+                          ]
+                        },
+                        {
+                          "op": "neg",
+                          "args": [
+                            {
+                              "op": "literal",
+                              "value": 2
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    "then": {
+                      "op": "literal",
+                      "value": 1
+                    },
+                    "else": {
+                      "op": "literal",
+                      "value": 0
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "op": "grid.set",
+              "state": "rule:state.board",
+              "coordinate": {
+                "op": "var",
+                "name": "site"
+              },
+              "value": {
+                "op": "if",
+                "condition": {
+                  "op": "eq",
+                  "args": [
+                    {
+                      "op": "call",
+                      "function": "core:grid.get",
+                      "args": [
+                        {
+                          "op": "literal",
+                          "value": "rule:state.board"
+                        },
+                        {
+                          "op": "var",
+                          "name": "site"
+                        }
+                      ]
+                    },
+                    {
+                      "op": "neg",
+                      "args": [
+                        {
+                          "op": "literal",
+                          "value": 2
+                        }
+                      ]
+                    }
+                  ]
+                },
+                "then": {
+                  "op": "neg",
+                  "args": [
+                    {
+                      "op": "literal",
+                      "value": 2
+                    }
+                  ]
+                },
+                "else": {
+                  "op": "call",
+                  "function": "core:state.get",
+                  "args": [
+                    {
+                      "op": "literal",
+                      "value": "rule:state.nearby"
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "op": "state.set",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.pending_cell"
+          },
+          "value": {
+            "op": "param",
+            "name": "coordinate"
+          }
+        },
+        {
+          "op": "state.set",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.pending"
+          },
+          "value": {
+            "op": "literal",
+            "value": true
+          }
+        }
+      ],
+      "timing": {
+        "phase": "rule:phase.input"
+      },
+      "encoding": {
+        "kind": "parameter_product"
+      }
+    },
+    {
+      "id": "rule:action.reveal",
+      "name": "Open a covered cell",
+      "actor": {
+        "op": "literal",
+        "value": "rule:participant.player"
+      },
+      "parameters": [
+        {
+          "name": "coordinate",
+          "type": "core:coord",
+          "domain": {
+            "op": "call",
+            "function": "core:topology.sites",
+            "args": [
+              {
+                "op": "literal",
+                "value": "rule:topology.board"
+              }
+            ]
+          }
+        }
+      ],
+      "precondition": {
+        "op": "and",
+        "args": [
+          {
+            "op": "call",
+            "function": "core:topology.contains",
+            "args": [
+              {
+                "op": "literal",
+                "value": "rule:topology.board"
+              },
+              {
+                "op": "param",
+                "name": "coordinate"
+              }
+            ]
+          },
+          {
+            "op": "gt",
+            "args": [
+              {
+                "op": "call",
+                "function": "core:state.get",
+                "args": [
+                  {
+                    "op": "literal",
+                    "value": "rule:state.opened"
+                  }
+                ]
+              },
+              {
+                "op": "literal",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "op": "eq",
+            "args": [
+              {
+                "op": "call",
+                "function": "core:grid.get",
+                "args": [
+                  {
+                    "op": "literal",
+                    "value": "rule:state.cover"
+                  },
+                  {
+                    "op": "param",
+                    "name": "coordinate"
+                  }
+                ]
+              },
+              {
+                "op": "literal",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      "effects": [
+        {
+          "op": "state.set",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.pending_cell"
+          },
+          "value": {
+            "op": "param",
+            "name": "coordinate"
+          }
+        },
+        {
+          "op": "state.set",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.pending"
+          },
+          "value": {
+            "op": "literal",
+            "value": true
+          }
+        }
+      ],
+      "timing": {
+        "phase": "rule:phase.input"
+      },
+      "encoding": {
+        "kind": "parameter_product"
+      }
+    },
+    {
+      "id": "rule:action.clear_question",
+      "name": "Left click a questioned cell to remove its question mark",
+      "actor": {
+        "op": "literal",
+        "value": "rule:participant.player"
+      },
+      "parameters": [
+        {
+          "name": "coordinate",
+          "type": "core:coord",
+          "domain": {
+            "op": "call",
+            "function": "core:topology.sites",
+            "args": [
+              {
+                "op": "literal",
+                "value": "rule:topology.board"
+              }
+            ]
+          }
+        }
+      ],
+      "precondition": {
+        "op": "and",
+        "args": [
+          {
+            "op": "call",
+            "function": "core:topology.contains",
+            "args": [
+              {
+                "op": "literal",
+                "value": "rule:topology.board"
+              },
+              {
+                "op": "param",
+                "name": "coordinate"
+              }
+            ]
+          },
+          {
+            "op": "eq",
+            "args": [
+              {
+                "op": "call",
+                "function": "core:grid.get",
+                "args": [
+                  {
+                    "op": "literal",
+                    "value": "rule:state.cover"
+                  },
+                  {
+                    "op": "param",
+                    "name": "coordinate"
+                  }
+                ]
+              },
+              {
+                "op": "literal",
+                "value": 2
+              }
+            ]
+          }
+        ]
+      },
+      "effects": [
+        {
+          "op": "grid.set",
+          "state": "rule:state.cover",
+          "coordinate": {
+            "op": "param",
+            "name": "coordinate"
+          },
+          "value": {
+            "op": "literal",
+            "value": 0
+          }
+        }
+      ],
+      "timing": {
+        "phase": "rule:phase.input"
+      },
+      "encoding": {
+        "kind": "parameter_product"
+      }
+    },
+    {
+      "id": "rule:action.cycle_mark",
+      "name": "Right click: covered → flag → question → covered",
+      "actor": {
+        "op": "literal",
+        "value": "rule:participant.player"
+      },
+      "parameters": [
+        {
+          "name": "coordinate",
+          "type": "core:coord",
+          "domain": {
+            "op": "call",
+            "function": "core:topology.sites",
+            "args": [
+              {
+                "op": "literal",
+                "value": "rule:topology.board"
+              }
+            ]
+          }
+        }
+      ],
+      "precondition": {
+        "op": "and",
+        "args": [
+          {
+            "op": "call",
+            "function": "core:topology.contains",
+            "args": [
+              {
+                "op": "literal",
+                "value": "rule:topology.board"
+              },
+              {
+                "op": "param",
+                "name": "coordinate"
+              }
+            ]
+          },
+          {
+            "op": "contains",
+            "args": [
+              {
+                "op": "list",
+                "items": [
+                  {
+                    "op": "literal",
+                    "value": 0
+                  },
+                  {
+                    "op": "literal",
+                    "value": 1
+                  },
+                  {
+                    "op": "literal",
+                    "value": 2
+                  }
+                ]
+              },
+              {
+                "op": "call",
+                "function": "core:grid.get",
+                "args": [
+                  {
+                    "op": "literal",
+                    "value": "rule:state.cover"
+                  },
+                  {
+                    "op": "param",
+                    "name": "coordinate"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "effects": [
+        {
+          "op": "state.increment",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.flags"
+          },
+          "value": {
+            "op": "if",
+            "condition": {
+              "op": "eq",
+              "args": [
+                {
+                  "op": "call",
+                  "function": "core:grid.get",
+                  "args": [
+                    {
+                      "op": "literal",
+                      "value": "rule:state.cover"
+                    },
+                    {
+                      "op": "param",
+                      "name": "coordinate"
+                    }
+                  ]
+                },
+                {
+                  "op": "literal",
+                  "value": 0
+                }
+              ]
+            },
+            "then": {
+              "op": "literal",
+              "value": 1
+            },
+            "else": {
+              "op": "if",
+              "condition": {
+                "op": "eq",
+                "args": [
+                  {
+                    "op": "call",
+                    "function": "core:grid.get",
+                    "args": [
+                      {
+                        "op": "literal",
+                        "value": "rule:state.cover"
+                      },
+                      {
+                        "op": "param",
+                        "name": "coordinate"
+                      }
+                    ]
+                  },
+                  {
+                    "op": "literal",
+                    "value": 1
+                  }
+                ]
+              },
+              "then": {
+                "op": "neg",
+                "args": [
+                  {
+                    "op": "literal",
+                    "value": 1
+                  }
+                ]
+              },
+              "else": {
+                "op": "literal",
+                "value": 0
+              }
+            }
+          }
+        },
+        {
+          "op": "grid.set",
+          "state": "rule:state.cover",
+          "coordinate": {
+            "op": "param",
+            "name": "coordinate"
+          },
+          "value": {
+            "op": "if",
+            "condition": {
+              "op": "eq",
+              "args": [
+                {
+                  "op": "call",
+                  "function": "core:grid.get",
+                  "args": [
+                    {
+                      "op": "literal",
+                      "value": "rule:state.cover"
+                    },
+                    {
+                      "op": "param",
+                      "name": "coordinate"
+                    }
+                  ]
+                },
+                {
+                  "op": "literal",
+                  "value": 0
+                }
+              ]
+            },
+            "then": {
+              "op": "literal",
+              "value": 1
+            },
+            "else": {
+              "op": "if",
+              "condition": {
+                "op": "eq",
+                "args": [
+                  {
+                    "op": "call",
+                    "function": "core:grid.get",
+                    "args": [
+                      {
+                        "op": "literal",
+                        "value": "rule:state.cover"
+                      },
+                      {
+                        "op": "param",
+                        "name": "coordinate"
+                      }
+                    ]
+                  },
+                  {
+                    "op": "literal",
+                    "value": 1
+                  }
+                ]
+              },
+              "then": {
+                "op": "literal",
+                "value": 2
+              },
+              "else": {
+                "op": "literal",
+                "value": 0
+              }
+            }
+          }
+        }
+      ],
+      "timing": {
+        "phase": "rule:phase.input"
+      },
+      "encoding": {
+        "kind": "parameter_product"
+      }
+    }
+  ],
+  "systems": [
+    {
+      "id": "rule:system.open",
+      "name": "Open selected cell and recursively expose zero region including numbered boundary",
+      "phase": "rule:phase.update",
+      "priority": 10,
+      "trigger": {
+        "kind": "event",
+        "event": "rule:event.action_applied"
+      },
+      "condition": {
+        "op": "call",
+        "function": "core:state.get",
+        "args": [
+          {
+            "op": "literal",
+            "value": "rule:state.pending"
+          }
+        ]
+      },
+      "effects": [
+        {
+          "op": "foreach",
+          "query": {
+            "op": "if",
+            "condition": {
+              "op": "eq",
+              "args": [
+                {
+                  "op": "call",
+                  "function": "core:grid.get",
+                  "args": [
+                    {
+                      "op": "literal",
+                      "value": "rule:state.board"
+                    },
+                    {
+                      "op": "call",
+                      "function": "core:state.get",
+                      "args": [
+                        {
+                          "op": "literal",
+                          "value": "rule:state.pending_cell"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "op": "literal",
+                  "value": 0
+                }
+              ]
+            },
+            "then": {
+              "op": "call",
+              "function": "core:grid.flood_region",
+              "args": [
+                {
+                  "op": "literal",
+                  "value": "rule:state.board"
+                },
+                {
+                  "op": "call",
+                  "function": "core:state.get",
+                  "args": [
+                    {
+                      "op": "literal",
+                      "value": "rule:state.pending_cell"
+                    }
+                  ]
+                },
+                {
+                  "op": "list",
+                  "items": [
+                    {
+                      "op": "literal",
+                      "value": 0
+                    }
+                  ]
+                },
+                {
+                  "op": "list",
+                  "items": [
+                    {
+                      "op": "neg",
+                      "args": [
+                        {
+                          "op": "literal",
+                          "value": 2
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "op": "literal",
+                  "value": true
+                },
+                {
+                  "op": "literal",
+                  "value": true
+                },
+                {
+                  "op": "list",
+                  "items": []
+                }
+              ]
+            },
+            "else": {
+              "op": "list",
+              "items": [
+                {
+                  "op": "call",
+                  "function": "core:state.get",
+                  "args": [
+                    {
+                      "op": "literal",
+                      "value": "rule:state.pending_cell"
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "as": "exposed",
+          "effects": [
+            {
+              "op": "state.increment",
+              "target": {
+                "op": "literal",
+                "value": "rule:state.opened"
+              },
+              "value": {
+                "op": "if",
+                "condition": {
+                  "op": "ne",
+                  "args": [
+                    {
+                      "op": "call",
+                      "function": "core:grid.get",
+                      "args": [
+                        {
+                          "op": "literal",
+                          "value": "rule:state.cover"
+                        },
+                        {
+                          "op": "var",
+                          "name": "exposed"
+                        }
+                      ]
+                    },
+                    {
+                      "op": "literal",
+                      "value": 3
+                    }
+                  ]
+                },
+                "then": {
+                  "op": "literal",
+                  "value": 1
+                },
+                "else": {
+                  "op": "literal",
+                  "value": 0
+                }
+              }
+            },
+            {
+              "op": "grid.set",
+              "state": "rule:state.cover",
+              "coordinate": {
+                "op": "var",
+                "name": "exposed"
+              },
+              "value": {
+                "op": "if",
+                "condition": {
+                  "op": "eq",
+                  "args": [
+                    {
+                      "op": "call",
+                      "function": "core:grid.get",
+                      "args": [
+                        {
+                          "op": "literal",
+                          "value": "rule:state.board"
+                        },
+                        {
+                          "op": "var",
+                          "name": "exposed"
+                        }
+                      ]
+                    },
+                    {
+                      "op": "neg",
+                      "args": [
+                        {
+                          "op": "literal",
+                          "value": 2
+                        }
+                      ]
+                    }
+                  ]
+                },
+                "then": {
+                  "op": "literal",
+                  "value": 6
+                },
+                "else": {
+                  "op": "literal",
+                  "value": 3
+                }
+              }
+            }
+          ]
+        },
+        {
+          "op": "state.set",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.lost"
+          },
+          "value": {
+            "op": "eq",
+            "args": [
+              {
+                "op": "call",
+                "function": "core:grid.get",
+                "args": [
+                  {
+                    "op": "literal",
+                    "value": "rule:state.board"
+                  },
+                  {
+                    "op": "call",
+                    "function": "core:state.get",
+                    "args": [
+                      {
+                        "op": "literal",
+                        "value": "rule:state.pending_cell"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "op": "neg",
+                "args": [
+                  {
+                    "op": "literal",
+                    "value": 2
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "op": "state.set",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.finished"
+          },
+          "value": {
+            "op": "eq",
+            "args": [
+              {
+                "op": "add",
+                "args": [
+                  {
+                    "op": "call",
+                    "function": "core:state.get",
+                    "args": [
+                      {
+                        "op": "literal",
+                        "value": "rule:state.opened"
+                      }
+                    ]
+                  },
+                  {
+                    "op": "literal",
+                    "value": 10
+                  }
+                ]
+              },
+              {
+                "op": "literal",
+                "value": 100
+              }
+            ]
+          }
+        },
+        {
+          "op": "state.set",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.pending"
+          },
+          "value": {
+            "op": "literal",
+            "value": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "rule:system.show_loss",
+      "name": "Reveal unflagged mines and incorrectly flagged safe cells on loss",
+      "phase": "rule:phase.update",
+      "priority": 20,
+      "trigger": {
+        "kind": "event",
+        "event": "rule:event.action_applied"
+      },
+      "condition": {
+        "op": "call",
+        "function": "core:state.get",
+        "args": [
+          {
+            "op": "literal",
+            "value": "rule:state.lost"
+          }
+        ]
+      },
+      "effects": [
+        {
+          "op": "foreach",
+          "query": {
+            "op": "call",
+            "function": "core:topology.sites",
+            "args": [
+              {
+                "op": "literal",
+                "value": "rule:topology.board"
+              }
+            ]
+          },
+          "as": "site",
+          "effects": [
+            {
+              "op": "grid.set",
+              "state": "rule:state.cover",
+              "coordinate": {
+                "op": "var",
+                "name": "site"
+              },
+              "value": {
+                "op": "if",
+                "condition": {
+                  "op": "and",
+                  "args": [
+                    {
+                      "op": "eq",
+                      "args": [
+                        {
+                          "op": "call",
+                          "function": "core:grid.get",
+                          "args": [
+                            {
+                              "op": "literal",
+                              "value": "rule:state.board"
+                            },
+                            {
+                              "op": "var",
+                              "name": "site"
+                            }
+                          ]
+                        },
+                        {
+                          "op": "neg",
+                          "args": [
+                            {
+                              "op": "literal",
+                              "value": 2
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "op": "eq",
+                      "args": [
+                        {
+                          "op": "call",
+                          "function": "core:grid.get",
+                          "args": [
+                            {
+                              "op": "literal",
+                              "value": "rule:state.cover"
+                            },
+                            {
+                              "op": "var",
+                              "name": "site"
+                            }
+                          ]
+                        },
+                        {
+                          "op": "literal",
+                          "value": 0
+                        }
+                      ]
+                    }
+                  ]
+                },
+                "then": {
+                  "op": "literal",
+                  "value": 4
+                },
+                "else": {
+                  "op": "if",
+                  "condition": {
+                    "op": "and",
+                    "args": [
+                      {
+                        "op": "ne",
+                        "args": [
+                          {
+                            "op": "call",
+                            "function": "core:grid.get",
+                            "args": [
+                              {
+                                "op": "literal",
+                                "value": "rule:state.board"
+                              },
+                              {
+                                "op": "var",
+                                "name": "site"
+                              }
+                            ]
+                          },
+                          {
+                            "op": "neg",
+                            "args": [
+                              {
+                                "op": "literal",
+                                "value": 2
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "op": "eq",
+                        "args": [
+                          {
+                            "op": "call",
+                            "function": "core:grid.get",
+                            "args": [
+                              {
+                                "op": "literal",
+                                "value": "rule:state.cover"
+                              },
+                              {
+                                "op": "var",
+                                "name": "site"
+                              }
+                            ]
+                          },
+                          {
+                            "op": "literal",
+                            "value": 1
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  "then": {
+                    "op": "literal",
+                    "value": 5
+                  },
+                  "else": {
+                    "op": "call",
+                    "function": "core:grid.get",
+                    "args": [
+                      {
+                        "op": "literal",
+                        "value": "rule:state.cover"
+                      },
+                      {
+                        "op": "var",
+                        "name": "site"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rule:system.timer",
+      "name": "Advance timer only after opening and before completion",
+      "phase": "rule:phase.update",
+      "priority": 10,
+      "trigger": {
+        "kind": "tick",
+        "every": 1,
+        "offset": 0
+      },
+      "condition": {
+        "op": "and",
+        "args": [
+          {
+            "op": "gt",
+            "args": [
+              {
+                "op": "call",
+                "function": "core:state.get",
+                "args": [
+                  {
+                    "op": "literal",
+                    "value": "rule:state.opened"
+                  }
+                ]
+              },
+              {
+                "op": "literal",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "op": "not",
+            "args": [
+              {
+                "op": "call",
+                "function": "core:state.get",
+                "args": [
+                  {
+                    "op": "literal",
+                    "value": "rule:state.lost"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "op": "not",
+            "args": [
+              {
+                "op": "call",
+                "function": "core:state.get",
+                "args": [
+                  {
+                    "op": "literal",
+                    "value": "rule:state.finished"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "effects": [
+        {
+          "op": "state.increment",
+          "target": {
+            "op": "literal",
+            "value": "rule:state.elapsed_ticks"
+          },
+          "value": {
+            "op": "literal",
+            "value": 1
+          }
+        }
+      ]
+    }
+  ],
+  "flow": {
+    "model": "hybrid",
+    "phases": [
+      {
+        "id": "rule:phase.input",
+        "order": 100
+      },
+      {
+        "id": "rule:phase.update",
+        "order": 200
+      },
+      {
+        "id": "rule:phase.outcome",
+        "order": 300
+      }
+    ],
+    "initial_phase": "rule:phase.input",
+    "scheduler": {
+      "clock": "fixed_tick",
+      "tick_hz": 60,
+      "ordering": "phase_priority_id"
+    }
+  },
+  "random_streams": [
+    {
+      "id": "rule:random.mines",
+      "name": "Random mine positions and first-click relocation",
+      "algorithm": "cubeengine.pcg32/1",
+      "seed_policy": "session"
+    }
+  ],
+  "goals": [
+    {
+      "id": "rule:goal.clear",
+      "name": "Open all 90 safe cells"
+    }
+  ],
+  "outcomes": [
+    {
+      "id": "rule:outcome.loss",
+      "name": "Mine detonated",
+      "priority": 200,
+      "condition": {
+        "op": "call",
+        "function": "core:state.get",
+        "args": [
+          {
+            "op": "literal",
+            "value": "rule:state.lost"
+          }
+        ]
+      },
+      "result": {
+        "status": "loss",
+        "terminal": true,
+        "losers": [
+          {
+            "op": "literal",
+            "value": "rule:participant.player"
+          }
+        ]
+      }
+    },
+    {
+      "id": "rule:outcome.win",
+      "name": "All safe cells opened",
+      "priority": 100,
+      "condition": {
+        "op": "call",
+        "function": "core:state.get",
+        "args": [
+          {
+            "op": "literal",
+            "value": "rule:state.finished"
+          }
+        ]
+      },
+      "result": {
+        "status": "win",
+        "terminal": true,
+        "winners": [
+          {
+            "op": "literal",
+            "value": "rule:participant.player"
+          }
+        ]
+      }
+    }
+  ],
+  "modes": [
+    {
+      "id": "rule:mode.default",
+      "name": "Basic",
+      "overrides": []
+    }
+  ],
+  "invariants": [],
+  "extensions": {},
+  "provenance": {
+    "patch_history": [
+      {
+        "base_revision": 0,
+        "base_content_hash": "2ef7b0a3da04d01fdcfb06ce7c40d5eead28a08e4399425db20b41d52ca05825",
+        "evidence": [
+          {
+            "evidence_id": "run_game.py:1-17@0d9c1899014279d13615849458126254a3fac9e54d7cd28aef6c7fb41aa3d03a",
+            "path": "run_game.py",
+            "file_sha256": "0d9c1899014279d13615849458126254a3fac9e54d7cd28aef6c7fb41aa3d03a",
+            "span": {
+              "line_start": 1,
+              "line_end": 17
+            },
+            "supports": "/rule_ir"
+          },
+          {
+            "evidence_id": "minesweeper/__main__.py:1-168@c734448d03ecdb6ef6693a03e5d711ec2d27145d13ba38b6455271c50677cd5a",
+            "path": "minesweeper/__main__.py",
+            "file_sha256": "c734448d03ecdb6ef6693a03e5d711ec2d27145d13ba38b6455271c50677cd5a",
+            "span": {
+              "line_start": 1,
+              "line_end": 168
+            },
+            "supports": "/rule_ir"
+          },
+          {
+            "evidence_id": "minesweeper/core/board.py:1-172@5bdaff08d676549c480c95374f212bc54a013cc2ac787a686c5279291d883970",
+            "path": "minesweeper/core/board.py",
+            "file_sha256": "5bdaff08d676549c480c95374f212bc54a013cc2ac787a686c5279291d883970",
+            "span": {
+              "line_start": 1,
+              "line_end": 172
+            },
+            "supports": "/rule_ir"
+          },
+          {
+            "evidence_id": "minesweeper/core/board_tile.py:1-64@2d5927094f88c3c03e6ae64ae5a47e63ed4226769caf21998a77a13850233345",
+            "path": "minesweeper/core/board_tile.py",
+            "file_sha256": "2d5927094f88c3c03e6ae64ae5a47e63ed4226769caf21998a77a13850233345",
+            "span": {
+              "line_start": 1,
+              "line_end": 64
+            },
+            "supports": "/rule_ir"
+          },
+          {
+            "evidence_id": "minesweeper/user_interface_board.py:1-152@1e552aa64378928d6297a68abee49dc425b20e6bd240a9752b92f549589c89fc",
+            "path": "minesweeper/user_interface_board.py",
+            "file_sha256": "1e552aa64378928d6297a68abee49dc425b20e6bd240a9752b92f549589c89fc",
+            "span": {
+              "line_start": 1,
+              "line_end": 152
+            },
+            "supports": "/rule_ir"
+          },
+          {
+            "evidence_id": "minesweeper/user_interface_score.py:1-76@eda7fdfc4640dbca70aebbe0278a70ea60c9867ad48371e6650d87250455fa1e",
+            "path": "minesweeper/user_interface_score.py",
+            "file_sha256": "eda7fdfc4640dbca70aebbe0278a70ea60c9867ad48371e6650d87250455fa1e",
+            "span": {
+              "line_start": 1,
+              "line_end": 76
+            },
+            "supports": "/rule_ir"
+          }
+        ],
+        "assumptions": [
+          "Coordinates use the source's [row,column] indexing. A player release on a question-mark cell removes the question mark without opening it; flags are not opened directly. Timer ticks approximate the source's wall-clock seconds at the source's 60 FPS."
+        ],
+        "operation_count": 18
+      }
+    ]
+  },
+  "unresolved": []
+}

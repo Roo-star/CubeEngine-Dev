@@ -1,0 +1,42 @@
+{
+  "manifest_version": "cubeengine.project-manifest/2.0-alpha.2",
+  "project_id": "project:pygame.minesweeper.llm.source",
+  "revision": 1,
+  "content_hash": "26523abdc27f791333aa1bd9b649eb3509a4895e7a18605afebcd2b5c6caa4d2",
+  "metadata": {
+    "title": "Pygame Minesweeper",
+    "description": ""
+  },
+  "variant": "source",
+  "source_manifest": null,
+  "documents": {
+    "rule_ir": {
+      "document_id": "rule:game.pygame.minesweeper.source",
+      "ir_version": "cubeengine.rule-ir/2.0-alpha.1",
+      "content_hash": "81d8ca42578e227517c81878c0a9ddbbe4563982962693092fdf572f4fc41e1e"
+    },
+    "scene_ir": {
+      "document_id": "scene:game.pygame.minesweeper.source",
+      "ir_version": "cubeengine.scene-ir/2.0-alpha.1",
+      "content_hash": "c30c74a26be9c567d5b1951de608c7f93bfdff58aaada42708d1a573e84f8c7e"
+    },
+    "asset_ir": {
+      "document_id": "asset:game.pygame.minesweeper.source",
+      "ir_version": "cubeengine.asset-ir/2.0-alpha.1",
+      "content_hash": "922fdbd900702dc3281ad2dbb165576d0ccf1480367b3457e478cebe90652263"
+    },
+    "input_ir": {
+      "document_id": "input:game.pygame.minesweeper.source",
+      "ir_version": "cubeengine.input-ir/2.0-alpha.1",
+      "content_hash": "8822f11f8ad2e52a29a0e5709b2ac4e5748b43c6605c5bd8bcc2c7392823135b"
+    }
+  },
+  "extensions": [],
+  "provenance": {
+    "llm_proposal_id": "proposal:job.ce781f0d4e3445ba.rule_ir",
+    "prompt_template_version": "cubeengine.srtp/llm-prompt/2.0",
+    "designer_approved": true,
+    "approved_by": "workbench"
+  },
+  "unresolved": []
+}

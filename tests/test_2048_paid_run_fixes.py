@@ -3,6 +3,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from srtp.llm_compiler_v1.source_workspace import stage_payload
 
 
 class RepeatedReplyTests(unittest.TestCase):
@@ -25,7 +26,7 @@ class StagedSelfCheckTests(unittest.TestCase):
         seen = []
 
         def chat(messages, **kwargs):
-            payload = json.loads(messages[1]['content'])
+            payload = stage_payload(messages)
             stage = payload['stage']
             last = json.loads(messages[-1]['content'])
             seen.append((stage, 'tool_results' in last))
@@ -55,7 +56,7 @@ def _compile_tictactoe(rule_reply_edit, tmp):
     from tests.test_llm_budget import fontless_tictactoe
 
     def chat(messages, **kwargs):
-        payload = json.loads(messages[1]['content'])
+        payload = stage_payload(messages)
         stage = payload['stage']
         reply = {'definition': reference_definition(stage),
                  'evidence': [payload['evidence_pack']['evidence'][0]['evidence_id']],
@@ -106,7 +107,7 @@ class UnresolvedReviewTests(unittest.TestCase):
         extra = dict(tests_for_board()[0], name='extra assertion from the review')
 
         def chat(messages, **kwargs):
-            payload = json.loads(messages[1]['content'])
+            payload = stage_payload(messages)
             stage = payload['stage']
             evidence = [payload['evidence_pack']['evidence'][0]['evidence_id']]
             if stage == 'rule_ir':

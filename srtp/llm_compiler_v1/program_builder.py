@@ -174,12 +174,71 @@ def lower(value: Any, pointer=''):
     return deepcopy(value)
 
 
+def _complete_citation_hash(citation, source_root, normalized):
+    """``path:a-b@<hash>`` whose hash is a clipped copy of the cited file's real SHA-256 -> the full hash.
+
+    Models sometimes drop or add a character of a 64-digit hash while path and lines are right.
+    Only a prefix of at least 56 digits (or the full hash plus junk) of the actual on-disk file under
+    ``source_root`` is completed; anything else stays an unknown ID. The verifier still checks the
+    path, hash and line range against the actual bytes.
+    """
+    match = re.fullmatch(r'(.+):(\d+)-(\d+)@([0-9a-f]{56,80})', citation)
+    if not match or source_root is None:
+        return citation
+    path, start, end, digest = match.groups()
+    root = Path(source_root).resolve()
+    target = (root / path).resolve()
+    if root not in target.parents or not target.is_file():
+        return citation
+    actual = hashlib.sha256(target.read_bytes()).hexdigest()
+    if not (actual.startswith(digest) or digest.startswith(actual)) or digest == actual:
+        return citation
+    normalized.append('evidence {0}: completed the clipped file hash'.format(path))
+    return '{0}:{1}-{2}@{3}'.format(path, start, end, actual)
+
+
+def envelope_unresolved(payload, definition):
+    """The reply's top-level ``unresolved`` as valid IR items, without repeats of ``definition.unresolved``.
+
+    Stage replies may list unresolved items both inside the definition and in the
+    envelope (often as shorter restatements). Both end up in the stage document,
+    so the envelope is normalized here once for every stage: strings become items,
+    missing ``required`` means a non-blocking note, other values are dropped, and an
+    item whose path the definition already declares is kept only in its definition
+    form. Without this, an engine-appended item failed IR validation at an index the
+    model never wrote.
+    """
+    from .compiler import _coerce_unresolved_list
+    declared = definition.get('unresolved') if isinstance(definition, Mapping) else None
+    paths = {item.get('path') for item in declared or [] if isinstance(item, Mapping)}
+    kept, seen = [], set()
+    for item in _coerce_unresolved_list(payload.get('unresolved')):
+        if not isinstance(item, Mapping):
+            continue
+        key = (item.get('path'), item.get('reason'))
+        if item.get('path') in paths or key in seen:
+            continue
+        seen.add(key)
+        kept.append(dict(item))
+    return kept
+
+
 def definition_proposal(payload, *, slot, documents, evidence_pack, job_id, design_intent=None, source_root=None,
                         visual_catalog=None, locked=None):
     definition = payload.get('definition')
+    base = documents[slot]
+    kept_base = False
+    if isinstance(definition, Mapping) and not definition and (design_intent is not None or slot == 'asset_ir'):
+        # "{}" keeps this stage's base document unchanged (a Lift stage the target does not
+        # change, or a source with no resources); the stage gates still check it.
+        definition = {'metadata': deepcopy(base.get('metadata') or {})}
+        kept_base = True
     if not isinstance(definition, Mapping) or not definition:
         raise ValueError('Compilation stage requires a nonempty definition object')
-    base = documents[slot]
+    assumptions = payload.get('assumptions')
+    assumptions = [assumptions] if isinstance(assumptions, str) and assumptions.strip() else (
+        [item for item in assumptions if isinstance(item, (str, Mapping))] if isinstance(assumptions, list) else [])
+    payload = dict(payload, unresolved=envelope_unresolved(payload, definition), assumptions=assumptions)
     if slot == 'rule_ir' and 'mechanics' in definition:
         # Selected engine mechanics expand into ordinary entries before validation.
         from .mechanics import expand_mechanics, merge_mechanics
@@ -238,6 +297,9 @@ def definition_proposal(payload, *, slot, documents, evidence_pack, job_id, desi
                                  'supports': '/' + slot})
             else:
                 match = re.fullmatch(r'(.+):(\d+)-(\d+)@([0-9a-f]{64})', citation)
+                if not match:
+                    citation = _complete_citation_hash(citation, source_root, normalized)
+                    match = re.fullmatch(r'(.+):(\d+)-(\d+)@([0-9a-f]{64})', citation)
                 if not match:
                     raise ValueError('Unknown evidence ID: ' + citation + '; use an evidence_pack ID or the source read citation object.')
                 # Normalize syntax only. The existing verifier still checks
@@ -372,7 +434,8 @@ def definition_proposal(payload, *, slot, documents, evidence_pack, job_id, desi
                 'base_documents':pins, 'patches':{key:[] for key in documents}}
     proposal['patches'][slot] = [{'document_id':base['document_id'], 'base_revision':base['revision'],
         'base_content_hash':base['content_hash'], 'operations':operations, 'evidence':expanded,
-        'assumptions':list(payload.get('assumptions',[]))+['engine normalized '+item for item in normalized[:32]]+fallback_citation,
+        'assumptions':list(payload.get('assumptions',[]))+['engine normalized '+item for item in normalized[:32]]+fallback_citation
+                      +(['engine kept the base {0} unchanged: the reply definition was empty'.format(slot)] if kept_base else []),
         'unresolved':payload.get('unresolved',[])}]
     for key in ('claims','tests','extension_proposals','spatial_lift_options','assumptions','unresolved','clarification_questions'):
         proposal[key] = deepcopy(payload.get(key,[]))

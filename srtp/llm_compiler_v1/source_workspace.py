@@ -311,9 +311,15 @@ class SourceWorkspace:
         conversation[0]["content"] += "\n\n" + SOURCE_TOOL_INSTRUCTION
         context = self.initial_context()
         payload = json.loads(conversation[-1]["content"])
-        # First: the source context is identical across stages, so it starts the cacheable prefix.
-        payload = dict([("source_workspace", context)] + [(k, v) for k, v in payload.items() if k != "source_workspace"])
+        payload.pop("source_workspace", None)
         conversation[-1]["content"] = json.dumps(payload, ensure_ascii=False)
+        # The source context is identical across the stages and repairs of a job, so it is its own
+        # message right after the system prompt: provider prompt caches reuse whole messages, and a
+        # change anywhere inside one large message re-bills all of it (observed: only the system
+        # prompt was read from cache while 78k identical leading characters were billed again).
+        first_user = next((i for i, m in enumerate(conversation) if m.get("role") != "system"), len(conversation))
+        conversation.insert(first_user, {"role": "user", "content": json.dumps(
+            {"source_workspace": context}, ensure_ascii=False)})
         for turn in range(9):
             self.check_cancelled()
             limit=getattr(client,'max_requests',None)
@@ -361,3 +367,24 @@ class SourceWorkspace:
     def trace(self) -> Dict[str, Any]:
         return {"tool_turns": self.tool_turns, "source_chars_read": self.read_chars,
                 "reads": list(self.reads), "indexed_files": len(self.files)}
+
+
+def stage_payload(messages: Sequence[Mapping[str, str]]) -> Dict[str, Any]:
+    """The stage request as one mapping: the source-workspace message merged with the stage payload.
+
+    Requests send ``source_workspace`` as its own message before the stage payload (for prompt
+    caching); readers that need both use this instead of indexing messages.
+    """
+    merged: Dict[str, Any] = {}
+    for message in messages:
+        if message.get("role") == "system":
+            continue
+        try:
+            content = json.loads(message["content"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        if isinstance(content, dict):
+            merged.update(content)
+            if "stage" in content or "task" in content:
+                break
+    return merged

@@ -1,5 +1,24 @@
 # Workbench / LLM 待办
 
+## 2026-11-09：轉換管線穩定性（`prepare_for_qa`，未提交）
+
+依本機 36 次轉換紀錄：失敗主因是額度（6 次 402）、provider 壅塞（2）、引擎缺陷被當成修復指示送給模型（`'key'`、`unresolved/N/required`，浪費約 US$2.4），其次才是模型自行宣告的 required unresolved。本輪皆為通用能力，沒有遊戲名稱分支，也沒有改動使用者的 Manifest。
+
+- [x] 引擎錯誤防火牆（`engine_fault.py`）：`KeyError`/`IndexError`/`TypeError`/`AttributeError`/`OSError` 不再送給模型；該階段立即停止，保留付費回覆，報告引擎出錯的位置。修好後 Continue 免費重驗。
+- [x] 回覆外層 `unresolved` 統一正規化（`program_builder.envelope_unresolved`）：補 `required:false`，`definition.unresolved` 已宣告的路徑不重複附加。修復 11-09 Source 失敗。
+- [x] Lift（及 Asset）的 `definition:{}` 視為「沿用原文件」，各關卡照常檢查。
+- [x] 付費回覆重放回歸（`replay.recorded_replies`/`replay_recorded`、`tests/test_replay_corpus.py`）：按階段重放 `requests.jsonl`；用 `python -m tests.test_replay_corpus --add NAME RUN_DIR --source GAME.py` 新增案例。目前 4 例：掃雷 Source 11-05（7→5 回覆通過）、11-09（只剩模型宣告的阻擋項）、10×10×3 Lift（5 回覆通過）、井字棋 Source。
+- [x] 開跑前計畫檢查：已匹配 checkpoint 後計算至少還要幾次付費請求，第一次送出前比對 `MAX_REQUESTS`、`MAX_COST_USD`、OpenRouter key 額度與 credits（`/api/v1/key`、`/api/v1/credits`，免費，失敗不阻擋；`CUBEENGINE_LLM_SKIP_CREDIT_CHECK=1` 可略過）。
+- [x] 能力提示：required unresolved 的修復診斷會指出可能涵蓋它的既有 profile 章節；Rule profile 新增 `wall_clock`（real_time scheduler 計時器），`algorithm_methods.protected_relocation`（首步保護重抽與單次均勻抽樣同分布）。
+- [x] 輸入縮減：各階段只送自己的 `backend_profile` 章節（17k → 0.9–9.9k 字元），以及可引用的文件；其他文件改為 id／hash 存根（Input 省去約 40k 字元的 Asset）。
+- [x] 快取友善的訊息結構：`source_workspace` 改為系統提示之後獨立的一則 user 訊息，同一工作內各階段完全相同。依 11-09 兩次付費紀錄，快取只按整則訊息命中：修復與後續階段只讀到系統提示的 3,287 token，雖然前 7.8 萬字元完全相同。讀取 payload 請用 `source_workspace.stage_payload(messages)`。
+- [x] 引用 hash 被截短或多一碼（路徑、行數正確，且確為來源根目錄內同一檔案）時由引擎補全，16:06 Source 的 Scene 因此免去一次修復（約 US$0.21）。
+- [x] Input profile `pointer_routing.press_actions`：原作 mouse-down 觸發的動作綁定同鍵同目標的 click，不屬 unresolved；能力提示同步。
+- [x] 重放語料新增 11-09 16:06 Source、16:34 Lift（共 6 例）。
+- [-] 不做：Rule 預先附上邏輯檔。實測讀檔往返後的續問幾乎全命中快取，每個工作只省約 US$0.01–0.02，卻會把 Scene 需要的檔案擠出預算，或讓每次請求變大。
+- [ ] 付費驗收（需使用者審核）：提示、profile 與文件縮減對模型輸出的影響尚未用新生成驗證。建議範圍：掃雷 Source + Lift 各 1 次，加 1 款中性或改名遊戲；`MAX_REQUESTS≥8`，每款約 US$2.5。
+- [ ] 未涵蓋：agentic 路徑尚未接入防火牆與外層正規化；重放語料沒有改名的中性來源（回覆的 evidence 綁定原檔 hash）；模型宣告「近似」與「缺能力」仍無區分。
+
 ## 2026-10-14：Alphav1.1 頁簽功能落地與英文介面
 
 交付仍在 `E:/CubeEngine/work/agentic-srtp-integration` 的 `WorkbenchAI` 分支。保留 V2 黑白灰主版式，版本標識改為 `Alphav1.1`。

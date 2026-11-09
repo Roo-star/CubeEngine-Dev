@@ -12,6 +12,7 @@ from srtp.llm_compiler_v1.compiler import (
 from srtp.llm_compiler_v1.evidence import build_evidence_pack
 from srtp.llm_compiler_v1.source_workspace import SourceWorkspace
 from srtp.source_importer import SourceGameImporter
+from srtp.llm_compiler_v1.source_workspace import stage_payload
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -69,7 +70,7 @@ class SourceWorkspaceTests(unittest.TestCase):
         def chat(messages, **kwargs):
             calls.append(messages)
             if len(calls) == 1:
-                context = json.loads(messages[-1]["content"])["source_workspace"]
+                context = stage_payload(messages)["source_workspace"]
                 self.assertIn("from rules import legal", context["source"][0]["text"])
                 self.assertTrue(any(f["path"] == "rules.py" for f in context["files"]))
                 return json.dumps({"source_requests": [{"path": "rules.py", "start_line": 1, "end_line": 2}]})

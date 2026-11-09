@@ -20,6 +20,7 @@ from srtp.llm_compiler_v1.behavior_runtime import test_runtime as scenario_runti
 from srtp.ir_v2 import compile_rule_ir, RuleRuntimeError, replay_rule_ir
 from srtp.ir_v2.expression import ExpressionEvaluator, EvaluationContext
 from tests.test_rule_ir_v2_event_time import _event_document, _system, _increment
+from srtp.llm_compiler_v1.source_workspace import stage_payload
 
 ROOT=Path(__file__).resolve().parents[1]
 FIELD=ROOT/'tests/fixtures/field_runs_20260924/minesweeper_lift.json'
@@ -114,7 +115,7 @@ class SpatialLiftBaselineTests(unittest.TestCase):
             cache_identity=deepcopy(field['model_configuration'])
             calls=[]
             def chat_json(self,messages):
-                task=json.loads(messages[1]['content'])['task']
+                task=stage_payload(messages)['task']
                 self.calls.append(task)
                 raise LLMTransportError('offline stop at uncached '+task)
         client=OfflineClient()

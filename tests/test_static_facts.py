@@ -12,6 +12,7 @@ from srtp.llm_compiler_v1.static_facts import (
     APPLICATION_CONTEXT, collect_static_facts, discover_lifecycle_controls, enforce_locked, seed_documents,
 )
 from srtp.source_importer import SourceGameImporter
+from srtp.llm_compiler_v1.source_workspace import stage_payload
 
 ROOT = Path(__file__).resolve().parents[1]
 GAMES = ROOT / 'srtp/reference_games'
@@ -223,7 +224,7 @@ class LockTests(unittest.TestCase):
         self.assertEqual(job.base_pins['input_ir']['content_hash'], job.bootstrap.documents['input_ir']['content_hash'])
         messages = worker_messages(ir_key='input_ir', spec={}, base_document=job.bootstrap.documents['input_ir'],
                                    evidence_menu=[], engine_facts=job.facts.to_model())
-        payload = json.loads(messages[1]['content'])
+        payload = stage_payload(messages)
         self.assertEqual([h['control'] for h in payload['engine_facts']['host_commands']],
                          ['window_close', 'keyboard.key.escape', 'keyboard.key.r'])
         critic = critic_messages(source=[], spec={}, rule_summary={}, scene_summary={}, input_summary={}, probe={},
